@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
+    <multiply name="amount" type="float"><input name="in1" type="float" nodename="u" /><input name="in2" type="float" value="270.0" /></multiply>
+    <rotate2d name="rot" type="vector2"><input name="in" type="vector2" nodename="uv" /><input name="amount" type="float" nodename="amount" /></rotate2d>
+    <rotate2d name="fixed" type="vector2"><input name="in" type="vector2" nodename="uv" /><input name="amount" type="float" value="-30.0" /></rotate2d>
+    <extract name="rx" type="float"><input name="in" type="vector2" nodename="rot" /><input name="index" type="integer" value="0" /></extract>
+    <extract name="ry" type="float"><input name="in" type="vector2" nodename="rot" /><input name="index" type="integer" value="1" /></extract>
+    <extract name="fx" type="float"><input name="in" type="vector2" nodename="fixed" /><input name="index" type="integer" value="0" /></extract>
+    <combine3 name="color" type="color3"><input name="in1" type="float" nodename="rx" /><input name="in2" type="float" nodename="ry" /><input name="in3" type="float" nodename="fx" /></combine3>
+    <output name="out_color" type="color3" nodename="color" />
+  </nodegraph>
+  <standard_surface name="SS" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="out_color" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS" />
+  </surfacematerial>
+</materialx>

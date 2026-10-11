@@ -62,6 +62,7 @@ pub enum Op {
     Distance,
     DotProduct,
     CrossProduct,
+    Rotate2d,
     // space.rs
     Transform { kind: TransformKind, from: Space, to: Space },
     // logic.rs

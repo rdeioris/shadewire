@@ -21,7 +21,9 @@ pub fn eval_op(op: &Op, args: &[Value], ty: Type, ctx: &mut dyn ContextSource) -
         | Op::Floor | Op::Ceil | Op::Round | Op::Fract | Op::Power | Op::SafePower | Op::Sqrt | Op::Exp | Op::Ln
         | Op::Min | Op::Max | Op::Clamp | Op::Mix | Op::Smoothstep | Op::Remap => math::eval(op, args, ty),
         Op::Sin | Op::Cos | Op::Tan | Op::Asin | Op::Acos | Op::Atan2 => trig::eval(op, args, ty),
-        Op::Normalize | Op::Magnitude | Op::Distance | Op::DotProduct | Op::CrossProduct => vector::eval(op, args, ty),
+        Op::Normalize | Op::Magnitude | Op::Distance | Op::DotProduct | Op::CrossProduct | Op::Rotate2d => {
+            vector::eval(op, args, ty)
+        }
         Op::Transform { .. } => space::eval(op, args, ty, ctx),
         Op::Greater | Op::GreaterEq | Op::Equal | Op::IfGreater | Op::IfGreaterEq | Op::IfEqual | Op::Switch
         | Op::And | Op::Or | Op::Not => logic::eval(op, args, ty),

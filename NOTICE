@@ -6,8 +6,10 @@ Copyright Contributors to the MaterialX Project, licensed under the Apache Licen
 (vendor/materialx/LICENSE):
 - vendor/materialx/** (unmodified copies)
 - crates/shadewire-wgsl/lib/*.wgsl and crates/shadewire-ir/src/ops/noise/*.rs, color.rs:
-  ports of libraries/stdlib/genglsl/lib/*.glsl (normal.wgsl: libraries/stdlib/genglsl/mx_normalmap.glsl)
+  ports of libraries/stdlib/genglsl/lib/*.glsl (normal.wgsl: libraries/stdlib/genglsl/mx_normalmap.glsl,
+  vector.wgsl: libraries/stdlib/genglsl/mx_rotate_vector2.glsl)
 - crates/shadewire-ir/src/ops/normal.rs: port of libraries/stdlib/genglsl/mx_normalmap.glsl
+- crates/shadewire-ir/src/ops/vector.rs (rotate2d): port of libraries/stdlib/genglsl/mx_rotate_vector2.glsl
 
 crates/shadewire-ir/src/ops/noise/*.rs and crates/shadewire-wgsl/lib/noise_*.wgsl derive from
 the Open Shading Language noise library (github.com/imageworks/OpenShadingLanguage,

@@ -1,6 +1,7 @@
-//! Vector family: normalize, magnitude, distance, dot and cross products over fixed vectors.
+//! Vector family: normalize, magnitude, distance, dot and cross products over fixed vectors,
+//! rotate2d over amounts in degrees (negative, past a turn).
 
-use super::{binary, unary, Case, EXACT};
+use super::{binary, unary, Case, EXACT, TRANSCENDENTAL};
 use shadewire_ir::{Op, Type, Value};
 
 const V3: Type = Type::Vector3;
@@ -28,6 +29,12 @@ pub fn cases() -> Vec<Case> {
         out.push(unary("vector", Op::Normalize, v.ty(), v.clone(), EXACT));
         out.push(unary("vector", Op::Magnitude, Type::Float, v.clone(), EXACT));
         out.push(binary("vector", Op::DotProduct, Type::Float, v.clone(), v, EXACT));
+    }
+    for amount in [0.0, 30.0, -45.0, 90.0, 400.0] {
+        for v in [[1.0, 0.0], [0.6, -0.8], [-2.5, 3.0]] {
+            let (v, a) = (Value::Vector2(v), Value::Float(amount));
+            out.push(binary("vector", Op::Rotate2d, Type::Vector2, v, a, TRANSCENDENTAL));
+        }
     }
     out
 }

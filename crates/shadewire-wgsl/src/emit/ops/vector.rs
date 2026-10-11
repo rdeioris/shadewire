@@ -1,10 +1,14 @@
 use shadewire_ir::{Op, Type};
 
-use super::{cast, finish, work_type, Arg};
+use super::{cast, finish, first_f32, leading, work_type, Arg};
 
 /// Mirrors `shadewire_ir::ops::vector`. Operands keep their own width (the first
 /// argument's); WGSL has no scalar `normalize` or `dot`, so those are written out.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
+    if *op == Op::Rotate2d {
+        let call = format!("mx_rotate_vector2({}, {})", leading(&args[0], 2), first_f32(&args[1]));
+        return cast(&call, Type::Vector2, ty);
+    }
     if args.len() == 2 && args[0].1.component_count() != args[1].1.component_count() {
         panic!("{op:?} of different widths: {:?} and {:?}", args[0].1, args[1].1);
     }
@@ -43,6 +47,12 @@ mod tests {
         assert_eq!(emit(&Op::Distance, &args(&[V3, V3]), Type::Float), "distance(n0, n1)");
         assert_eq!(emit(&Op::DotProduct, &args(&[V3, Type::Color3]), Type::Float), "dot(n0, n1)");
         assert_eq!(emit(&Op::CrossProduct, &args(&[V3, V3]), V3), "cross(n0, n1)");
+    }
+
+    #[test]
+    fn rotate2d_calls_the_library() {
+        assert_eq!(emit(&Op::Rotate2d, &args(&[Type::Vector2, Type::Float]), Type::Vector2), "mx_rotate_vector2(n0, n1)");
+        assert_eq!(emit(&Op::Rotate2d, &args(&[Type::Vector2, Type::Integer]), Type::Vector2), "mx_rotate_vector2(n0, f32(n1))");
     }
 
     #[test]

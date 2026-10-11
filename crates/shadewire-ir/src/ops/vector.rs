@@ -30,6 +30,13 @@ pub fn eval(op: &Op, args: &[Value], ty: Type) -> Value {
             ];
             Value::from_floats(ty, &out)
         }
+        // mx_rotate_vector2: `amount` in degrees.
+        Op::Rotate2d => {
+            let v = args[0].floats();
+            let radians = args[1].as_f32() * (std::f32::consts::PI / 180.0);
+            let (sa, ca) = (radians.sin(), radians.cos());
+            Value::from_floats(ty, &[ca * v[0] + sa * v[1], -sa * v[0] + ca * v[1]])
+        }
         other => panic!("{other:?} is not a vector op"),
     }
 }
@@ -59,5 +66,15 @@ mod tests {
         let v = Value::Vector3([3.0, 0.0, 4.0]);
         assert_eq!(eval(&Op::Magnitude, std::slice::from_ref(&v), Type::Float), Value::Float(5.0));
         assert_eq!(eval(&Op::Normalize, &[v], Type::Vector3), Value::Vector3([0.6, 0.0, 0.8]));
+    }
+
+    /// mx_rotate_vector2: degrees, and a positive amount turns +x towards -y.
+    #[test]
+    fn rotate2d_turns_by_degrees() {
+        let r = eval(&Op::Rotate2d, &[Value::Vector2([1.0, 0.0]), Value::Float(90.0)], Type::Vector2).floats();
+        assert!(r[0].abs() < 1e-6 && (r[1] + 1.0).abs() < 1e-6, "{r:?}");
+        let r = eval(&Op::Rotate2d, &[Value::Vector2([0.6, 0.8]), Value::Float(-30.0)], Type::Vector2).floats();
+        let (s, c) = (0.5f32, 0.75f32.sqrt());
+        assert!((r[0] - (c * 0.6 - s * 0.8)).abs() < 1e-6 && (r[1] - (s * 0.6 + c * 0.8)).abs() < 1e-6, "{r:?}");
     }
 }

@@ -25,7 +25,9 @@ pub fn emit_op(op: &Op, args: &[Arg], ty: Type) -> String {
         | Op::Floor | Op::Ceil | Op::Round | Op::Fract | Op::Power | Op::SafePower | Op::Sqrt | Op::Exp | Op::Ln
         | Op::Min | Op::Max | Op::Clamp | Op::Mix | Op::Smoothstep | Op::Remap => math::emit(op, args, ty),
         Op::Sin | Op::Cos | Op::Tan | Op::Asin | Op::Acos | Op::Atan2 => trig::emit(op, args, ty),
-        Op::Normalize | Op::Magnitude | Op::Distance | Op::DotProduct | Op::CrossProduct => vector::emit(op, args, ty),
+        Op::Normalize | Op::Magnitude | Op::Distance | Op::DotProduct | Op::CrossProduct | Op::Rotate2d => {
+            vector::emit(op, args, ty)
+        }
         Op::Transform { .. } => space::emit(op, args, ty),
         Op::Greater | Op::GreaterEq | Op::Equal | Op::IfGreater | Op::IfGreaterEq | Op::IfEqual | Op::Switch
         | Op::And | Op::Or | Op::Not => logic::emit(op, args, ty),
