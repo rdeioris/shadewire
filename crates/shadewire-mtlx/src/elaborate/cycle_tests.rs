@@ -113,3 +113,61 @@ fn interface_inputs_with_nodename_or_odd_types_are_errors() {
     assert_eq!(interface_error(r#"<input name="k" type="float" nodename="c"/>"#), "g/k");
     assert_eq!(interface_error(r#"<input name="s" type="surfaceshader"/>"#), "g/s");
 }
+
+const DOUBLE: &str = r#"
+    <nodedef name="ND_double_float" node="double">
+      <input name="in" type="float" value="0"/>
+      <output name="out" type="float"/>
+    </nodedef>
+    <nodegraph name="NG_double_float" nodedef="ND_double_float">
+      <multiply name="twice" type="float">
+        <input name="in1" type="float" interfacename="in"/>
+        <input name="in2" type="float" value="2"/>
+      </multiply>
+      <output name="out" type="float" nodename="twice"/>
+    </nodegraph>"#;
+
+fn eval_out(d: &Document) -> shadewire_ir::Value {
+    use shadewire_ir::interpret::{eval_surface, ContextSource, NoTextures};
+    use shadewire_ir::{ContextRead, Space, TransformKind, Value};
+    struct Zeros;
+    impl ContextSource for Zeros {
+        fn read(&mut self, read: &ContextRead) -> Value {
+            Value::zero(read.ty())
+        }
+        fn transform(&mut self, _: TransformKind, _: Space, _: Space, v: [f32; 3]) -> [f32; 3] {
+            v
+        }
+    }
+    let dag = elaborate_output(d, "g", "out").unwrap();
+    eval_surface(&dag, &mut Zeros, &NoTextures).remove(0).1
+}
+
+#[test]
+fn chained_instances_of_one_implementation_are_not_a_cycle() {
+    let d = doc(&format!(
+        r#"{DOUBLE}
+        <nodegraph name="g">
+          <double name="a" type="float"><input name="in" type="float" value="3"/></double>
+          <double name="b" type="float"><input name="in" type="float" nodename="a"/></double>
+          <output name="out" type="float" nodename="b"/>
+        </nodegraph>"#
+    ));
+    assert_eq!(eval_out(&d), shadewire_ir::Value::Float(12.0));
+}
+
+#[test]
+fn an_instance_fed_through_a_user_nodegraph_is_not_a_cycle() {
+    let d = doc(&format!(
+        r#"{DOUBLE}
+        <nodegraph name="inner">
+          <double name="x" type="float"><input name="in" type="float" value="5"/></double>
+          <output name="o" type="float" nodename="x"/>
+        </nodegraph>
+        <nodegraph name="g">
+          <double name="b" type="float"><input name="in" type="float" nodegraph="inner" output="o"/></double>
+          <output name="out" type="float" nodename="b"/>
+        </nodegraph>"#
+    ));
+    assert_eq!(eval_out(&d), shadewire_ir::Value::Float(20.0));
+}

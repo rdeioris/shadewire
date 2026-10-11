@@ -76,25 +76,10 @@ impl<'a> Elaborator<'a> {
     }
 
     /// Instantiates an implementation graph: every nodedef input is bound in
-    /// the caller's scope, then the requested graph output is followed inside.
+    /// the caller's scope first, then the requested graph output is followed
+    /// inside. Only that body holds the recursion guard, so chained instances
+    /// of one nodedef are fine while a graph that reaches its own nodedef is a cycle.
     fn inline(
-        &mut self,
-        scope: &Scope<'a>,
-        node: &'a Node,
-        nd: &'a NodeDef,
-        graph: &'a NodeGraph,
-        output: Option<&str>,
-        at: &Location,
-    ) -> Result<NodeId, Error> {
-        if !self.inlining.insert(nd.name.clone()) {
-            return Err(Error::Cycle { at: at.clone(), node: node.name.clone() });
-        }
-        let result = self.inline_guarded(scope, node, nd, graph, output, at);
-        self.inlining.remove(&nd.name);
-        result
-    }
-
-    fn inline_guarded(
         &mut self,
         scope: &Scope<'a>,
         node: &'a Node,
@@ -124,7 +109,12 @@ impl<'a> Elaborator<'a> {
             path: scope.origin(&node.name),
         };
         let wanted = output.or(nd.outputs.first().map(|o| o.name.as_str()));
-        self.graph_output(&child, wanted, at)
+        if !self.inlining.insert(nd.name.clone()) {
+            return Err(Error::Cycle { at: at.clone(), node: node.name.clone() });
+        }
+        let result = self.graph_output(&child, wanted, at);
+        self.inlining.remove(&nd.name);
+        result
     }
 
     /// The graph output named `output` of the scope's graph, or its only output.
