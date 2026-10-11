@@ -71,7 +71,6 @@ mod tests {
         let all: Vec<&str> = (0..4).map(|i| names.member(i)).collect();
         assert_eq!(all, vec!["my_prop", "my_prop_2", "filter_", "filter__2"]);
         assert_eq!(r.uniforms[1].name, "my_prop");
-        assert_eq!(names.by_name(&r, "my_prop"), Some("my_prop_2"));
         naga::front::wgsl::parse_str(&uniform_block(&r)).unwrap();
     }
 

@@ -1,5 +1,5 @@
 mod context;
-mod live;
+pub mod live;
 mod params;
 mod textures;
 pub mod uniforms;

@@ -45,12 +45,6 @@ impl UniformNames {
     pub fn member(&self, index: usize) -> &str {
         &self.members[index]
     }
-
-    #[allow(dead_code)] // used by the expression emitter (Task 20)
-    /// The member for an authored uniform name (first uniform of that name).
-    pub fn by_name(&self, reflection: &Reflection, name: &str) -> Option<&str> {
-        reflection.uniforms.iter().position(|u| u.name == name).map(|i| self.member(i))
-    }
 }
 
 /// The WGSL struct name of a shading model.
