@@ -1,6 +1,18 @@
 """Bake oracle values with MaterialX's own GLSL (the TextureBaker's renderer) for shadewire's tests.
 
-Run: python -I tools/oracle/bake_oracle.py  (needs `pip install materialx==1.39.5`, a GL context)
+Setup (Windows; the system Python may be too new for a materialx wheel):
+    py -3.12 -m venv <scratch>/oracle-venv
+    <scratch>/oracle-venv/Scripts/python.exe -m pip install materialx==1.39.5
+Run from the repo root:
+    <scratch>/oracle-venv/Scripts/python.exe -I tools/oracle/bake_oracle.py
+
+The libraries and GLSL come from the materialx wheel, not vendor/materialx, so
+the wheel version must match the tag in vendor/materialx/UPSTREAM (v1.39.5);
+vendor/materialx is only on the search path for resources/Images.
+
+Needs an OpenGL context on a real GPU. The GPU is shared: check free VRAM first
+(`nvidia-smi --query-gpu=memory.free --format=csv`, skip under 1500 MiB) and
+bake once; the images are 16x16.
 
 The TextureBaker writes float bakes as .hdr when MaterialX is built without
 OpenImageIO (the PyPI wheel), and RGBE keeps only 8 bits of mantissa. So this

@@ -2,8 +2,6 @@
 <materialx version="1.39">
   <nodegraph name="NG">
     <texcoord name="uv" type="vector2" />
-    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
-    <extract name="v" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="1" /></extract>
     <multiply name="tc" type="vector2"><input name="in1" type="vector2" nodename="uv" /><input name="in2" type="float" value="8" /></multiply>
     <noise2d name="color" type="color3"><input name="texcoord" type="vector2" nodename="tc" /><input name="amplitude" type="vector3" value="0.5, 0.5, 0.5" /><input name="pivot" type="float" value="0.5" /></noise2d>
     <noise2d name="rough" type="float"><input name="texcoord" type="vector2" nodename="tc" /><input name="amplitude" type="float" value="0.5" /><input name="pivot" type="float" value="0.5" /></noise2d>

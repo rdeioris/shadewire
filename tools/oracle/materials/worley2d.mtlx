@@ -2,8 +2,6 @@
 <materialx version="1.39">
   <nodegraph name="NG">
     <texcoord name="uv" type="vector2" />
-    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
-    <extract name="v" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="1" /></extract>
     <multiply name="tc" type="vector2"><input name="in1" type="vector2" nodename="uv" /><input name="in2" type="float" value="8" /></multiply>
     <worleynoise2d name="w3" type="vector3"><input name="texcoord" type="vector2" nodename="tc" /><input name="jitter" type="float" value="0.8" /></worleynoise2d>
     <convert name="color" type="color3"><input name="in" type="vector3" nodename="w3" /></convert>

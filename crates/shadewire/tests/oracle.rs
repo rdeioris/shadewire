@@ -177,7 +177,8 @@ fn compare(baked: &Baked, convention: VConvention) -> Vec<FieldError> {
                 let theirs = texels[y * baked.width + x];
                 for (c, ours_c) in ours.iter().enumerate() {
                     let e = (ours_c - theirs[c]).abs();
-                    if !(e <= error.max) {
+                    // A NaN error sticks: no later texel may hide it.
+                    if !error.max.is_nan() && !(e <= error.max) {
                         *error = FieldError { field: name.clone(), max: e, at: (x, y), ours: ours.clone(), theirs };
                     }
                 }
@@ -188,7 +189,8 @@ fn compare(baked: &Baked, convention: VConvention) -> Vec<FieldError> {
 }
 
 fn worst(errors: &[FieldError]) -> f32 {
-    errors.iter().map(|e| e.max).fold(0.0, f32::max)
+    // NaN-propagating: f32::max would drop a NaN error.
+    errors.iter().map(|e| e.max).fold(0.0, |a, b| if a.is_nan() || b.is_nan() { f32::NAN } else { a.max(b) })
 }
 
 fn describe(material: &str, errors: &[FieldError]) -> String {
@@ -217,6 +219,24 @@ fn uv_convention() -> VConvention {
     matches[0]
 }
 
+/// Materials whose graph also drives `specular_roughness` (the scalar ops).
+const SCALAR_MATERIALS: [&str; 8] =
+    ["cellnoise2d", "fractal3d", "logic_switch", "math_ops", "noise2d", "noise3d", "trig_ops", "worley2d"];
+
+fn expected_fields(material: &str) -> Vec<&'static str> {
+    if SCALAR_MATERIALS.contains(&material) {
+        vec!["base_color", "specular_roughness"]
+    } else {
+        vec!["base_color"]
+    }
+}
+
+fn field_names(baked: &Baked) -> Vec<&str> {
+    let mut names: Vec<&str> = baked.fields.iter().map(|(n, _)| n.as_str()).collect();
+    names.sort();
+    names
+}
+
 #[test]
 fn interpreter_matches_materialx_glsl() {
     let convention = uv_convention();
@@ -233,7 +253,8 @@ fn interpreter_matches_materialx_glsl() {
         let baked = load_baked(path);
         let tolerance = if baked.material == "image_grid" { IMAGE_TOLERANCE } else { TOLERANCE };
         let errors = compare(&baked, convention);
-        failed |= worst(&errors) > tolerance;
+        assert_eq!(field_names(&baked), expected_fields(&baked.material), "{} baked fields", baked.material);
+        failed |= !(worst(&errors) <= tolerance);
         report.push(describe(&baked.material, &errors));
     }
     println!("uv convention {convention:?}\n{}", report.join("\n"));
