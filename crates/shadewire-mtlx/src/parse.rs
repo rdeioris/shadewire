@@ -1,0 +1,103 @@
+use quick_xml::events::{BytesStart, Event};
+use quick_xml::Reader;
+use shadewire_ir::{Error, Location};
+
+use crate::element::Element;
+
+fn line_at(text: &str, pos: usize) -> u32 {
+    let end = pos.min(text.len());
+    1 + text.as_bytes()[..end].iter().filter(|&&b| b == b'\n').count() as u32
+}
+
+fn fail(file: Option<&str>, line: u32, message: String) -> Error {
+    Error::Parse {
+        at: Location { file: file.map(str::to_string), line, path: String::new() },
+        message,
+    }
+}
+
+fn open(start: &BytesStart, line: u32, file: Option<&str>) -> Result<Element, Error> {
+    let category = String::from_utf8_lossy(start.name().as_ref()).into_owned();
+    let mut attributes = Vec::new();
+    for attr in start.attributes() {
+        let attr = attr.map_err(|e| fail(file, line, e.to_string()))?;
+        let key = String::from_utf8_lossy(attr.key.as_ref()).into_owned();
+        let value = attr
+            .unescape_value()
+            .map_err(|e| fail(file, line, e.to_string()))?
+            .into_owned();
+        attributes.push((key, value));
+    }
+    Ok(Element { category, attributes, children: Vec::new(), line })
+}
+
+/// Parse a MaterialX document and return its `<materialx>` root.
+pub fn parse_str(text: &str, file: Option<&str>) -> Result<Element, Error> {
+    let mut reader = Reader::from_str(text);
+    reader.config_mut().trim_text(true);
+    let mut stack: Vec<Element> = Vec::new();
+    let mut root: Option<Element> = None;
+    loop {
+        let start_pos = reader.buffer_position() as usize;
+        let event = reader
+            .read_event()
+            .map_err(|e| fail(file, line_at(text, reader.buffer_position() as usize), e.to_string()))?;
+        // trim_text skips leading whitespace, so find the real start of the tag
+        let tag_pos = text[start_pos.min(text.len())..]
+            .find('<')
+            .map_or(start_pos, |o| start_pos + o);
+        let line = line_at(text, tag_pos);
+        match event {
+            Event::Start(s) => stack.push(open(&s, line, file)?),
+            Event::Empty(s) => {
+                let element = open(&s, line, file)?;
+                match stack.last_mut() {
+                    Some(parent) => parent.children.push(element),
+                    None => root = Some(element),
+                }
+            }
+            Event::End(_) => {
+                let element = stack.pop().ok_or_else(|| fail(file, line, "unexpected end tag".into()))?;
+                match stack.last_mut() {
+                    Some(parent) => parent.children.push(element),
+                    None => root = Some(element),
+                }
+            }
+            Event::Eof => break,
+            _ => {}
+        }
+    }
+    if let Some(open) = stack.last() {
+        return Err(fail(file, open.line, format!("unclosed element {}", open.category)));
+    }
+    root.ok_or_else(|| fail(file, 1, "no root element".into()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_str;
+
+    #[test]
+    fn reads_nested_elements_with_lines() {
+        let text = "<?xml version=\"1.0\"?>\n<materialx version=\"1.39\">\n  <nodegraph name=\"g\">\n    <add name=\"a\" type=\"float\"/>\n  </nodegraph>\n</materialx>\n";
+        let root = parse_str(text, None).unwrap();
+        assert_eq!(root.category, "materialx");
+        assert_eq!(root.attr("version"), Some("1.39"));
+        let graph = &root.children[0];
+        assert_eq!(graph.name(), "g");
+        assert_eq!(graph.children[0].category, "add");
+        assert_eq!(graph.children[0].line, 4);
+    }
+
+    #[test]
+    fn reports_bad_xml_with_a_line() {
+        let err = parse_str("<materialx>\n<a>\n</materialx>", Some("bad.mtlx")).unwrap_err();
+        assert!(err.to_string().contains("bad.mtlx"));
+    }
+
+    #[test]
+    fn unescapes_attribute_values() {
+        let root = parse_str("<materialx a=\"x&amp;y\"/>", None).unwrap();
+        assert_eq!(root.attr("a"), Some("x&y"));
+    }
+}
