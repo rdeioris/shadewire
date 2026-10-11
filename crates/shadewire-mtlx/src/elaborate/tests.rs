@@ -175,7 +175,8 @@ fn extract_error(source: &str, in_type: &str) -> String {
 
 #[test]
 fn extract_index_past_the_last_component_is_a_bad_value() {
-    let constant = r#"<constant name="src" type="color3"><input name="value" type="color3" value="1, 2, 3"/></constant>"#;
+    let constant =
+        r#"<constant name="src" type="color3"><input name="value" type="color3" value="1, 2, 3"/></constant>"#;
     assert_eq!(extract_error(constant, "color3"), "extract index 7 is out of range for color3");
     let texcoord = r#"<texcoord name="src" type="vector2"/>"#;
     assert_eq!(extract_error(texcoord, "vector2"), "extract index 7 is out of range for vector2");

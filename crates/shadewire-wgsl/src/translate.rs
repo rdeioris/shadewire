@@ -38,17 +38,10 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
             let mut binding_map = hlsl::BindingMap::default();
             for (_, global) in module.global_variables.iter() {
                 if let Some(binding) = &global.binding {
-                    let space = u8::try_from(binding.group).map_err(|_| {
-                        Error::Naga(format!("bind group too large for HLSL space: {}", binding.group))
-                    })?;
-                    binding_map.insert(
-                        *binding,
-                        hlsl::BindTarget {
-                            space,
-                            register: binding.binding,
-                            ..Default::default()
-                        },
-                    );
+                    let space = u8::try_from(binding.group)
+                        .map_err(|_| Error::Naga(format!("bind group too large for HLSL space: {}", binding.group)))?;
+                    binding_map
+                        .insert(*binding, hlsl::BindTarget { space, register: binding.binding, ..Default::default() });
                 }
             }
             let options = hlsl::Options { shader_model, binding_map, ..Default::default() };

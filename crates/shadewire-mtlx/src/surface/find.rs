@@ -168,12 +168,7 @@ impl<'a> Elaborator<'a> {
     }
 
     /// What shader node `node` is: a model, a mix, a `dot`, or a graph-implemented nodedef.
-    fn find_surface_at(
-        &mut self,
-        scope: &Scope<'a>,
-        node: &'a Node,
-        depth: u32,
-    ) -> Result<SurfaceSource<'a>, Error> {
+    fn find_surface_at(&mut self, scope: &Scope<'a>, node: &'a Node, depth: u32) -> Result<SurfaceSource<'a>, Error> {
         let at = self.at(scope, node.line, scope.origin(&node.name));
         let is_shader = node.port_type == PortType::SurfaceShader;
         if PHASE_ONE_MODELS.contains(&node.category.as_str()) {

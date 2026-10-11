@@ -8,7 +8,8 @@ use crate::{ElaborateOptions, elaborate};
 
 /// A material whose standard_surface `base` is the end of a chain of `n` adds.
 fn add_chain(n: usize) -> String {
-    let mut text = String::from(r#"<constant name="a0" type="float"><input name="value" type="float" value="1"/></constant>"#);
+    let mut text =
+        String::from(r#"<constant name="a0" type="float"><input name="value" type="float" value="1"/></constant>"#);
     for i in 1..=n {
         let previous = i - 1;
         text.push_str(&format!(
