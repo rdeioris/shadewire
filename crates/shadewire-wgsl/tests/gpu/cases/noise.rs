@@ -2,7 +2,7 @@
 //! `0.37 * i - 1.1`, plus far-out and negative positions; cell noise over a denser grid
 //! so many hashes go through bits_to_01's u32 -> f32 rounding.
 
-use super::{op_case, Case, TRANSCENDENTAL};
+use super::{Case, TRANSCENDENTAL, op_case};
 use shadewire_ir::{Op, Type, Value};
 
 const WIDTHS: [Type; 4] = [Type::Float, Type::Vector2, Type::Vector3, Type::Vector4];

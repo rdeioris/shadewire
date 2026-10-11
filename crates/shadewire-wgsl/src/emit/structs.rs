@@ -23,9 +23,6 @@ mod tests {
         let mut dag = Dag::new("open_pbr_surface");
         dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: NodeId(0) });
         dag.surface.fields.push(SurfaceField { name: "filter".into(), ty: Type::Float, node: NodeId(1) });
-        assert_eq!(
-            model_struct(&dag),
-            "struct OpenPbrSurface {\n    base_color: vec3<f32>,\n    filter_: f32,\n}\n"
-        );
+        assert_eq!(model_struct(&dag), "struct OpenPbrSurface {\n    base_color: vec3<f32>,\n    filter_: f32,\n}\n");
     }
 }

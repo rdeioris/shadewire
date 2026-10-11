@@ -8,4 +8,4 @@ pub mod models;
 mod tests;
 
 pub use find::{MixInput, SurfaceSource};
-pub use models::{fields, struct_name, PHASE_ONE_MODELS};
+pub use models::{PHASE_ONE_MODELS, fields, struct_name};

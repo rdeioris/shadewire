@@ -5,10 +5,19 @@ use shadewire_ir::{AddressMode, Type};
 /// `constant` address mode as an explicit bounds test returning `default`.
 /// A `select` evaluates both sides, so the sample stays in uniform control flow.
 /// `grad` (MaterialX uv space, like `uv`) makes it `textureSampleGrad`; the flip negates its v.
-pub fn sample_expr(t: &TextureReflection, uv: &str, ty: Type, default: &str, grad: Option<(&str, &str)>, flip_v: bool) -> String {
+pub fn sample_expr(
+    t: &TextureReflection,
+    uv: &str,
+    ty: Type,
+    default: &str,
+    grad: Option<(&str, &str)>,
+    flip_v: bool,
+) -> String {
     let v = if flip_v { format!("1.0 - {uv}.y") } else { format!("{uv}.y") };
     let st = format!("vec2<f32>({uv}.x, {v})");
-    let flip = |d: &str| if flip_v { format!("vec2<f32>({d}.x, -{d}.y)") } else { d.to_string() };
+    let flip = |d: &str| {
+        if flip_v { format!("vec2<f32>({d}.x, -{d}.y)") } else { d.to_string() }
+    };
     let swizzle = match ty.component_count() {
         1 => ".r",
         2 => ".rg",
@@ -17,7 +26,9 @@ pub fn sample_expr(t: &TextureReflection, uv: &str, ty: Type, default: &str, gra
     };
     let fetch = match grad {
         None => format!("textureSample(sw_t{i}, sw_s{i}, {st}){swizzle}", i = t.index),
-        Some((dx, dy)) => format!("textureSampleGrad(sw_t{i}, sw_s{i}, {st}, {}, {}){swizzle}", flip(dx), flip(dy), i = t.index),
+        Some((dx, dy)) => {
+            format!("textureSampleGrad(sw_t{i}, sw_s{i}, {st}, {}, {}){swizzle}", flip(dx), flip(dy), i = t.index)
+        }
     };
     let mut tests = Vec::new();
     if t.address[0] == AddressMode::Constant {
@@ -55,10 +66,22 @@ mod tests {
     #[test]
     fn plain_fetches_swizzle_to_the_node_width() {
         let t = texture(0, P, P);
-        assert_eq!(sample_expr(&t, "n3", Type::Color3, "x", None, false), "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).rgb");
-        assert_eq!(sample_expr(&t, "n3", Type::Float, "x", None, false), "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).r");
-        assert_eq!(sample_expr(&t, "n3", Type::Vector2, "x", None, false), "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).rg");
-        assert_eq!(sample_expr(&t, "n3", Type::Color4, "x", None, false), "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y))");
+        assert_eq!(
+            sample_expr(&t, "n3", Type::Color3, "x", None, false),
+            "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).rgb"
+        );
+        assert_eq!(
+            sample_expr(&t, "n3", Type::Float, "x", None, false),
+            "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).r"
+        );
+        assert_eq!(
+            sample_expr(&t, "n3", Type::Vector2, "x", None, false),
+            "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).rg"
+        );
+        assert_eq!(
+            sample_expr(&t, "n3", Type::Color4, "x", None, false),
+            "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y))"
+        );
     }
 
     #[test]

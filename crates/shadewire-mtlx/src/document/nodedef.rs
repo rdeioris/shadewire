@@ -1,6 +1,6 @@
 use super::port_type::PortType;
 
-use crate::document::inherit::{own, Inherit};
+use crate::document::inherit::{Inherit, own};
 use crate::element::Element;
 
 /// A port of a nodedef or a nodegraph interface.
@@ -37,8 +37,7 @@ pub struct NodeDef {
 
 pub fn build_port_def(element: &Element, inherit: &Inherit) -> PortDef {
     let port_type = PortType::parse(element.attr("type").unwrap_or(""));
-    let (value, colorspace) =
-        inherit.resolve(&port_type, element.attr("colorspace"), element.attr("value"));
+    let (value, colorspace) = inherit.resolve(&port_type, element.attr("colorspace"), element.attr("value"));
     PortDef {
         name: element.name().to_string(),
         port_type,
@@ -55,12 +54,7 @@ pub fn build_port_def(element: &Element, inherit: &Inherit) -> PortDef {
 }
 
 pub fn build_ports(element: &Element, category: &str, inherit: &Inherit) -> Vec<PortDef> {
-    element
-        .children
-        .iter()
-        .filter(|c| c.category == category)
-        .map(|c| build_port_def(c, inherit))
-        .collect()
+    element.children.iter().filter(|c| c.category == category).map(|c| build_port_def(c, inherit)).collect()
 }
 
 pub fn build_nodedef(element: &Element, inherit: &Inherit) -> NodeDef {

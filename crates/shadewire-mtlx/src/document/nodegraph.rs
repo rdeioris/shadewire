@@ -1,8 +1,8 @@
-use super::node::{build_node, Node};
-use super::nodedef::{build_ports, PortDef};
+use super::node::{Node, build_node};
+use super::nodedef::{PortDef, build_ports};
 use super::port_type::PortType;
 
-use crate::document::inherit::{own, Inherit};
+use crate::document::inherit::{Inherit, own};
 use crate::element::Element;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -50,12 +50,7 @@ pub fn build_nodegraph(element: &Element, inherit: &Inherit) -> NodeGraph {
             .filter(|c| c.category != "input" && c.category != "output")
             .map(|c| build_node(c, &inherit))
             .collect(),
-        outputs: element
-            .children
-            .iter()
-            .filter(|c| c.category == "output")
-            .map(build_output)
-            .collect(),
+        outputs: element.children.iter().filter(|c| c.category == "output").map(build_output).collect(),
         line: element.line,
     }
 }

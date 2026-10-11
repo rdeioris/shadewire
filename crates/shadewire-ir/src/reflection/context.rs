@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{transform_name, ContextClass, ContextRead, Dag, NodeKind, Op, Type, Value};
+use crate::{ContextClass, ContextRead, Dag, NodeKind, Op, Type, Value, transform_name};
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct GeomPropReflection {
@@ -38,7 +38,8 @@ fn sorted_unique(mut names: Vec<String>) -> Vec<String> {
 fn unique_functions(geomprops: &mut [GeomPropReflection]) {
     let mut taken: Vec<String> = Vec::new();
     for g in geomprops.iter_mut() {
-        let clean: String = g.name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' { c } else { '_' }).collect();
+        let clean: String =
+            g.name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' { c } else { '_' }).collect();
         let base = format!("mx_geomprop_{clean}");
         let mut candidate = base.clone();
         let mut n = 2;
@@ -72,7 +73,12 @@ pub fn context(dag: &Dag, live: &[bool]) -> ContextReflection {
                     ContextClass::GeomProp => {
                         if let ContextRead::GeomProp { name, ty } = read {
                             if !geomprops.iter().any(|g| g.name == *name) {
-                                geomprops.push(GeomPropReflection { name: name.clone(), ty: *ty, function: read.function_name(), default: dag.geomprop_defaults.get(name).cloned() });
+                                geomprops.push(GeomPropReflection {
+                                    name: name.clone(),
+                                    ty: *ty,
+                                    function: read.function_name(),
+                                    default: dag.geomprop_defaults.get(name).cloned(),
+                                });
                             }
                         }
                     }

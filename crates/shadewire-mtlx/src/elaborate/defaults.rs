@@ -14,10 +14,9 @@ impl<'a> Elaborator<'a> {
             return self.geomprop_node(name, ty, at);
         }
         let value = match port.value.as_deref() {
-            Some(text) if !text.trim().is_empty() => Value::parse(ty, text).map_err(|e| Error::BadValue {
-                at: at.clone(),
-                message: e.to_string(),
-            })?,
+            Some(text) if !text.trim().is_empty() => {
+                Value::parse(ty, text).map_err(|e| Error::BadValue { at: at.clone(), message: e.to_string() })?
+            }
             _ => Value::zero(ty),
         };
         Ok(self.dag.add(Node { kind: NodeKind::Const(value), ty, origin: at.path.clone() }))
@@ -25,8 +24,8 @@ impl<'a> Elaborator<'a> {
 
     /// A context node reading the geompropdef `name`, typed `ty` (the reading port's type).
     pub fn geomprop_node(&mut self, name: &str, ty: Type, at: &Location) -> Result<NodeId, Error> {
-        let read = geomprop_read(&self.index, name, ty)
-            .map_err(|message| Error::BadValue { at: at.clone(), message })?;
+        let read =
+            geomprop_read(&self.index, name, ty).map_err(|message| Error::BadValue { at: at.clone(), message })?;
         let read_ty = read.ty();
         Ok(self.dag.add(Node { kind: NodeKind::Context(read), ty: read_ty, origin: at.path.clone() }))
     }
@@ -62,8 +61,8 @@ fn def_space(def: &GeomPropDef) -> Result<Space, String> {
 #[cfg(test)]
 mod tests {
     use super::geomprop_read;
-    use crate::document::build::build;
     use crate::document::Document;
+    use crate::document::build::build;
     use crate::index::Index;
     use crate::library;
     use crate::parse::parse_str;
@@ -84,9 +83,18 @@ mod tests {
         assert_eq!(geomprop_read(&index, "Nworld", Type::Vector3), Ok(ContextRead::Normal(Space::World)));
         assert_eq!(geomprop_read(&index, "Pobject", Type::Vector3), Ok(ContextRead::Position(Space::Object)));
         assert_eq!(geomprop_read(&index, "Tworld", Type::Vector3), Ok(ContextRead::Tangent(Space::World)));
-        assert_eq!(geomprop_read(&index, "UV0", Type::Vector2), Ok(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }));
-        assert_eq!(geomprop_read(&index, "Cd", Type::Color3), Ok(ContextRead::GeomColor { index: 1, ty: Type::Color3 }));
-        assert_eq!(geomprop_read(&index, "wear", Type::Float), Ok(ContextRead::GeomProp { name: "wear".into(), ty: Type::Float }));
+        assert_eq!(
+            geomprop_read(&index, "UV0", Type::Vector2),
+            Ok(ContextRead::TexCoord { index: 0, ty: Type::Vector2 })
+        );
+        assert_eq!(
+            geomprop_read(&index, "Cd", Type::Color3),
+            Ok(ContextRead::GeomColor { index: 1, ty: Type::Color3 })
+        );
+        assert_eq!(
+            geomprop_read(&index, "wear", Type::Float),
+            Ok(ContextRead::GeomProp { name: "wear".into(), ty: Type::Float })
+        );
         assert!(geomprop_read(&index, "nope", Type::Float).is_err());
     }
 }

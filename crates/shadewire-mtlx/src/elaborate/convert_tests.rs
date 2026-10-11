@@ -1,6 +1,6 @@
 //! Colorspace and unit conversion of authored values, and which values become uniforms.
 
-use shadewire_ir::interpret::{eval_surface, ContextSource, NoTextures};
+use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
 use shadewire_ir::optimize::optimize;
 use shadewire_ir::{ContextRead, Dag, Error, NodeKind, Op, Space, TransformKind, Value};
 
@@ -45,7 +45,9 @@ fn srgb_texture_constant_folds_to_linear() {
     let Value::Color3(c) = eval(&dag) else { panic!("not a color3") };
     assert_close(&c, &[0.2140, 0.2140, 0.2140]);
     let folded = optimize(&dag);
-    let NodeKind::Const(Value::Color3(c)) = &folded.node(folded.surface.fields[0].node).kind else { panic!("not folded") };
+    let NodeKind::Const(Value::Color3(c)) = &folded.node(folded.surface.fields[0].node).kind else {
+        panic!("not folded")
+    };
     assert_close(c, &[0.2140, 0.2140, 0.2140]);
 }
 
@@ -60,7 +62,11 @@ fn srgb_texture_color4_keeps_alpha() {
 fn working_colorspace_and_none_are_unchanged() {
     for colorspace in ["lin_rec709", "none"] {
         let dag = elaborate_output(&constant_in("color3", "0.5,0.5,0.5", colorspace), "g", "out").unwrap();
-        assert_eq!(dag.node(dag.surface.fields[0].node).kind, NodeKind::Const(Value::Color3([0.5, 0.5, 0.5])), "{colorspace}");
+        assert_eq!(
+            dag.node(dag.surface.fields[0].node).kind,
+            NodeKind::Const(Value::Color3([0.5, 0.5, 0.5])),
+            "{colorspace}"
+        );
     }
 }
 
@@ -80,16 +86,17 @@ fn unknown_colorspace_is_unsupported() {
 
 #[test]
 fn color_images_convert_their_samples_and_float_images_do_not() {
-    let d = doc(
-        r#"<nodegraph name="g">
+    let d = doc(r#"<nodegraph name="g">
           <image name="c" type="color3"><input name="file" type="filename" value="a.png" colorspace="srgb_texture"/></image>
           <image name="f" type="float"><input name="file" type="filename" value="b.png" colorspace="srgb_texture"/></image>
           <output name="out" type="color3" nodename="c"/>
           <output name="rough" type="float" nodename="f"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let dag = elaborate_output(&d, "g", "out").unwrap();
-    assert!(!matches!(dag.node(dag.surface.fields[0].node).kind, NodeKind::Sample { .. }), "color sample not converted");
+    assert!(
+        !matches!(dag.node(dag.surface.fields[0].node).kind, NodeKind::Sample { .. }),
+        "color sample not converted"
+    );
     let dag = elaborate_output(&d, "g", "rough").unwrap();
     assert!(matches!(dag.node(dag.surface.fields[0].node).kind, NodeKind::Sample { .. }));
 }
@@ -150,8 +157,7 @@ fn uniform_names(dag: &Dag) -> Vec<String> {
 
 #[test]
 fn top_level_graph_interface_values_are_uniquely_named_uniforms() {
-    let d = doc(
-        r#"<nodegraph name="a">
+    let d = doc(r#"<nodegraph name="a">
           <input name="scale" type="float" value="2"/>
           <dot name="d" type="float"><input name="in" type="float" interfacename="scale"/></dot>
           <output name="o" type="float" nodename="d"/>
@@ -167,8 +173,7 @@ fn top_level_graph_interface_values_are_uniquely_named_uniforms() {
             <input name="in2" type="float" nodegraph="b" output="o"/>
           </add>
           <output name="out" type="float" nodename="s"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let dag = elaborate_output(&d, "g", "out").unwrap();
     assert_eq!(uniform_names(&dag), ["scale", "scale_2"]);
     assert_eq!(eval(&dag), Value::Float(5.0));
@@ -182,8 +187,7 @@ fn node_values_inside_graphs_stay_constants() {
 
 #[test]
 fn op_params_never_become_uniforms() {
-    let d = doc(
-        r#"<nodegraph name="g">
+    let d = doc(r#"<nodegraph name="g">
           <input name="idx" type="integer" value="1"/>
           <extract name="e" type="float">
             <input name="in" type="vector3" value="1,2,3"/>
@@ -197,8 +201,7 @@ fn op_params_never_become_uniforms() {
           <output name="out" type="float" nodename="e"/>
           <output name="last" type="float" nodename="f"/>
           <output name="uv" type="vector2" nodename="t"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let dag = elaborate_output(&d, "g", "out").unwrap();
     let NodeKind::Op { op, .. } = &dag.node(dag.surface.fields[0].node).kind else { panic!("not an op") };
     assert_eq!(*op, Op::Extract(1));

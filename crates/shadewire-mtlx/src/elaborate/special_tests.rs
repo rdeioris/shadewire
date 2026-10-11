@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use shadewire_ir::{ContextRead, Dag, Error, NodeKind, Op, Space, Type, Value};
 
 use super::tests::doc;
-use super::{elaborate_output, ElaborateOptions, Elaborator};
+use super::{ElaborateOptions, Elaborator, elaborate_output};
 use crate::document::Document;
 
 /// The kind of the node graph `g`'s output `out` elaborates to.
@@ -25,13 +25,11 @@ fn context(read: ContextRead) -> NodeKind {
 
 #[test]
 fn constant_and_dot_pass_their_input_through() {
-    let d = doc(
-        r#"<nodegraph name="g">
+    let d = doc(r#"<nodegraph name="g">
           <constant name="c" type="color3"><input name="value" type="color3" value="0.1,0.2,0.3"/></constant>
           <dot name="d" type="color3"><input name="in" type="color3" nodename="c"/></dot>
           <output name="out" type="color3" nodename="d"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     assert_eq!(out_kind(&d), NodeKind::Const(Value::Color3([0.1, 0.2, 0.3])));
 }
 
@@ -45,8 +43,7 @@ fn convert_without_a_graph_is_a_convert_op() {
 
 #[test]
 fn separate_extracts_the_position_of_the_requested_output() {
-    let d = doc(
-        r#"<nodedef name="ND_sep3_mine" node="separate3">
+    let d = doc(r#"<nodedef name="ND_sep3_mine" node="separate3">
           <input name="in" type="color3" value="0,0,0"/>
           <output name="outr" type="float"/><output name="outg" type="float"/><output name="outb" type="float"/>
         </nodedef>
@@ -60,8 +57,7 @@ fn separate_extracts_the_position_of_the_requested_output() {
           <separate4 name="t" type="multioutput" nodedef="ND_sep4_mine"/>
           <output name="out" type="float" nodename="s" output="outg"/>
           <output name="w" type="float" nodename="t" output="outw"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let NodeKind::Op { op, .. } = out_kind(&d) else { panic!("not an op") };
     assert_eq!(op, Op::Extract(1));
     let dag = elaborate_output(&d, "g", "w").unwrap();
@@ -71,38 +67,51 @@ fn separate_extracts_the_position_of_the_requested_output() {
 
 #[test]
 fn geometric_nodes_read_their_space_with_defaults() {
-    let p = one(r#"<position name="n" type="vector3"><input name="space" type="string" value="world"/></position>"#, "vector3");
+    let p = one(
+        r#"<position name="n" type="vector3"><input name="space" type="string" value="world"/></position>"#,
+        "vector3",
+    );
     assert_eq!(out_kind(&p), context(ContextRead::Position(Space::World)));
     let n = one(r#"<normal name="n" type="vector3"/>"#, "vector3");
     assert_eq!(out_kind(&n), context(ContextRead::Normal(Space::Object)));
-    let t = one(r#"<tangent name="n" type="vector3"><input name="space" type="string" value="model"/></tangent>"#, "vector3");
+    let t = one(
+        r#"<tangent name="n" type="vector3"><input name="space" type="string" value="model"/></tangent>"#,
+        "vector3",
+    );
     assert_eq!(out_kind(&t), context(ContextRead::Tangent(Space::Model)));
     let b = one(r#"<bitangent name="n" type="vector3"/>"#, "vector3");
     assert_eq!(out_kind(&b), context(ContextRead::Bitangent(Space::Object)));
     // Not in the vendored 1.39 stdlib; a nodedef with no space value reads world.
-    let v = doc(
-        r#"<nodedef name="ND_viewdirection_vector3" node="viewdirection">
+    let v = doc(r#"<nodedef name="ND_viewdirection_vector3" node="viewdirection">
           <input name="space" type="string"/><output name="out" type="vector3"/>
         </nodedef>
-        <nodegraph name="g"><viewdirection name="n" type="vector3"/><output name="out" type="vector3" nodename="n"/></nodegraph>"#,
-    );
+        <nodegraph name="g"><viewdirection name="n" type="vector3"/><output name="out" type="vector3" nodename="n"/></nodegraph>"#);
     assert_eq!(out_kind(&v), context(ContextRead::ViewDirection(Space::World)));
 }
 
 #[test]
 fn unknown_space_on_a_geometric_node_is_a_bad_value() {
-    let p = one(r#"<position name="n" type="vector3"><input name="space" type="string" value="camera"/></position>"#, "vector3");
+    let p = one(
+        r#"<position name="n" type="vector3"><input name="space" type="string" value="camera"/></position>"#,
+        "vector3",
+    );
     let err = elaborate_output(&p, "g", "out").unwrap_err();
     assert!(matches!(err, Error::BadValue { .. }), "{err:?}");
 }
 
 #[test]
 fn texcoord_and_geomcolor_read_their_index_and_type() {
-    let t = one(r#"<texcoord name="n" type="vector3"><input name="index" type="integer" value="1"/></texcoord>"#, "vector3");
+    let t = one(
+        r#"<texcoord name="n" type="vector3"><input name="index" type="integer" value="1"/></texcoord>"#,
+        "vector3",
+    );
     assert_eq!(out_kind(&t), context(ContextRead::TexCoord { index: 1, ty: Type::Vector3 }));
     let t0 = one(r#"<texcoord name="n" type="vector2"/>"#, "vector2");
     assert_eq!(out_kind(&t0), context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }));
-    let c = one(r#"<geomcolor name="n" type="color4"><input name="index" type="integer" value="2"/></geomcolor>"#, "color4");
+    let c = one(
+        r#"<geomcolor name="n" type="color4"><input name="index" type="integer" value="2"/></geomcolor>"#,
+        "color4",
+    );
     assert_eq!(out_kind(&c), context(ContextRead::GeomColor { index: 2, ty: Type::Color4 }));
 }
 

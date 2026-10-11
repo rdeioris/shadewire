@@ -10,23 +10,42 @@ pub fn rotl32(x: u32, k: i32) -> u32 {
 
 // mx_bjmix
 pub fn bjmix(a: &mut u32, b: &mut u32, c: &mut u32) {
-    *a = a.wrapping_sub(*c); *a ^= rotl32(*c, 4);  *c = c.wrapping_add(*b);
-    *b = b.wrapping_sub(*a); *b ^= rotl32(*a, 6);  *a = a.wrapping_add(*c);
-    *c = c.wrapping_sub(*b); *c ^= rotl32(*b, 8);  *b = b.wrapping_add(*a);
-    *a = a.wrapping_sub(*c); *a ^= rotl32(*c, 16); *c = c.wrapping_add(*b);
-    *b = b.wrapping_sub(*a); *b ^= rotl32(*a, 19); *a = a.wrapping_add(*c);
-    *c = c.wrapping_sub(*b); *c ^= rotl32(*b, 4);  *b = b.wrapping_add(*a);
+    *a = a.wrapping_sub(*c);
+    *a ^= rotl32(*c, 4);
+    *c = c.wrapping_add(*b);
+    *b = b.wrapping_sub(*a);
+    *b ^= rotl32(*a, 6);
+    *a = a.wrapping_add(*c);
+    *c = c.wrapping_sub(*b);
+    *c ^= rotl32(*b, 8);
+    *b = b.wrapping_add(*a);
+    *a = a.wrapping_sub(*c);
+    *a ^= rotl32(*c, 16);
+    *c = c.wrapping_add(*b);
+    *b = b.wrapping_sub(*a);
+    *b ^= rotl32(*a, 19);
+    *a = a.wrapping_add(*c);
+    *c = c.wrapping_sub(*b);
+    *c ^= rotl32(*b, 4);
+    *b = b.wrapping_add(*a);
 }
 
 // mx_bjfinal
 pub fn bjfinal(mut a: u32, mut b: u32, mut c: u32) -> u32 {
-    c ^= b; c = c.wrapping_sub(rotl32(b, 14));
-    a ^= c; a = a.wrapping_sub(rotl32(c, 11));
-    b ^= a; b = b.wrapping_sub(rotl32(a, 25));
-    c ^= b; c = c.wrapping_sub(rotl32(b, 16));
-    a ^= c; a = a.wrapping_sub(rotl32(c, 4));
-    b ^= a; b = b.wrapping_sub(rotl32(a, 14));
-    c ^= b; c = c.wrapping_sub(rotl32(b, 24));
+    c ^= b;
+    c = c.wrapping_sub(rotl32(b, 14));
+    a ^= c;
+    a = a.wrapping_sub(rotl32(c, 11));
+    b ^= a;
+    b = b.wrapping_sub(rotl32(a, 25));
+    c ^= b;
+    c = c.wrapping_sub(rotl32(b, 16));
+    a ^= c;
+    a = a.wrapping_sub(rotl32(c, 4));
+    b ^= a;
+    b = b.wrapping_sub(rotl32(a, 14));
+    c ^= b;
+    c = c.wrapping_sub(rotl32(b, 24));
     c
 }
 

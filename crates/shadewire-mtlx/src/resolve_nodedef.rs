@@ -55,7 +55,10 @@ fn flattened<'a>(nodedef: &'a NodeDef, at: &Location) -> Result<&'a NodeDef, Err
     match &nodedef.inherits {
         Some(parent) => Err(Error::BadValue {
             at: at.clone(),
-            message: format!("nodedef {} inherits from {parent}; inherit= in a user document is not supported", nodedef.name),
+            message: format!(
+                "nodedef {} inherits from {parent}; inherit= in a user document is not supported",
+                nodedef.name
+            ),
         }),
         None => Ok(nodedef),
     }
@@ -101,8 +104,7 @@ mod tests {
     fn resolve(n: &Node, given: &[(&str, PortType)]) -> Result<String, Error> {
         let user = Document::empty();
         let index = Index::new(&user, library::standard());
-        let given: Vec<(String, PortType)> =
-            given.iter().map(|(k, t)| (k.to_string(), t.clone())).collect();
+        let given: Vec<(String, PortType)> = given.iter().map(|(k, t)| (k.to_string(), t.clone())).collect();
         resolve_nodedef(&index, n, &given, &at()).map(|d| d.name.clone())
     }
 

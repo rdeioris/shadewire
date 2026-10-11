@@ -1,7 +1,7 @@
 //! Shadewire typed material DAG, optimizer and interpreter
 
-mod context;
 pub mod classify;
+mod context;
 pub mod dag;
 mod dump;
 mod error;
@@ -24,12 +24,12 @@ pub use context::{ContextClass, ContextRead};
 pub use dag::Dag;
 pub use error::{Error, Location};
 pub use node::{Node, NodeId, NodeKind};
-pub use op::{transform_name, Op, TransformKind};
+pub use op::{Op, TransformKind, transform_name};
 pub use ops::{eval_op, input_names, op_for_category};
-pub use reflection::{reflect, BindingOptions, Reflection, SourceInfo};
+pub use reflection::{BindingOptions, Reflection, SourceInfo, reflect};
 pub use space::Space;
 pub use structure_hash::structure_hash;
-pub use surface::{model_struct_name, Surface, SurfaceField};
+pub use surface::{Surface, SurfaceField, model_struct_name};
 pub use texture::{AddressMode, FilterMode, TextureDesc};
 pub use types::Type;
 pub use value::Value;

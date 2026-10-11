@@ -29,7 +29,7 @@ pub fn uniform_block(reflection: &Reflection) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadewire_ir::{reflect, BindingOptions, Dag, Node, NodeKind, SourceInfo, SurfaceField, Value};
+    use shadewire_ir::{BindingOptions, Dag, Node, NodeKind, SourceInfo, SurfaceField, Value, reflect};
 
     fn reflection_with(uniforms: &[(&str, Value)], group: u32, first: u32) -> Reflection {
         let mut dag = Dag::new("m");
@@ -63,7 +63,12 @@ mod tests {
     #[test]
     fn colliding_names_get_distinct_members() {
         let r = reflection_with(
-            &[("my-prop", Value::Float(1.0)), ("my_prop", Value::Float(2.0)), ("filter", Value::Float(3.0)), ("filter_", Value::Float(4.0))],
+            &[
+                ("my-prop", Value::Float(1.0)),
+                ("my_prop", Value::Float(2.0)),
+                ("filter", Value::Float(3.0)),
+                ("filter_", Value::Float(4.0)),
+            ],
             0,
             0,
         );
@@ -92,7 +97,9 @@ mod tests {
             .types
             .iter()
             .find_map(|(_, t)| match &t.inner {
-                naga::TypeInner::Struct { members, span } if t.name.as_deref() == Some("MaterialUniforms") => Some((members.clone(), *span)),
+                naga::TypeInner::Struct { members, span } if t.name.as_deref() == Some("MaterialUniforms") => {
+                    Some((members.clone(), *span))
+                }
                 _ => None,
             })
             .expect("MaterialUniforms");

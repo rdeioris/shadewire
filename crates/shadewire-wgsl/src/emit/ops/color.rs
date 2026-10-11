@@ -1,6 +1,6 @@
 use shadewire_ir::{Op, Type};
 
-use super::{cast, leading, Arg};
+use super::{Arg, cast, leading};
 
 /// Mirrors `shadewire_ir::ops::color`: the first three channels go through the function,
 /// color4 keeps its alpha. Luminance is written out in the interpreter's order, not `dot`.

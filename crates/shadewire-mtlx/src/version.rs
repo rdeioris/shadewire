@@ -20,8 +20,8 @@ pub fn document_version(root: &Element) -> Result<(u32, u32), Error> {
 #[cfg(test)]
 mod tests {
     use super::document_version;
-    use shadewire_ir::Error;
     use crate::element::Element;
+    use shadewire_ir::Error;
 
     fn root(version: Option<&str>) -> Element {
         Element {

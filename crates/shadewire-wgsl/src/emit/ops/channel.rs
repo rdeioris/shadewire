@@ -1,7 +1,7 @@
 use shadewire_ir::{Op, Type};
 
 use super::super::types::wgsl_type;
-use super::{cast, Arg};
+use super::{Arg, cast};
 
 /// Mirrors `shadewire_ir::ops::channel`.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
@@ -17,8 +17,10 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
             cast(&component, Type::Float, ty)
         }
         Op::Combine => {
-            let parts: Vec<String> =
-                args.iter().map(|(expr, from)| if from.is_scalar() { cast(expr, *from, Type::Float) } else { expr.clone() }).collect();
+            let parts: Vec<String> = args
+                .iter()
+                .map(|(expr, from)| if from.is_scalar() { cast(expr, *from, Type::Float) } else { expr.clone() })
+                .collect();
             format!("{}({})", wgsl_type(ty), parts.join(", "))
         }
         Op::Convert => convert(&args[0], ty),

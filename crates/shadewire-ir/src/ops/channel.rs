@@ -37,16 +37,28 @@ mod tests {
     #[test]
     fn extract_combine_convert() {
         assert_eq!(eval(&Op::Extract(2), &[Value::Color3([0.1, 0.2, 0.3])], Type::Float), Value::Float(0.3));
-        assert_eq!(eval(&Op::Combine, &[Value::Color3([0.1, 0.2, 0.3]), Value::Float(0.5)], Type::Color4), Value::Color4([0.1, 0.2, 0.3, 0.5]));
-        assert_eq!(eval(&Op::Convert, &[Value::Color3([0.1, 0.2, 0.3])], Type::Color4), Value::Color4([0.1, 0.2, 0.3, 1.0]));
+        assert_eq!(
+            eval(&Op::Combine, &[Value::Color3([0.1, 0.2, 0.3]), Value::Float(0.5)], Type::Color4),
+            Value::Color4([0.1, 0.2, 0.3, 0.5])
+        );
+        assert_eq!(
+            eval(&Op::Convert, &[Value::Color3([0.1, 0.2, 0.3])], Type::Color4),
+            Value::Color4([0.1, 0.2, 0.3, 1.0])
+        );
         assert_eq!(eval(&Op::Convert, &[Value::Float(0.5)], Type::Color3), Value::Color3([0.5, 0.5, 0.5]));
     }
 
     #[test]
     fn convert_drops_and_relabels() {
-        assert_eq!(eval(&Op::Convert, &[Value::Color4([0.1, 0.2, 0.3, 0.9])], Type::Color3), Value::Color3([0.1, 0.2, 0.3]));
+        assert_eq!(
+            eval(&Op::Convert, &[Value::Color4([0.1, 0.2, 0.3, 0.9])], Type::Color3),
+            Value::Color3([0.1, 0.2, 0.3])
+        );
         assert_eq!(eval(&Op::Convert, &[Value::Vector3([1.0, 2.0, 3.0])], Type::Vector2), Value::Vector2([1.0, 2.0]));
-        assert_eq!(eval(&Op::Convert, &[Value::Vector3([1.0, 2.0, 3.0])], Type::Color3), Value::Color3([1.0, 2.0, 3.0]));
+        assert_eq!(
+            eval(&Op::Convert, &[Value::Vector3([1.0, 2.0, 3.0])], Type::Color3),
+            Value::Color3([1.0, 2.0, 3.0])
+        );
         assert_eq!(eval(&Op::Convert, &[Value::Float(0.5)], Type::Color4), Value::Color4([0.5, 0.5, 0.5, 0.5]));
         assert_eq!(eval(&Op::Convert, &[Value::Boolean(true)], Type::Float), Value::Float(1.0));
         assert_eq!(eval(&Op::Convert, &[Value::Integer(3)], Type::Float), Value::Float(3.0));

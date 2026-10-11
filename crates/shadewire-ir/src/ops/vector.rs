@@ -23,11 +23,7 @@ pub fn eval(op: &Op, args: &[Value], ty: Type) -> Value {
         Op::CrossProduct => {
             let a = args[0].floats();
             let b = args[1].floats();
-            let out = [
-                a[1] * b[2] - a[2] * b[1],
-                a[2] * b[0] - a[0] * b[2],
-                a[0] * b[1] - a[1] * b[0],
-            ];
+            let out = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
             Value::from_floats(ty, &out)
         }
         // mx_rotate_vector2: `amount` in degrees.

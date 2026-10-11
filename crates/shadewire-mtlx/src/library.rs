@@ -2,11 +2,11 @@
 
 use std::sync::OnceLock;
 
-use include_dir::{include_dir, Dir};
+use include_dir::{Dir, include_dir};
 
+use crate::document::Document;
 use crate::document::build::build;
 use crate::document::flatten::flatten_inheritance;
-use crate::document::Document;
 use crate::parse::parse_str;
 
 static LIBRARIES: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/../../vendor/materialx/libraries");
@@ -17,7 +17,9 @@ pub struct Library {
 
 /// Generator directories (genglsl, genosl, ...) hold per-language sources, not definitions.
 fn in_gen_dir(path: &std::path::Path) -> bool {
-    let Some(dirs) = path.parent() else { return false };
+    let Some(dirs) = path.parent() else {
+        return false;
+    };
     dirs.components().any(|c| c.as_os_str().to_str().is_some_and(|s| s.starts_with("gen")))
 }
 
@@ -61,9 +63,9 @@ pub fn standard() -> &'static Library {
 #[cfg(test)]
 mod tests {
     use super::standard;
+    use crate::Document;
     use crate::document::PortType;
     use crate::index::Index;
-    use crate::Document;
 
     #[test]
     fn nodedefs_carry_their_inherited_ports() {

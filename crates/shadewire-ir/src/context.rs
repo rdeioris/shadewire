@@ -32,9 +32,9 @@ impl ContextRead {
             | ContextRead::Tangent(_)
             | ContextRead::Bitangent(_)
             | ContextRead::ViewDirection(_) => Type::Vector3,
-            ContextRead::TexCoord { ty, .. }
-            | ContextRead::GeomColor { ty, .. }
-            | ContextRead::GeomProp { ty, .. } => *ty,
+            ContextRead::TexCoord { ty, .. } | ContextRead::GeomColor { ty, .. } | ContextRead::GeomProp { ty, .. } => {
+                *ty
+            }
             ContextRead::Time | ContextRead::Frame => Type::Float,
         }
     }
@@ -79,7 +79,10 @@ mod tests {
         assert_eq!(ContextRead::Position(Space::World).function_name(), "mx_position_world");
         assert_eq!(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }.function_name(), "mx_texcoord_0");
         assert_eq!(ContextRead::ViewDirection(Space::World).function_name(), "mx_view_direction_world");
-        assert_eq!(ContextRead::GeomProp { name: "displayColor".into(), ty: Type::Color3 }.function_name(), "mx_geomprop_displayColor");
+        assert_eq!(
+            ContextRead::GeomProp { name: "displayColor".into(), ty: Type::Color3 }.function_name(),
+            "mx_geomprop_displayColor"
+        );
         assert_eq!(ContextRead::Time.function_name(), "mx_time");
     }
 }

@@ -9,10 +9,19 @@ impl<'a> Elaborator<'a> {
     /// `file` (required), `default`, `texcoord`, address and filter modes, and
     /// `uvtiling`/`uvoffset` when the nodedef has them. `layer` and the frame
     /// inputs are ignored. The result is converted from the file's colorspace.
-    pub fn elaborate_image(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, ty: Type, at: &Location) -> Result<NodeId, Error> {
+    pub fn elaborate_image(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        ty: Type,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
         let file = match self.text_input(scope, node, nd, "file")? {
             Some(file) if !file.text.is_empty() => file,
-            _ => return Err(Error::BadValue { at: at.clone(), message: "image has no file".to_string() }),
+            _ => {
+                return Err(Error::BadValue { at: at.clone(), message: "image has no file".to_string() });
+            }
         };
         let address_u = self.address_mode(scope, node, nd, "uaddressmode", at)?;
         let address_v = self.address_mode(scope, node, nd, "vaddressmode", at)?;
@@ -23,10 +32,20 @@ impl<'a> Elaborator<'a> {
                 .ok_or_else(|| Error::BadValue { at: at.clone(), message: format!("unknown filtertype {name}") })?,
         };
         let colorspace = file.colorspace.clone();
-        let texture = self.dag.add_texture(TextureDesc { file: file.text, colorspace: colorspace.clone(), address_u, address_v, filter });
+        let texture = self.dag.add_texture(TextureDesc {
+            file: file.text,
+            colorspace: colorspace.clone(),
+            address_u,
+            address_v,
+            filter,
+        });
         let default = self.constant_input(scope, node, nd, "default", at)?;
         let uv = self.image_uv(scope, node, nd, at)?;
-        let sample = self.dag.add(IrNode { kind: NodeKind::Sample { texture, uv, default, grad: None }, ty, origin: at.path.clone() });
+        let sample = self.dag.add(IrNode {
+            kind: NodeKind::Sample { texture, uv, default, grad: None },
+            ty,
+            origin: at.path.clone(),
+        });
         self.convert_sample_colorspace(sample, colorspace.as_deref(), at)
     }
 
@@ -50,17 +69,30 @@ impl<'a> Elaborator<'a> {
     }
 
     /// An address mode input; `periodic` when absent or empty.
-    fn address_mode(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, name: &str, at: &Location) -> Result<AddressMode, Error> {
+    fn address_mode(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        name: &str,
+        at: &Location,
+    ) -> Result<AddressMode, Error> {
         let text = self.string_input(scope, node, nd, name)?.unwrap_or_default();
         if text.is_empty() {
             return Ok(AddressMode::Periodic);
         }
-        AddressMode::from_mtlx(&text).ok_or_else(|| Error::BadValue { at: at.clone(), message: format!("unknown {name} {text}") })
+        AddressMode::from_mtlx(&text)
+            .ok_or_else(|| Error::BadValue { at: at.clone(), message: format!("unknown {name} {text}") })
     }
 
     /// Converts a color sample from its file's colorspace to the working one.
     /// Float and vector samples are data and stay as read.
-    pub fn convert_sample_colorspace(&mut self, sample: NodeId, colorspace: Option<&str>, at: &Location) -> Result<NodeId, Error> {
+    pub fn convert_sample_colorspace(
+        &mut self,
+        sample: NodeId,
+        colorspace: Option<&str>,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
         let ty = self.dag.node(sample).ty;
         self.convert_colorspace(sample, ty, colorspace, at)
     }

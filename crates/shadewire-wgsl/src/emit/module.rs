@@ -1,13 +1,13 @@
 use shadewire_ir::{Dag, Reflection};
 
+use super::EmitOptions;
 use super::bindings::texture_bindings;
-use crate::leaf_library::files_for;
-use super::ops::cast;
 use super::expressions::{node_lets, node_name};
 use super::names::struct_name;
+use super::ops::cast;
 use super::structs::model_struct;
 use super::uniforms::uniform_block;
-use super::EmitOptions;
+use crate::leaf_library::files_for;
 
 /// Joins the sections, skipping empty ones, one blank line between them. The leaf library
 /// files the live nodes call come before the entry, each once, in dependency order.
@@ -28,12 +28,8 @@ pub fn entry(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> Strin
     for line in node_lets(dag, reflection, options) {
         out.push_str(&format!("    {line}\n"));
     }
-    let fields: Vec<String> = dag
-        .surface
-        .fields
-        .iter()
-        .map(|f| cast(&node_name(f.node), dag.node(f.node).ty, f.ty))
-        .collect();
+    let fields: Vec<String> =
+        dag.surface.fields.iter().map(|f| cast(&node_name(f.node), dag.node(f.node).ty, f.ty)).collect();
     out.push_str(&format!("    return {name}({});\n}}\n", fields.join(", ")));
     out
 }

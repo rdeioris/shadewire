@@ -23,20 +23,53 @@ pub type Arg = (String, Type);
 
 pub fn emit_op(op: &Op, args: &[Arg], ty: Type) -> String {
     match op {
-        Op::Add | Op::Subtract | Op::Multiply | Op::Divide | Op::Modulo | Op::Invert | Op::Absval | Op::Sign
-        | Op::Floor | Op::Ceil | Op::Round | Op::Fract | Op::Power | Op::SafePower | Op::Sqrt | Op::Exp | Op::Ln
-        | Op::Min | Op::Max | Op::Clamp | Op::Mix | Op::Smoothstep | Op::Remap => math::emit(op, args, ty),
+        Op::Add
+        | Op::Subtract
+        | Op::Multiply
+        | Op::Divide
+        | Op::Modulo
+        | Op::Invert
+        | Op::Absval
+        | Op::Sign
+        | Op::Floor
+        | Op::Ceil
+        | Op::Round
+        | Op::Fract
+        | Op::Power
+        | Op::SafePower
+        | Op::Sqrt
+        | Op::Exp
+        | Op::Ln
+        | Op::Min
+        | Op::Max
+        | Op::Clamp
+        | Op::Mix
+        | Op::Smoothstep
+        | Op::Remap => math::emit(op, args, ty),
         Op::Sin | Op::Cos | Op::Tan | Op::Asin | Op::Acos | Op::Atan2 => trig::emit(op, args, ty),
         Op::Normalize | Op::Magnitude | Op::Distance | Op::DotProduct | Op::CrossProduct | Op::Rotate2d => {
             vector::emit(op, args, ty)
         }
         Op::Transform { .. } => space::emit(op, args, ty),
-        Op::Greater | Op::GreaterEq | Op::Equal | Op::IfGreater | Op::IfGreaterEq | Op::IfEqual | Op::Switch
-        | Op::And | Op::Or | Op::Not => logic::emit(op, args, ty),
+        Op::Greater
+        | Op::GreaterEq
+        | Op::Equal
+        | Op::IfGreater
+        | Op::IfGreaterEq
+        | Op::IfEqual
+        | Op::Switch
+        | Op::And
+        | Op::Or
+        | Op::Not => logic::emit(op, args, ty),
         Op::Extract(_) | Op::Combine | Op::Convert => channel::emit(op, args, ty),
         Op::Luminance | Op::RgbToHsv | Op::HsvToRgb => color::emit(op, args, ty),
-        Op::Noise2d | Op::Noise3d | Op::Fractal3d | Op::CellNoise2d | Op::CellNoise3d
-        | Op::WorleyNoise2d | Op::WorleyNoise3d => noise::emit(op, args, ty),
+        Op::Noise2d
+        | Op::Noise3d
+        | Op::Fractal3d
+        | Op::CellNoise2d
+        | Op::CellNoise3d
+        | Op::WorleyNoise2d
+        | Op::WorleyNoise3d => noise::emit(op, args, ty),
         Op::NormalMap => normal::emit(op, args, ty),
         Op::Dpdx | Op::Dpdy => derivative::emit(op, args, ty),
         Op::HextileCoord(_) | Op::HextileGrad(_) | Op::HextileWeights => hextile::emit(op, args, ty),
@@ -58,11 +91,7 @@ pub fn cast(expr: &str, from: Type, to: Type) -> String {
 /// The interpreter does all arithmetic in f32 and converts the result to the node type,
 /// so integer and boolean results are computed as floats.
 pub fn work_type(ty: Type) -> Type {
-    if ty.is_scalar() {
-        Type::Float
-    } else {
-        ty
-    }
+    if ty.is_scalar() { Type::Float } else { ty }
 }
 
 /// Every argument cast to the work type of `ty`.
@@ -79,11 +108,7 @@ pub fn finish(expr: String, ty: Type) -> String {
 /// `Value::as_f32`: a scalar as f32, or the first component of a vector.
 pub fn first_f32(arg: &Arg) -> String {
     let (expr, ty) = arg;
-    if ty.is_scalar() {
-        cast(expr, *ty, Type::Float)
-    } else {
-        format!("{expr}.x")
-    }
+    if ty.is_scalar() { cast(expr, *ty, Type::Float) } else { format!("{expr}.x") }
 }
 
 /// The first `n` (2 or 3) components as a `vecN<f32>`, like the interpreter's `floats()[..n]`:
@@ -92,11 +117,7 @@ pub fn leading(arg: &Arg, n: usize) -> String {
     let (expr, from) = arg;
     let have = from.component_count();
     assert!(have >= n && !from.is_scalar(), "need {n} components, got {from:?}");
-    if have == n {
-        expr.clone()
-    } else {
-        format!("{expr}.{}", &"xyzw"[..n])
-    }
+    if have == n { expr.clone() } else { format!("{expr}.{}", &"xyzw"[..n]) }
 }
 
 #[cfg(test)]
@@ -115,7 +136,10 @@ mod tests {
 
     #[test]
     fn integer_math_runs_in_f32() {
-        assert_eq!(emit_op(&Op::Add, &args(&[Type::Integer, Type::Integer]), Type::Integer), "i32((f32(n0) + f32(n1)))");
+        assert_eq!(
+            emit_op(&Op::Add, &args(&[Type::Integer, Type::Integer]), Type::Integer),
+            "i32((f32(n0) + f32(n1)))"
+        );
     }
 
     #[test]

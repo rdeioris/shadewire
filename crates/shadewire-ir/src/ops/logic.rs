@@ -40,7 +40,8 @@ mod tests {
 
     #[test]
     fn ifgreater_picks_in1_when_value1_is_greater() {
-        let args = [Value::Float(2.0), Value::Float(1.0), Value::Color3([1.0, 0.0, 0.0]), Value::Color3([0.0, 1.0, 0.0])];
+        let args =
+            [Value::Float(2.0), Value::Float(1.0), Value::Color3([1.0, 0.0, 0.0]), Value::Color3([0.0, 1.0, 0.0])];
         assert_eq!(eval(&Op::IfGreater, &args, Type::Color3), Value::Color3([1.0, 0.0, 0.0]));
     }
 

@@ -1,6 +1,6 @@
 use super::port_type::PortType;
 
-use crate::document::inherit::{own, Inherit};
+use crate::document::inherit::{Inherit, own};
 use crate::element::Element;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -34,8 +34,7 @@ pub struct Node {
 /// `inherit` is the context of the node (document and graph already folded in).
 pub fn build_input(element: &Element, inherit: &Inherit) -> Input {
     let port_type = PortType::parse(element.attr("type").unwrap_or(""));
-    let (value, colorspace) =
-        inherit.resolve(&port_type, element.attr("colorspace"), element.attr("value"));
+    let (value, colorspace) = inherit.resolve(&port_type, element.attr("colorspace"), element.attr("value"));
     Input {
         name: element.name().to_string(),
         port_type,
@@ -60,12 +59,7 @@ pub fn build_node(element: &Element, inherit: &Inherit) -> Node {
         port_type: PortType::parse(element.attr("type").unwrap_or("")),
         nodedef: own(element.attr("nodedef")),
         version: own(element.attr("version")),
-        inputs: element
-            .children
-            .iter()
-            .filter(|c| c.category == "input")
-            .map(|c| build_input(c, &inherit))
-            .collect(),
+        inputs: element.children.iter().filter(|c| c.category == "input").map(|c| build_input(c, &inherit)).collect(),
         line: element.line,
     }
 }

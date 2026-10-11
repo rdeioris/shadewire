@@ -161,9 +161,8 @@ mod tests {
     // Traced by hand from mx_gradient_float(uint, float, float, float) at (1, 10, 100).
     #[test]
     fn gradient_3d_picks_the_cube_edges() {
-        let want = [
-            11.0, 9.0, -9.0, -11.0, 101.0, 99.0, -99.0, -101.0, 110.0, 90.0, -90.0, -110.0, 11.0, 90.0, 9.0, -110.0,
-        ];
+        let want =
+            [11.0, 9.0, -9.0, -11.0, 101.0, 99.0, -99.0, -101.0, 110.0, 90.0, -90.0, -110.0, 11.0, 90.0, 9.0, -110.0];
         for (h, w) in want.iter().enumerate() {
             assert_eq!(gradient_float_3d(h as u32 + 16, 1.0, 10.0, 100.0), *w, "hash {h}");
         }

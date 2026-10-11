@@ -44,8 +44,17 @@ pub fn bilerp_vec3(v0: [f32; 3], v1: [f32; 3], v2: [f32; 3], v3: [f32; 3], s: f3
 // mx_trilerp (float)
 #[allow(clippy::too_many_arguments)]
 pub fn trilerp_float(
-    v0: f32, v1: f32, v2: f32, v3: f32, v4: f32, v5: f32, v6: f32, v7: f32,
-    s: f32, t: f32, r: f32,
+    v0: f32,
+    v1: f32,
+    v2: f32,
+    v3: f32,
+    v4: f32,
+    v5: f32,
+    v6: f32,
+    v7: f32,
+    s: f32,
+    t: f32,
+    r: f32,
 ) -> f32 {
     let s1 = 1.0 - s;
     let t1 = 1.0 - t;
@@ -56,8 +65,17 @@ pub fn trilerp_float(
 // mx_trilerp (vec3)
 #[allow(clippy::too_many_arguments)]
 pub fn trilerp_vec3(
-    v0: [f32; 3], v1: [f32; 3], v2: [f32; 3], v3: [f32; 3], v4: [f32; 3], v5: [f32; 3], v6: [f32; 3], v7: [f32; 3],
-    s: f32, t: f32, r: f32,
+    v0: [f32; 3],
+    v1: [f32; 3],
+    v2: [f32; 3],
+    v3: [f32; 3],
+    v4: [f32; 3],
+    v5: [f32; 3],
+    v6: [f32; 3],
+    v7: [f32; 3],
+    s: f32,
+    t: f32,
+    r: f32,
 ) -> [f32; 3] {
     let mut out = [0.0; 3];
     for c in 0..3 {

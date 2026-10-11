@@ -18,11 +18,8 @@ pub fn worley_cell_position_2d(x: i32, y: i32, xoff: i32, yoff: i32, jitter: f32
 
 // mx_worley_cell_position(int, int, int, int, int, int, float)
 pub fn worley_cell_position_3d(x: i32, y: i32, z: i32, xoff: i32, yoff: i32, zoff: i32, jitter: f32) -> [f32; 3] {
-    let mut off = cell_noise_vec3_3d([
-        x.wrapping_add(xoff) as f32,
-        y.wrapping_add(yoff) as f32,
-        z.wrapping_add(zoff) as f32,
-    ]);
+    let mut off =
+        cell_noise_vec3_3d([x.wrapping_add(xoff) as f32, y.wrapping_add(yoff) as f32, z.wrapping_add(zoff) as f32]);
     off = [off[0] - 0.5, off[1] - 0.5, off[2] - 0.5];
     off = [off[0] * jitter, off[1] * jitter, off[2] * jitter];
     off = [off[0] + 0.5, off[1] + 0.5, off[2] + 0.5];
@@ -46,7 +43,15 @@ pub fn worley_distance_2d(p: [f32; 2], x: i32, y: i32, xoff: i32, yoff: i32, jit
 // mx_worley_distance(vec3, int, int, int, int, int, int, float, int)
 #[allow(clippy::too_many_arguments)]
 pub fn worley_distance_3d(
-    p: [f32; 3], x: i32, y: i32, z: i32, xoff: i32, yoff: i32, zoff: i32, jitter: f32, metric: i32,
+    p: [f32; 3],
+    x: i32,
+    y: i32,
+    z: i32,
+    xoff: i32,
+    yoff: i32,
+    zoff: i32,
+    jitter: f32,
+    metric: i32,
 ) -> f32 {
     let cellpos = worley_cell_position_3d(x, y, z, xoff, yoff, zoff, jitter);
     let diff = [cellpos[0] - p[0], cellpos[1] - p[1], cellpos[2] - p[2]];

@@ -107,7 +107,11 @@ mod tests {
 
     fn dag_with_uniform(value: f32) -> Dag {
         let mut dag = Dag::new("open_pbr_surface");
-        let u = dag.add(Node { kind: NodeKind::Uniform { name: "base_weight".into(), value: Value::Float(value) }, ty: Type::Float, origin: String::new() });
+        let u = dag.add(Node {
+            kind: NodeKind::Uniform { name: "base_weight".into(), value: Value::Float(value) },
+            ty: Type::Float,
+            origin: String::new(),
+        });
         dag.surface.fields.push(SurfaceField { name: "base_weight".into(), ty: Type::Float, node: u });
         dag
     }
@@ -121,7 +125,8 @@ mod tests {
     fn large_integer_constants_hash_differently() {
         let int_dag = |n: i32| {
             let mut dag = Dag::new("m");
-            let c = dag.add(Node { kind: NodeKind::Const(Value::Integer(n)), ty: Type::Integer, origin: String::new() });
+            let c =
+                dag.add(Node { kind: NodeKind::Const(Value::Integer(n)), ty: Type::Integer, origin: String::new() });
             dag.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Integer, node: c });
             dag
         };
@@ -130,7 +135,8 @@ mod tests {
 
     #[test]
     fn constants_do_change_it() {
-        let mut a = Dag::new("m"); let mut b = Dag::new("m");
+        let mut a = Dag::new("m");
+        let mut b = Dag::new("m");
         let ca = a.add(Node { kind: NodeKind::Const(Value::Float(1.0)), ty: Type::Float, origin: String::new() });
         let cb = b.add(Node { kind: NodeKind::Const(Value::Float(2.0)), ty: Type::Float, origin: String::new() });
         a.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Float, node: ca });

@@ -69,5 +69,13 @@ pub fn is_connected(input: &Input) -> bool {
 }
 
 pub fn new_node(category: &str, name: &str, port_type: PortType, inputs: Vec<Input>, line: u32) -> Node {
-    Node { category: category.to_string(), name: name.to_string(), port_type, nodedef: None, version: None, inputs, line }
+    Node {
+        category: category.to_string(),
+        name: name.to_string(),
+        port_type,
+        nodedef: None,
+        version: None,
+        inputs,
+        line,
+    }
 }

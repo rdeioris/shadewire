@@ -54,10 +54,22 @@ mod tests {
     #[test]
     fn evaluates_a_small_graph() {
         let mut dag = Dag::new("open_pbr_surface");
-        let uv = dag.add(Node { kind: NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), ty: Type::Vector2, origin: String::new() });
-        let u = dag.add(Node { kind: NodeKind::Op { op: Op::Extract(0), args: vec![uv] }, ty: Type::Float, origin: String::new() });
+        let uv = dag.add(Node {
+            kind: NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }),
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
+        let u = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Extract(0), args: vec![uv] },
+            ty: Type::Float,
+            origin: String::new(),
+        });
         let two = dag.add(Node { kind: NodeKind::Const(Value::Float(2.0)), ty: Type::Float, origin: String::new() });
-        let m = dag.add(Node { kind: NodeKind::Op { op: Op::Multiply, args: vec![u, two] }, ty: Type::Float, origin: String::new() });
+        let m = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Multiply, args: vec![u, two] },
+            ty: Type::Float,
+            origin: String::new(),
+        });
         dag.surface.fields.push(SurfaceField { name: "base_weight".into(), ty: Type::Float, node: m });
         let out = eval_surface(&dag, &mut UvOnly([0.25, 0.5]), &NoTextures);
         assert_eq!(out, vec![("base_weight".to_string(), Value::Float(0.5))]);

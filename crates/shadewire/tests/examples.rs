@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use naga::back::{glsl, hlsl};
-use shadewire::{compile_mtlx, link, reference_host, translate, CompileOptions, Error, Target};
+use shadewire::{CompileOptions, Error, Target, compile_mtlx, link, reference_host, translate};
 use shadewire_mtlx::include::resolve_includes;
 use shadewire_mtlx::parse::parse_str;
 
@@ -88,7 +88,8 @@ fn every_example_compiles_or_is_allow_listed() {
                 match check(&text, &path, &material) {
                     Ok(()) => {
                         compiled += 1;
-                        let stale: Vec<&String> = allowed.iter().filter(|k| k.starts_with(&format!("{file}|{material}|"))).collect();
+                        let stale: Vec<&String> =
+                            allowed.iter().filter(|k| k.starts_with(&format!("{file}|{material}|"))).collect();
                         if !stale.is_empty() {
                             failures.push(format!("stale allow-list entry, now compiles: {stale:?}"));
                         }

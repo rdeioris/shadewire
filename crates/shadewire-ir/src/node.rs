@@ -15,14 +15,25 @@ pub enum NodeKind {
     /// A value baked into the shader.
     Const(Value),
     /// A value the host may change without recompiling.
-    Uniform { name: String, value: Value },
+    Uniform {
+        name: String,
+        value: Value,
+    },
     /// A value the host supplies per fragment, per frame or per geometry.
     Context(ContextRead),
     /// A texture lookup; `texture` indexes `Dag::textures`. `grad` is the screen-space
     /// derivative of `uv` along x and y, in MaterialX uv space, for an explicit-gradient
     /// lookup (`textureSampleGrad`); `None` lets the GPU take it from `uv` itself.
-    Sample { texture: usize, uv: NodeId, default: Value, grad: Option<[NodeId; 2]> },
-    Op { op: Op, args: Vec<NodeId> },
+    Sample {
+        texture: usize,
+        uv: NodeId,
+        default: Value,
+        grad: Option<[NodeId; 2]>,
+    },
+    Op {
+        op: Op,
+        args: Vec<NodeId>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

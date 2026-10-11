@@ -2,12 +2,45 @@ use crate::{Op, Space, TransformKind, Type};
 
 pub fn input_names(op: &Op) -> &'static [&'static str] {
     match op {
-        Op::Add | Op::Subtract | Op::Multiply | Op::Divide | Op::Modulo | Op::Power | Op::SafePower
-        | Op::Min | Op::Max | Op::Distance | Op::DotProduct | Op::CrossProduct | Op::And | Op::Or => &["in1", "in2"],
+        Op::Add
+        | Op::Subtract
+        | Op::Multiply
+        | Op::Divide
+        | Op::Modulo
+        | Op::Power
+        | Op::SafePower
+        | Op::Min
+        | Op::Max
+        | Op::Distance
+        | Op::DotProduct
+        | Op::CrossProduct
+        | Op::And
+        | Op::Or => &["in1", "in2"],
         Op::Invert | Op::Rotate2d => &["in", "amount"],
-        Op::Absval | Op::Sign | Op::Floor | Op::Ceil | Op::Round | Op::Fract | Op::Sqrt | Op::Exp | Op::Ln
-        | Op::Sin | Op::Cos | Op::Tan | Op::Asin | Op::Acos | Op::Normalize | Op::Magnitude
-        | Op::Not | Op::Convert | Op::RgbToHsv | Op::HsvToRgb | Op::Transform { .. } | Op::Extract(_) | Op::Dpdx | Op::Dpdy => &["in"],
+        Op::Absval
+        | Op::Sign
+        | Op::Floor
+        | Op::Ceil
+        | Op::Round
+        | Op::Fract
+        | Op::Sqrt
+        | Op::Exp
+        | Op::Ln
+        | Op::Sin
+        | Op::Cos
+        | Op::Tan
+        | Op::Asin
+        | Op::Acos
+        | Op::Normalize
+        | Op::Magnitude
+        | Op::Not
+        | Op::Convert
+        | Op::RgbToHsv
+        | Op::HsvToRgb
+        | Op::Transform { .. }
+        | Op::Extract(_)
+        | Op::Dpdx
+        | Op::Dpdy => &["in"],
         Op::Clamp | Op::Smoothstep => &["in", "low", "high"],
         Op::Mix => &["fg", "bg", "mix"],
         Op::Remap => &["in", "inlow", "inhigh", "outlow", "outhigh"],

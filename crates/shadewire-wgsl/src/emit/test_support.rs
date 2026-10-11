@@ -1,7 +1,7 @@
 //! Helpers shared by the emitter's test modules.
 
 use shadewire_ir::reflection::live::live_nodes;
-use shadewire_ir::{reflect, BindingOptions, ContextRead, Dag, Node, NodeId, NodeKind, Reflection, SourceInfo, Type};
+use shadewire_ir::{BindingOptions, ContextRead, Dag, Node, NodeId, NodeKind, Reflection, SourceInfo, Type, reflect};
 
 use super::ops::Arg;
 use super::types::wgsl_type;
@@ -24,7 +24,8 @@ pub fn reflection(dag: &Dag) -> Reflection {
 /// Parses and validates a whole module (all flags, all capabilities).
 pub fn naga_validates(text: &str) {
     let module = naga::front::wgsl::parse_str(text).unwrap_or_else(|e| panic!("{text}\n{}", e.emit_to_string(text)));
-    let mut validator = naga::valid::Validator::new(naga::valid::ValidationFlags::all(), naga::valid::Capabilities::all());
+    let mut validator =
+        naga::valid::Validator::new(naga::valid::ValidationFlags::all(), naga::valid::Capabilities::all());
     validator.validate(&module).unwrap_or_else(|e| panic!("{text}\n{e:?}"));
 }
 
@@ -38,14 +39,21 @@ pub fn validates(dag: &Dag, reflection: &Reflection, wgsl: &str) {
     let mut stubs: Vec<String> = Vec::new();
     let live = live_nodes(dag);
     for (i, node) in dag.nodes.iter().enumerate() {
-        let NodeKind::Context(read) = &node.kind else { continue };
+        let NodeKind::Context(read) = &node.kind else {
+            continue;
+        };
         if !live[i] {
             continue;
         }
         let name = match read {
-            ContextRead::GeomProp { name, .. } => {
-                reflection.context.geomprops.iter().find(|g| g.name == *name).expect("reflected geomprop").function.clone()
-            }
+            ContextRead::GeomProp { name, .. } => reflection
+                .context
+                .geomprops
+                .iter()
+                .find(|g| g.name == *name)
+                .expect("reflected geomprop")
+                .function
+                .clone(),
             other => other.function_name(),
         };
         let ty = wgsl_type(read.ty());

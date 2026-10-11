@@ -19,8 +19,7 @@ fn sample(dag: &Dag) -> (&TextureDesc, NodeId, Value) {
 
 #[test]
 fn image_samples_its_file_with_modes_and_default() {
-    let d = doc(
-        r#"<nodegraph name="g" fileprefix="tex/">
+    let d = doc(r#"<nodegraph name="g" fileprefix="tex/">
           <image name="i" type="color3">
             <input name="file" type="filename" value="wood.png" colorspace="srgb_texture"/>
             <input name="default" type="color3" value="1,0,1"/>
@@ -28,8 +27,7 @@ fn image_samples_its_file_with_modes_and_default() {
             <input name="filtertype" type="string" value="closest"/>
           </image>
           <output name="out" type="color3" nodename="i"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let dag = elaborate_output(&d, "g", "out").unwrap();
     let (texture, uv, default) = sample(&dag);
     assert_eq!(
@@ -49,35 +47,30 @@ fn image_samples_its_file_with_modes_and_default() {
 
 #[test]
 fn image_without_a_file_is_a_bad_value() {
-    let d = doc(
-        r#"<nodegraph name="g">
+    let d = doc(r#"<nodegraph name="g">
           <image name="i" type="float"/>
           <output name="out" type="float" nodename="i"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let err = elaborate_output(&d, "g", "out").unwrap_err();
     assert!(matches!(err, Error::BadValue { .. }), "{err:?}");
 }
 
 #[test]
 fn unknown_address_mode_is_a_bad_value() {
-    let d = doc(
-        r#"<nodegraph name="g">
+    let d = doc(r#"<nodegraph name="g">
           <image name="i" type="float">
             <input name="file" type="filename" value="a.png"/>
             <input name="uaddressmode" type="string" value="wrap"/>
           </image>
           <output name="out" type="float" nodename="i"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let err = elaborate_output(&d, "g", "out").unwrap_err();
     assert!(matches!(err, Error::BadValue { .. }), "{err:?}");
 }
 
 #[test]
 fn two_images_of_one_file_share_a_texture() {
-    let d = doc(
-        r#"<nodegraph name="g">
+    let d = doc(r#"<nodegraph name="g">
           <image name="a" type="float"><input name="file" type="filename" value="a.png"/></image>
           <image name="b" type="float"><input name="file" type="filename" value="a.png"/></image>
           <add name="s" type="float">
@@ -85,8 +78,7 @@ fn two_images_of_one_file_share_a_texture() {
             <input name="in2" type="float" nodename="b"/>
           </add>
           <output name="out" type="float" nodename="s"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let dag = elaborate_output(&d, "g", "out").unwrap();
     assert_eq!(dag.textures.len(), 1);
 }
@@ -94,8 +86,7 @@ fn two_images_of_one_file_share_a_texture() {
 #[test]
 fn uvtiling_and_uvoffset_scale_then_offset_the_texcoord() {
     // mx_transform_uv: uv * uv_scale + uv_offset.
-    let d = doc(
-        r#"<nodedef name="ND_image_tiled" node="image">
+    let d = doc(r#"<nodedef name="ND_image_tiled" node="image">
           <input name="file" type="filename" value=""/>
           <input name="default" type="float" value="0"/>
           <input name="texcoord" type="vector2" defaultgeomprop="UV0"/>
@@ -109,8 +100,7 @@ fn uvtiling_and_uvoffset_scale_then_offset_the_texcoord() {
             <input name="uvtiling" type="vector2" value="2,3"/>
           </image>
           <output name="out" type="float" nodename="i"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let dag = elaborate_output(&d, "g", "out").unwrap();
     let (_, uv, _) = sample(&dag);
     let NodeKind::Op { op: Op::Add, args } = &dag.node(uv).kind else { panic!("uv is not an add: {:?}", dag.node(uv)) };
@@ -122,14 +112,12 @@ fn uvtiling_and_uvoffset_scale_then_offset_the_texcoord() {
 
 #[test]
 fn tiledimage_keeps_the_authored_file_colorspace() {
-    let d = doc(
-        r#"<nodegraph name="g">
+    let d = doc(r#"<nodegraph name="g">
           <tiledimage name="t" type="color3">
             <input name="file" type="filename" value="brick.png" colorspace="srgb_texture"/>
           </tiledimage>
           <output name="out" type="color3" nodename="t"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let dag = elaborate_output(&d, "g", "out").unwrap();
     let (texture, _, _) = sample(&dag);
     assert_eq!(texture.file, "brick.png");

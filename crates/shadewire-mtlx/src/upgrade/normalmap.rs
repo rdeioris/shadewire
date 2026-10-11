@@ -26,10 +26,7 @@ fn apply_scope(nodes: &mut Vec<Node>, file: &Option<String>) -> Result<(), Error
             let object_space = space.is_some_and(|at| node.inputs[at].value.as_deref() == Some("object"));
             if object_space {
                 let at = Location { file: file.clone(), line: node.line, path: node.name.clone() };
-                return Err(Error::UnsupportedType {
-                    at,
-                    ty: "normalmap with space=\"object\"".to_string(),
-                });
+                return Err(Error::UnsupportedType { at, ty: "normalmap with space=\"object\"".to_string() });
             }
             if let Some(at) = space {
                 node.inputs.remove(at);

@@ -6,4 +6,4 @@ pub mod link;
 pub mod reference_host;
 pub mod translate;
 
-pub use emit::{emit, EmitOptions};
+pub use emit::{EmitOptions, emit};

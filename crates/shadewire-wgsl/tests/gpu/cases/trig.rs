@@ -1,6 +1,6 @@
 //! Trig family: sin, cos, tan, asin, acos over [-1, 1], atan2 over sign combinations.
 
-use super::{binary, triple, unary, Case, TRANSCENDENTAL};
+use super::{Case, TRANSCENDENTAL, binary, triple, unary};
 use shadewire_ir::{Op, Type, Value};
 
 const INPUTS: [f32; 5] = [-1.0, -0.5, 0.0, 0.5, 1.0];

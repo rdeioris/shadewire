@@ -8,7 +8,13 @@ use crate::document::{Input, Node, NodeDef, PortDef};
 
 impl<'a> Elaborator<'a> {
     /// The value of value-typed input `input_name` of `node`, whose nodedef is `nd`.
-    pub fn input_value(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, input_name: &str) -> Result<NodeId, Error> {
+    pub fn input_value(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        input_name: &str,
+    ) -> Result<NodeId, Error> {
         self.input_node(scope, node, nd, input_name, false, false)
     }
 
@@ -27,7 +33,13 @@ impl<'a> Elaborator<'a> {
 
     /// `input_value` for an op parameter or compile-time setting: a uniform
     /// bound through an interface is read as a constant of its value instead.
-    pub fn param_value(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, input_name: &str) -> Result<NodeId, Error> {
+    pub fn param_value(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        input_name: &str,
+    ) -> Result<NodeId, Error> {
         self.input_node(scope, node, nd, input_name, true, false)
     }
 
@@ -83,7 +95,7 @@ impl<'a> Elaborator<'a> {
                     return Err(Error::BadValue {
                         at: at.clone(),
                         message: format!("interface input {name} is a string, not a {}", ty.mtlx_name()),
-                    })
+                    });
                 }
                 Some(Binding::Unbound) | None => return Ok(None),
             }
@@ -95,13 +107,25 @@ impl<'a> Elaborator<'a> {
     }
 
     /// A string or filename input: the node's value, its interface binding, or the nodedef value.
-    pub fn string_input(&mut self, scope: &Scope<'a>, node: &Node, nd: &NodeDef, input_name: &str) -> Result<Option<String>, Error> {
+    pub fn string_input(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &Node,
+        nd: &NodeDef,
+        input_name: &str,
+    ) -> Result<Option<String>, Error> {
         Ok(self.text_input(scope, node, nd, input_name)?.map(|t| t.text))
     }
 
     /// `string_input` with the value's colorspace. Through an interface the
     /// binding's colorspace wins, falling back to the node input's own.
-    pub fn text_input(&mut self, scope: &Scope<'a>, node: &Node, nd: &NodeDef, input_name: &str) -> Result<Option<TextValue>, Error> {
+    pub fn text_input(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &Node,
+        nd: &NodeDef,
+        input_name: &str,
+    ) -> Result<Option<TextValue>, Error> {
         let given = node.inputs.iter().find(|i| i.name == input_name);
         if let Some(input) = given {
             if let Some(name) = &input.interfacename {
@@ -129,7 +153,8 @@ impl<'a> Elaborator<'a> {
         let node = self.dag.node(id);
         match &node.kind {
             NodeKind::Uniform { value, .. } if param => {
-                let constant = IrNode { kind: NodeKind::Const(value.clone()), ty: node.ty, origin: node.origin.clone() };
+                let constant =
+                    IrNode { kind: NodeKind::Const(value.clone()), ty: node.ty, origin: node.origin.clone() };
                 self.dag.add(constant)
             }
             _ => id,
@@ -138,9 +163,18 @@ impl<'a> Elaborator<'a> {
 
     /// Colorspace then unit conversion of a value authored on the node itself.
     /// Connections and interface bindings arrive already converted.
-    pub fn convert_input(&mut self, id: NodeId, given: Option<&Input>, port: &PortDef, at: &Location) -> Result<NodeId, Error> {
+    pub fn convert_input(
+        &mut self,
+        id: NodeId,
+        given: Option<&Input>,
+        port: &PortDef,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
         let Some(input) = given else { return Ok(id) };
-        let authored = input.value.is_some() && input.nodename.is_none() && input.nodegraph.is_none() && input.interfacename.is_none();
+        let authored = input.value.is_some()
+            && input.nodename.is_none()
+            && input.nodegraph.is_none()
+            && input.interfacename.is_none();
         if !authored {
             return Ok(id);
         }

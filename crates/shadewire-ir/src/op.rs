@@ -115,7 +115,10 @@ mod tests {
 
     #[test]
     fn transform_names() {
-        assert_eq!(transform_name(TransformKind::Normal, Space::Object, Space::World), "transform_normal_object_to_world");
+        assert_eq!(
+            transform_name(TransformKind::Normal, Space::Object, Space::World),
+            "transform_normal_object_to_world"
+        );
         assert_eq!(transform_name(TransformKind::Point, Space::Model, Space::World), "transform_point_model_to_world");
     }
 }

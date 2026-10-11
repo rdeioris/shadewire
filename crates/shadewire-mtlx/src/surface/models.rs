@@ -25,9 +25,9 @@ pub fn fields(nd: &NodeDef) -> Vec<(String, Type)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Document;
     use crate::index::Index;
     use crate::library::standard;
-    use crate::Document;
 
     #[test]
     fn struct_name_is_the_ir_rule() {

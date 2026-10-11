@@ -9,10 +9,7 @@ pub struct Element {
 
 impl Element {
     pub fn attr(&self, key: &str) -> Option<&str> {
-        self.attributes
-            .iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, v)| v.as_str())
+        self.attributes.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
     }
 
     /// The `name` attribute, or the empty string.

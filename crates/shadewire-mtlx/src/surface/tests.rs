@@ -1,17 +1,17 @@
 use std::path::Path;
 
-use shadewire_ir::interpret::{eval_surface, ContextSource, NoTextures};
+use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
 use shadewire_ir::{ContextRead, Dag, Error, NodeKind, Op, Space, TransformKind, Type, Value};
 
-use super::models::{fields, PHASE_ONE_MODELS};
-use crate::document::build::build;
+use super::models::{PHASE_ONE_MODELS, fields};
 use crate::document::Document;
+use crate::document::build::build;
 use crate::include::resolve_includes;
 use crate::index::Index;
 use crate::library::standard;
 use crate::parse::parse_str;
 use crate::upgrade::upgrade;
-use crate::{elaborate, ElaborateOptions};
+use crate::{ElaborateOptions, elaborate};
 
 const EXAMPLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/resources/Materials/Examples");
 
@@ -80,7 +80,10 @@ fn gltf_pbr_default_compiles() {
 fn unsupported_host_model_is_no_translation() {
     let doc = load("StandardSurface/standard_surface_default.mtlx");
     let err = compile(&doc, None, &["open_pbr_surface"]).unwrap_err();
-    assert_eq!(err, Error::NoTranslation { from: "standard_surface".to_string(), to: vec!["open_pbr_surface".to_string()] });
+    assert_eq!(
+        err,
+        Error::NoTranslation { from: "standard_surface".to_string(), to: vec!["open_pbr_surface".to_string()] }
+    );
 }
 
 const TWO_MATERIALS: &str = r#"

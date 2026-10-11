@@ -15,8 +15,7 @@ fn cycle_node(d: &Document, graph: &str) -> String {
 
 #[test]
 fn self_implementing_nodedef_is_a_cycle() {
-    let d = doc(
-        r#"<nodedef name="ND_loop_float" node="loop"><output name="out" type="float"/></nodedef>
+    let d = doc(r#"<nodedef name="ND_loop_float" node="loop"><output name="out" type="float"/></nodedef>
         <nodegraph name="NG_loop_float" nodedef="ND_loop_float">
           <loop name="again" type="float"/>
           <output name="out" type="float" nodename="again"/>
@@ -24,15 +23,13 @@ fn self_implementing_nodedef_is_a_cycle() {
         <nodegraph name="g">
           <loop name="l" type="float"/>
           <output name="out" type="float" nodename="l"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     assert_eq!(cycle_node(&d, "g"), "again");
 }
 
 #[test]
 fn mutually_implementing_nodedefs_are_a_cycle() {
-    let d = doc(
-        r#"<nodedef name="ND_ping_float" node="ping"><output name="out" type="float"/></nodedef>
+    let d = doc(r#"<nodedef name="ND_ping_float" node="ping"><output name="out" type="float"/></nodedef>
         <nodedef name="ND_pong_float" node="pong"><output name="out" type="float"/></nodedef>
         <nodegraph name="NG_ping_float" nodedef="ND_ping_float">
           <pong name="p" type="float"/>
@@ -45,33 +42,28 @@ fn mutually_implementing_nodedefs_are_a_cycle() {
         <nodegraph name="g">
           <ping name="start" type="float"/>
           <output name="out" type="float" nodename="start"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     assert_eq!(cycle_node(&d, "g"), "q");
 }
 
 #[test]
 fn graph_output_pointing_at_itself_is_a_cycle() {
-    let d = doc(
-        r#"<nodegraph name="g">
+    let d = doc(r#"<nodegraph name="g">
           <output name="out" type="float" nodegraph="g" output="out"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     assert_eq!(cycle_node(&d, "g"), "g/out");
 }
 
 #[test]
 fn a_node_read_with_and_without_its_output_name_is_made_once() {
-    let d = doc(
-        r#"<nodegraph name="g">
+    let d = doc(r#"<nodegraph name="g">
           <sin name="s" type="float"><input name="in" type="float" value="1"/></sin>
           <add name="a" type="float">
             <input name="in1" type="float" nodename="s"/>
             <input name="in2" type="float" nodename="s" output="out"/>
           </add>
           <output name="out" type="float" nodename="a"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let dag = elaborate_output(&d, "g", "out").unwrap();
     let NodeKind::Op { args, .. } = &dag.node(dag.surface.fields[0].node).kind else { panic!("not an op") };
     assert_eq!(args[0], args[1]);
@@ -79,12 +71,10 @@ fn a_node_read_with_and_without_its_output_name_is_made_once() {
 
 #[test]
 fn a_failed_node_does_not_stay_in_progress() {
-    let d = doc(
-        r#"<nodegraph name="g">
+    let d = doc(r#"<nodegraph name="g">
           <add name="bad" type="float"><input name="in1" type="float" value="x"/></add>
           <output name="out" type="float" nodename="bad"/>
-        </nodegraph>"#,
-    );
+        </nodegraph>"#);
     let options = super::ElaborateOptions::default();
     let mut e = super::Elaborator::new(&d, crate::library::standard(), &options, "test");
     let top = e.top_scope(&d.nodes);
@@ -129,7 +119,7 @@ const DOUBLE: &str = r#"
     </nodegraph>"#;
 
 fn eval_out(d: &Document) -> shadewire_ir::Value {
-    use shadewire_ir::interpret::{eval_surface, ContextSource, NoTextures};
+    use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
     use shadewire_ir::{ContextRead, Space, TransformKind, Value};
     struct Zeros;
     impl ContextSource for Zeros {

@@ -1,4 +1,4 @@
-use shadewire::{compile_mtlx, link, reference_host, translate, CompileOptions, Compiled, Error, Output, Target};
+use shadewire::{CompileOptions, Compiled, Error, Output, Target, compile_mtlx, link, reference_host, translate};
 
 use crate::args::{Args, Command, CompileArgs, Lang};
 
@@ -39,7 +39,8 @@ fn render(compiled: &Compiled, lang: Lang) -> Result<Vec<u8>, Error> {
         return Ok(compiled.wgsl.clone().into_bytes());
     }
     eprintln!("note: {lang:?} output links the reference host, which supplies the entry point");
-    let prelude = reference_host::prelude(&compiled.reflection, &shadewire_ir::model_struct_name(&compiled.reflection.model));
+    let prelude =
+        reference_host::prelude(&compiled.reflection, &shadewire_ir::model_struct_name(&compiled.reflection.model));
     let linked = link(&compiled.wgsl, &prelude)?;
     Ok(match translate(&linked, target(lang))? {
         Output::Text(text) => text.into_bytes(),
@@ -57,7 +58,9 @@ fn compile_command(args: &CompileArgs) -> Result<(), Error> {
     let bytes = render(&compiled, args.lang)?;
     match &args.output {
         Some(path) => std::fs::write(path, bytes).map_err(|e| io(e, path))?,
-        None if args.lang == Lang::Spirv => return Err(Error::Io("SPIR-V is binary: give -o".to_string())),
+        None if args.lang == Lang::Spirv => {
+            return Err(Error::Io("SPIR-V is binary: give -o".to_string()));
+        }
         None => print!("{}", String::from_utf8_lossy(&bytes)),
     }
     Ok(())

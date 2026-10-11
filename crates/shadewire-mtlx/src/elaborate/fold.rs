@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use shadewire_ir::interpret::ContextSource;
 use shadewire_ir::ops::broadcast::broadcast;
-use shadewire_ir::{eval_op, ContextRead, NodeId, NodeKind, Space, TransformKind, Value};
+use shadewire_ir::{ContextRead, NodeId, NodeKind, Space, TransformKind, Value, eval_op};
 
 use super::Elaborator;
 
@@ -43,7 +43,9 @@ impl<'a> Elaborator<'a> {
                 }
                 eval_op(op, &values, node.ty, &mut NoContext)
             }
-            NodeKind::Op { .. } | NodeKind::Uniform { .. } | NodeKind::Context(_) | NodeKind::Sample { .. } => return None,
+            NodeKind::Op { .. } | NodeKind::Uniform { .. } | NodeKind::Context(_) | NodeKind::Sample { .. } => {
+                return None;
+            }
         };
         let value = broadcast(&value, node.ty);
         memo.insert(id, value.clone());

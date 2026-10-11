@@ -19,7 +19,10 @@ pub struct CompileOptions {
 impl Default for CompileOptions {
     fn default() -> CompileOptions {
         CompileOptions {
-            models: ["open_pbr_surface", "standard_surface", "gltf_pbr", "surface_unlit"].iter().map(|m| m.to_string()).collect(),
+            models: ["open_pbr_surface", "standard_surface", "gltf_pbr", "surface_unlit"]
+                .iter()
+                .map(|m| m.to_string())
+                .collect(),
             group: 2,
             first_binding: 0,
             working_colorspace: "lin_rec709".to_string(),

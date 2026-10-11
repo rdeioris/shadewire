@@ -1,14 +1,14 @@
 use std::path::Path;
 
 use shadewire_ir::optimize::optimize;
-use shadewire_ir::{reflect, BindingOptions, Dag, Error, Location, Reflection, SourceInfo};
+use shadewire_ir::{BindingOptions, Dag, Error, Location, Reflection, SourceInfo, reflect};
 use shadewire_mtlx::document::build::build;
 use shadewire_mtlx::include::resolve_includes;
 use shadewire_mtlx::library::standard;
 use shadewire_mtlx::parse::parse_str;
 use shadewire_mtlx::upgrade::upgrade;
-use shadewire_mtlx::{elaborate, ElaborateOptions};
-use shadewire_wgsl::{emit, EmitOptions};
+use shadewire_mtlx::{ElaborateOptions, elaborate};
+use shadewire_wgsl::{EmitOptions, emit};
 
 use crate::options::CompileOptions;
 
@@ -22,7 +22,12 @@ pub struct Compiled {
 
 /// MaterialX text to WGSL: parse, includes, build, upgrade, elaborate, optimize, reflect, emit.
 /// `file` names the document (for messages and as the base of relative includes).
-pub fn compile_mtlx(text: &str, file: Option<&Path>, material: Option<&str>, options: &CompileOptions) -> Result<Compiled, Error> {
+pub fn compile_mtlx(
+    text: &str,
+    file: Option<&Path>,
+    material: Option<&str>,
+    options: &CompileOptions,
+) -> Result<Compiled, Error> {
     let name = file.map(|f| f.display().to_string());
     let root = parse_str(text, name.as_deref())?;
     if file.is_none() {

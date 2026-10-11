@@ -46,11 +46,7 @@ pub struct Scope<'a> {
 impl<'a> Scope<'a> {
     /// The origin of a node in this scope, such as `NG_marble/noise1`.
     pub fn origin(&self, node_name: &str) -> String {
-        if self.path.is_empty() {
-            node_name.to_string()
-        } else {
-            format!("{}/{node_name}", self.path)
-        }
+        if self.path.is_empty() { node_name.to_string() } else { format!("{}/{node_name}", self.path) }
     }
 
     pub fn find_node(&self, name: &str) -> Option<&'a Node> {
@@ -76,16 +72,19 @@ impl<'a> Elaborator<'a> {
         if let Some(scope) = self.user_scopes.get(name) {
             return Ok(scope.clone());
         }
-        let graph = self.index.nodegraph(name).ok_or_else(|| Error::BadValue {
-            at: at.clone(),
-            message: format!("no nodegraph named {name}"),
-        })?;
+        let graph = self
+            .index
+            .nodegraph(name)
+            .ok_or_else(|| Error::BadValue { at: at.clone(), message: format!("no nodegraph named {name}") })?;
         let id = self.new_scope_id();
         let mut interface = HashMap::new();
         for port in &graph.interface {
             let port_at = Location { file: self.file.clone(), line: port.line, path: format!("{name}/{}", port.name) };
             if port.nodename.is_some() {
-                return Err(Error::BadValue { at: port_at, message: format!("interface input {} cannot connect to a node", port.name) });
+                return Err(Error::BadValue {
+                    at: port_at,
+                    message: format!("interface input {} cannot connect to a node", port.name),
+                });
             }
             let binding = match (&port.port_type, &port.value, &port.default_geomprop) {
                 (PortType::String | PortType::Filename, Some(text), _) => {
@@ -93,7 +92,15 @@ impl<'a> Elaborator<'a> {
                 }
                 (PortType::Value(ty), Some(text), _) if !text.is_empty() => {
                     let ty = self.value_type(&PortType::Value(*ty), &port_at)?;
-                    let scope = Scope { id, graph: Some(graph), nodes: &graph.nodes, interface: HashMap::new(), user: true, path: name.to_string(), file: None };
+                    let scope = Scope {
+                        id,
+                        graph: Some(graph),
+                        nodes: &graph.nodes,
+                        interface: HashMap::new(),
+                        user: true,
+                        path: name.to_string(),
+                        file: None,
+                    };
                     let id = self.authored_value(&scope, &port.name, ty, text, true, &port_at)?;
                     Binding::Node(self.convert_colorspace(id, ty, port.colorspace.as_deref(), &port_at)?)
                 }
@@ -107,12 +114,23 @@ impl<'a> Elaborator<'a> {
                 }
                 (PortType::Value(_) | PortType::String | PortType::Filename, _, _) => Binding::Unbound,
                 (other, _, _) => {
-                    return Err(Error::BadValue { at: port_at, message: format!("interface input {} has unsupported type {other:?}", port.name) })
+                    return Err(Error::BadValue {
+                        at: port_at,
+                        message: format!("interface input {} has unsupported type {other:?}", port.name),
+                    });
                 }
             };
             interface.insert(port.name.clone(), binding);
         }
-        let scope = Scope { id, graph: Some(graph), nodes: &graph.nodes, interface, user: true, path: name.to_string(), file: None };
+        let scope = Scope {
+            id,
+            graph: Some(graph),
+            nodes: &graph.nodes,
+            interface,
+            user: true,
+            path: name.to_string(),
+            file: None,
+        };
         self.user_scopes.insert(name.to_string(), scope.clone());
         Ok(scope)
     }

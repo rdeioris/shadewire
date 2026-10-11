@@ -1,6 +1,6 @@
 use shadewire_ir::{Op, Type};
 
-use super::{cast, finish, wide, work_type, Arg};
+use super::{Arg, cast, finish, wide, work_type};
 
 /// Mirrors `shadewire_ir::ops::math`: every argument is broadcast to the node type
 /// (the mix amount stays scalar, WGSL scales a vector by it) and integer results
@@ -96,7 +96,9 @@ mod tests {
         let t = "((n0 - vec3<f32>(n1)) / (vec3<f32>(n2) - vec3<f32>(n1)))";
         assert_eq!(
             emit(&Op::Smoothstep, &args(&[C3, F, F]), C3),
-            format!("select(select(({t} * {t} * (3.0 - 2.0 * {t})), vec3<f32>(0.0), n0 <= vec3<f32>(n1)), vec3<f32>(1.0), n0 >= vec3<f32>(n2))")
+            format!(
+                "select(select(({t} * {t} * (3.0 - 2.0 * {t})), vec3<f32>(0.0), n0 <= vec3<f32>(n1)), vec3<f32>(1.0), n0 >= vec3<f32>(n2))"
+            )
         );
     }
 

@@ -37,10 +37,22 @@ mod tests {
     fn varying_wins_over_uniform_wins_over_constant() {
         let mut dag = Dag::new("m");
         let c = dag.add(Node { kind: NodeKind::Const(Value::Float(1.0)), ty: Type::Float, origin: String::new() });
-        let u = dag.add(Node { kind: NodeKind::Uniform { name: "k".into(), value: Value::Float(1.0) }, ty: Type::Float, origin: String::new() });
+        let u = dag.add(Node {
+            kind: NodeKind::Uniform { name: "k".into(), value: Value::Float(1.0) },
+            ty: Type::Float,
+            origin: String::new(),
+        });
         let t = dag.add(Node { kind: NodeKind::Context(ContextRead::Time), ty: Type::Float, origin: String::new() });
-        let cu = dag.add(Node { kind: NodeKind::Op { op: Op::Add, args: vec![c, u] }, ty: Type::Float, origin: String::new() });
-        let ut = dag.add(Node { kind: NodeKind::Op { op: Op::Add, args: vec![u, t] }, ty: Type::Float, origin: String::new() });
+        let cu = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Add, args: vec![c, u] },
+            ty: Type::Float,
+            origin: String::new(),
+        });
+        let ut = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Add, args: vec![u, t] },
+            ty: Type::Float,
+            origin: String::new(),
+        });
         let kinds = classify::node_kinds(&dag);
         assert_eq!(kinds[c.index()], ParamKind::Constant(Value::Float(1.0)));
         assert_eq!(kinds[cu.index()], ParamKind::Uniform);

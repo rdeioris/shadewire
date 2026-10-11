@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use shadewire_ir::{op_for_category, Error, Location, NodeId, Value, NodeKind, Node as IrNode};
+use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind, Value, op_for_category};
 
 use super::ramp::is_ramp;
 use super::special::is_special;
@@ -39,7 +39,13 @@ impl<'a> Elaborator<'a> {
         Ok(id)
     }
 
-    fn instance(&mut self, scope: &Scope<'a>, node: &'a Node, output: Option<&str>, at: &Location) -> Result<NodeId, Error> {
+    fn instance(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        output: Option<&str>,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
         if let PortType::Value(ty) = &node.port_type {
             self.value_type(&PortType::Value(*ty), at)?;
         }
@@ -113,7 +119,9 @@ impl<'a> Elaborator<'a> {
                     Some(text) => Binding::Text(text),
                     None => Binding::Unbound,
                 },
-                PortType::Value(_) => Binding::Node(self.surface_input_value(scope, node, nd, &port.name, uniform_eligible)?),
+                PortType::Value(_) => {
+                    Binding::Node(self.surface_input_value(scope, node, nd, &port.name, uniform_eligible)?)
+                }
                 _ => Binding::Unbound,
             };
             interface.insert(port.name.clone(), binding);
@@ -135,7 +143,15 @@ impl<'a> Elaborator<'a> {
         at: &Location,
     ) -> Result<NodeId, Error> {
         let file = self.index.graph_file(graph);
-        let child = Scope { id: self.new_scope_id(), graph: Some(graph), nodes: &graph.nodes, interface, user: false, path, file };
+        let child = Scope {
+            id: self.new_scope_id(),
+            graph: Some(graph),
+            nodes: &graph.nodes,
+            interface,
+            user: false,
+            path,
+            file,
+        };
         let wanted = output.or(nd.outputs.first().map(|o| o.name.as_str()));
         if !self.inlining.insert(nd.name.clone()) {
             return Err(Error::Cycle { at: at.clone(), node: node_name.to_string() });
@@ -147,7 +163,8 @@ impl<'a> Elaborator<'a> {
 
     /// The graph output named `output` of the scope's graph, or its only output.
     pub fn graph_output(&mut self, scope: &Scope<'a>, output: Option<&str>, at: &Location) -> Result<NodeId, Error> {
-        let graph = scope.graph.ok_or_else(|| Error::BadValue { at: at.clone(), message: "no graph in scope".to_string() })?;
+        let graph =
+            scope.graph.ok_or_else(|| Error::BadValue { at: at.clone(), message: "no graph in scope".to_string() })?;
         let named = output.and_then(|name| graph.outputs.iter().find(|o| o.name == name));
         let found = match (named, graph.outputs.as_slice()) {
             (Some(o), _) => o,
@@ -156,7 +173,7 @@ impl<'a> Elaborator<'a> {
                 return Err(Error::BadValue {
                     at: at.clone(),
                     message: format!("{} has no output {}", graph.name, output.unwrap_or("")),
-                })
+                });
             }
         };
         let key = (scope.id, found.name.clone());

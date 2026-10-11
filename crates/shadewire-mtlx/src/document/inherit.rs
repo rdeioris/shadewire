@@ -12,14 +12,8 @@ impl Inherit {
     /// The context seen inside `element`: its own attributes win.
     pub fn enter(&self, element: &Element) -> Inherit {
         Inherit {
-            fileprefix: element
-                .attr("fileprefix")
-                .map(str::to_string)
-                .unwrap_or_else(|| self.fileprefix.clone()),
-            colorspace: element
-                .attr("colorspace")
-                .map(str::to_string)
-                .or_else(|| self.colorspace.clone()),
+            fileprefix: element.attr("fileprefix").map(str::to_string).unwrap_or_else(|| self.fileprefix.clone()),
+            colorspace: element.attr("colorspace").map(str::to_string).or_else(|| self.colorspace.clone()),
         }
     }
 
@@ -31,11 +25,8 @@ impl Inherit {
         own_colorspace: Option<&str>,
         value: Option<&str>,
     ) -> (Option<String>, Option<String>) {
-        let colorspace = if port_type.has_colorspace() {
-            own(own_colorspace).or_else(|| self.colorspace.clone())
-        } else {
-            None
-        };
+        let colorspace =
+            if port_type.has_colorspace() { own(own_colorspace).or_else(|| self.colorspace.clone()) } else { None };
         let value = match (port_type, value) {
             (PortType::Filename, Some(v)) => Some(format!("{}{v}", self.fileprefix)),
             (_, v) => own(v),

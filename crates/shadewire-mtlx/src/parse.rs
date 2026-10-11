@@ -1,5 +1,5 @@
-use quick_xml::events::{BytesStart, Event};
 use quick_xml::Reader;
+use quick_xml::events::{BytesStart, Event};
 use shadewire_ir::{Error, Location};
 
 use crate::element::Element;
@@ -30,10 +30,7 @@ impl<'a> Lines<'a> {
 }
 
 fn fail(file: Option<&str>, line: u32, message: String) -> Error {
-    Error::Parse {
-        at: Location { file: file.map(str::to_string), line, path: String::new() },
-        message,
-    }
+    Error::Parse { at: Location { file: file.map(str::to_string), line, path: String::new() }, message }
 }
 
 fn open(start: &BytesStart, line: u32, file: Option<&str>) -> Result<Element, Error> {
@@ -42,10 +39,7 @@ fn open(start: &BytesStart, line: u32, file: Option<&str>) -> Result<Element, Er
     for attr in start.attributes() {
         let attr = attr.map_err(|e| fail(file, line, e.to_string()))?;
         let key = String::from_utf8_lossy(attr.key.as_ref()).into_owned();
-        let value = attr
-            .unescape_value()
-            .map_err(|e| fail(file, line, e.to_string()))?
-            .into_owned();
+        let value = attr.unescape_value().map_err(|e| fail(file, line, e.to_string()))?.into_owned();
         attributes.push((key, value));
     }
     Ok(Element { category, attributes, children: Vec::new(), line })
@@ -62,12 +56,12 @@ pub fn parse_str(text: &str, file: Option<&str>) -> Result<Element, Error> {
         let start_pos = reader.buffer_position() as usize;
         let event = match reader.read_event() {
             Ok(event) => event,
-            Err(e) => return Err(fail(file, lines.at(reader.buffer_position() as usize), e.to_string())),
+            Err(e) => {
+                return Err(fail(file, lines.at(reader.buffer_position() as usize), e.to_string()));
+            }
         };
         // trim_text skips leading whitespace, so find the real start of the tag
-        let tag_pos = text[start_pos.min(text.len())..]
-            .find('<')
-            .map_or(start_pos, |o| start_pos + o);
+        let tag_pos = text[start_pos.min(text.len())..].find('<').map_or(start_pos, |o| start_pos + o);
         let line = lines.at(tag_pos);
         match event {
             Event::Start(s) => stack.push(open(&s, line, file)?),

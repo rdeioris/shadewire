@@ -17,7 +17,9 @@ pub fn run(dag: &Dag) -> Dag {
 
 /// The new node that already holds this node's value, if there is one.
 fn replacement(rebuilder: &Rebuilder, old: &Node) -> Option<NodeId> {
-    let NodeKind::Op { op, args } = &old.kind else { return None };
+    let NodeKind::Op { op, args } = &old.kind else {
+        return None;
+    };
     let new_args: Vec<NodeId> = args.iter().map(|a| rebuilder.remap(*a)).collect();
     let same_type = |id: NodeId| rebuilder.new.node(id).ty == old.ty;
     match op {
@@ -116,7 +118,8 @@ mod tests {
         for (op, identity) in [(Op::Subtract, 0.0), (Op::Divide, 1.0)] {
             for right in [true, false] {
                 let mut dag = Dag::new("m");
-                let x = dag.add(n(NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2));
+                let x =
+                    dag.add(n(NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2));
                 let c = dag.add(n(NodeKind::Const(Value::Vector2([identity; 2])), Type::Vector2));
                 let args = if right { vec![x, c] } else { vec![c, x] };
                 let m = dag.add(n(NodeKind::Op { op, args }, Type::Vector2));

@@ -16,7 +16,13 @@ impl<'a> Elaborator<'a> {
     /// Converts a `color3`/`color4` value from colorspace `from` to the working
     /// colorspace. No colorspace, `none`, the working colorspace itself and
     /// other types leave the value unchanged.
-    pub fn convert_colorspace(&mut self, value: NodeId, ty: Type, from: Option<&str>, at: &Location) -> Result<NodeId, Error> {
+    pub fn convert_colorspace(
+        &mut self,
+        value: NodeId,
+        ty: Type,
+        from: Option<&str>,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
         let from = match from {
             Some(name) if !is_no_colorspace(name) && name != self.options.working_colorspace => name,
             _ => return Ok(value),

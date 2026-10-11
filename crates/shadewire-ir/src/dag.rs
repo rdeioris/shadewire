@@ -69,13 +69,23 @@ mod tests {
     #[should_panic(expected = "forward reference")]
     fn args_must_exist_before_their_user() {
         let mut dag = Dag::new("open_pbr_surface");
-        dag.add(Node { kind: NodeKind::Op { op: Op::Sin, args: vec![NodeId(5)] }, ty: Type::Float, origin: String::new() });
+        dag.add(Node {
+            kind: NodeKind::Op { op: Op::Sin, args: vec![NodeId(5)] },
+            ty: Type::Float,
+            origin: String::new(),
+        });
     }
 
     #[test]
     fn textures_are_deduplicated() {
         let mut dag = Dag::new("open_pbr_surface");
-        let t = TextureDesc { file: "a.png".into(), colorspace: None, address_u: AddressMode::Periodic, address_v: AddressMode::Periodic, filter: FilterMode::Linear };
+        let t = TextureDesc {
+            file: "a.png".into(),
+            colorspace: None,
+            address_u: AddressMode::Periodic,
+            address_v: AddressMode::Periodic,
+            filter: FilterMode::Linear,
+        };
         assert_eq!(dag.add_texture(t.clone()), 0);
         assert_eq!(dag.add_texture(t), 0);
     }

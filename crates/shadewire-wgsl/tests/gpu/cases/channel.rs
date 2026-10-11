@@ -1,6 +1,6 @@
 //! Channel family: every extract of a color4, combine2/3/4, every convert pair.
 
-use super::{op_case, unary, Case, EXACT};
+use super::{Case, EXACT, op_case, unary};
 use shadewire_ir::{Op, Type, Value};
 
 const TYPES: [Type; 8] = [

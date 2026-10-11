@@ -1,12 +1,12 @@
 use shadewire_ir::Error;
 
+use super::Document;
 use super::geompropdef::build_geompropdef;
 use super::inherit::Inherit;
 use super::node::build_node;
 use super::nodedef::build_nodedef;
 use super::nodegraph::{build_nodegraph, build_output};
 use super::unitdef::build_unitdef;
-use super::Document;
 use crate::element::Element;
 use crate::version::document_version;
 
@@ -23,9 +23,9 @@ pub fn build(root: &Element, file: Option<&str>) -> Result<Document, Error> {
             "output" => doc.outputs.push(build_output(child)),
             "unitdef" => doc.unitdefs.push(build_unitdef(child, file)?),
             "geompropdef" => doc.geompropdefs.push(build_geompropdef(child)),
-            "unittypedef" | "typedef" | "implementation" | "look" | "token" | "materialassign"
-            | "variantset" | "variantassign" | "visibility" | "collection" | "propertyset"
-            | "propertysetassign" | "attributedef" | "lookgroup" => {}
+            "unittypedef" | "typedef" | "implementation" | "look" | "token" | "materialassign" | "variantset"
+            | "variantassign" | "visibility" | "collection" | "propertyset" | "propertysetassign" | "attributedef"
+            | "lookgroup" => {}
             _ => doc.nodes.push(build_node(child, &inherit)),
         }
     }
@@ -55,10 +55,7 @@ mod tests {
 
     #[test]
     fn builds_stdlib_defs() {
-        let path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../vendor/materialx/libraries/stdlib/stdlib_defs.mtlx"
-        );
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/libraries/stdlib/stdlib_defs.mtlx");
         let text = std::fs::read_to_string(path).unwrap();
         let doc = build(&parse_str(&text, None).unwrap(), Some("stdlib_defs.mtlx")).unwrap();
         assert!(!doc.nodedefs.is_empty());
@@ -127,10 +124,7 @@ mod tests {
 
     #[test]
     fn stdlib_geompropdef_and_unit_scale() {
-        let path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../vendor/materialx/libraries/stdlib/stdlib_defs.mtlx"
-        );
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/libraries/stdlib/stdlib_defs.mtlx");
         let text = std::fs::read_to_string(path).unwrap();
         let d = doc(&text);
         let uv0 = d.geompropdefs.iter().find(|g| g.name == "UV0").unwrap();

@@ -1,7 +1,7 @@
 //! Joins a host prelude to generated WGSL and validates the whole module.
 
-use naga::valid::{Capabilities, ModuleInfo, ValidationFlags, Validator};
 use naga::Module;
+use naga::valid::{Capabilities, ModuleInfo, ValidationFlags, Validator};
 use shadewire_ir::Error;
 
 /// Parses and validates WGSL; errors carry naga's line and caret rendering of `source`.

@@ -43,7 +43,11 @@ mod tests {
     #[test]
     fn mix_of_uniform_constant_and_texcoord() {
         let mut dag = Dag::new("open_pbr_surface");
-        let fg = add(&mut dag, NodeKind::Uniform { name: "tint".into(), value: Value::Color3([1.0, 0.5, 0.25]) }, Type::Color3);
+        let fg = add(
+            &mut dag,
+            NodeKind::Uniform { name: "tint".into(), value: Value::Color3([1.0, 0.5, 0.25]) },
+            Type::Color3,
+        );
         let bg = add(&mut dag, NodeKind::Const(Value::Color3([0.0, 0.0, 1.0])), Type::Color3);
         add(&mut dag, NodeKind::Const(Value::Float(9.0)), Type::Float);
         let uv = add(&mut dag, NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2);
@@ -81,15 +85,30 @@ fn sw_eval_surface() -> OpenPbrSurface {
     #[test]
     fn everything_phase_one_emits_validates() {
         let mut dag = Dag::new("standard_surface");
-        let tex = |u| TextureDesc { file: "a.png".into(), colorspace: None, address_u: u, address_v: AddressMode::Constant, filter: FilterMode::Linear };
+        let tex = |u| TextureDesc {
+            file: "a.png".into(),
+            colorspace: None,
+            address_u: u,
+            address_v: AddressMode::Constant,
+            filter: FilterMode::Linear,
+        };
         let t0 = dag.add_texture(tex(AddressMode::Periodic));
         let t1 = dag.add_texture(tex(AddressMode::Constant));
         let uv = add(&mut dag, NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2);
-        let c = add(&mut dag, NodeKind::Sample { texture: t0, uv, default: Value::Color3([0.0; 3]), grad: None }, Type::Color3);
-        let a = add(&mut dag, NodeKind::Sample { texture: t1, uv, default: Value::Float(1.0), grad: None }, Type::Float);
+        let c = add(
+            &mut dag,
+            NodeKind::Sample { texture: t0, uv, default: Value::Color3([0.0; 3]), grad: None },
+            Type::Color3,
+        );
+        let a =
+            add(&mut dag, NodeKind::Sample { texture: t1, uv, default: Value::Float(1.0), grad: None }, Type::Float);
         let flag = add(&mut dag, NodeKind::Uniform { name: "flag".into(), value: Value::Boolean(true) }, Type::Boolean);
         let n = add(&mut dag, NodeKind::Uniform { name: "n".into(), value: Value::Integer(2) }, Type::Integer);
-        let prop = add(&mut dag, NodeKind::Context(ContextRead::GeomProp { name: "my-prop".into(), ty: Type::Color3 }), Type::Color3);
+        let prop = add(
+            &mut dag,
+            NodeKind::Context(ContextRead::GeomProp { name: "my-prop".into(), ty: Type::Color3 }),
+            Type::Color3,
+        );
         let normal = add(&mut dag, NodeKind::Context(ContextRead::Normal(Space::Object)), Type::Vector3);
         let time = add(&mut dag, NodeKind::Context(ContextRead::Time), Type::Float);
         let op = Op::Transform { kind: TransformKind::Normal, from: Space::Object, to: Space::World };
@@ -127,7 +146,13 @@ fn sw_eval_surface() -> OpenPbrSurface {
     #[test]
     fn gradient_samples_validate() {
         let mut dag = Dag::new("standard_surface");
-        let t = dag.add_texture(TextureDesc { file: "a.png".into(), colorspace: None, address_u: AddressMode::Periodic, address_v: AddressMode::Constant, filter: FilterMode::Linear });
+        let t = dag.add_texture(TextureDesc {
+            file: "a.png".into(),
+            colorspace: None,
+            address_u: AddressMode::Periodic,
+            address_v: AddressMode::Constant,
+            filter: FilterMode::Linear,
+        });
         let uv = add(&mut dag, NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2);
         let dx = add(&mut dag, NodeKind::Op { op: Op::Dpdx, args: vec![uv] }, Type::Vector2);
         let dy = add(&mut dag, NodeKind::Op { op: Op::Dpdy, args: vec![uv] }, Type::Vector2);

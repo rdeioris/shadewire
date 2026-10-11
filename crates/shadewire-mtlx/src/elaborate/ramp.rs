@@ -13,7 +13,14 @@ pub fn is_ramp(category: &str) -> bool {
 }
 
 impl<'a> Elaborator<'a> {
-    pub fn elaborate_ramp(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, out: Type, at: &Location) -> Result<NodeId, Error> {
+    pub fn elaborate_ramp(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        out: Type,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
         // mx_ramplr: mix(valuel, valuer, clamp(texcoord.x)); mx_ramptb: mix(valueb, valuet, clamp(texcoord.y)).
         let (low, high, channel) = match node.category.as_str() {
             "ramplr" => ("valuel", "valuer", 0),
@@ -34,7 +41,7 @@ impl<'a> Elaborator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use shadewire_ir::interpret::{eval_surface, ContextSource, NoTextures};
+    use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
     use shadewire_ir::{ContextRead, Space, TransformKind, Value};
 
     use super::super::elaborate_output;
@@ -51,7 +58,8 @@ mod tests {
     }
 
     fn ramp(node: &str) -> Value {
-        let d = doc(&format!(r#"<nodegraph name="g">{node}<output name="out" type="color3" nodename="n"/></nodegraph>"#));
+        let d =
+            doc(&format!(r#"<nodegraph name="g">{node}<output name="out" type="color3" nodename="n"/></nodegraph>"#));
         let dag = elaborate_output(&d, "g", "out").unwrap();
         eval_surface(&dag, &mut NoContext, &NoTextures).remove(0).1
     }

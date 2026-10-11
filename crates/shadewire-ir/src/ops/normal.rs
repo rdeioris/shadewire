@@ -34,21 +34,38 @@ mod tests {
 
     #[test]
     fn flat_normal_map_returns_the_geometric_normal() {
-        let args = [Value::Vector3([0.5, 0.5, 1.0]), Value::Float(1.0), Value::Vector3([0.0, 0.0, 1.0]),
-                    Value::Vector3([1.0, 0.0, 0.0]), Value::Vector3([0.0, 1.0, 0.0])];
+        let args = [
+            Value::Vector3([0.5, 0.5, 1.0]),
+            Value::Float(1.0),
+            Value::Vector3([0.0, 0.0, 1.0]),
+            Value::Vector3([1.0, 0.0, 0.0]),
+            Value::Vector3([0.0, 1.0, 0.0]),
+        ];
         assert_eq!(eval(&Op::NormalMap, &args, Type::Vector3), Value::Vector3([0.0, 0.0, 1.0]));
     }
 
     #[test]
     fn zero_input_means_flat_and_scale_tilts() {
-        let flat = [Value::Vector3([0.0, 0.0, 0.0]), Value::Float(1.0), Value::Vector3([0.0, 0.0, 1.0]),
-                    Value::Vector3([1.0, 0.0, 0.0]), Value::Vector3([0.0, 1.0, 0.0])];
+        let flat = [
+            Value::Vector3([0.0, 0.0, 0.0]),
+            Value::Float(1.0),
+            Value::Vector3([0.0, 0.0, 1.0]),
+            Value::Vector3([1.0, 0.0, 0.0]),
+            Value::Vector3([0.0, 1.0, 0.0]),
+        ];
         assert_eq!(eval(&Op::NormalMap, &flat, Type::Vector3), Value::Vector3([0.0, 0.0, 1.0]));
         // in (1, 0.5, 1) -> (1, 0, 1); scale (2, 1) -> (2, 0, 1) / sqrt(5)
-        let tilt = [Value::Vector3([1.0, 0.5, 1.0]), Value::Vector2([2.0, 1.0]), Value::Vector3([0.0, 0.0, 1.0]),
-                    Value::Vector3([1.0, 0.0, 0.0]), Value::Vector3([0.0, 1.0, 0.0])];
+        let tilt = [
+            Value::Vector3([1.0, 0.5, 1.0]),
+            Value::Vector2([2.0, 1.0]),
+            Value::Vector3([0.0, 0.0, 1.0]),
+            Value::Vector3([1.0, 0.0, 0.0]),
+            Value::Vector3([0.0, 1.0, 0.0]),
+        ];
         let out = eval(&Op::NormalMap, &tilt, Type::Vector3).floats();
         let s = 5.0f32.sqrt();
-        for (a, b) in out.iter().zip([2.0 / s, 0.0, 1.0 / s]) { assert!((a - b).abs() < 1e-6); }
+        for (a, b) in out.iter().zip([2.0 / s, 0.0, 1.0 / s]) {
+            assert!((a - b).abs() < 1e-6);
+        }
     }
 }

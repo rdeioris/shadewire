@@ -3,7 +3,9 @@
 //! its own gradients (`HextileGrad` of the coordinate's `Dpdx`/`Dpdy`, as `textureGrad`),
 //! blended by `HextileWeights` over the samples' luminance.
 
-use shadewire_ir::{AddressMode, Error, FilterMode, Location, Node as IrNode, NodeId, NodeKind, Op, TextureDesc, Type, Value};
+use shadewire_ir::{
+    AddressMode, Error, FilterMode, Location, Node as IrNode, NodeId, NodeKind, Op, TextureDesc, Type, Value,
+};
 
 use super::{Elaborator, Scope};
 use crate::document::{Node, NodeDef};
@@ -14,10 +16,19 @@ const TILE_INPUTS: [&str; 6] = ["rotation", "rotationrange", "scale", "scalerang
 impl<'a> Elaborator<'a> {
     /// The image is sampled periodic and linear (the nodedef has no mode inputs); the
     /// blended result is converted from the file's colorspace, as an `image` sample is.
-    pub fn elaborate_hextiled_image(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, ty: Type, at: &Location) -> Result<NodeId, Error> {
+    pub fn elaborate_hextiled_image(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        ty: Type,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
         let file = match self.text_input(scope, node, nd, "file")? {
             Some(file) if !file.text.is_empty() => file,
-            _ => return Err(Error::BadValue { at: at.clone(), message: "hextiledimage has no file".to_string() }),
+            _ => {
+                return Err(Error::BadValue { at: at.clone(), message: "hextiledimage has no file".to_string() });
+            }
         };
         let colorspace = file.colorspace.clone();
         let texture = self.dag.add_texture(TextureDesc {
@@ -63,7 +74,8 @@ impl<'a> Elaborator<'a> {
         let cw = add(op(Op::Mix, vec![cw, one, contrast]), Type::Vector3);
         let w = add(op(Op::HextileWeights, vec![coord, cw, falloff]), Type::Vector3);
         // Color4 blends alpha by the tile weights alone: luminance weights of one.
-        let alpha_w = (ty == Type::Color4).then(|| add(op(Op::HextileWeights, vec![coord, one, falloff]), Type::Vector3));
+        let alpha_w =
+            (ty == Type::Color4).then(|| add(op(Op::HextileWeights, vec![coord, one, falloff]), Type::Vector3));
         let mut terms = Vec::new();
         for (i, sample) in samples.into_iter().enumerate() {
             let wi = add(op(Op::Extract(i as u32), vec![w]), Type::Float);
@@ -84,7 +96,7 @@ impl<'a> Elaborator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use shadewire_ir::interpret::{eval_surface, ContextSource, TextureSource};
+    use shadewire_ir::interpret::{ContextSource, TextureSource, eval_surface};
     use shadewire_ir::{ContextRead, NodeKind, Op, Space, TextureDesc, TransformKind, Value};
 
     use super::super::elaborate_output;
@@ -120,7 +132,8 @@ mod tests {
     #[test]
     fn three_gradient_samples_blend_back_a_flat_image() {
         let dag = elaborate_output(&doc(&graph("color3")), "g", "out").unwrap();
-        let samples: Vec<_> = dag.nodes.iter().filter(|n| matches!(n.kind, NodeKind::Sample { grad: Some(_), .. })).collect();
+        let samples: Vec<_> =
+            dag.nodes.iter().filter(|n| matches!(n.kind, NodeKind::Sample { grad: Some(_), .. })).collect();
         assert_eq!(samples.len(), 3);
         assert!(dag.nodes.iter().any(|n| matches!(n.kind, NodeKind::Op { op: Op::Dpdy, .. })));
         let out = eval_surface(&dag, &mut Uv, &Flat([0.2, 0.4, 0.6, 1.0])).remove(0).1.floats();

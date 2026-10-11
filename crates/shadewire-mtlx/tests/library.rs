@@ -1,6 +1,6 @@
 use shadewire_ir::{input_names, op_for_category};
 use shadewire_mtlx::document::PortType;
-use shadewire_mtlx::{library, Document, Index};
+use shadewire_mtlx::{Document, Index, library};
 
 #[test]
 fn library_has_the_phase_one_models() {
@@ -19,17 +19,28 @@ fn op_inputs_match_library() {
     let mut problems = Vec::new();
     for doc in &library::standard().documents {
         for nd in &doc.nodedefs {
-            let Some(PortType::Value(out)) = nd.outputs.first().map(|o| o.port_type.clone()) else { continue };
-            let value_inputs: Vec<&str> = nd.inputs.iter()
+            let Some(PortType::Value(out)) = nd.outputs.first().map(|o| o.port_type.clone()) else {
+                continue;
+            };
+            let value_inputs: Vec<&str> = nd
+                .inputs
+                .iter()
                 .filter(|i| matches!(i.port_type, PortType::Value(_)))
                 // `extract.index` is an integer op parameter handled in elaboration, not an arg.
                 .filter(|i| !(nd.node == "extract" && i.name == "index"))
-                .map(|i| i.name.as_str()).collect();
-            let Some(op) = op_for_category(&nd.node, out, value_inputs.len()) else { continue };
-            if !index.is_leaf(nd) { continue; }
+                .map(|i| i.name.as_str())
+                .collect();
+            let Some(op) = op_for_category(&nd.node, out, value_inputs.len()) else {
+                continue;
+            };
+            if !index.is_leaf(nd) {
+                continue;
+            }
             let expected = input_names(&op);
             for name in &value_inputs {
-                if !expected.contains(name) { problems.push(format!("{}: input {name} not in {:?}", nd.name, op)); }
+                if !expected.contains(name) {
+                    problems.push(format!("{}: input {name} not in {:?}", nd.name, op));
+                }
             }
         }
     }
@@ -48,7 +59,7 @@ fn index_lookups() {
 
 #[test]
 fn user_definitions_shadow_the_library() {
-    use shadewire_mtlx::{parse::parse_str, document::build::build};
+    use shadewire_mtlx::{document::build::build, parse::parse_str};
     let text = r#"<materialx version="1.39">
   <nodedef name="ND_add_float" node="add"><input name="only" type="float" value="0"/><output name="out" type="float"/></nodedef>
   <nodegraph name="NG_tiledimage_float" nodedef="ND_tiledimage_float"><output name="out" type="float"/></nodegraph>
@@ -61,8 +72,12 @@ fn user_definitions_shadow_the_library() {
     assert_eq!(adds[0].inputs[0].name, "only");
     assert!(index.nodedefs_for_category("add").len() > 1);
     // The library implements ND_tiledimage_float with a graph of the same name that has nodes.
-    let library_graph = library::standard().documents.iter()
-        .flat_map(|d| d.nodegraphs.iter()).find(|g| g.name == "NG_tiledimage_float").unwrap();
+    let library_graph = library::standard()
+        .documents
+        .iter()
+        .flat_map(|d| d.nodegraphs.iter())
+        .find(|g| g.name == "NG_tiledimage_float")
+        .unwrap();
     assert!(!library_graph.nodes.is_empty());
     assert!(index.graph_for_nodedef("ND_tiledimage_float").unwrap().nodes.is_empty());
     assert!(index.nodegraph("NG_tiledimage_float").unwrap().nodes.is_empty());

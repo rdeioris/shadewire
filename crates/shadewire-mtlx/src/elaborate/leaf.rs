@@ -1,12 +1,20 @@
 //! Leaf nodedefs: one op over the inputs the catalog names, in catalog order.
 
-use shadewire_ir::{input_names, Error, Location, Node as IrNode, NodeId, NodeKind, Op, Space, Type, Value};
+use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind, Op, Space, Type, Value, input_names};
 
 use super::{Elaborator, Scope};
 use crate::document::{Node, NodeDef};
 
 impl<'a> Elaborator<'a> {
-    pub fn leaf(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, op: Op, out: Type, at: &Location) -> Result<NodeId, Error> {
+    pub fn leaf(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        op: Op,
+        out: Type,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
         let op = match op {
             Op::Extract(_) => Op::Extract(self.extract_index(scope, node, nd, at)?),
             Op::Transform { kind, .. } => {
@@ -30,16 +38,32 @@ impl<'a> Elaborator<'a> {
     }
 
     /// The constant integer `index` input of `extract`.
-    fn extract_index(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, at: &Location) -> Result<u32, Error> {
+    fn extract_index(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        at: &Location,
+    ) -> Result<u32, Error> {
         let id = self.param_value(scope, node, nd, "index")?;
         match &self.dag.node(id).kind {
             NodeKind::Const(Value::Integer(i)) if *i >= 0 => Ok(*i as u32),
-            other => Err(Error::BadValue { at: at.clone(), message: format!("extract index must be a constant integer, found {other:?}") }),
+            other => Err(Error::BadValue {
+                at: at.clone(),
+                message: format!("extract index must be a constant integer, found {other:?}"),
+            }),
         }
     }
 
     /// A space string input. `None` when empty; an unknown name is a bad value.
-    fn space_input(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, name: &str, at: &Location) -> Result<Option<Space>, Error> {
+    fn space_input(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        name: &str,
+        at: &Location,
+    ) -> Result<Option<Space>, Error> {
         let text = self.string_input(scope, node, nd, name)?.unwrap_or_default();
         if text.is_empty() {
             return Ok(None);

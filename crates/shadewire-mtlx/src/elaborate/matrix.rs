@@ -10,7 +10,14 @@ use crate::document::{Node, NodeDef, PortType};
 impl<'a> Elaborator<'a> {
     /// `in * mat` in the MaterialX (row-vector) convention: output channel
     /// `i` is `dot(in, (m[i], m[3 + i], m[6 + i]))`.
-    pub fn elaborate_transformmatrix(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, out: Type, at: &Location) -> Result<NodeId, Error> {
+    pub fn elaborate_transformmatrix(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        out: Type,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
         let mat_type = nd.inputs.iter().find(|p| p.name == "mat").map(|p| &p.port_type);
         if out != Type::Vector3 || mat_type != Some(&PortType::Value(Type::Matrix33)) {
             return Err(Error::UnsupportedType { at: at.clone(), ty: format!("{} transformmatrix", nd.name) });
@@ -27,7 +34,13 @@ impl<'a> Elaborator<'a> {
 
     /// The `mat` input: its authored value, a sibling `constant` node's
     /// authored value, or the nodedef default. Anything else is unsupported.
-    fn constant_matrix33(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, at: &Location) -> Result<[f32; 9], Error> {
+    fn constant_matrix33(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        at: &Location,
+    ) -> Result<[f32; 9], Error> {
         let unsupported = || Error::UnsupportedType { at: at.clone(), ty: "matrix33".to_string() };
         let given = node.inputs.iter().find(|i| i.name == "mat");
         let text = match given {

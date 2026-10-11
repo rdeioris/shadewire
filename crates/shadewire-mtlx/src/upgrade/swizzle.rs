@@ -52,7 +52,9 @@ fn swizzle_types(node: &Node) -> Option<(Type, Type)> {
         },
         None => Type::Float,
     };
-    let PortType::Value(dest) = node.port_type else { return None };
+    let PortType::Value(dest) = node.port_type else {
+        return None;
+    };
     let plain = |t: Type| !matches!(t, Type::Boolean | Type::Integer | Type::Matrix33 | Type::Matrix44);
     (plain(source) && plain(dest)).then_some((source, dest))
 }
@@ -105,9 +107,8 @@ fn convert(node: &mut Node, source: Type, dest: Type, before: &[Node], helpers: 
         let extracts = make_extracts(node, &input, &letters, dest, before);
         let mut next = extracts.iter().map(|n| n.name.clone());
         let line = node.line;
-        let by_extract = |name: &str| {
-            node_input(name, PortType::Value(Type::Float), &next.next().unwrap_or_default(), line)
-        };
+        let by_extract =
+            |name: &str| node_input(name, PortType::Value(Type::Float), &next.next().unwrap_or_default(), line);
         to_combine(node, dest, &letters, by_extract);
         helpers.extend(extracts);
     }
@@ -130,8 +131,7 @@ fn to_extract(node: &mut Node, input: Input, letters: &[char], source: Type) {
 
 fn to_constant(node: &mut Node, source: Option<&Input>, letters: &[char], dest: Type) {
     let text = source.and_then(|i| i.value.clone()).unwrap_or_else(|| "0".to_string());
-    let tokens: Vec<&str> =
-        text.split(|c: char| c == ',' || c.is_whitespace()).filter(|t| !t.is_empty()).collect();
+    let tokens: Vec<&str> = text.split(|c: char| c == ',' || c.is_whitespace()).filter(|t| !t.is_empty()).collect();
     let first = tokens.first().copied().unwrap_or("0");
     let values: Vec<&str> = (0..dest.component_count())
         .map(|i| {

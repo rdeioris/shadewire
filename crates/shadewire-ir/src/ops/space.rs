@@ -24,11 +24,17 @@ mod tests {
 
     struct Doubler;
     impl ContextSource for Doubler {
-        fn read(&mut self, _: &ContextRead) -> Value { unreachable!() }
-        fn transform(&mut self, _: TransformKind, _: Space, _: Space, v: [f32; 3]) -> [f32; 3] { [v[0] * 2.0, v[1] * 2.0, v[2] * 2.0] }
+        fn read(&mut self, _: &ContextRead) -> Value {
+            unreachable!()
+        }
+        fn transform(&mut self, _: TransformKind, _: Space, _: Space, v: [f32; 3]) -> [f32; 3] {
+            [v[0] * 2.0, v[1] * 2.0, v[2] * 2.0]
+        }
     }
 
-    fn op(kind: TransformKind) -> Op { Op::Transform { kind, from: Space::Model, to: Space::World } }
+    fn op(kind: TransformKind) -> Op {
+        Op::Transform { kind, from: Space::Model, to: Space::World }
+    }
 
     #[test]
     fn point_and_vector_keep_the_host_result_but_normal_is_normalized() {

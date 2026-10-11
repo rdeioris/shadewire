@@ -66,17 +66,27 @@ impl<'a> Elaborator<'a> {
             "geompropvalue" => self.geompropvalue(scope, node, nd, out, &at)?,
             "time" => ContextRead::Time,
             "frame" => ContextRead::Frame,
-            other => return Err(Error::MissingLeafImpl { at, nodedef: format!("{} ({other})", nd.name) }),
+            other => {
+                return Err(Error::MissingLeafImpl { at, nodedef: format!("{} ({other})", nd.name) });
+            }
         };
         let ty = read.ty();
         Ok(self.dag.add(IrNode { kind: NodeKind::Context(read), ty, origin: at.path.clone() }))
     }
 
     /// The `space` string input, `default` when absent or empty.
-    fn read_space(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, default: &str, at: &Location) -> Result<Space, Error> {
+    fn read_space(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        default: &str,
+        at: &Location,
+    ) -> Result<Space, Error> {
         let given = self.string_input(scope, node, nd, "space")?.unwrap_or_default();
         let name = if given.is_empty() { default.to_string() } else { given };
-        Space::from_mtlx(&name).ok_or_else(|| Error::BadValue { at: at.clone(), message: format!("unknown space {name}") })
+        Space::from_mtlx(&name)
+            .ok_or_else(|| Error::BadValue { at: at.clone(), message: format!("unknown space {name}") })
     }
 
     /// The constant `index` integer input; 0 when the nodedef has none.
@@ -86,12 +96,22 @@ impl<'a> Elaborator<'a> {
         }
         match self.constant_input(scope, node, nd, "index", at)? {
             Value::Integer(i) if i >= 0 => Ok(i as u32),
-            other => Err(Error::BadValue { at: at.clone(), message: format!("index must be a non-negative integer, found {other:?}") }),
+            other => Err(Error::BadValue {
+                at: at.clone(),
+                message: format!("index must be a non-negative integer, found {other:?}"),
+            }),
         }
     }
 
     /// A named custom property read; its `default` input is recorded for reflection.
-    fn geompropvalue(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, ty: Type, at: &Location) -> Result<ContextRead, Error> {
+    fn geompropvalue(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        ty: Type,
+        at: &Location,
+    ) -> Result<ContextRead, Error> {
         let name = self.string_input(scope, node, nd, "geomprop")?.unwrap_or_default();
         if name.is_empty() {
             return Err(Error::BadValue { at: at.clone(), message: "geompropvalue names no geomprop".to_string() });
@@ -106,7 +126,14 @@ impl<'a> Elaborator<'a> {
     /// A value input that must be known at compile time. It is read as a
     /// parameter, so it never becomes a uniform; a constant, or a conversion
     /// of one (colorspace, units), folded to its value.
-    pub fn constant_input(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, name: &str, at: &Location) -> Result<Value, Error> {
+    pub fn constant_input(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        name: &str,
+        at: &Location,
+    ) -> Result<Value, Error> {
         let id = self.param_value(scope, node, nd, name)?;
         if let Some(value) = self.fold_constant(id) {
             return Ok(value);

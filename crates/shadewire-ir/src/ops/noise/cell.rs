@@ -46,11 +46,7 @@ pub fn cell_noise_vec3_1d(p: f32) -> [f32; 3] {
 pub fn cell_noise_vec3_2d(p: [f32; 2]) -> [f32; 3] {
     let ix = floor(p[0]);
     let iy = floor(p[1]);
-    [
-        bits_to_01(hash_int_3(ix, iy, 0)),
-        bits_to_01(hash_int_3(ix, iy, 1)),
-        bits_to_01(hash_int_3(ix, iy, 2)),
-    ]
+    [bits_to_01(hash_int_3(ix, iy, 0)), bits_to_01(hash_int_3(ix, iy, 1)), bits_to_01(hash_int_3(ix, iy, 2))]
 }
 
 // mx_cell_noise_vec3(vec3)

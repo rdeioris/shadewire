@@ -1,6 +1,6 @@
 use shadewire_ir::{Op, Type};
 
-use super::{cast, finish, first_f32, leading, work_type, Arg};
+use super::{Arg, cast, finish, first_f32, leading, work_type};
 
 /// Mirrors `shadewire_ir::ops::vector`. Operands keep their own width (the first
 /// argument's); WGSL has no scalar `normalize` or `dot`, so those are written out.
@@ -51,8 +51,14 @@ mod tests {
 
     #[test]
     fn rotate2d_calls_the_library() {
-        assert_eq!(emit(&Op::Rotate2d, &args(&[Type::Vector2, Type::Float]), Type::Vector2), "mx_rotate_vector2(n0, n1)");
-        assert_eq!(emit(&Op::Rotate2d, &args(&[Type::Vector2, Type::Integer]), Type::Vector2), "mx_rotate_vector2(n0, f32(n1))");
+        assert_eq!(
+            emit(&Op::Rotate2d, &args(&[Type::Vector2, Type::Float]), Type::Vector2),
+            "mx_rotate_vector2(n0, n1)"
+        );
+        assert_eq!(
+            emit(&Op::Rotate2d, &args(&[Type::Vector2, Type::Integer]), Type::Vector2),
+            "mx_rotate_vector2(n0, f32(n1))"
+        );
     }
 
     #[test]

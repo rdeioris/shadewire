@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{structure_hash, Dag, NodeKind, Type, Value};
+use crate::{Dag, NodeKind, Type, Value, structure_hash};
 
 pub use context::{ContextReflection, GeomPropReflection};
 pub use params::ParamReflection;
@@ -132,11 +132,13 @@ mod tests {
         });
         let c = dag.add(node(NodeKind::Const(Value::Float(0.5)), Type::Float));
         let uv = dag.add(node(NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2));
-        let s = dag.add(node(NodeKind::Sample { texture: tex, uv, default: Value::Float(0.0), grad: None }, Type::Float));
+        let s =
+            dag.add(node(NodeKind::Sample { texture: tex, uv, default: Value::Float(0.0), grad: None }, Type::Float));
         dag.surface.fields.push(SurfaceField { name: "base_weight".into(), ty: Type::Float, node: c });
         dag.surface.fields.push(SurfaceField { name: "specular_weight".into(), ty: Type::Float, node: s });
         if with_uniform {
-            let u = dag.add(node(NodeKind::Uniform { name: "coat_weight".into(), value: Value::Float(0.25) }, Type::Float));
+            let u =
+                dag.add(node(NodeKind::Uniform { name: "coat_weight".into(), value: Value::Float(0.25) }, Type::Float));
             dag.surface.fields.push(SurfaceField { name: "coat_weight".into(), ty: Type::Float, node: u });
         }
         dag
@@ -201,7 +203,10 @@ mod tests {
     fn geomprop_functions_are_unique_and_clean() {
         let mut dag = Dag::new("m");
         for name in ["my-prop", "my_prop", "plain"] {
-            let id = dag.add(node(NodeKind::Context(ContextRead::GeomProp { name: name.into(), ty: Type::Float }), Type::Float));
+            let id = dag.add(node(
+                NodeKind::Context(ContextRead::GeomProp { name: name.into(), ty: Type::Float }),
+                Type::Float,
+            ));
             dag.surface.fields.push(SurfaceField { name: name.into(), ty: Type::Float, node: id });
         }
         let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).context;
@@ -212,8 +217,12 @@ mod tests {
     #[test]
     fn geomprop_default_is_reflected_and_serialised() {
         let mut dag = Dag::new("m");
-        let g = dag.add(node(NodeKind::Context(ContextRead::GeomProp { name: "tint".into(), ty: Type::Color3 }), Type::Color3));
-        let h = dag.add(node(NodeKind::Context(ContextRead::GeomProp { name: "bare".into(), ty: Type::Float }), Type::Float));
+        let g = dag.add(node(
+            NodeKind::Context(ContextRead::GeomProp { name: "tint".into(), ty: Type::Color3 }),
+            Type::Color3,
+        ));
+        let h = dag
+            .add(node(NodeKind::Context(ContextRead::GeomProp { name: "bare".into(), ty: Type::Float }), Type::Float));
         dag.surface.fields.push(SurfaceField { name: "a".into(), ty: Type::Color3, node: g });
         dag.surface.fields.push(SurfaceField { name: "b".into(), ty: Type::Float, node: h });
         dag.geomprop_defaults.insert("tint".into(), Value::Color3([1.0, 1.0, 1.0]));
@@ -235,7 +244,10 @@ mod tests {
         dag.add(node(NodeKind::Context(ContextRead::Time), Type::Float));
         dag.add(node(NodeKind::Context(ContextRead::GeomProp { name: "tint".into(), ty: Type::Color3 }), Type::Color3));
         dag.add(node(
-            NodeKind::Op { op: Op::Transform { kind: TransformKind::Point, from: Space::World, to: Space::Object }, args: vec![p] },
+            NodeKind::Op {
+                op: Op::Transform { kind: TransformKind::Point, from: Space::World, to: Space::Object },
+                args: vec![p],
+            },
             Type::Vector3,
         ));
         // Every node feeds a surface field so all of them are live.
@@ -248,7 +260,15 @@ mod tests {
         assert_eq!(c.varyings, vec!["position_world".to_string()]);
         assert_eq!(c.derived, vec!["view_direction_world".to_string()]);
         assert_eq!(c.globals, vec!["time".to_string()]);
-        assert_eq!(c.geomprops, vec![GeomPropReflection { name: "tint".into(), ty: Type::Color3, function: "mx_geomprop_tint".into(), default: None }]);
+        assert_eq!(
+            c.geomprops,
+            vec![GeomPropReflection {
+                name: "tint".into(),
+                ty: Type::Color3,
+                function: "mx_geomprop_tint".into(),
+                default: None
+            }]
+        );
         assert_eq!(c.transforms, vec!["transform_point_world_to_object".to_string()]);
     }
 }

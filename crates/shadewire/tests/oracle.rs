@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-use shadewire::{compile_mtlx, CompileOptions, Dag};
-use shadewire_ir::interpret::{eval_surface, ContextSource, TextureSource};
+use shadewire::{CompileOptions, Dag, compile_mtlx};
+use shadewire_ir::interpret::{ContextSource, TextureSource, eval_surface};
 use shadewire_ir::optimize::optimize;
 use shadewire_ir::{AddressMode, ContextRead, FilterMode, NodeKind, Space, TextureDesc, TransformKind, Value};
 
@@ -193,7 +193,8 @@ fn compare(baked: &Baked, convention: VConvention) -> Vec<FieldError> {
             let uv = uv_at(x, y, baked.width, baked.height, convention);
             let surface = eval_surface(&dag, &mut TexCoordOnly(uv), &textures);
             for (error, (name, texels)) in errors.iter_mut().zip(&baked.fields) {
-                let ours = surface.iter().find(|(n, _)| n == name).unwrap_or_else(|| panic!("no field {name}")).1.floats();
+                let ours =
+                    surface.iter().find(|(n, _)| n == name).unwrap_or_else(|| panic!("no field {name}")).1.floats();
                 let theirs = texels[y * baked.width + x];
                 for (c, ours_c) in ours.iter().enumerate() {
                     let e = (ours_c - theirs[c]).abs();
@@ -216,7 +217,9 @@ fn worst(errors: &[FieldError]) -> f32 {
 fn describe(material: &str, errors: &[FieldError]) -> String {
     errors
         .iter()
-        .map(|e| format!("{material}.{}: max {:.3e} at {:?} ours {:?} theirs {:?}", e.field, e.max, e.at, e.ours, e.theirs))
+        .map(|e| {
+            format!("{material}.{}: max {:.3e} at {:?} ours {:?} theirs {:?}", e.field, e.max, e.at, e.ours, e.theirs)
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -235,7 +238,13 @@ fn uv_convention() -> VConvention {
         .filter(|(_, e)| worst(e) <= UV_PROBE_TOLERANCE)
         .map(|(c, _)| *c)
         .collect();
-    assert_eq!(matches.len(), 1, "uv convention undecided:\nv up:\n{}\nv down:\n{}", describe("uv_probe", &up), describe("uv_probe", &down));
+    assert_eq!(
+        matches.len(),
+        1,
+        "uv convention undecided:\nv up:\n{}\nv down:\n{}",
+        describe("uv_probe", &up),
+        describe("uv_probe", &down)
+    );
     matches[0]
 }
 

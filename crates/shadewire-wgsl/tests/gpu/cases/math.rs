@@ -1,6 +1,6 @@
 //! Math family: every op of `shadewire_ir::ops::math`, float and color3 with a float second argument.
 
-use super::{binary, op_case, ternary, triple, unary, Case, EXACT, TRANSCENDENTAL};
+use super::{Case, EXACT, TRANSCENDENTAL, binary, op_case, ternary, triple, unary};
 use shadewire_ir::{Op, Type, Value};
 
 const INPUTS: [f32; 7] = [-2.5, -1.0, -0.3, 0.0, 0.3, 1.0, 2.5];

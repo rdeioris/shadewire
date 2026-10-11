@@ -1,11 +1,11 @@
 use shadewire_ir::reflection::live::live_nodes;
 use shadewire_ir::{ContextRead, Dag, NodeId, NodeKind, Reflection, Type};
 
+use super::EmitOptions;
 use super::names::UniformNames;
-use super::ops::{cast, emit_op, work_type, Arg};
+use super::ops::{Arg, cast, emit_op, work_type};
 use super::sample::sample_expr;
 use super::types::{literal, wgsl_type};
-use super::EmitOptions;
 
 /// The WGSL name of a node's value.
 pub fn node_name(id: NodeId) -> String {
@@ -126,11 +126,18 @@ mod tests {
     #[test]
     fn samples_use_the_reflected_texture() {
         let mut dag = Dag::new("m");
-        let mk = |file: &str, u| TextureDesc { file: file.into(), colorspace: None, address_u: u, address_v: AddressMode::Periodic, filter: FilterMode::Linear };
+        let mk = |file: &str, u| TextureDesc {
+            file: file.into(),
+            colorspace: None,
+            address_u: u,
+            address_v: AddressMode::Periodic,
+            filter: FilterMode::Linear,
+        };
         dag.add_texture(mk("dead.png", AddressMode::Periodic));
         let t = dag.add_texture(mk("a.png", AddressMode::Constant));
         let uv = add(&mut dag, NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2);
-        let s = add(&mut dag, NodeKind::Sample { texture: t, uv, default: Value::Float(0.5), grad: None }, Type::Color3);
+        let s =
+            add(&mut dag, NodeKind::Sample { texture: t, uv, default: Value::Float(0.5), grad: None }, Type::Color3);
         dag.surface.fields.push(SurfaceField { name: "c".into(), ty: Type::Color3, node: s });
         let lines = node_lets(&dag, &reflection(&dag), &EmitOptions::default());
         assert_eq!(
@@ -150,7 +157,10 @@ mod tests {
         assert_eq!(r.context.transforms, ["transform_normal_object_to_world"]);
         assert_eq!(
             node_lets(&dag, &r, &EmitOptions::default()),
-            ["let n0: vec3<f32> = mx_normal_object();", "let n1: vec3<f32> = normalize(mx_transform_normal_object_to_world(n0));"]
+            [
+                "let n0: vec3<f32> = mx_normal_object();",
+                "let n1: vec3<f32> = normalize(mx_transform_normal_object_to_world(n0));"
+            ]
         );
     }
 }

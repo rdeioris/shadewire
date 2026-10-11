@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use shadewire::{compile_mtlx, CompileOptions, Compiled};
+use shadewire::{CompileOptions, Compiled, compile_mtlx};
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -46,7 +46,10 @@ fn surface_unlit_basic() {
 
 #[test]
 fn standard_surface_marble_solid() {
-    snapshot("standard_surface_marble_solid", &format!("{EXAMPLES}/StandardSurface/standard_surface_marble_solid.mtlx"));
+    snapshot(
+        "standard_surface_marble_solid",
+        &format!("{EXAMPLES}/StandardSurface/standard_surface_marble_solid.mtlx"),
+    );
 }
 
 #[test]

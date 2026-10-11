@@ -39,9 +39,11 @@ impl SurfaceSource<'_> {
 pub fn pick_material<'a>(doc: &'a Document, name: Option<&str>) -> Result<&'a Node, Error> {
     let materials: Vec<&Node> = doc.nodes.iter().filter(|n| n.category == "surfacematerial").collect();
     match (name, materials.as_slice()) {
-        (Some(name), _) => {
-            materials.iter().copied().find(|m| m.name == name).ok_or_else(|| Error::UnknownMaterial { name: name.to_string() })
-        }
+        (Some(name), _) => materials
+            .iter()
+            .copied()
+            .find(|m| m.name == name)
+            .ok_or_else(|| Error::UnknownMaterial { name: name.to_string() }),
         (None, []) => Err(Error::NoMaterial),
         (None, [only]) => Ok(only),
         (None, several) => Err(Error::AmbiguousMaterial { names: several.iter().map(|m| m.name.clone()).collect() }),
@@ -55,11 +57,21 @@ impl<'a> Elaborator<'a> {
     }
 
     fn unsupported(&self, scope: &Scope<'a>, node: &Node, reason: &str) -> Error {
-        Error::UnsupportedSurface { at: self.at(scope, node.line, scope.origin(&node.name)), node: node.name.clone(), reason: reason.to_string() }
+        Error::UnsupportedSurface {
+            at: self.at(scope, node.line, scope.origin(&node.name)),
+            node: node.name.clone(),
+            reason: reason.to_string(),
+        }
     }
 
     /// The surface behind shader input `input_name` of `node`.
-    fn follow_shader_input(&mut self, scope: &Scope<'a>, node: &'a Node, input_name: &str, depth: u32) -> Result<SurfaceSource<'a>, Error> {
+    fn follow_shader_input(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        input_name: &str,
+        depth: u32,
+    ) -> Result<SurfaceSource<'a>, Error> {
         let at = self.at(scope, node.line, scope.origin(&node.name));
         if depth > MAX_DEPTH {
             return Err(Error::Cycle { at, node: node.name.clone() });
@@ -70,9 +82,18 @@ impl<'a> Elaborator<'a> {
         self.follow_connection(scope, node, input, &at, depth)
     }
 
-    fn follow_connection(&mut self, scope: &Scope<'a>, node: &'a Node, input: &'a Input, at: &Location, depth: u32) -> Result<SurfaceSource<'a>, Error> {
+    fn follow_connection(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        input: &'a Input,
+        at: &Location,
+        depth: u32,
+    ) -> Result<SurfaceSource<'a>, Error> {
         if let Some(name) = &input.nodename {
-            let target = scope.find_node(name).ok_or_else(|| Error::BadValue { at: at.clone(), message: format!("no node named {name}") })?;
+            let target = scope
+                .find_node(name)
+                .ok_or_else(|| Error::BadValue { at: at.clone(), message: format!("no node named {name}") })?;
             return self.surface_at(scope, target, depth + 1);
         }
         if let Some(graph) = &input.nodegraph {
@@ -83,11 +104,18 @@ impl<'a> Elaborator<'a> {
     }
 
     /// The surface behind output `output` (or the only surfaceshader output) of the scope's graph.
-    fn follow_graph_output(&mut self, scope: &Scope<'a>, output: Option<&str>, at: &Location, depth: u32) -> Result<SurfaceSource<'a>, Error> {
+    fn follow_graph_output(
+        &mut self,
+        scope: &Scope<'a>,
+        output: Option<&str>,
+        at: &Location,
+        depth: u32,
+    ) -> Result<SurfaceSource<'a>, Error> {
         if depth > MAX_DEPTH {
             return Err(Error::Cycle { at: at.clone(), node: scope.path.clone() });
         }
-        let graph = scope.graph.ok_or_else(|| Error::BadValue { at: at.clone(), message: "no graph in scope".to_string() })?;
+        let graph =
+            scope.graph.ok_or_else(|| Error::BadValue { at: at.clone(), message: "no graph in scope".to_string() })?;
         let found = match output {
             Some(name) => graph.outputs.iter().find(|o| o.name == name),
             None => graph.outputs.iter().find(|o| o.port_type == PortType::SurfaceShader),
@@ -98,14 +126,20 @@ impl<'a> Elaborator<'a> {
         })?;
         let out_at = self.at(scope, found.line, scope.origin(&found.name));
         if let Some(name) = &found.nodename {
-            let target = scope.find_node(name).ok_or_else(|| Error::BadValue { at: out_at.clone(), message: format!("no node named {name}") })?;
+            let target = scope
+                .find_node(name)
+                .ok_or_else(|| Error::BadValue { at: out_at.clone(), message: format!("no node named {name}") })?;
             return self.surface_at(scope, target, depth + 1);
         }
         if let Some(name) = &found.nodegraph {
             let inner = self.user_graph_scope(name, &out_at)?;
             return self.follow_graph_output(&inner, found.output.as_deref(), &out_at, depth + 1);
         }
-        Err(Error::UnsupportedSurface { at: out_at, node: found.name.clone(), reason: "output is not connected to a shader node".to_string() })
+        Err(Error::UnsupportedSurface {
+            at: out_at,
+            node: found.name.clone(),
+            reason: "output is not connected to a shader node".to_string(),
+        })
     }
 
     /// What shader node `node` is: a model, a mix, a `dot`, or a graph-implemented nodedef.
@@ -135,7 +169,15 @@ impl<'a> Elaborator<'a> {
                 let interface = self.bind_interface(scope, node, nodedef, scope.user)?;
                 let path = scope.origin(&node.name);
                 let file = self.index.graph_file(graph);
-        let child = Scope { id: self.new_scope_id(), graph: Some(graph), nodes: &graph.nodes, interface, user: false, path, file };
+                let child = Scope {
+                    id: self.new_scope_id(),
+                    graph: Some(graph),
+                    nodes: &graph.nodes,
+                    interface,
+                    user: false,
+                    path,
+                    file,
+                };
                 return self.follow_graph_output(&child, None, &at, depth + 1);
             }
         }
@@ -143,7 +185,8 @@ impl<'a> Elaborator<'a> {
     }
 
     fn shader_nodedef(&self, node: &Node, at: &Location) -> Result<&'a NodeDef, Error> {
-        let input_types: Vec<(String, PortType)> = node.inputs.iter().map(|i| (i.name.clone(), i.port_type.clone())).collect();
+        let input_types: Vec<(String, PortType)> =
+            node.inputs.iter().map(|i| (i.name.clone(), i.port_type.clone())).collect();
         resolve_nodedef(&self.index, node, &input_types, at)
     }
 }

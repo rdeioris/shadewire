@@ -30,7 +30,11 @@ pub fn run(dag: &Dag) -> Dag {
         .surface
         .fields
         .iter()
-        .map(|f| SurfaceField { name: f.name.clone(), ty: f.ty, node: map[f.node.index()].expect("surface node is live") })
+        .map(|f| SurfaceField {
+            name: f.name.clone(),
+            ty: f.ty,
+            node: map[f.node.index()].expect("surface node is live"),
+        })
         .collect();
     new
 }
@@ -57,8 +61,13 @@ mod tests {
     fn unused_nodes_disappear_and_ids_are_compacted() {
         let mut dag = Dag::new("m");
         dag.add(Node { kind: NodeKind::Const(Value::Float(9.0)), ty: Type::Float, origin: String::new() });
-        let u = dag.add(Node { kind: NodeKind::Uniform { name: "k".into(), value: Value::Float(1.0) }, ty: Type::Float, origin: String::new() });
-        let s = dag.add(Node { kind: NodeKind::Op { op: Op::Sin, args: vec![u] }, ty: Type::Float, origin: String::new() });
+        let u = dag.add(Node {
+            kind: NodeKind::Uniform { name: "k".into(), value: Value::Float(1.0) },
+            ty: Type::Float,
+            origin: String::new(),
+        });
+        let s =
+            dag.add(Node { kind: NodeKind::Op { op: Op::Sin, args: vec![u] }, ty: Type::Float, origin: String::new() });
         dag.surface.fields.push(SurfaceField { name: "f".into(), ty: Type::Float, node: s });
         let out = super::run(&dag);
         assert_eq!(out.nodes.len(), 2);
@@ -69,11 +78,29 @@ mod tests {
     #[test]
     fn sample_gradients_stay_live_and_are_remapped() {
         let mut dag = Dag::new("m");
-        let t = dag.add_texture(TextureDesc { file: "a.png".into(), colorspace: None, address_u: AddressMode::Periodic, address_v: AddressMode::Periodic, filter: FilterMode::Linear });
+        let t = dag.add_texture(TextureDesc {
+            file: "a.png".into(),
+            colorspace: None,
+            address_u: AddressMode::Periodic,
+            address_v: AddressMode::Periodic,
+            filter: FilterMode::Linear,
+        });
         dag.add(Node { kind: NodeKind::Const(Value::Float(9.0)), ty: Type::Float, origin: String::new() });
-        let uv = dag.add(Node { kind: NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), ty: Type::Vector2, origin: String::new() });
-        let dx = dag.add(Node { kind: NodeKind::Op { op: Op::Sin, args: vec![uv] }, ty: Type::Vector2, origin: String::new() });
-        let dy = dag.add(Node { kind: NodeKind::Op { op: Op::Cos, args: vec![uv] }, ty: Type::Vector2, origin: String::new() });
+        let uv = dag.add(Node {
+            kind: NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }),
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
+        let dx = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Sin, args: vec![uv] },
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
+        let dy = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Cos, args: vec![uv] },
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
         let kind = NodeKind::Sample { texture: t, uv, default: Value::Float(0.0), grad: Some([dx, dy]) };
         let s = dag.add(Node { kind, ty: Type::Float, origin: String::new() });
         dag.surface.fields.push(SurfaceField { name: "f".into(), ty: Type::Float, node: s });

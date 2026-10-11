@@ -3,7 +3,7 @@
 //! multiplies values that grow with the tile id (to ~50 at negative ids), where a fused
 //! multiply-add moves the hash by 1e-3; tiles with ids 0 and 1 keep it under 1e-5.
 
-use super::{op_case, Case, TRANSCENDENTAL};
+use super::{Case, TRANSCENDENTAL, op_case};
 use shadewire_ir::{Op, Type, Value};
 
 const V2: Type = Type::Vector2;

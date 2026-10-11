@@ -61,14 +61,25 @@ mod tests {
     use crate::{Node, SurfaceField, TextureDesc, Type, Value};
 
     fn desc(file: &str, filter: FilterMode) -> TextureDesc {
-        TextureDesc { file: file.into(), colorspace: None, address_u: AddressMode::Periodic, address_v: AddressMode::Clamp, filter }
+        TextureDesc {
+            file: file.into(),
+            colorspace: None,
+            address_u: AddressMode::Periodic,
+            address_v: AddressMode::Clamp,
+            filter,
+        }
     }
 
     /// Adds a texture and a surface field that samples it.
     fn sampled(dag: &mut Dag, file: &str, filter: FilterMode) {
         let texture = dag.add_texture(desc(file, filter));
-        let uv = dag.add(Node { kind: NodeKind::Const(Value::Vector2([0.0; 2])), ty: Type::Vector2, origin: String::new() });
-        let s = dag.add(Node { kind: NodeKind::Sample { texture, uv, default: Value::Float(0.0), grad: None }, ty: Type::Float, origin: String::new() });
+        let uv =
+            dag.add(Node { kind: NodeKind::Const(Value::Vector2([0.0; 2])), ty: Type::Vector2, origin: String::new() });
+        let s = dag.add(Node {
+            kind: NodeKind::Sample { texture, uv, default: Value::Float(0.0), grad: None },
+            ty: Type::Float,
+            origin: String::new(),
+        });
         dag.surface.fields.push(SurfaceField { name: file.into(), ty: Type::Float, node: s });
     }
 

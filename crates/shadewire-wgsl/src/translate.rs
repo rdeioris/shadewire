@@ -40,7 +40,11 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
                 if let Some(binding) = &global.binding {
                     binding_map.insert(
                         binding.clone(),
-                        hlsl::BindTarget { space: binding.group as u8, register: binding.binding, ..Default::default() },
+                        hlsl::BindTarget {
+                            space: binding.group as u8,
+                            register: binding.binding,
+                            ..Default::default()
+                        },
                     );
                 }
             }
@@ -57,9 +61,16 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
             let options = glsl::Options { version, ..Default::default() };
             let pipeline = glsl::PipelineOptions { shader_stage: stage, entry_point: name, multiview: None };
             let mut out = String::new();
-            glsl::Writer::new(&mut out, &module, &info, &options, &pipeline, naga::proc::BoundsCheckPolicies::default())
-                .and_then(|mut w| w.write().map(|_| ()))
-                .map_err(|e| Error::Naga(e.to_string()))?;
+            glsl::Writer::new(
+                &mut out,
+                &module,
+                &info,
+                &options,
+                &pipeline,
+                naga::proc::BoundsCheckPolicies::default(),
+            )
+            .and_then(|mut w| w.write().map(|_| ()))
+            .map_err(|e| Error::Naga(e.to_string()))?;
             Ok(Output::Text(out))
         }
         Target::Msl { version } => {
@@ -82,13 +93,17 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
 mod tests {
     use super::*;
     use crate::emit::test_support::add;
-    use crate::{emit, link::link, reference_host, EmitOptions};
+    use crate::{EmitOptions, emit, link::link, reference_host};
     use naga::back::{glsl, hlsl};
     use shadewire_ir::*;
 
     fn linked() -> String {
         let mut dag = Dag::new("open_pbr_surface");
-        let tint = add(&mut dag, NodeKind::Uniform { name: "tint".into(), value: Value::Color3([1.0, 0.5, 0.25]) }, Type::Color3);
+        let tint = add(
+            &mut dag,
+            NodeKind::Uniform { name: "tint".into(), value: Value::Color3([1.0, 0.5, 0.25]) },
+            Type::Color3,
+        );
         let uv = add(&mut dag, NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2);
         let t = dag.add_texture(TextureDesc {
             file: "a.png".into(),
@@ -97,7 +112,11 @@ mod tests {
             address_v: AddressMode::Periodic,
             filter: FilterMode::Linear,
         });
-        let tex = add(&mut dag, NodeKind::Sample { texture: t, uv, default: Value::Color3([0.0; 3]), grad: None }, Type::Color3);
+        let tex = add(
+            &mut dag,
+            NodeKind::Sample { texture: t, uv, default: Value::Color3([0.0; 3]), grad: None },
+            Type::Color3,
+        );
         let amp = add(&mut dag, NodeKind::Const(Value::Float(1.0)), Type::Float);
         let pivot = add(&mut dag, NodeKind::Const(Value::Float(0.0)), Type::Float);
         let noise = add(&mut dag, NodeKind::Op { op: Op::Noise2d, args: vec![amp, pivot, uv] }, Type::Float);

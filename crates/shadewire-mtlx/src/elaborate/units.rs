@@ -18,7 +18,9 @@ impl<'a> Elaborator<'a> {
         target_unit: Option<&str>,
         at: &Location,
     ) -> Result<NodeId, Error> {
-        let (Some(unit), Some(unittype)) = (unit, unittype) else { return Ok(value) };
+        let (Some(unit), Some(unittype)) = (unit, unittype) else {
+            return Ok(value);
+        };
         if unittype != "distance" {
             let note = format!("unit {unittype} ignored");
             if !self.dag.approximations.contains(&note) {
@@ -26,7 +28,9 @@ impl<'a> Elaborator<'a> {
             }
             return Ok(value);
         }
-        let Some(target) = target_unit else { return Ok(value) };
+        let Some(target) = target_unit else {
+            return Ok(value);
+        };
         let from = self.distance_scale(unit, at)?;
         let to = self.distance_scale(target, at)?;
         let factor = from / to;
@@ -61,7 +65,9 @@ fn splat(ty: Type, factor: f32, at: &Location) -> Result<Value, Error> {
         Type::Vector2 => Value::Vector2([factor; 2]),
         Type::Vector3 => Value::Vector3([factor; 3]),
         Type::Vector4 => Value::Vector4([factor; 4]),
-        other => return Err(bad(at, format!("a distance unit on a {} value", other.mtlx_name()))),
+        other => {
+            return Err(bad(at, format!("a distance unit on a {} value", other.mtlx_name())));
+        }
     })
 }
 
@@ -72,6 +78,8 @@ fn scale(value: &Value, factor: f32, at: &Location) -> Result<Value, Error> {
         Value::Vector2(v) => Value::Vector2(v.map(|x| x * factor)),
         Value::Vector3(v) => Value::Vector3(v.map(|x| x * factor)),
         Value::Vector4(v) => Value::Vector4(v.map(|x| x * factor)),
-        other => return Err(bad(at, format!("a distance unit on a {} value", other.ty().mtlx_name()))),
+        other => {
+            return Err(bad(at, format!("a distance unit on a {} value", other.ty().mtlx_name())));
+        }
     })
 }

@@ -8,8 +8,12 @@ use shadewire_ir::Type;
 pub fn apply(doc: &mut Document) {
     for_each_scope(doc, |nodes| {
         for node in nodes.iter_mut().filter(|n| n.category == "switch") {
-            let Some(which) = node.inputs.iter_mut().find(|i| i.name == "which") else { continue };
-            let Some(text) = which.value.as_deref() else { continue };
+            let Some(which) = node.inputs.iter_mut().find(|i| i.name == "which") else {
+                continue;
+            };
+            let Some(text) = which.value.as_deref() else {
+                continue;
+            };
             let out_of_range = match which.port_type {
                 PortType::Value(Type::Integer) => text.trim().parse::<i64>().is_ok_and(|v| v >= 5),
                 PortType::Value(Type::Float) => text.trim().parse::<f32>().is_ok_and(|v| v >= 5.0),

@@ -1,6 +1,6 @@
 //! Color family: rgbtohsv, hsvtorgb (every sextant, wrapped and grey hues), their round trip, luminance.
 
-use super::{binary, chain, unary, Case, EXACT};
+use super::{Case, EXACT, binary, chain, unary};
 use shadewire_ir::{Op, Type, Value};
 
 const C3: Type = Type::Color3;

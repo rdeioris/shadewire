@@ -28,7 +28,11 @@ pub fn flatten_inheritance(documents: &mut [Document]) -> Result<(), String> {
 
 /// `(inputs, outputs)` of `nodedef` with its whole chain folded in. `chain`
 /// holds the names already visited on this path.
-fn active_ports(all: &[NodeDef], nodedef: &NodeDef, chain: &mut Vec<String>) -> Result<(Vec<PortDef>, Vec<PortDef>), String> {
+fn active_ports(
+    all: &[NodeDef],
+    nodedef: &NodeDef,
+    chain: &mut Vec<String>,
+) -> Result<(Vec<PortDef>, Vec<PortDef>), String> {
     if chain.contains(&nodedef.name) {
         return Err(format!("nodedef {} inherits from itself through {}", nodedef.name, chain.join(" -> ")));
     }
@@ -57,8 +61,8 @@ fn merged(own: &[PortDef], inherited: Vec<PortDef>) -> Vec<PortDef> {
 #[cfg(test)]
 mod tests {
     use super::flatten_inheritance;
-    use crate::document::build::build;
     use crate::document::Document;
+    use crate::document::build::build;
     use crate::parse::parse_str;
 
     fn docs(body: &str) -> Vec<Document> {
@@ -100,7 +104,8 @@ mod tests {
 
     #[test]
     fn an_inheritance_cycle_is_an_error() {
-        let mut d = docs(r#"<nodedef name="ND_a" node="x" inherit="ND_b"/><nodedef name="ND_b" node="x" inherit="ND_a"/>"#);
+        let mut d =
+            docs(r#"<nodedef name="ND_a" node="x" inherit="ND_b"/><nodedef name="ND_b" node="x" inherit="ND_a"/>"#);
         let err = flatten_inheritance(&mut d).unwrap_err();
         assert!(err.contains("ND_a") || err.contains("ND_b"), "{err}");
     }

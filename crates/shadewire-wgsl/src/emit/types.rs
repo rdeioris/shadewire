@@ -32,7 +32,9 @@ pub fn literal(value: &Value) -> String {
         Value::Integer(i32::MIN) => "i32(-2147483647) - 1i".to_string(),
         Value::Integer(i) => format!("{i}i"),
         Value::Float(x) => float(*x),
-        Value::Matrix33(_) | Value::Matrix44(_) => panic!("matrix types are rejected in elaboration"),
+        Value::Matrix33(_) | Value::Matrix44(_) => {
+            panic!("matrix types are rejected in elaboration")
+        }
         other => {
             let parts: Vec<String> = other.floats().into_iter().map(float).collect();
             format!("{}({})", wgsl_type(other.ty()), parts.join(", "))

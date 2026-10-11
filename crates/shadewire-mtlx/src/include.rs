@@ -8,27 +8,15 @@ use crate::parse::parse_str;
 const MAX_DEPTH: u32 = 16;
 
 fn fail(file: Option<&str>, line: u32, message: String) -> Error {
-    Error::Parse {
-        at: Location { file: file.map(str::to_string), line, path: String::new() },
-        message,
-    }
+    Error::Parse { at: Location { file: file.map(str::to_string), line, path: String::new() }, message }
 }
 
 /// Replace each `xi:include` child with the children of the included document.
-pub fn resolve_includes(
-    root: Element,
-    base_dir: Option<&Path>,
-    file: Option<&str>,
-) -> Result<Element, Error> {
+pub fn resolve_includes(root: Element, base_dir: Option<&Path>, file: Option<&str>) -> Result<Element, Error> {
     resolve(root, base_dir, file, 0)
 }
 
-fn resolve(
-    mut root: Element,
-    base_dir: Option<&Path>,
-    file: Option<&str>,
-    depth: u32,
-) -> Result<Element, Error> {
+fn resolve(mut root: Element, base_dir: Option<&Path>, file: Option<&str>, depth: u32) -> Result<Element, Error> {
     let children = std::mem::take(&mut root.children);
     for child in children {
         if child.category != "xi:include" {
@@ -69,11 +57,8 @@ mod tests {
         )
         .unwrap();
 
-        let root = parse_str(
-            "<materialx><xi:include href=\"other.mtlx\"/><add name=\"a\"/></materialx>",
-            None,
-        )
-        .unwrap();
+        let root =
+            parse_str("<materialx><xi:include href=\"other.mtlx\"/><add name=\"a\"/></materialx>", None).unwrap();
         let out = resolve_includes(root, Some(&dir), None).unwrap();
         let cats: Vec<_> = out.children.iter().map(|c| c.category.as_str()).collect();
         assert_eq!(cats, ["constant", "add"]);

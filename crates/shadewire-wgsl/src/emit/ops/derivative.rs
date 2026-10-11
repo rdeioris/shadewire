@@ -1,6 +1,6 @@
 use shadewire_ir::{Op, Type};
 
-use super::{finish, wide, Arg};
+use super::{Arg, finish, wide};
 
 /// Mirrors `shadewire_ir::ops::derivative`: WGSL's fragment-stage `dpdx`/`dpdy`.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {

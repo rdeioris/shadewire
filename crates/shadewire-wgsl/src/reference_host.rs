@@ -33,7 +33,11 @@ fn all_reads(reflection: &Reflection) -> Vec<HostRead> {
         out.push(named_read(reflection, name));
     }
     for g in &context.geomprops {
-        out.push(HostRead { function: g.function.clone(), ty: g.ty, init: g.default.clone().filter(|d| d.ty() == g.ty) });
+        out.push(HostRead {
+            function: g.function.clone(),
+            ty: g.ty,
+            init: g.default.clone().filter(|d| d.ty() == g.ty),
+        });
     }
     out
 }
@@ -65,7 +69,11 @@ fn fragment_entry(reflection: &Reflection, model_struct: &str) -> String {
     };
     out.push_str(&format!("@fragment\nfn sw_reference_main({parameter}) -> @location(0) vec4<f32> {{\n"));
     for v in &inputs {
-        out.push_str(&format!("    {} = input.{};\n", format!("sw_in_{}", member_name(&v.function)), member_name(&v.function)));
+        out.push_str(&format!(
+            "    {} = input.{};\n",
+            format!("sw_in_{}", member_name(&v.function)),
+            member_name(&v.function)
+        ));
     }
     for name in &reflection.context.derived {
         if name.starts_with("view_direction_") {
@@ -99,7 +107,7 @@ pub fn prelude(reflection: &Reflection, model_struct: &str) -> String {
 mod tests {
     use super::*;
     use crate::emit::test_support::{add, reflection};
-    use crate::{emit, link::link, EmitOptions};
+    use crate::{EmitOptions, emit, link::link};
     use shadewire_ir::*;
 
     #[test]
@@ -120,7 +128,10 @@ mod tests {
         let n = add(&mut dag, NodeKind::Context(ContextRead::Normal(Space::Object)), Type::Vector3);
         let t = add(
             &mut dag,
-            NodeKind::Op { op: Op::Transform { kind: TransformKind::Normal, from: Space::Object, to: Space::World }, args: vec![n] },
+            NodeKind::Op {
+                op: Op::Transform { kind: TransformKind::Normal, from: Space::Object, to: Space::World },
+                args: vec![n],
+            },
             Type::Vector3,
         );
         dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: t });
@@ -135,14 +146,25 @@ mod tests {
     #[test]
     fn geomprops_start_at_their_authored_default() {
         let mut dag = Dag::new("gltf_pbr");
-        let g = add(&mut dag, NodeKind::Context(ContextRead::GeomProp { name: "tint".into(), ty: Type::Color3 }), Type::Color3);
-        let z = add(&mut dag, NodeKind::Context(ContextRead::GeomProp { name: "bare".into(), ty: Type::Float }), Type::Float);
+        let g = add(
+            &mut dag,
+            NodeKind::Context(ContextRead::GeomProp { name: "tint".into(), ty: Type::Color3 }),
+            Type::Color3,
+        );
+        let z = add(
+            &mut dag,
+            NodeKind::Context(ContextRead::GeomProp { name: "bare".into(), ty: Type::Float }),
+            Type::Float,
+        );
         dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: g });
         dag.surface.fields.push(SurfaceField { name: "roughness".into(), ty: Type::Float, node: z });
         dag.geomprop_defaults.insert("tint".into(), Value::Color3([1.0, 0.5, 0.25]));
         let r = reflection(&dag);
         let prelude = prelude(&r, "GltfPbr");
-        assert!(prelude.contains("var<private> sw_in_geomprop_tint: vec3<f32> = vec3<f32>(1.0, 0.5, 0.25);"), "{prelude}");
+        assert!(
+            prelude.contains("var<private> sw_in_geomprop_tint: vec3<f32> = vec3<f32>(1.0, 0.5, 0.25);"),
+            "{prelude}"
+        );
         assert!(prelude.contains("var<private> sw_in_geomprop_bare: f32;"), "{prelude}");
         link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
     }
@@ -150,7 +172,11 @@ mod tests {
     #[test]
     fn geomprop_and_view_direction_get_functions() {
         let mut dag = Dag::new("gltf_pbr");
-        let g = add(&mut dag, NodeKind::Context(ContextRead::GeomProp { name: "my prop".into(), ty: Type::Float }), Type::Float);
+        let g = add(
+            &mut dag,
+            NodeKind::Context(ContextRead::GeomProp { name: "my prop".into(), ty: Type::Float }),
+            Type::Float,
+        );
         let v = add(&mut dag, NodeKind::Context(ContextRead::ViewDirection(Space::World)), Type::Vector3);
         let n = add(&mut dag, NodeKind::Context(ContextRead::Normal(Space::World)), Type::Vector3);
         dag.surface.fields.push(SurfaceField { name: "roughness".into(), ty: Type::Float, node: g });

@@ -1,7 +1,7 @@
 use crate::interpret::ContextSource;
 use crate::ops::broadcast::broadcast;
 use crate::optimize::rebuild::Rebuilder;
-use crate::{eval_op, ContextRead, Dag, Node, NodeKind, Space, TransformKind, Value};
+use crate::{ContextRead, Dag, Node, NodeKind, Space, TransformKind, Value, eval_op};
 
 /// Never called: only ops that do not read context are folded.
 struct NoContext;
@@ -21,7 +21,8 @@ pub fn run(dag: &Dag) -> Dag {
     for old in &dag.nodes {
         match folded_value(&rebuilder, old) {
             Some(value) => {
-                let id = rebuilder.new.add(Node { kind: NodeKind::Const(value), ty: old.ty, origin: old.origin.clone() });
+                let id =
+                    rebuilder.new.add(Node { kind: NodeKind::Const(value), ty: old.ty, origin: old.origin.clone() });
                 rebuilder.map.push(id);
             }
             None => {
@@ -33,7 +34,9 @@ pub fn run(dag: &Dag) -> Dag {
 }
 
 fn folded_value(rebuilder: &Rebuilder, old: &Node) -> Option<Value> {
-    let NodeKind::Op { op, args } = &old.kind else { return None };
+    let NodeKind::Op { op, args } = &old.kind else {
+        return None;
+    };
     if op.reads_context() {
         return None;
     }
@@ -56,9 +59,21 @@ mod tests {
         let mut dag = Dag::new("m");
         let a = dag.add(Node { kind: NodeKind::Const(Value::Float(2.0)), ty: Type::Float, origin: String::new() });
         let b = dag.add(Node { kind: NodeKind::Const(Value::Float(3.0)), ty: Type::Float, origin: String::new() });
-        let s = dag.add(Node { kind: NodeKind::Op { op: Op::Multiply, args: vec![a, b] }, ty: Type::Float, origin: String::new() });
-        let u = dag.add(Node { kind: NodeKind::Uniform { name: "k".into(), value: Value::Float(1.0) }, ty: Type::Float, origin: String::new() });
-        let t = dag.add(Node { kind: NodeKind::Op { op: Op::Add, args: vec![s, u] }, ty: Type::Float, origin: String::new() });
+        let s = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Multiply, args: vec![a, b] },
+            ty: Type::Float,
+            origin: String::new(),
+        });
+        let u = dag.add(Node {
+            kind: NodeKind::Uniform { name: "k".into(), value: Value::Float(1.0) },
+            ty: Type::Float,
+            origin: String::new(),
+        });
+        let t = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Add, args: vec![s, u] },
+            ty: Type::Float,
+            origin: String::new(),
+        });
         dag.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Float, node: t });
         let out = super::run(&dag);
         let field = out.node(out.surface.fields[0].node);

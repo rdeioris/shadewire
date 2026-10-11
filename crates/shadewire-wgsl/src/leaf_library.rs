@@ -5,8 +5,18 @@ use shadewire_ir::reflection::live::live_nodes;
 use shadewire_ir::{Dag, NodeKind, Op};
 
 /// Every library file, in dependency order.
-pub const FILES: [&str; 10] =
-    ["color", "normal", "vector", "hextile", "noise_basics", "noise_hash", "noise_perlin", "noise_fractal", "noise_cell", "noise_worley"];
+pub const FILES: [&str; 10] = [
+    "color",
+    "normal",
+    "vector",
+    "hextile",
+    "noise_basics",
+    "noise_hash",
+    "noise_perlin",
+    "noise_fractal",
+    "noise_cell",
+    "noise_worley",
+];
 
 /// The library sources a DAG needs, each once, in dependency order.
 pub fn files_for(dag: &Dag) -> Vec<&'static str> {
@@ -134,7 +144,8 @@ const_assert i32(-3.0e9f) == -2147483647i - 1i;
 
     #[test]
     fn names_follow_dependency_order_once_each() {
-        let dag = op_dag(&[(Op::WorleyNoise2d, true), (Op::HsvToRgb, true), (Op::Fractal3d, true), (Op::CellNoise3d, true)]);
+        let dag =
+            op_dag(&[(Op::WorleyNoise2d, true), (Op::HsvToRgb, true), (Op::Fractal3d, true), (Op::CellNoise3d, true)]);
         assert_eq!(
             names_for(&dag),
             ["color", "noise_basics", "noise_hash", "noise_perlin", "noise_fractal", "noise_cell", "noise_worley"]

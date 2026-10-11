@@ -1,12 +1,12 @@
 //! Converted values read as parameters fold to constants; converted
 //! uniforms keep their conversion; unit scaling of non-constant values.
 
-use shadewire_ir::interpret::{eval_surface, ContextSource, NoTextures};
+use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
 use shadewire_ir::{ContextRead, Dag, Location, Node, NodeKind, Op, Space, TransformKind, Type, Value};
 
-use super::{elaborate_output, ElaborateOptions, Elaborator};
-use crate::document::build::build;
+use super::{ElaborateOptions, Elaborator, elaborate_output};
 use crate::document::Document;
+use crate::document::build::build;
 use crate::parse::parse_str;
 
 /// A document whose authored colors are in `srgb_texture`.

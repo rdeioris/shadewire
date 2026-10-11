@@ -1,7 +1,7 @@
 //! Vector family: normalize, magnitude, distance, dot and cross products over fixed vectors,
 //! rotate2d over amounts in degrees (negative, past a turn).
 
-use super::{binary, unary, Case, EXACT, TRANSCENDENTAL};
+use super::{Case, EXACT, TRANSCENDENTAL, binary, unary};
 use shadewire_ir::{Op, Type, Value};
 
 const V3: Type = Type::Vector3;

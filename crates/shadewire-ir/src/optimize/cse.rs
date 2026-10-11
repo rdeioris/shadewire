@@ -28,10 +28,20 @@ mod tests {
     #[test]
     fn identical_sins_become_one() {
         let mut dag = Dag::new("m");
-        let u = dag.add(Node { kind: NodeKind::Uniform { name: "k".into(), value: Value::Float(1.0) }, ty: Type::Float, origin: String::new() });
-        let a = dag.add(Node { kind: NodeKind::Op { op: Op::Sin, args: vec![u] }, ty: Type::Float, origin: String::new() });
-        let b = dag.add(Node { kind: NodeKind::Op { op: Op::Sin, args: vec![u] }, ty: Type::Float, origin: String::new() });
-        let s = dag.add(Node { kind: NodeKind::Op { op: Op::Add, args: vec![a, b] }, ty: Type::Float, origin: String::new() });
+        let u = dag.add(Node {
+            kind: NodeKind::Uniform { name: "k".into(), value: Value::Float(1.0) },
+            ty: Type::Float,
+            origin: String::new(),
+        });
+        let a =
+            dag.add(Node { kind: NodeKind::Op { op: Op::Sin, args: vec![u] }, ty: Type::Float, origin: String::new() });
+        let b =
+            dag.add(Node { kind: NodeKind::Op { op: Op::Sin, args: vec![u] }, ty: Type::Float, origin: String::new() });
+        let s = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Add, args: vec![a, b] },
+            ty: Type::Float,
+            origin: String::new(),
+        });
         dag.surface.fields.push(SurfaceField { name: "f".into(), ty: Type::Float, node: s });
         let out = super::run(&dag);
         assert_eq!(out.nodes.len(), 3);

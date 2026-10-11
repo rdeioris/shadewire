@@ -13,7 +13,7 @@ pub mod upgrade;
 pub mod version;
 
 pub use document::Document;
-pub use elaborate::{elaborate, ElaborateOptions};
+pub use elaborate::{ElaborateOptions, elaborate};
 pub use element::Element;
 pub use index::Index;
 pub use library::Library;

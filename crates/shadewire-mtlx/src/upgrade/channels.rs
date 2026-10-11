@@ -10,14 +10,15 @@ pub fn apply(doc: &mut Document) {
 }
 
 fn apply_scope(nodes: &mut Vec<Node>) {
-    let types: Vec<(String, PortType)> =
-        nodes.iter().map(|n| (n.name.clone(), n.port_type.clone())).collect();
+    let types: Vec<(String, PortType)> = nodes.iter().map(|n| (n.name.clone(), n.port_type.clone())).collect();
     let mut result: Vec<Node> = Vec::with_capacity(nodes.len());
     let original = std::mem::take(nodes);
     for mut node in original {
         let mut inserted: Vec<Node> = Vec::new();
         for index in 0..node.inputs.len() {
-            let Some(channels) = node.inputs[index].channels.clone() else { continue };
+            let Some(channels) = node.inputs[index].channels.clone() else {
+                continue;
+            };
             let upstream = upstream_type(&node.inputs[index], &types, &channels);
             let input_type = node.inputs[index].port_type.clone();
             if upstream == Type::Float && input_type == PortType::Value(Type::Float) {

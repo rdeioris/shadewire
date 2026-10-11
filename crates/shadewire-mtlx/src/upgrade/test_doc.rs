@@ -1,7 +1,7 @@
 //! Test helper: build a document from a snippet.
 
-use crate::document::build::build;
 use crate::document::Document;
+use crate::document::build::build;
 use crate::parse::parse_str;
 
 pub fn doc_with_version(version: &str, body: &str) -> Document {

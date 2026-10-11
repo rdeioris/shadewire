@@ -11,11 +11,7 @@ pub fn eval(op: &Op, args: &[Value], ty: Type) -> Value {
             let rgb = args[0].floats();
             let coeffs = args[1].floats();
             let l = rgb[0] * coeffs[0] + rgb[1] * coeffs[1] + rgb[2] * coeffs[2];
-            if ty == Type::Color4 {
-                Value::Color4([l, l, l, rgb[3]])
-            } else {
-                Value::Color3([l, l, l])
-            }
+            if ty == Type::Color4 { Value::Color4([l, l, l, rgb[3]]) } else { Value::Color3([l, l, l]) }
         }
         Op::RgbToHsv => map_rgb(&args[0], ty, rgb_to_hsv),
         Op::HsvToRgb => map_rgb(&args[0], ty, hsv_to_rgb),
@@ -27,11 +23,7 @@ pub fn eval(op: &Op, args: &[Value], ty: Type) -> Value {
 fn map_rgb(value: &Value, ty: Type, f: fn([f32; 3]) -> [f32; 3]) -> Value {
     let c = value.floats();
     let out = f([c[0], c[1], c[2]]);
-    if ty == Type::Color4 {
-        Value::Color4([out[0], out[1], out[2], c[3]])
-    } else {
-        Value::Color3(out)
-    }
+    if ty == Type::Color4 { Value::Color4([out[0], out[1], out[2], c[3]]) } else { Value::Color3(out) }
 }
 
 /// mx_hsvtorgb in genglsl/lib/mx_hsv.glsl.
@@ -93,7 +85,9 @@ mod tests {
         let c = Value::Color3([0.2, 0.6, 0.4]);
         let hsv = eval(&Op::RgbToHsv, std::slice::from_ref(&c), Type::Color3);
         let back = eval(&Op::HsvToRgb, &[hsv], Type::Color3).floats();
-        for (a, b) in back.iter().zip(c.floats()) { assert!((a - b).abs() < 1e-6); }
+        for (a, b) in back.iter().zip(c.floats()) {
+            assert!((a - b).abs() < 1e-6);
+        }
     }
 
     #[test]
@@ -101,13 +95,21 @@ mod tests {
         let hsv = eval(&Op::RgbToHsv, &[Value::Color4([1.0, 0.0, 0.0, 0.25])], Type::Color4);
         assert_eq!(hsv, Value::Color4([0.0, 1.0, 1.0, 0.25]));
         let rgb = eval(&Op::HsvToRgb, &[Value::Color3([0.5, 1.0, 1.0])], Type::Color3).floats();
-        for (a, b) in rgb.iter().zip([0.0, 1.0, 1.0]) { assert!((a - b).abs() < 1e-6); }
+        for (a, b) in rgb.iter().zip([0.0, 1.0, 1.0]) {
+            assert!((a - b).abs() < 1e-6);
+        }
     }
 
     #[test]
     fn luminance_keeps_alpha() {
         let coeffs = Value::Color3([0.25, 0.5, 0.25]);
-        assert_eq!(eval(&Op::Luminance, &[Value::Color3([1.0, 0.0, 1.0]), coeffs.clone()], Type::Color3), Value::Color3([0.5, 0.5, 0.5]));
-        assert_eq!(eval(&Op::Luminance, &[Value::Color4([1.0, 0.0, 1.0, 0.3]), coeffs], Type::Color4), Value::Color4([0.5, 0.5, 0.5, 0.3]));
+        assert_eq!(
+            eval(&Op::Luminance, &[Value::Color3([1.0, 0.0, 1.0]), coeffs.clone()], Type::Color3),
+            Value::Color3([0.5, 0.5, 0.5])
+        );
+        assert_eq!(
+            eval(&Op::Luminance, &[Value::Color4([1.0, 0.0, 1.0, 0.3]), coeffs], Type::Color4),
+            Value::Color4([0.5, 0.5, 0.5, 0.3])
+        );
     }
 }

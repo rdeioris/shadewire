@@ -33,10 +33,7 @@ impl PortType {
 
     /// Types whose values carry a colorspace.
     pub fn has_colorspace(&self) -> bool {
-        matches!(
-            self,
-            PortType::Filename | PortType::Value(Type::Color3) | PortType::Value(Type::Color4)
-        )
+        matches!(self, PortType::Filename | PortType::Value(Type::Color3) | PortType::Value(Type::Color4))
     }
 }
 

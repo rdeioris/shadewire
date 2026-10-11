@@ -1,12 +1,14 @@
 use shadewire_ir::{Op, Type, Value};
 
 use super::super::types::literal;
-use super::{cast, first_f32, Arg};
+use super::{Arg, cast, first_f32};
 
 /// Mirrors `shadewire_ir::ops::logic`. Comparisons read `as_f32` (first component, as f32);
 /// equality compares every component.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
-    let pick = |cond: String| format!("select({}, {}, {cond})", cast(&args[3].0, args[3].1, ty), cast(&args[2].0, args[2].1, ty));
+    let pick = |cond: String| {
+        format!("select({}, {}, {cond})", cast(&args[3].0, args[3].1, ty), cast(&args[2].0, args[2].1, ty))
+    };
     let boolean = match op {
         Op::Greater => greater(args, ">"),
         Op::GreaterEq => greater(args, ">="),
@@ -80,7 +82,10 @@ mod tests {
         let a = args(&[F, F, Type::Color3, F]);
         assert_eq!(emit(&Op::IfGreater, &a, Type::Color3), "select(vec3<f32>(n3), n2, (n0 > n1))");
         assert_eq!(emit(&Op::IfGreaterEq, &args(&[F, F, F, F]), F), "select(n3, n2, (n0 >= n1))");
-        assert_eq!(emit(&Op::IfEqual, &args(&[Type::Integer, Type::Integer, F, F]), F), "select(n3, n2, (f32(n0) == f32(n1)))");
+        assert_eq!(
+            emit(&Op::IfEqual, &args(&[Type::Integer, Type::Integer, F, F]), F),
+            "select(n3, n2, (f32(n0) == f32(n1)))"
+        );
     }
 
     #[test]

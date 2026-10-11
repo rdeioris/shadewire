@@ -1,6 +1,6 @@
 use shadewire_ir::{Op, Type};
 
-use super::{cast, leading, Arg};
+use super::{Arg, cast, leading};
 
 /// Mirrors `shadewire_ir::ops::normal`: in, scale, normal, tangent, bitangent. A scalar
 /// scale splats to vector2 (mx_normalmap_float).

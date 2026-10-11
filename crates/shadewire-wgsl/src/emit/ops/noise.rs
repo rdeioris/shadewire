@@ -1,6 +1,6 @@
 use shadewire_ir::{Op, Type};
 
-use super::{cast, first_f32, leading, work_type, Arg};
+use super::{Arg, cast, first_f32, leading, work_type};
 
 /// Mirrors `shadewire_ir::ops::noise::eval`: the genglsl node formulas over the leaf library.
 /// Arguments arrive in `catalog::input_names` order.
@@ -118,7 +118,10 @@ mod tests {
 
     #[test]
     fn fractal3d_has_no_pivot_and_integer_octaves() {
-        assert_eq!(emit(&Op::Fractal3d, &args(&[F, I, F, F, V3]), F), "(mx_fractal_noise_float_3d(n4, n1, n2, n3) * n0)");
+        assert_eq!(
+            emit(&Op::Fractal3d, &args(&[F, I, F, F, V3]), F),
+            "(mx_fractal_noise_float_3d(n4, n1, n2, n3) * n0)"
+        );
         assert_eq!(
             emit(&Op::Fractal3d, &args(&[F, F, F, F, V3]), V2),
             "(mx_fractal_noise_vec2_3d(n4, i32(n1), n2, n3) * vec2<f32>(n0))"

@@ -1,7 +1,7 @@
 //! Normal map family: four encoded normals (one all-zero), a scalar and a vector2 scale,
 //! in an orthonormal and in a skewed frame.
 
-use super::{op_case, Case, EXACT};
+use super::{Case, EXACT, op_case};
 use shadewire_ir::{Op, Type, Value};
 
 pub fn cases() -> Vec<Case> {
@@ -15,8 +15,7 @@ pub fn cases() -> Vec<Case> {
     for e in encoded {
         for (n, t, b) in frames {
             for scale in &scales {
-                let args =
-                    [Value::Vector3(e), scale.clone(), Value::Vector3(n), Value::Vector3(t), Value::Vector3(b)];
+                let args = [Value::Vector3(e), scale.clone(), Value::Vector3(n), Value::Vector3(t), Value::Vector3(b)];
                 out.push(op_case("normal", Op::NormalMap, Type::Vector3, &args, EXACT));
             }
         }
