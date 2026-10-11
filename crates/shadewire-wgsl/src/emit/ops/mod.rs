@@ -2,8 +2,11 @@
 //! and must compute what the interpreter computes.
 
 mod channel;
+mod color;
 mod logic;
 mod math;
+mod noise;
+mod normal;
 mod space;
 mod trig;
 mod vector;
@@ -27,10 +30,10 @@ pub fn emit_op(op: &Op, args: &[Arg], ty: Type) -> String {
         Op::Greater | Op::GreaterEq | Op::Equal | Op::IfGreater | Op::IfGreaterEq | Op::IfEqual | Op::Switch
         | Op::And | Op::Or | Op::Not => logic::emit(op, args, ty),
         Op::Extract(_) | Op::Combine | Op::Convert => channel::emit(op, args, ty),
-        Op::Luminance | Op::RgbToHsv | Op::HsvToRgb => unimplemented!("task 21: color ops"),
+        Op::Luminance | Op::RgbToHsv | Op::HsvToRgb => color::emit(op, args, ty),
         Op::Noise2d | Op::Noise3d | Op::Fractal3d | Op::CellNoise2d | Op::CellNoise3d
-        | Op::WorleyNoise2d | Op::WorleyNoise3d => unimplemented!("task 21: noise ops"),
-        Op::NormalMap => unimplemented!("task 21: normalmap"),
+        | Op::WorleyNoise2d | Op::WorleyNoise3d => noise::emit(op, args, ty),
+        Op::NormalMap => normal::emit(op, args, ty),
     }
 }
 
@@ -77,6 +80,19 @@ pub fn first_f32(arg: &Arg) -> String {
     }
 }
 
+/// The first `n` (2 or 3) components as a `vecN<f32>`, like the interpreter's `floats()[..n]`:
+/// the same width relabels, a wider vector drops trailing channels. Narrower panics, as indexing does.
+pub fn leading(arg: &Arg, n: usize) -> String {
+    let (expr, from) = arg;
+    let have = from.component_count();
+    assert!(have >= n && !from.is_scalar(), "need {n} components, got {from:?}");
+    if have == n {
+        expr.clone()
+    } else {
+        format!("{expr}.{}", &"xyzw"[..n])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -94,6 +110,18 @@ mod tests {
     #[test]
     fn integer_math_runs_in_f32() {
         assert_eq!(emit_op(&Op::Add, &args(&[Type::Integer, Type::Integer]), Type::Integer), "i32((f32(n0) + f32(n1)))");
+    }
+
+    #[test]
+    fn leading_components() {
+        assert_eq!(leading(&args(&[Type::Color3])[0], 3), "n0");
+        assert_eq!(leading(&args(&[Type::Vector4])[0], 2), "n0.xy");
+    }
+
+    #[test]
+    #[should_panic(expected = "need 2 components")]
+    fn leading_of_a_scalar_panics() {
+        leading(&args(&[Type::Float])[0], 2);
     }
 
     #[test]

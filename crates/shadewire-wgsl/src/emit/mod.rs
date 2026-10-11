@@ -9,7 +9,7 @@ mod reserved;
 pub mod sample;
 mod structs;
 #[cfg(test)]
-mod test_support;
+pub(crate) mod test_support;
 mod types;
 mod uniforms;
 
@@ -120,6 +120,56 @@ fn sw_eval_surface() -> OpenPbrSurface {
         let text = emit(&dag, &r, &EmitOptions::default());
         assert!(text.contains("mx_geomprop_my_prop()"), "{text}");
         assert!(text.contains("return StandardSurface(n25, n10, n8);"), "{text}");
+        validates(&dag, &r, &text);
+    }
+
+    /// Every color, noise and normal op at every result width, with the library they call.
+    #[test]
+    fn leaf_library_ops_emit_and_validate() {
+        let mut dag = Dag::new("m");
+        let ctx = |dag: &mut Dag, read: ContextRead| {
+            let ty = read.ty();
+            add(dag, NodeKind::Context(read), ty)
+        };
+        let uv = ctx(&mut dag, ContextRead::TexCoord { index: 0, ty: Type::Vector2 });
+        let pos = ctx(&mut dag, ContextRead::Position(Space::Object));
+        let n = ctx(&mut dag, ContextRead::Normal(Space::World));
+        let t = ctx(&mut dag, ContextRead::Tangent(Space::World));
+        let b = ctx(&mut dag, ContextRead::Bitangent(Space::World));
+        let col = add(&mut dag, NodeKind::Const(Value::Color4([0.2, 0.4, 0.6, 1.0])), Type::Color4);
+        let col3 = add(&mut dag, NodeKind::Const(Value::Color3([0.2, 0.4, 0.6])), Type::Color3);
+        let amp = add(&mut dag, NodeKind::Uniform { name: "amp".into(), value: Value::Float(1.0) }, Type::Float);
+        let oct = add(&mut dag, NodeKind::Uniform { name: "oct".into(), value: Value::Integer(3) }, Type::Integer);
+        let style = add(&mut dag, NodeKind::Const(Value::Integer(1)), Type::Integer);
+        let mut fields: Vec<(Op, Vec<NodeId>, Type)> = vec![
+            (Op::Luminance, vec![col3, col3], Type::Color3),
+            (Op::Luminance, vec![col, col3], Type::Color4),
+            (Op::RgbToHsv, vec![col], Type::Color4),
+            (Op::HsvToRgb, vec![col3], Type::Color3),
+            (Op::CellNoise2d, vec![uv], Type::Float),
+            (Op::CellNoise3d, vec![pos], Type::Float),
+            (Op::NormalMap, vec![col3, amp, n, t, b], Type::Vector3),
+        ];
+        for ty in [Type::Float, Type::Vector2, Type::Vector3, Type::Vector4] {
+            fields.push((Op::Noise2d, vec![amp, amp, uv], ty));
+            fields.push((Op::Noise3d, vec![amp, amp, pos], ty));
+            fields.push((Op::Fractal3d, vec![amp, oct, amp, amp, pos], ty));
+            if ty != Type::Vector4 {
+                fields.push((Op::WorleyNoise2d, vec![uv, amp, style], ty));
+                fields.push((Op::WorleyNoise3d, vec![pos, amp, style], ty));
+            }
+        }
+        for (i, (op, args, ty)) in fields.into_iter().enumerate() {
+            let node = add(&mut dag, NodeKind::Op { op, args }, ty);
+            dag.surface.fields.push(SurfaceField { name: format!("f{i}"), ty, node });
+        }
+        let r = reflection(&dag);
+        let text = emit(&dag, &r, &EmitOptions::default());
+        for name in crate::leaf_library::names_for(&dag) {
+            assert_eq!(text.matches(crate::leaf_library::source(name).trim_end()).count(), 1, "{name}");
+        }
+        let entry = text.find("fn sw_eval_surface").expect("entry");
+        assert!(text.find("fn mx_worley_noise_vec3_3d").expect("worley") < entry, "{text}");
         validates(&dag, &r, &text);
     }
 

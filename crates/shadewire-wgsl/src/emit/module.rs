@@ -1,6 +1,7 @@
 use shadewire_ir::{Dag, Reflection};
 
 use super::bindings::texture_bindings;
+use crate::leaf_library::files_for;
 use super::ops::cast;
 use super::expressions::{node_lets, node_name};
 use super::names::struct_name;
@@ -8,9 +9,12 @@ use super::structs::model_struct;
 use super::uniforms::uniform_block;
 use super::EmitOptions;
 
-/// Joins the sections, skipping empty ones, one blank line between them.
+/// Joins the sections, skipping empty ones, one blank line between them. The leaf library
+/// files the live nodes call come before the entry, each once, in dependency order.
 pub fn assemble(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> String {
-    let sections = [model_struct(dag), uniform_block(reflection), texture_bindings(reflection), entry(dag, reflection, options)];
+    let mut sections = vec![model_struct(dag), uniform_block(reflection), texture_bindings(reflection)];
+    sections.extend(files_for(dag).into_iter().map(String::from));
+    sections.push(entry(dag, reflection, options));
     let parts: Vec<&str> = sections.iter().map(|s| s.trim_end()).filter(|s| !s.is_empty()).collect();
     let mut out = parts.join("\n\n");
     out.push('\n');
