@@ -10,6 +10,8 @@ pub struct PortDef {
     pub port_type: PortType,
     pub value: Option<String>,
     pub default_geomprop: Option<String>,
+    /// A nodegraph interface input connected to a node (not supported by elaboration).
+    pub nodename: Option<String>,
     pub uniform: bool,
     pub colorspace: Option<String>,
     pub unit: Option<String>,
@@ -36,6 +38,7 @@ pub fn build_port_def(element: &Element, inherit: &Inherit) -> PortDef {
         port_type,
         value,
         default_geomprop: own(element.attr("defaultgeomprop")),
+        nodename: own(element.attr("nodename")),
         uniform: element.attr("uniform") == Some("true"),
         colorspace,
         unit: own(element.attr("unit")),

@@ -11,6 +11,8 @@ pub mod special;
 pub mod values;
 
 #[cfg(test)]
+mod cycle_tests;
+#[cfg(test)]
 mod tests;
 
 use std::collections::{HashMap, HashSet};
@@ -51,6 +53,10 @@ pub struct Elaborator<'a> {
     pub next_scope_id: u32,
     /// User nodegraphs entered so far, by name.
     pub user_scopes: HashMap<String, Scope<'a>>,
+    /// Nodedefs whose implementation graph is being inlined right now.
+    pub inlining: HashSet<String>,
+    /// Graph outputs `(scope id, output name)` being followed right now.
+    pub following_outputs: HashSet<(u32, String)>,
 }
 
 impl<'a> Elaborator<'a> {
@@ -65,6 +71,8 @@ impl<'a> Elaborator<'a> {
             file: doc.file.clone(),
             next_scope_id: 0,
             user_scopes: HashMap::new(),
+            inlining: HashSet::new(),
+            following_outputs: HashSet::new(),
         }
     }
 

@@ -7,7 +7,7 @@ use crate::document::build::build;
 use crate::document::Document;
 use crate::parse::parse_str;
 
-fn doc(body: &str) -> Document {
+pub(super) fn doc(body: &str) -> Document {
     let text = format!(r#"<materialx version="1.39">{body}</materialx>"#);
     build(&parse_str(&text, None).unwrap(), Some("test.mtlx")).unwrap()
 }

@@ -74,6 +74,9 @@ impl<'a> Elaborator<'a> {
         let mut interface = HashMap::new();
         for port in &graph.interface {
             let port_at = Location { file: self.file.clone(), line: port.line, path: format!("{name}/{}", port.name) };
+            if port.nodename.is_some() {
+                return Err(Error::BadValue { at: port_at, message: format!("interface input {} cannot connect to a node", port.name) });
+            }
             let binding = match (&port.port_type, &port.value, &port.default_geomprop) {
                 (PortType::String | PortType::Filename, Some(text), _) => Binding::Text(text.clone()),
                 (PortType::Value(ty), Some(text), _) if !text.is_empty() => {
@@ -85,7 +88,14 @@ impl<'a> Elaborator<'a> {
                     let ty = self.value_type(&PortType::Value(*ty), &port_at)?;
                     Binding::Node(self.geomprop_node(geomprop, ty, &port_at)?)
                 }
-                _ => Binding::Unbound,
+                (PortType::Value(ty), None, None) => {
+                    self.value_type(&PortType::Value(*ty), &port_at)?;
+                    Binding::Unbound
+                }
+                (PortType::Value(_) | PortType::String | PortType::Filename, _, _) => Binding::Unbound,
+                (other, _, _) => {
+                    return Err(Error::BadValue { at: port_at, message: format!("interface input {} has unsupported type {other:?}", port.name) })
+                }
             };
             interface.insert(port.name.clone(), binding);
         }

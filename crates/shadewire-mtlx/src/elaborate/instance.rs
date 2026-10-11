@@ -13,21 +13,27 @@ use crate::resolve_nodedef::resolve_nodedef;
 impl<'a> Elaborator<'a> {
     /// Output `output` (or the only one) of the node named `node_name` in `scope`.
     pub fn node_output(&mut self, scope: &Scope<'a>, node_name: &str, output: Option<&str>) -> Result<NodeId, Error> {
-        let key: MemoKey = (scope.id, node_name.to_string(), output.unwrap_or("").to_string());
-        if let Some(id) = self.memo.get(&key) {
-            return Ok(*id);
-        }
         let origin = scope.origin(node_name);
         let node = scope.find_node(node_name).ok_or_else(|| Error::BadValue {
             at: self.at(scope.graph.map_or(0, |g| g.line), origin.clone()),
             message: format!("no node named {node_name}"),
         })?;
+        // A single-output node has one output whatever name it is read by.
+        let output_key = match node.port_type {
+            PortType::MultiOutput => output.unwrap_or(""),
+            _ => "",
+        };
+        let key: MemoKey = (scope.id, node_name.to_string(), output_key.to_string());
+        if let Some(id) = self.memo.get(&key) {
+            return Ok(*id);
+        }
         let at = self.at(node.line, origin);
         if !self.in_progress.insert(key.clone()) {
             return Err(Error::Cycle { at, node: node_name.to_string() });
         }
-        let id = self.instance(scope, node, output, &at)?;
+        let result = self.instance(scope, node, output, &at);
         self.in_progress.remove(&key);
+        let id = result?;
         self.memo.insert(key, id);
         Ok(id)
     }
@@ -80,6 +86,23 @@ impl<'a> Elaborator<'a> {
         output: Option<&str>,
         at: &Location,
     ) -> Result<NodeId, Error> {
+        if !self.inlining.insert(nd.name.clone()) {
+            return Err(Error::Cycle { at: at.clone(), node: node.name.clone() });
+        }
+        let result = self.inline_guarded(scope, node, nd, graph, output, at);
+        self.inlining.remove(&nd.name);
+        result
+    }
+
+    fn inline_guarded(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        graph: &'a NodeGraph,
+        output: Option<&str>,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
         let mut interface = HashMap::new();
         for port in &nd.inputs {
             let binding = match &port.port_type {
@@ -118,7 +141,14 @@ impl<'a> Elaborator<'a> {
                 })
             }
         };
-        self.follow_output(scope, found)
+        let key = (scope.id, found.name.clone());
+        if !self.following_outputs.insert(key.clone()) {
+            let at = self.at(found.line, scope.origin(&found.name));
+            return Err(Error::Cycle { at, node: format!("{}/{}", graph.name, found.name) });
+        }
+        let result = self.follow_output(scope, found);
+        self.following_outputs.remove(&key);
+        result
     }
 
     /// Where a graph `<output>` element points: a node, a nodegraph or an interface input.
