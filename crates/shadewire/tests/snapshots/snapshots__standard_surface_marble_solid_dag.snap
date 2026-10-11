@@ -1,0 +1,82 @@
+---
+source: crates/shadewire/tests/snapshots.rs
+expression: compiled.dag.dump()
+---
+model standard_surface
+%0 float = uniform base = 1    # SR_marble1.base
+%1 color3 = uniform base_color_1 = 0.8, 0.8, 0.8    # NG_marble1/base_color_1
+%2 color3 = uniform base_color_2 = 0.1, 0.1, 0.3    # NG_marble1/base_color_2
+%3 float = uniform noise_scale_1 = 6    # NG_marble1/noise_scale_1
+%4 float = uniform noise_scale_2 = 4    # NG_marble1/noise_scale_2
+%5 float = uniform noise_power = 3    # NG_marble1/noise_power
+%6 integer = uniform noise_octaves = 3    # NG_marble1/noise_octaves
+%7 vector3 = context position_object    # NG_marble1/obj_pos
+%8 vector3 = const 1, 1, 1    # NG_marble1/add_xyz.in2
+%9 float = DotProduct(%7, %8)    # NG_marble1/add_xyz
+%10 float = Multiply(%9, %3)    # NG_marble1/scale_xyz
+%11 float = const 1    # NG_marble1/noise.amplitude
+%12 float = const 2    # NG_marble1/noise.lacunarity
+%13 float = const 0.5    # NG_marble1/noise.diminish
+%14 vector3 = Multiply(%7, %4)    # NG_marble1/scale_pos
+%15 float = Fractal3d(%11, %6, %12, %13, %14)    # NG_marble1/noise
+%16 float = const 3    # NG_marble1/scale_noise.in2
+%17 float = Multiply(%15, %16)    # NG_marble1/scale_noise
+%18 float = Add(%10, %17)    # NG_marble1/sum
+%19 float = Sin(%18)    # NG_marble1/sin
+%20 float = Multiply(%19, %13)    # NG_marble1/scale
+%21 float = Add(%20, %13)    # NG_marble1/bias
+%22 float = Power(%21, %5)    # NG_marble1/power
+%23 color3 = Mix(%2, %1, %22)    # NG_marble1/color_mix
+%24 float = const 0    # SR_marble1.diffuse_roughness
+%25 color3 = const 1, 1, 1    # SR_marble1.specular_color
+%26 float = uniform specular_roughness = 0.1    # SR_marble1.specular_roughness
+%27 float = const 1.5    # SR_marble1.specular_IOR
+%28 color3 = const 0, 0, 0    # SR_marble1.transmission_scatter
+%29 float = uniform subsurface = 0.4    # SR_marble1.subsurface
+%30 float = const 0.3    # SR_marble1.sheen_roughness
+%31 float = const 0.1    # SR_marble1.coat_roughness
+%32 vector3 = context normal_world    # SR_marble1.coat_normal
+%33 boolean = const false    # SR_marble1.thin_walled
+%34 vector3 = context tangent_world    # SR_marble1.tangent
+base = %0
+base_color = %23
+diffuse_roughness = %24
+metalness = %24
+specular = %11
+specular_color = %25
+specular_roughness = %26
+specular_IOR = %27
+specular_anisotropy = %24
+specular_rotation = %24
+transmission = %24
+transmission_color = %25
+transmission_depth = %24
+transmission_scatter = %28
+transmission_scatter_anisotropy = %24
+transmission_dispersion = %24
+transmission_extra_roughness = %24
+subsurface = %29
+subsurface_color = %23
+subsurface_radius = %25
+subsurface_scale = %11
+subsurface_anisotropy = %24
+sheen = %24
+sheen_color = %25
+sheen_roughness = %30
+coat = %24
+coat_color = %25
+coat_roughness = %31
+coat_anisotropy = %24
+coat_rotation = %24
+coat_IOR = %27
+coat_normal = %32
+coat_affect_color = %24
+coat_affect_roughness = %24
+thin_film_thickness = %24
+thin_film_IOR = %27
+emission = %24
+emission_color = %25
+opacity = %25
+thin_walled = %33
+normal = %32
+tangent = %34

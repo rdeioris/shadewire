@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
+    <output name="out_emission" type="float" nodename="u" />
+  </nodegraph>
+  <surface_unlit name="SU" type="surfaceshader">
+    <input name="emission" type="float" nodegraph="NG" output="out_emission" />
+    <input name="emission_color" type="color3" value="1.0, 0.5, 0.25" />
+  </surface_unlit>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SU" />
+  </surfacematerial>
+</materialx>

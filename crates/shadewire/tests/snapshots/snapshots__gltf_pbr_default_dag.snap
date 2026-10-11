@@ -1,0 +1,61 @@
+---
+source: crates/shadewire/tests/snapshots.rs
+expression: compiled.dag.dump()
+---
+model gltf_pbr
+%0 color3 = uniform base_color = 1, 1, 1    # SR_default.base_color
+%1 float = uniform metallic = 1    # SR_default.metallic
+%2 float = uniform roughness = 1    # SR_default.roughness
+%3 vector3 = uniform normal = 0, 0, 1    # SR_default.normal
+%4 vector3 = context tangent_world    # SR_default.tangent
+%5 float = uniform occlusion = 0    # SR_default.occlusion
+%6 float = uniform transmission = 0    # SR_default.transmission
+%7 float = uniform specular = 1    # SR_default.specular
+%8 color3 = uniform specular_color = 1, 1, 1    # SR_default.specular_color
+%9 float = uniform ior = 1.5    # SR_default.ior
+%10 float = uniform alpha = 1    # SR_default.alpha
+%11 integer = uniform alpha_mode = 0    # SR_default.alpha_mode
+%12 float = uniform alpha_cutoff = 0.5    # SR_default.alpha_cutoff
+%13 float = uniform iridescence = 0    # SR_default.iridescence
+%14 float = uniform iridescence_ior = 1.3    # SR_default.iridescence_ior
+%15 float = uniform iridescence_thickness = 300    # SR_default.iridescence_thickness
+%16 color3 = uniform sheen_color = 0, 0, 0    # SR_default.sheen_color
+%17 float = uniform sheen_roughness = 0    # SR_default.sheen_roughness
+%18 float = uniform clearcoat = 0    # SR_default.clearcoat
+%19 float = uniform clearcoat_roughness = 0    # SR_default.clearcoat_roughness
+%20 vector3 = uniform clearcoat_normal = 0, 0, 1    # SR_default.clearcoat_normal
+%21 color3 = uniform emissive = 0, 0, 0    # SR_default.emissive
+%22 float = uniform emissive_strength = 1    # SR_default.emissive_strength
+%23 float = uniform thickness = 0    # SR_default.thickness
+%24 float = uniform attenuation_distance = 100000    # SR_default.attenuation_distance
+%25 color3 = uniform attenuation_color = 0, 0, 0    # SR_default.attenuation_color
+%26 float = const 0    # SR_default.anisotropy_strength
+base_color = %0
+metallic = %1
+roughness = %2
+normal = %3
+tangent = %4
+occlusion = %5
+transmission = %6
+specular = %7
+specular_color = %8
+ior = %9
+alpha = %10
+alpha_mode = %11
+alpha_cutoff = %12
+iridescence = %13
+iridescence_ior = %14
+iridescence_thickness = %15
+sheen_color = %16
+sheen_roughness = %17
+clearcoat = %18
+clearcoat_roughness = %19
+clearcoat_normal = %20
+emissive = %21
+emissive_strength = %22
+thickness = %23
+attenuation_distance = %24
+attenuation_color = %25
+anisotropy_strength = %26
+anisotropy_rotation = %26
+dispersion = %26

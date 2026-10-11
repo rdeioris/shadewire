@@ -1,0 +1,16 @@
+---
+source: crates/shadewire/tests/snapshots.rs
+expression: compiled.dag.dump()
+---
+model surface_unlit
+%0 vector2 = context texcoord_0    # NG/uv
+%1 float = Extract(0)(%0)    # NG/u
+%2 color3 = uniform emission_color = 1, 0.5, 0.25    # SU.emission_color
+%3 float = const 0    # SU.transmission
+%4 color3 = const 1, 1, 1    # SU.transmission_color
+%5 float = const 1    # SU.opacity
+emission = %1
+emission_color = %2
+transmission = %3
+transmission_color = %4
+opacity = %5

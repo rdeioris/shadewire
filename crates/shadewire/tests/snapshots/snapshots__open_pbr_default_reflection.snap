@@ -1,0 +1,572 @@
+---
+source: crates/shadewire/tests/snapshots.rs
+expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
+---
+{
+  "shadewire": "0.1.0",
+  "source": "mtlx",
+  "mtlx_version": "1.39",
+  "model": "open_pbr_surface",
+  "structure_hash": "33b1d5cf43c98872",
+  "params": {
+    "base_color": {
+      "type": "color3",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "base_color"
+    },
+    "base_diffuse_roughness": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "base_diffuse_roughness"
+    },
+    "base_metalness": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "base_metalness"
+    },
+    "base_weight": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "base_weight"
+    },
+    "coat_color": {
+      "type": "color3",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "coat_color"
+    },
+    "coat_darkening": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "coat_darkening"
+    },
+    "coat_ior": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "coat_ior"
+    },
+    "coat_roughness": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "coat_roughness"
+    },
+    "coat_roughness_anisotropy": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "coat_roughness_anisotropy"
+    },
+    "coat_weight": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "coat_weight"
+    },
+    "emission_color": {
+      "type": "color3",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "emission_color"
+    },
+    "emission_luminance": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "emission_luminance"
+    },
+    "fuzz_color": {
+      "type": "color3",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "fuzz_color"
+    },
+    "fuzz_roughness": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "fuzz_roughness"
+    },
+    "fuzz_weight": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "fuzz_weight"
+    },
+    "geometry_coat_normal": {
+      "type": "vector3",
+      "kind": "varying",
+      "value": null,
+      "uniform": null
+    },
+    "geometry_coat_tangent": {
+      "type": "vector3",
+      "kind": "varying",
+      "value": null,
+      "uniform": null
+    },
+    "geometry_normal": {
+      "type": "vector3",
+      "kind": "varying",
+      "value": null,
+      "uniform": null
+    },
+    "geometry_opacity": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "geometry_opacity"
+    },
+    "geometry_tangent": {
+      "type": "vector3",
+      "kind": "varying",
+      "value": null,
+      "uniform": null
+    },
+    "geometry_thin_walled": {
+      "type": "boolean",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "geometry_thin_walled"
+    },
+    "specular_color": {
+      "type": "color3",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "specular_color"
+    },
+    "specular_ior": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "specular_ior"
+    },
+    "specular_roughness": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "specular_roughness"
+    },
+    "specular_roughness_anisotropy": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "specular_roughness_anisotropy"
+    },
+    "specular_weight": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "specular_weight"
+    },
+    "subsurface_color": {
+      "type": "color3",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "subsurface_color"
+    },
+    "subsurface_radius": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "subsurface_radius"
+    },
+    "subsurface_radius_scale": {
+      "type": "color3",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "subsurface_radius_scale"
+    },
+    "subsurface_scatter_anisotropy": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "subsurface_scatter_anisotropy"
+    },
+    "subsurface_weight": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "subsurface_weight"
+    },
+    "thin_film_ior": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "thin_film_ior"
+    },
+    "thin_film_thickness": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "thin_film_thickness"
+    },
+    "thin_film_weight": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "thin_film_weight"
+    },
+    "transmission_color": {
+      "type": "color3",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "transmission_color"
+    },
+    "transmission_depth": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "transmission_depth"
+    },
+    "transmission_dispersion_abbe_number": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "transmission_dispersion_abbe_number"
+    },
+    "transmission_dispersion_scale": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "transmission_dispersion_scale"
+    },
+    "transmission_scatter": {
+      "type": "color3",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "transmission_scatter"
+    },
+    "transmission_scatter_anisotropy": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "transmission_scatter_anisotropy"
+    },
+    "transmission_weight": {
+      "type": "float",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "transmission_weight"
+    }
+  },
+  "uniforms": [
+    {
+      "name": "base_weight",
+      "type": "float",
+      "offset": 0,
+      "size": 4,
+      "default": 1.0
+    },
+    {
+      "name": "base_color",
+      "type": "color3",
+      "offset": 16,
+      "size": 12,
+      "default": [
+        0.8,
+        0.8,
+        0.8
+      ]
+    },
+    {
+      "name": "base_diffuse_roughness",
+      "type": "float",
+      "offset": 28,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "base_metalness",
+      "type": "float",
+      "offset": 32,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "specular_weight",
+      "type": "float",
+      "offset": 36,
+      "size": 4,
+      "default": 1.0
+    },
+    {
+      "name": "specular_color",
+      "type": "color3",
+      "offset": 48,
+      "size": 12,
+      "default": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "specular_roughness",
+      "type": "float",
+      "offset": 60,
+      "size": 4,
+      "default": 0.3
+    },
+    {
+      "name": "specular_ior",
+      "type": "float",
+      "offset": 64,
+      "size": 4,
+      "default": 1.5
+    },
+    {
+      "name": "specular_roughness_anisotropy",
+      "type": "float",
+      "offset": 68,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "transmission_weight",
+      "type": "float",
+      "offset": 72,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "transmission_color",
+      "type": "color3",
+      "offset": 80,
+      "size": 12,
+      "default": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "transmission_depth",
+      "type": "float",
+      "offset": 92,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "transmission_scatter",
+      "type": "color3",
+      "offset": 96,
+      "size": 12,
+      "default": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "transmission_scatter_anisotropy",
+      "type": "float",
+      "offset": 108,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "transmission_dispersion_scale",
+      "type": "float",
+      "offset": 112,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "transmission_dispersion_abbe_number",
+      "type": "float",
+      "offset": 116,
+      "size": 4,
+      "default": 20.0
+    },
+    {
+      "name": "subsurface_weight",
+      "type": "float",
+      "offset": 120,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "subsurface_color",
+      "type": "color3",
+      "offset": 128,
+      "size": 12,
+      "default": [
+        0.8,
+        0.8,
+        0.8
+      ]
+    },
+    {
+      "name": "subsurface_radius",
+      "type": "float",
+      "offset": 140,
+      "size": 4,
+      "default": 1.0
+    },
+    {
+      "name": "subsurface_radius_scale",
+      "type": "color3",
+      "offset": 144,
+      "size": 12,
+      "default": [
+        1.0,
+        0.5,
+        0.25
+      ]
+    },
+    {
+      "name": "subsurface_scatter_anisotropy",
+      "type": "float",
+      "offset": 156,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "fuzz_weight",
+      "type": "float",
+      "offset": 160,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "fuzz_color",
+      "type": "color3",
+      "offset": 176,
+      "size": 12,
+      "default": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "fuzz_roughness",
+      "type": "float",
+      "offset": 188,
+      "size": 4,
+      "default": 0.5
+    },
+    {
+      "name": "coat_weight",
+      "type": "float",
+      "offset": 192,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "coat_color",
+      "type": "color3",
+      "offset": 208,
+      "size": 12,
+      "default": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "coat_roughness",
+      "type": "float",
+      "offset": 220,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "coat_roughness_anisotropy",
+      "type": "float",
+      "offset": 224,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "coat_ior",
+      "type": "float",
+      "offset": 228,
+      "size": 4,
+      "default": 1.6
+    },
+    {
+      "name": "coat_darkening",
+      "type": "float",
+      "offset": 232,
+      "size": 4,
+      "default": 1.0
+    },
+    {
+      "name": "thin_film_weight",
+      "type": "float",
+      "offset": 236,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "thin_film_thickness",
+      "type": "float",
+      "offset": 240,
+      "size": 4,
+      "default": 0.5
+    },
+    {
+      "name": "thin_film_ior",
+      "type": "float",
+      "offset": 244,
+      "size": 4,
+      "default": 1.4
+    },
+    {
+      "name": "emission_luminance",
+      "type": "float",
+      "offset": 248,
+      "size": 4,
+      "default": 0.0
+    },
+    {
+      "name": "emission_color",
+      "type": "color3",
+      "offset": 256,
+      "size": 12,
+      "default": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "name": "geometry_opacity",
+      "type": "float",
+      "offset": 268,
+      "size": 4,
+      "default": 1.0
+    },
+    {
+      "name": "geometry_thin_walled",
+      "type": "boolean",
+      "offset": 272,
+      "size": 4,
+      "default": false
+    }
+  ],
+  "uniform_block_size": 288,
+  "uniform_binding": 0,
+  "group": 2,
+  "textures": [],
+  "context": {
+    "varyings": [
+      "normal_world",
+      "tangent_world"
+    ],
+    "derived": [],
+    "globals": [],
+    "geomprops": [],
+    "transforms": []
+  },
+  "displacement": null,
+  "approximations": []
+}

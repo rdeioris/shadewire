@@ -1,0 +1,88 @@
+---
+source: crates/shadewire/tests/snapshots.rs
+expression: compiled.dag.dump()
+---
+model standard_surface
+%0 float = uniform base = 1    # SR_default.base
+%1 color3 = uniform base_color = 0.8, 0.8, 0.8    # SR_default.base_color
+%2 float = uniform diffuse_roughness = 0    # SR_default.diffuse_roughness
+%3 float = uniform metalness = 0    # SR_default.metalness
+%4 float = uniform specular = 1    # SR_default.specular
+%5 color3 = uniform specular_color = 1, 1, 1    # SR_default.specular_color
+%6 float = uniform specular_roughness = 0.2    # SR_default.specular_roughness
+%7 float = uniform specular_IOR = 1.5    # SR_default.specular_IOR
+%8 float = uniform specular_anisotropy = 0    # SR_default.specular_anisotropy
+%9 float = uniform specular_rotation = 0    # SR_default.specular_rotation
+%10 float = uniform transmission = 0    # SR_default.transmission
+%11 color3 = uniform transmission_color = 1, 1, 1    # SR_default.transmission_color
+%12 float = uniform transmission_depth = 0    # SR_default.transmission_depth
+%13 color3 = uniform transmission_scatter = 0, 0, 0    # SR_default.transmission_scatter
+%14 float = uniform transmission_scatter_anisotropy = 0    # SR_default.transmission_scatter_anisotropy
+%15 float = uniform transmission_dispersion = 0    # SR_default.transmission_dispersion
+%16 float = uniform transmission_extra_roughness = 0    # SR_default.transmission_extra_roughness
+%17 float = uniform subsurface = 0    # SR_default.subsurface
+%18 color3 = uniform subsurface_color = 1, 1, 1    # SR_default.subsurface_color
+%19 color3 = uniform subsurface_radius = 1, 1, 1    # SR_default.subsurface_radius
+%20 float = uniform subsurface_scale = 1    # SR_default.subsurface_scale
+%21 float = uniform subsurface_anisotropy = 0    # SR_default.subsurface_anisotropy
+%22 float = uniform sheen = 0    # SR_default.sheen
+%23 color3 = uniform sheen_color = 1, 1, 1    # SR_default.sheen_color
+%24 float = uniform sheen_roughness = 0.3    # SR_default.sheen_roughness
+%25 float = uniform coat = 0    # SR_default.coat
+%26 color3 = uniform coat_color = 1, 1, 1    # SR_default.coat_color
+%27 float = uniform coat_roughness = 0.1    # SR_default.coat_roughness
+%28 float = uniform coat_anisotropy = 0    # SR_default.coat_anisotropy
+%29 float = uniform coat_rotation = 0    # SR_default.coat_rotation
+%30 float = uniform coat_IOR = 1.5    # SR_default.coat_IOR
+%31 vector3 = context normal_world    # SR_default.coat_normal
+%32 float = uniform coat_affect_color = 0    # SR_default.coat_affect_color
+%33 float = uniform coat_affect_roughness = 0    # SR_default.coat_affect_roughness
+%34 float = uniform thin_film_thickness = 0    # SR_default.thin_film_thickness
+%35 float = uniform thin_film_IOR = 1.5    # SR_default.thin_film_IOR
+%36 float = uniform emission = 0    # SR_default.emission
+%37 color3 = uniform emission_color = 1, 1, 1    # SR_default.emission_color
+%38 color3 = uniform opacity = 1, 1, 1    # SR_default.opacity
+%39 boolean = uniform thin_walled = false    # SR_default.thin_walled
+%40 vector3 = context tangent_world    # SR_default.tangent
+base = %0
+base_color = %1
+diffuse_roughness = %2
+metalness = %3
+specular = %4
+specular_color = %5
+specular_roughness = %6
+specular_IOR = %7
+specular_anisotropy = %8
+specular_rotation = %9
+transmission = %10
+transmission_color = %11
+transmission_depth = %12
+transmission_scatter = %13
+transmission_scatter_anisotropy = %14
+transmission_dispersion = %15
+transmission_extra_roughness = %16
+subsurface = %17
+subsurface_color = %18
+subsurface_radius = %19
+subsurface_scale = %20
+subsurface_anisotropy = %21
+sheen = %22
+sheen_color = %23
+sheen_roughness = %24
+coat = %25
+coat_color = %26
+coat_roughness = %27
+coat_anisotropy = %28
+coat_rotation = %29
+coat_IOR = %30
+coat_normal = %31
+coat_affect_color = %32
+coat_affect_roughness = %33
+thin_film_thickness = %34
+thin_film_IOR = %35
+emission = %36
+emission_color = %37
+opacity = %38
+thin_walled = %39
+normal = %31
+tangent = %40

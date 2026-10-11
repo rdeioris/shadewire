@@ -1,0 +1,82 @@
+---
+source: crates/shadewire/tests/snapshots.rs
+expression: compiled.dag.dump()
+---
+model standard_surface
+%0 float = uniform base = 1    # SR_brass1.base
+%1 color3 = uniform base_color = 1, 1, 1    # SR_brass1.base_color
+%2 float = const 0    # SR_brass1.diffuse_roughness
+%3 float = uniform metalness = 1    # SR_brass1.metalness
+%4 float = uniform specular = 0    # SR_brass1.specular
+%5 color3 = const 1, 1, 1    # SR_brass1.specular_color
+%6 vector2 = context texcoord_0    # NG_brass1/image_roughness.texcoord
+%7 float = sample t0(%6)    # NG_brass1/image_roughness/N_img_float
+%8 float = const 1.5    # SR_brass1.specular_IOR
+%9 color3 = const 0, 0, 0    # SR_brass1.transmission_scatter
+%10 float = const 1    # SR_brass1.subsurface_scale
+%11 float = const 0.3    # SR_brass1.sheen_roughness
+%12 float = uniform coat = 1    # SR_brass1.coat
+%13 color3 = sample t1(%6)    # NG_brass1/image_color/N_img_color3
+%14 float = const 0.055    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/bias.in2
+%15 color3 = Add(%13, %14)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/bias
+%16 color3 = Max(%15, %2)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/max
+%17 float = const 1.055    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/scale.in2
+%18 color3 = Divide(%16, %17)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/scale
+%19 float = const 2.4    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/powSeg.in2
+%20 color3 = Power(%18, %19)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/powSeg
+%21 float = const 12.92    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/linSeg.in2
+%22 color3 = Divide(%13, %21)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/linSeg
+%23 float = Extract(0)(%13)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/colorSeparate/N_extract_0
+%24 float = const 0.04045    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/threshold.value
+%25 float = IfGreater(%23, %24, %10, %2)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/isAboveR
+%26 float = Extract(1)(%13)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/colorSeparate/N_extract_1
+%27 float = IfGreater(%26, %24, %10, %2)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/isAboveG
+%28 float = Extract(2)(%13)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/colorSeparate/N_extract_2
+%29 float = IfGreater(%28, %24, %10, %2)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/isAboveB
+%30 color3 = Combine(%25, %27, %29)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/isAbove
+%31 color3 = Mix(%20, %22, %30)    # NG_brass1/image_color/N_img_color3/ND_srgb_texture_to_lin_rec709_color3/mix
+%32 vector3 = context normal_world    # SR_brass1.coat_normal
+%33 boolean = const false    # SR_brass1.thin_walled
+%34 vector3 = context tangent_world    # SR_brass1.tangent
+base = %0
+base_color = %1
+diffuse_roughness = %2
+metalness = %3
+specular = %4
+specular_color = %5
+specular_roughness = %7
+specular_IOR = %8
+specular_anisotropy = %2
+specular_rotation = %2
+transmission = %2
+transmission_color = %5
+transmission_depth = %2
+transmission_scatter = %9
+transmission_scatter_anisotropy = %2
+transmission_dispersion = %2
+transmission_extra_roughness = %2
+subsurface = %2
+subsurface_color = %5
+subsurface_radius = %5
+subsurface_scale = %10
+subsurface_anisotropy = %2
+sheen = %2
+sheen_color = %5
+sheen_roughness = %11
+coat = %12
+coat_color = %31
+coat_roughness = %7
+coat_anisotropy = %2
+coat_rotation = %2
+coat_IOR = %8
+coat_normal = %32
+coat_affect_color = %2
+coat_affect_roughness = %2
+thin_film_thickness = %2
+thin_film_IOR = %8
+emission = %2
+emission_color = %5
+opacity = %5
+thin_walled = %33
+normal = %32
+tangent = %34

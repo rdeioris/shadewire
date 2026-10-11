@@ -1,0 +1,75 @@
+---
+source: crates/shadewire/tests/snapshots.rs
+expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
+---
+{
+  "shadewire": "0.1.0",
+  "source": "mtlx",
+  "mtlx_version": "1.39",
+  "model": "surface_unlit",
+  "structure_hash": "0427df644566b753",
+  "params": {
+    "emission": {
+      "type": "float",
+      "kind": "varying",
+      "value": null,
+      "uniform": null
+    },
+    "emission_color": {
+      "type": "color3",
+      "kind": "uniform",
+      "value": null,
+      "uniform": "emission_color"
+    },
+    "opacity": {
+      "type": "float",
+      "kind": "constant",
+      "value": 1.0,
+      "uniform": null
+    },
+    "transmission": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "transmission_color": {
+      "type": "color3",
+      "kind": "constant",
+      "value": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uniform": null
+    }
+  },
+  "uniforms": [
+    {
+      "name": "emission_color",
+      "type": "color3",
+      "offset": 0,
+      "size": 12,
+      "default": [
+        1.0,
+        0.5,
+        0.25
+      ]
+    }
+  ],
+  "uniform_block_size": 16,
+  "uniform_binding": 0,
+  "group": 2,
+  "textures": [],
+  "context": {
+    "varyings": [
+      "texcoord_0"
+    ],
+    "derived": [],
+    "globals": [],
+    "geomprops": [],
+    "transforms": []
+  },
+  "displacement": null,
+  "approximations": []
+}

@@ -1,0 +1,85 @@
+---
+source: crates/shadewire/tests/snapshots.rs
+expression: compiled.dag.dump()
+---
+model open_pbr_surface
+%0 float = uniform base_weight = 1    # open_pbr_surface_surfaceshader.base_weight
+%1 color3 = uniform base_color = 0.8, 0.8, 0.8    # open_pbr_surface_surfaceshader.base_color
+%2 float = uniform base_diffuse_roughness = 0    # open_pbr_surface_surfaceshader.base_diffuse_roughness
+%3 float = uniform base_metalness = 0    # open_pbr_surface_surfaceshader.base_metalness
+%4 float = uniform specular_weight = 1    # open_pbr_surface_surfaceshader.specular_weight
+%5 color3 = uniform specular_color = 1, 1, 1    # open_pbr_surface_surfaceshader.specular_color
+%6 float = uniform specular_roughness = 0.3    # open_pbr_surface_surfaceshader.specular_roughness
+%7 float = uniform specular_ior = 1.5    # open_pbr_surface_surfaceshader.specular_ior
+%8 float = uniform specular_roughness_anisotropy = 0    # open_pbr_surface_surfaceshader.specular_roughness_anisotropy
+%9 float = uniform transmission_weight = 0    # open_pbr_surface_surfaceshader.transmission_weight
+%10 color3 = uniform transmission_color = 1, 1, 1    # open_pbr_surface_surfaceshader.transmission_color
+%11 float = uniform transmission_depth = 0    # open_pbr_surface_surfaceshader.transmission_depth
+%12 color3 = uniform transmission_scatter = 0, 0, 0    # open_pbr_surface_surfaceshader.transmission_scatter
+%13 float = uniform transmission_scatter_anisotropy = 0    # open_pbr_surface_surfaceshader.transmission_scatter_anisotropy
+%14 float = uniform transmission_dispersion_scale = 0    # open_pbr_surface_surfaceshader.transmission_dispersion_scale
+%15 float = uniform transmission_dispersion_abbe_number = 20    # open_pbr_surface_surfaceshader.transmission_dispersion_abbe_number
+%16 float = uniform subsurface_weight = 0    # open_pbr_surface_surfaceshader.subsurface_weight
+%17 color3 = uniform subsurface_color = 0.8, 0.8, 0.8    # open_pbr_surface_surfaceshader.subsurface_color
+%18 float = uniform subsurface_radius = 1    # open_pbr_surface_surfaceshader.subsurface_radius
+%19 color3 = uniform subsurface_radius_scale = 1, 0.5, 0.25    # open_pbr_surface_surfaceshader.subsurface_radius_scale
+%20 float = uniform subsurface_scatter_anisotropy = 0    # open_pbr_surface_surfaceshader.subsurface_scatter_anisotropy
+%21 float = uniform fuzz_weight = 0    # open_pbr_surface_surfaceshader.fuzz_weight
+%22 color3 = uniform fuzz_color = 1, 1, 1    # open_pbr_surface_surfaceshader.fuzz_color
+%23 float = uniform fuzz_roughness = 0.5    # open_pbr_surface_surfaceshader.fuzz_roughness
+%24 float = uniform coat_weight = 0    # open_pbr_surface_surfaceshader.coat_weight
+%25 color3 = uniform coat_color = 1, 1, 1    # open_pbr_surface_surfaceshader.coat_color
+%26 float = uniform coat_roughness = 0    # open_pbr_surface_surfaceshader.coat_roughness
+%27 float = uniform coat_roughness_anisotropy = 0    # open_pbr_surface_surfaceshader.coat_roughness_anisotropy
+%28 float = uniform coat_ior = 1.6    # open_pbr_surface_surfaceshader.coat_ior
+%29 float = uniform coat_darkening = 1    # open_pbr_surface_surfaceshader.coat_darkening
+%30 float = uniform thin_film_weight = 0    # open_pbr_surface_surfaceshader.thin_film_weight
+%31 float = uniform thin_film_thickness = 0.5    # open_pbr_surface_surfaceshader.thin_film_thickness
+%32 float = uniform thin_film_ior = 1.4    # open_pbr_surface_surfaceshader.thin_film_ior
+%33 float = uniform emission_luminance = 0    # open_pbr_surface_surfaceshader.emission_luminance
+%34 color3 = uniform emission_color = 1, 1, 1    # open_pbr_surface_surfaceshader.emission_color
+%35 float = uniform geometry_opacity = 1    # open_pbr_surface_surfaceshader.geometry_opacity
+%36 boolean = uniform geometry_thin_walled = false    # open_pbr_surface_surfaceshader.geometry_thin_walled
+%37 vector3 = context normal_world    # open_pbr_surface_surfaceshader.geometry_normal
+%38 vector3 = context tangent_world    # open_pbr_surface_surfaceshader.geometry_tangent
+base_weight = %0
+base_color = %1
+base_diffuse_roughness = %2
+base_metalness = %3
+specular_weight = %4
+specular_color = %5
+specular_roughness = %6
+specular_ior = %7
+specular_roughness_anisotropy = %8
+transmission_weight = %9
+transmission_color = %10
+transmission_depth = %11
+transmission_scatter = %12
+transmission_scatter_anisotropy = %13
+transmission_dispersion_scale = %14
+transmission_dispersion_abbe_number = %15
+subsurface_weight = %16
+subsurface_color = %17
+subsurface_radius = %18
+subsurface_radius_scale = %19
+subsurface_scatter_anisotropy = %20
+fuzz_weight = %21
+fuzz_color = %22
+fuzz_roughness = %23
+coat_weight = %24
+coat_color = %25
+coat_roughness = %26
+coat_roughness_anisotropy = %27
+coat_ior = %28
+coat_darkening = %29
+thin_film_weight = %30
+thin_film_thickness = %31
+thin_film_ior = %32
+emission_luminance = %33
+emission_color = %34
+geometry_opacity = %35
+geometry_thin_walled = %36
+geometry_normal = %37
+geometry_coat_normal = %37
+geometry_tangent = %38
+geometry_coat_tangent = %38
