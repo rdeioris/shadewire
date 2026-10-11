@@ -114,6 +114,25 @@ mod tests {
         assert!(err.to_string().contains("includes need a file path"), "{err}");
     }
 
+    /// An srgb color converts to the working space in the shader: the field
+    /// is computed from its uniform, so the host cannot pass it through.
+    #[test]
+    fn a_converted_uniform_is_a_uniform_expression() {
+        let text = r#"<materialx version="1.39">
+            <standard_surface name="s" type="surfaceshader">
+              <input name="base_color" type="color3" value="0.5, 0.5, 0.5" colorspace="srgb_texture"/>
+              <input name="base" type="float" value="0.5"/>
+            </standard_surface>
+            <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s"/></surfacematerial>
+        </materialx>"#;
+        let out = compile_mtlx(text, None, None, &CompileOptions::default()).unwrap();
+        let color = &out.reflection.params["base_color"];
+        assert_eq!((color.kind, color.uniform.as_deref()), ("uniform_expr", None));
+        assert!(out.reflection.uniforms.iter().any(|u| u.name == "base_color"));
+        let base = &out.reflection.params["base"];
+        assert_eq!((base.kind, base.uniform.as_deref()), ("uniform", Some("base")));
+    }
+
     #[test]
     fn the_document_version_is_reported_as_authored() {
         let text = r#"<materialx version="1.38">
