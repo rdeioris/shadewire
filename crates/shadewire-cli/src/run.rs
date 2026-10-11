@@ -1,5 +1,7 @@
 use shadewire::{CompileOptions, Compiled, Error, Output, Target, compile_mtlx, link, reference_host, translate};
 
+use clap::ValueEnum;
+
 use crate::args::{Args, Command, CompileArgs, Lang};
 
 pub fn run(args: Args) -> Result<(), Error> {
@@ -33,12 +35,17 @@ fn target(lang: Lang) -> Target {
     }
 }
 
+/// The language as typed after `--lang`, such as `glsl-es`.
+fn lang_name(lang: Lang) -> String {
+    lang.to_possible_value().map_or_else(String::new, |v| v.get_name().to_string())
+}
+
 /// The text or bytes to write: generated WGSL as is, or the linked module translated.
 fn render(compiled: &Compiled, lang: Lang) -> Result<Vec<u8>, Error> {
     if lang == Lang::Wgsl {
         return Ok(compiled.wgsl.clone().into_bytes());
     }
-    eprintln!("note: {lang:?} output links the reference host, which supplies the entry point");
+    eprintln!("note: {} output links the reference host, which supplies the entry point", lang_name(lang));
     let prelude =
         reference_host::prelude(&compiled.reflection, &shadewire_ir::model_struct_name(&compiled.reflection.model));
     let linked = link(&compiled.wgsl, &prelude)?;
@@ -51,16 +58,17 @@ fn render(compiled: &Compiled, lang: Lang) -> Result<Vec<u8>, Error> {
 fn compile_command(args: &CompileArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
     let compiled = compile_mtlx(&text, Some(&args.file), args.material.as_deref(), &options(args))?;
+    let bytes = render(&compiled, args.lang)?;
+    if args.output.is_none() && args.lang == Lang::Spirv {
+        return Err(Error::Io("SPIR-V is binary: give -o".to_string()));
+    }
+    // Only a shader that rendered gets a reflection file, so the two always match.
     if let Some(path) = &args.reflection {
         let json = serde_json::to_string_pretty(&compiled.reflection).map_err(|e| Error::Io(e.to_string()))?;
         std::fs::write(path, json).map_err(|e| io(e, path))?;
     }
-    let bytes = render(&compiled, args.lang)?;
     match &args.output {
         Some(path) => std::fs::write(path, bytes).map_err(|e| io(e, path))?,
-        None if args.lang == Lang::Spirv => {
-            return Err(Error::Io("SPIR-V is binary: give -o".to_string()));
-        }
         None => print!("{}", String::from_utf8_lossy(&bytes)),
     }
     Ok(())

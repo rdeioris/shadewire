@@ -47,3 +47,21 @@ fn an_error_is_one_message_and_exit_one() {
     let out = run(&["compile", "does-not-exist.mtlx"]);
     assert_eq!(out.status.code(), Some(1));
 }
+
+#[test]
+fn the_note_names_the_language_as_typed() {
+    let out = run(&["compile", EXAMPLE, "--lang", "glsl-es"]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("note: glsl-es output links the reference host"), "{stderr}");
+}
+
+#[test]
+fn no_reflection_file_when_the_shader_fails() {
+    let json = scratch("failed.json");
+    let _ = std::fs::remove_file(&json);
+    let out = run(&["compile", EXAMPLE, "--lang", "spirv", "--reflection", json.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("give -o"));
+    assert!(!json.exists(), "the reflection was written for a failed compile");
+}

@@ -13,7 +13,16 @@ shadewire compile material.mtlx --reflection material.json -o material.wgsl
 shadewire compile material.mtlx --lang hlsl -o material.hlsl
 ```
 
-`--lang` other than `wgsl` links the reference host (which supplies an entry point) before translating. `--constants` bakes authored values in instead of exposing them as uniforms.
+Options:
+
+- `--material NAME` picks the material when the document has several.
+- `--model MODEL` (repeatable) names the surface models the host accepts; by default all four (`open_pbr_surface`, `standard_surface`, `gltf_pbr`, `surface_unlit`). A material of another model is an error, not a translation.
+- `--lang wgsl|hlsl|glsl|glsl-es|msl|spirv`: anything but `wgsl` links the reference host (which supplies an entry point) before translating; SPIR-V needs `-o`.
+- `--reflection FILE` writes the reflection JSON; it is written only when the shader was produced.
+- `--no-optimize` skips constant folding, simplification and sharing.
+- `--constants` bakes authored values in instead of exposing them as uniforms.
+
+In the uniform block a `boolean` uniform is a `u32` (0 or 1), since WGSL has no host-shareable `bool`; `integer` is `i32`. Offsets and sizes are in the reflection's `uniforms`.
 
 Library:
 
