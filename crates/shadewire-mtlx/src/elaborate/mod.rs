@@ -3,6 +3,7 @@
 //! interfaces and defaults.
 
 pub mod defaults;
+pub mod image;
 pub mod inputs;
 pub mod instance;
 pub mod leaf;
@@ -13,17 +14,21 @@ pub mod values;
 #[cfg(test)]
 mod cycle_tests;
 #[cfg(test)]
+mod image_tests;
+#[cfg(test)]
+mod special_tests;
+#[cfg(test)]
 mod tests;
 
 use std::collections::{HashMap, HashSet};
 
-use shadewire_ir::{Dag, Error, Location, NodeId, Type};
+use shadewire_ir::{Dag, Error, Location, NodeId, Type, Value};
 
 use crate::document::{Document, PortType};
 use crate::index::Index;
 use crate::library::Library;
 
-pub use scope::{Binding, Scope};
+pub use scope::{Binding, Scope, TextValue};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElaborateOptions {
@@ -57,6 +62,8 @@ pub struct Elaborator<'a> {
     pub inlining: HashSet<String>,
     /// Graph outputs `(scope id, output name)` being followed right now.
     pub following_outputs: HashSet<(u32, String)>,
+    /// `geompropvalue` defaults by property name, for reflection.
+    pub geomprop_defaults: HashMap<String, Value>,
 }
 
 impl<'a> Elaborator<'a> {
@@ -73,6 +80,7 @@ impl<'a> Elaborator<'a> {
             user_scopes: HashMap::new(),
             inlining: HashSet::new(),
             following_outputs: HashSet::new(),
+            geomprop_defaults: HashMap::new(),
         }
     }
 

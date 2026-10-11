@@ -13,9 +13,17 @@ pub enum Binding {
     /// A value input, already elaborated in the enclosing scope.
     Node(NodeId),
     /// A string or filename input, resolved in the enclosing scope.
-    Text(String),
+    Text(TextValue),
     /// Nothing given: readers fall back to their own nodedef default.
     Unbound,
+}
+
+/// A string or filename value and the colorspace it was authored in, so a
+/// file passed through a graph interface keeps the caller's colorspace.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TextValue {
+    pub text: String,
+    pub colorspace: Option<String>,
 }
 
 /// A set of sibling nodes: the document's top level, a user nodegraph, or
@@ -78,7 +86,9 @@ impl<'a> Elaborator<'a> {
                 return Err(Error::BadValue { at: port_at, message: format!("interface input {} cannot connect to a node", port.name) });
             }
             let binding = match (&port.port_type, &port.value, &port.default_geomprop) {
-                (PortType::String | PortType::Filename, Some(text), _) => Binding::Text(text.clone()),
+                (PortType::String | PortType::Filename, Some(text), _) => {
+                    Binding::Text(TextValue { text: text.clone(), colorspace: port.colorspace.clone() })
+                }
                 (PortType::Value(ty), Some(text), _) if !text.is_empty() => {
                     let ty = self.value_type(&PortType::Value(*ty), &port_at)?;
                     let scope = Scope { id, graph: Some(graph), nodes: &graph.nodes, interface: HashMap::new(), user: true, path: name.to_string() };

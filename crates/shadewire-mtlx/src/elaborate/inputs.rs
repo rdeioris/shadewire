@@ -3,7 +3,7 @@
 
 use shadewire_ir::{Error, Location, NodeId};
 
-use super::{Binding, Elaborator, Scope};
+use super::{Binding, Elaborator, Scope, TextValue};
 use crate::document::{Input, Node, NodeDef, PortDef};
 
 impl<'a> Elaborator<'a> {
@@ -57,11 +57,20 @@ impl<'a> Elaborator<'a> {
 
     /// A string or filename input: the node's value, its interface binding, or the nodedef value.
     pub fn string_input(&mut self, scope: &Scope<'a>, node: &Node, nd: &NodeDef, input_name: &str) -> Result<Option<String>, Error> {
+        Ok(self.text_input(scope, node, nd, input_name)?.map(|t| t.text))
+    }
+
+    /// `string_input` with the value's colorspace. Through an interface the
+    /// binding's colorspace wins, falling back to the node input's own.
+    pub fn text_input(&mut self, scope: &Scope<'a>, node: &Node, nd: &NodeDef, input_name: &str) -> Result<Option<TextValue>, Error> {
         let given = node.inputs.iter().find(|i| i.name == input_name);
         if let Some(input) = given {
             if let Some(name) = &input.interfacename {
                 match scope.interface.get(name) {
-                    Some(Binding::Text(text)) => return Ok(Some(text.clone())),
+                    Some(Binding::Text(bound)) => {
+                        let colorspace = bound.colorspace.clone().or_else(|| input.colorspace.clone());
+                        return Ok(Some(TextValue { text: bound.text.clone(), colorspace }));
+                    }
                     Some(Binding::Node(_)) => {
                         let at = self.at(input.line, format!("{}.{input_name}", scope.origin(&node.name)));
                         return Err(Error::BadValue { at, message: format!("interface input {name} is not a string") });
@@ -69,10 +78,11 @@ impl<'a> Elaborator<'a> {
                     Some(Binding::Unbound) | None => {}
                 }
             } else if let Some(text) = &input.value {
-                return Ok(Some(text.clone()));
+                return Ok(Some(TextValue { text: text.clone(), colorspace: input.colorspace.clone() }));
             }
         }
-        Ok(nd.inputs.iter().find(|p| p.name == input_name).and_then(|p| p.value.clone()))
+        let port = nd.inputs.iter().find(|p| p.name == input_name);
+        Ok(port.and_then(|p| p.value.clone().map(|text| TextValue { text, colorspace: p.colorspace.clone() })))
     }
 
     /// Units and colorspace conversion of an input (Task 17). The identity for now.

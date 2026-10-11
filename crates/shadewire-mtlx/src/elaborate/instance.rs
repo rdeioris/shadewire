@@ -91,7 +91,7 @@ impl<'a> Elaborator<'a> {
         let mut interface = HashMap::new();
         for port in &nd.inputs {
             let binding = match &port.port_type {
-                PortType::String | PortType::Filename => match self.string_input(scope, node, nd, &port.name)? {
+                PortType::String | PortType::Filename => match self.text_input(scope, node, nd, &port.name)? {
                     Some(text) => Binding::Text(text),
                     None => Binding::Unbound,
                 },
