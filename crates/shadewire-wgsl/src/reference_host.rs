@@ -1,0 +1,134 @@
+//! A complete, simple host for generated WGSL, used by tests and as a template.
+//!
+//! Every host function the reflection names returns a private variable (zero unless the
+//! entry sets it); transforms are identities. Reflection carries no geomprop defaults,
+//! so geomprops read as zero.
+
+use shadewire_ir::{Reflection, Type};
+
+use crate::emit::names::ident;
+use crate::emit::types::wgsl_type;
+
+/// One host read: the function name and the type it returns.
+struct HostRead {
+    function: String,
+    ty: Type,
+}
+
+fn named_read(reflection: &Reflection, name: &str) -> HostRead {
+    let ty = reflection.context.types.get(name).copied().unwrap_or(Type::Float);
+    HostRead { function: format!("mx_{name}"), ty }
+}
+
+fn varyings(reflection: &Reflection) -> Vec<HostRead> {
+    reflection.context.varyings.iter().map(|n| named_read(reflection, n)).collect()
+}
+
+fn all_reads(reflection: &Reflection) -> Vec<HostRead> {
+    let context = &reflection.context;
+    let mut out: Vec<HostRead> = Vec::new();
+    for name in context.varyings.iter().chain(&context.derived).chain(&context.globals) {
+        out.push(named_read(reflection, name));
+    }
+    for g in &context.geomprops {
+        out.push(HostRead { function: g.function.clone(), ty: g.ty });
+    }
+    out
+}
+
+/// The first color3 field: `base_color` when there is one, else the first by name.
+fn color_field(reflection: &Reflection) -> Option<String> {
+    let colors: Vec<&String> = reflection.params.iter().filter(|(_, p)| p.ty == Type::Color3).map(|(n, _)| n).collect();
+    colors.iter().find(|n| n.as_str() == "base_color").or(colors.first()).map(|n| ident(n))
+}
+
+/// `sw_in_position_world` for `mx_position_world`.
+fn var_name(function: &str) -> String {
+    format!("sw_in_{}", function.strip_prefix("mx_").unwrap_or(function))
+}
+
+/// `position_world` for `mx_position_world`: the fragment input member.
+fn member_name(function: &str) -> &str {
+    function.strip_prefix("mx_").unwrap_or(function)
+}
+
+fn fragment_entry(reflection: &Reflection, model_struct: &str) -> String {
+    let inputs = varyings(reflection);
+    let mut out = String::new();
+    let parameter = if inputs.is_empty() {
+        "@builtin(position) position: vec4<f32>"
+    } else {
+        out.push_str("struct SwFragmentIn {\n");
+        for (i, v) in inputs.iter().enumerate() {
+            out.push_str(&format!("    @location({i}) {}: {},\n", member_name(&v.function), wgsl_type(v.ty)));
+        }
+        out.push_str("}\n\n");
+        "input: SwFragmentIn"
+    };
+    out.push_str(&format!("@fragment\nfn sw_reference_main({parameter}) -> @location(0) vec4<f32> {{\n"));
+    for v in &inputs {
+        out.push_str(&format!("    {} = input.{};\n", var_name(&v.function), member_name(&v.function)));
+    }
+    for name in &reflection.context.derived {
+        if name.starts_with("view_direction_") {
+            out.push_str(&format!("    sw_in_{name} = vec3<f32>(0.0, 0.0, -1.0);\n"));
+        }
+    }
+    out.push_str(&format!("    let s: {model_struct} = sw_eval_surface();\n"));
+    let color = color_field(reflection).map_or("vec3<f32>(0.0)".to_string(), |f| format!("s.{f}"));
+    out.push_str(&format!("    return vec4<f32>({color}, 1.0);\n}}\n"));
+    out
+}
+
+/// Host prelude for `link`. `model_struct` is the WGSL name of the surface struct.
+pub fn prelude(reflection: &Reflection, model_struct: &str) -> String {
+    let mut out = String::new();
+    for r in all_reads(reflection) {
+        let ty = wgsl_type(r.ty);
+        let var = var_name(&r.function);
+        out.push_str(&format!("var<private> {var}: {ty};\nfn {}() -> {ty} {{ return {var}; }}\n", r.function));
+    }
+    for t in &reflection.context.transforms {
+        out.push_str(&format!("fn mx_{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
+    }
+    out.push('\n');
+    out.push_str(&fragment_entry(reflection, model_struct));
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::emit::test_support::{add, reflection};
+    use crate::{emit, link::link, EmitOptions};
+    use shadewire_ir::*;
+
+    #[test]
+    fn no_varyings_takes_the_position_builtin() {
+        let mut dag = Dag::new("gltf_pbr");
+        let c = add(&mut dag, NodeKind::Const(Value::Float(0.5)), Type::Float);
+        dag.surface.fields.push(SurfaceField { name: "roughness".into(), ty: Type::Float, node: c });
+        let r = reflection(&dag);
+        let prelude = prelude(&r, "GltfPbr");
+        assert!(prelude.contains("@builtin(position)"));
+        assert!(prelude.contains("vec3<f32>(0.0), 1.0"));
+        link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
+    }
+
+    #[test]
+    fn geomprop_and_view_direction_get_functions() {
+        let mut dag = Dag::new("gltf_pbr");
+        let g = add(&mut dag, NodeKind::Context(ContextRead::GeomProp { name: "my prop".into(), ty: Type::Float }), Type::Float);
+        let v = add(&mut dag, NodeKind::Context(ContextRead::ViewDirection(Space::World)), Type::Vector3);
+        let n = add(&mut dag, NodeKind::Context(ContextRead::Normal(Space::World)), Type::Vector3);
+        dag.surface.fields.push(SurfaceField { name: "roughness".into(), ty: Type::Float, node: g });
+        dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: v });
+        dag.surface.fields.push(SurfaceField { name: "emissive".into(), ty: Type::Color3, node: n });
+        let r = reflection(&dag);
+        let prelude = prelude(&r, "GltfPbr");
+        assert!(prelude.contains("fn mx_geomprop_my_prop() -> f32"));
+        assert!(prelude.contains("sw_in_view_direction_world = vec3<f32>(0.0, 0.0, -1.0);"));
+        assert!(prelude.contains("@location(0) normal_world: vec3<f32>"));
+        link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
+    }
+}

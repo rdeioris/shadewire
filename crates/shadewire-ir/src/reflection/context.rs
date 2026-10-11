@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::Serialize;
 
 use crate::{transform_name, ContextClass, ContextRead, Dag, NodeKind, Op, Type};
@@ -17,6 +19,10 @@ pub struct ContextReflection {
     pub globals: Vec<String>,
     pub geomprops: Vec<GeomPropReflection>,
     pub transforms: Vec<String>,
+    /// Type of every varying, derived and global read by reflection name, for hosts that
+    /// declare them. Not part of the JSON.
+    #[serde(skip)]
+    pub types: BTreeMap<String, Type>,
 }
 
 fn sorted_unique(mut names: Vec<String>) -> Vec<String> {
@@ -49,23 +55,27 @@ pub fn context(dag: &Dag, live: &[bool]) -> ContextReflection {
     let mut globals = Vec::new();
     let mut geomprops: Vec<GeomPropReflection> = Vec::new();
     let mut transforms = Vec::new();
+    let mut types = BTreeMap::new();
     for (i, node) in dag.nodes.iter().enumerate() {
         if !live[i] {
             continue;
         }
         match &node.kind {
-            NodeKind::Context(read) => match read.class() {
-                ContextClass::Varying => varyings.push(read.reflection_name()),
-                ContextClass::Derived => derived.push(read.reflection_name()),
-                ContextClass::Global => globals.push(read.reflection_name()),
-                ContextClass::GeomProp => {
-                    if let ContextRead::GeomProp { name, ty } = read {
-                        if !geomprops.iter().any(|g| g.name == *name) {
-                            geomprops.push(GeomPropReflection { name: name.clone(), ty: *ty, function: read.function_name() });
+            NodeKind::Context(read) => {
+                types.insert(read.reflection_name(), read.ty());
+                match read.class() {
+                    ContextClass::Varying => varyings.push(read.reflection_name()),
+                    ContextClass::Derived => derived.push(read.reflection_name()),
+                    ContextClass::Global => globals.push(read.reflection_name()),
+                    ContextClass::GeomProp => {
+                        if let ContextRead::GeomProp { name, ty } = read {
+                            if !geomprops.iter().any(|g| g.name == *name) {
+                                geomprops.push(GeomPropReflection { name: name.clone(), ty: *ty, function: read.function_name() });
+                            }
                         }
                     }
                 }
-            },
+            }
             NodeKind::Op { op: Op::Transform { kind, from, to }, .. } => {
                 transforms.push(transform_name(*kind, *from, *to));
             }
@@ -80,5 +90,6 @@ pub fn context(dag: &Dag, live: &[bool]) -> ContextReflection {
         globals: sorted_unique(globals),
         geomprops,
         transforms: sorted_unique(transforms),
+        types,
     }
 }

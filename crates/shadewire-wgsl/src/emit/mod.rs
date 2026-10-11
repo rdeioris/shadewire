@@ -2,7 +2,7 @@ mod bindings;
 mod coerce;
 pub mod expressions;
 mod module;
-mod names;
+pub(crate) mod names;
 pub mod ops;
 pub mod probe;
 mod reserved;
@@ -10,7 +10,7 @@ pub mod sample;
 mod structs;
 #[cfg(test)]
 pub(crate) mod test_support;
-mod types;
+pub(crate) mod types;
 mod uniforms;
 
 use shadewire_ir::{Dag, Reflection};
