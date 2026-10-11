@@ -1,4 +1,7 @@
-//! Gradient (Perlin) noise from genglsl/lib/mx_noise.glsl (Apache-2.0, ported from MaterialX).
+//! Gradient (Perlin) noise.
+//! Ported from MaterialX libraries/stdlib/genglsl/lib/mx_noise.glsl (Apache-2.0), itself derived
+//! from OSL noise, Copyright (c) 2009-2010 Sony Pictures Imageworks Inc., et al., BSD-3-Clause.
+//! See NOTICE.
 
 use super::basics::{bilerp_float, bilerp_vec3, floorfrac, negate_if, select, trilerp_float, trilerp_vec3};
 use super::hash::{hash_int_2, hash_int_3, hash_vec3_2, hash_vec3_3};

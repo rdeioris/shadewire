@@ -1,4 +1,7 @@
-//! Bob Jenkins lookup3 hashing from genglsl/lib/mx_noise.glsl (Apache-2.0, ported from MaterialX).
+//! Bob Jenkins lookup3 hashing.
+//! Ported from MaterialX libraries/stdlib/genglsl/lib/mx_noise.glsl (Apache-2.0), itself derived
+//! from OSL noise, Copyright (c) 2009-2010 Sony Pictures Imageworks Inc., et al., BSD-3-Clause.
+//! See NOTICE.
 
 // mx_rotl32
 pub fn rotl32(x: u32, k: i32) -> u32 {

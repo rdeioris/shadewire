@@ -2,6 +2,10 @@
 //! stdlib_genglsl_impl.mtlx (mx_noise2d_*.glsl, mx_fractal3d_*.glsl, mx_cellnoise*.glsl,
 //! mx_worleynoise*.glsl); color and float-amplitude nodedefs are nodegraphs over these.
 //! Arguments arrive in `catalog::input_names` order.
+//!
+//! Ported from MaterialX libraries/stdlib/genglsl/lib/mx_noise.glsl (Apache-2.0), itself derived
+//! from OSL noise, Copyright (c) 2009-2010 Sony Pictures Imageworks Inc., et al., BSD-3-Clause.
+//! See NOTICE.
 
 pub mod basics;
 pub mod cell;

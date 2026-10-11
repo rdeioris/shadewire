@@ -1,4 +1,7 @@
-//! Cell noise from genglsl/lib/mx_noise.glsl (Apache-2.0, ported from MaterialX).
+//! Cell noise.
+//! Ported from MaterialX libraries/stdlib/genglsl/lib/mx_noise.glsl (Apache-2.0), itself derived
+//! from OSL noise, Copyright (c) 2009-2010 Sony Pictures Imageworks Inc., et al., BSD-3-Clause.
+//! See NOTICE.
 
 use super::basics::floor;
 use super::hash::{bits_to_01, bjfinal, bjmix, hash_int_1, hash_int_2, hash_int_3, hash_int_4};

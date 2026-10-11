@@ -1,4 +1,7 @@
-//! Fractal (fBm) noise from genglsl/lib/mx_noise.glsl (Apache-2.0, ported from MaterialX).
+//! Fractal (fBm) noise.
+//! Ported from MaterialX libraries/stdlib/genglsl/lib/mx_noise.glsl (Apache-2.0), itself derived
+//! from OSL noise, Copyright (c) 2009-2010 Sony Pictures Imageworks Inc., et al., BSD-3-Clause.
+//! See NOTICE.
 
 use super::perlin::{perlin_noise_float_2d, perlin_noise_float_3d, perlin_noise_vec3_2d, perlin_noise_vec3_3d};
 

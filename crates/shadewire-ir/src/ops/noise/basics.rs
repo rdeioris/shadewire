@@ -1,4 +1,7 @@
-//! Helpers at the head of genglsl/lib/mx_noise.glsl (Apache-2.0, ported from MaterialX).
+//! Helpers at the head of mx_noise.glsl.
+//! Ported from MaterialX libraries/stdlib/genglsl/lib/mx_noise.glsl (Apache-2.0), itself derived
+//! from OSL noise, Copyright (c) 2009-2010 Sony Pictures Imageworks Inc., et al., BSD-3-Clause.
+//! See NOTICE.
 
 // mx_select
 pub fn select(b: bool, t: f32, f: f32) -> f32 {
@@ -11,6 +14,7 @@ pub fn negate_if(val: f32, b: bool) -> f32 {
 }
 
 // mx_floor
+// `as i32` saturates out-of-range values and maps NaN to 0, where GLSL int(floor(x)) is undefined.
 pub fn floor(x: f32) -> i32 {
     x.floor() as i32
 }
