@@ -1,6 +1,6 @@
 use shadewire_ir::{Reflection, Type};
 
-use super::names::ident;
+use super::names::UniformNames;
 use super::types::wgsl_type;
 
 /// Booleans are stored as u32 in the block, everything else as its WGSL type.
@@ -17,8 +17,9 @@ pub fn uniform_block(reflection: &Reflection) -> String {
         return String::new();
     };
     let mut out = String::from("struct MaterialUniforms {\n");
-    for u in &reflection.uniforms {
-        out.push_str(&format!("    {}: {},\n", ident(&u.name), member_type(u.ty)));
+    let names = UniformNames::new(reflection);
+    for (i, u) in reflection.uniforms.iter().enumerate() {
+        out.push_str(&format!("    {}: {},\n", names.member(i), member_type(u.ty)));
     }
     out.push_str("}\n\n");
     out.push_str(&format!("@group({}) @binding({}) var<uniform> sw_u: MaterialUniforms;\n", reflection.group, binding));
@@ -57,6 +58,51 @@ mod tests {
         let text = uniform_block(&r);
         assert!(text.contains("    flag: u32,\n    n: i32,\n"), "{text}");
         assert!(text.contains("@group(0) @binding(3)"), "{text}");
+    }
+
+    #[test]
+    fn colliding_names_get_distinct_members() {
+        let r = reflection_with(
+            &[("my-prop", Value::Float(1.0)), ("my_prop", Value::Float(2.0)), ("filter", Value::Float(3.0)), ("filter_", Value::Float(4.0))],
+            0,
+            0,
+        );
+        let names = UniformNames::new(&r);
+        let all: Vec<&str> = (0..4).map(|i| names.member(i)).collect();
+        assert_eq!(all, vec!["my_prop", "my_prop_2", "filter_", "filter__2"]);
+        assert_eq!(r.uniforms[1].name, "my_prop");
+        assert_eq!(names.by_name(&r, "my_prop"), Some("my_prop_2"));
+        naga::front::wgsl::parse_str(&uniform_block(&r)).unwrap();
+    }
+
+    #[test]
+    fn layout_matches_reflection_in_naga() {
+        let r = reflection_with(
+            &[
+                ("a", Value::Color3([0.0; 3])),
+                ("b", Value::Float(0.0)),
+                ("c", Value::Vector2([0.0; 2])),
+                ("d", Value::Vector4([0.0; 4])),
+                ("e", Value::Boolean(true)),
+            ],
+            0,
+            0,
+        );
+        let module = naga::front::wgsl::parse_str(&uniform_block(&r)).unwrap();
+        let (members, span) = module
+            .types
+            .iter()
+            .find_map(|(_, t)| match &t.inner {
+                naga::TypeInner::Struct { members, span } if t.name.as_deref() == Some("MaterialUniforms") => Some((members.clone(), *span)),
+                _ => None,
+            })
+            .expect("MaterialUniforms");
+        assert_eq!(members.len(), r.uniforms.len());
+        for (m, u) in members.iter().zip(&r.uniforms) {
+            assert_eq!(m.offset, u.offset, "{}", u.name);
+        }
+        assert!(span <= r.uniform_block_size);
+        assert_eq!(span.div_ceil(16) * 16, r.uniform_block_size);
     }
 
     #[test]

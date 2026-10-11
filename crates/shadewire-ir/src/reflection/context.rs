@@ -33,6 +33,24 @@ fn sorted_unique(mut names: Vec<String>) -> Vec<String> {
     names
 }
 
+/// Authored names may hold characters a function name cannot, and two names can sanitise
+/// alike: replace those characters with `_` and suffix `_2`, `_3`... on a clash.
+fn unique_functions(geomprops: &mut [GeomPropReflection]) {
+    let mut taken: Vec<String> = Vec::new();
+    for g in geomprops.iter_mut() {
+        let clean: String = g.name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' { c } else { '_' }).collect();
+        let base = format!("mx_geomprop_{clean}");
+        let mut candidate = base.clone();
+        let mut n = 2;
+        while taken.contains(&candidate) {
+            candidate = format!("{base}_{n}");
+            n += 1;
+        }
+        taken.push(candidate.clone());
+        g.function = candidate;
+    }
+}
+
 pub fn context(dag: &Dag, live: &[bool]) -> ContextReflection {
     let mut varyings = Vec::new();
     let mut derived = Vec::new();
@@ -63,6 +81,7 @@ pub fn context(dag: &Dag, live: &[bool]) -> ContextReflection {
         }
     }
     geomprops.sort_by(|a, b| a.name.cmp(&b.name));
+    unique_functions(&mut geomprops);
     ContextReflection {
         varyings: sorted_unique(varyings),
         derived: sorted_unique(derived),

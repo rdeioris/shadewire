@@ -1,3 +1,5 @@
+use shadewire_ir::Reflection;
+
 use super::reserved::RESERVED;
 
 /// Makes an authored name a valid WGSL identifier: invalid characters become `_`,
@@ -15,6 +17,40 @@ pub fn ident(name: &str) -> String {
         out.push('_');
     }
     out
+}
+
+/// One unique WGSL member name per reflection uniform, index-aligned with `reflection.uniforms`.
+/// Names that `ident` maps alike get `_2`, `_3`... Reflection keeps the authored names;
+/// hosts fill the buffer by offset.
+pub struct UniformNames {
+    members: Vec<String>,
+}
+
+impl UniformNames {
+    pub fn new(reflection: &Reflection) -> UniformNames {
+        let mut members: Vec<String> = Vec::new();
+        for u in &reflection.uniforms {
+            let base = ident(&u.name);
+            let mut candidate = base.clone();
+            let mut n = 2;
+            while members.contains(&candidate) {
+                candidate = format!("{base}_{n}");
+                n += 1;
+            }
+            members.push(candidate);
+        }
+        UniformNames { members }
+    }
+
+    pub fn member(&self, index: usize) -> &str {
+        &self.members[index]
+    }
+
+    #[allow(dead_code)] // used by the expression emitter (Task 20)
+    /// The member for an authored uniform name (first uniform of that name).
+    pub fn by_name(&self, reflection: &Reflection, name: &str) -> Option<&str> {
+        reflection.uniforms.iter().position(|u| u.name == name).map(|i| self.member(i))
+    }
 }
 
 /// The WGSL struct name of a shading model.

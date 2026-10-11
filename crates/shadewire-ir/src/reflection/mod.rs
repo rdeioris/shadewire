@@ -198,6 +198,18 @@ mod tests {
     }
 
     #[test]
+    fn geomprop_functions_are_unique_and_clean() {
+        let mut dag = Dag::new("m");
+        for name in ["my-prop", "my_prop", "plain"] {
+            let id = dag.add(node(NodeKind::Context(ContextRead::GeomProp { name: name.into(), ty: Type::Float }), Type::Float));
+            dag.surface.fields.push(SurfaceField { name: name.into(), ty: Type::Float, node: id });
+        }
+        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).context;
+        let f: Vec<&str> = c.geomprops.iter().map(|g| g.function.as_str()).collect();
+        assert_eq!(f, vec!["mx_geomprop_my_prop", "mx_geomprop_my_prop_2", "mx_geomprop_plain"]);
+    }
+
+    #[test]
     fn context_splits_by_class_and_lists_transforms() {
         let mut dag = Dag::new("m");
         let p = dag.add(node(NodeKind::Context(ContextRead::Position(Space::World)), Type::Vector3));
