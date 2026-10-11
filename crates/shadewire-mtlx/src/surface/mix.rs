@@ -16,9 +16,8 @@ impl<'a> Elaborator<'a> {
         match source {
             SurfaceSource::Model { node, nodedef, scope } => {
                 let mut out = Vec::new();
-                for (name, _) in fields(nodedef) {
+                for (name, ty) in fields(nodedef) {
                     let id = self.surface_input_value(scope, node, nodedef, &name, scope.user)?;
-                    let ty = self.dag.node(id).ty;
                     out.push(SurfaceField { name, ty, node: id });
                 }
                 Ok(out)

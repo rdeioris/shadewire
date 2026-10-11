@@ -1,7 +1,7 @@
 //! Input resolution: connections, nodegraph references, interface bindings,
 //! authored values, then nodedef defaults.
 
-use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind};
+use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind, Type};
 
 use super::{Binding, Elaborator, Scope, TextValue};
 use crate::document::{Input, Node, NodeDef, PortDef};
@@ -76,21 +76,26 @@ impl<'a> Elaborator<'a> {
         &mut self,
         scope: &Scope<'a>,
         input: &Input,
-        ty: shadewire_ir::Type,
+        ty: Type,
         param: bool,
         uniform_eligible: bool,
         at: &Location,
     ) -> Result<Option<NodeId>, Error> {
         if let Some(nodename) = &input.nodename {
-            return self.node_output(scope, nodename, input.output.as_deref()).map(Some);
+            let id = self.node_output(scope, nodename, input.output.as_deref())?;
+            return self.connected(id, ty, at).map(Some);
         }
         if let Some(graph) = &input.nodegraph {
             let inner = self.user_graph_scope(graph, at)?;
-            return self.graph_output(&inner, input.output.as_deref(), at).map(Some);
+            let id = self.graph_output(&inner, input.output.as_deref(), at)?;
+            return self.connected(id, ty, at).map(Some);
         }
         if let Some(name) = &input.interfacename {
             match scope.interface.get(name) {
-                Some(Binding::Node(id)) => return Ok(Some(self.as_param(*id, param))),
+                Some(Binding::Node(id)) => {
+                    let id = self.connected(*id, ty, at)?;
+                    return Ok(Some(self.as_param(id, param)));
+                }
                 Some(Binding::Text(_)) => {
                     return Err(Error::BadValue {
                         at: at.clone(),
@@ -146,6 +151,27 @@ impl<'a> Elaborator<'a> {
         }
         let port = nd.inputs.iter().find(|p| p.name == input_name);
         Ok(port.and_then(|p| p.value.clone().map(|text| TextValue { text, colorspace: p.colorspace.clone() })))
+    }
+
+    /// A connected value must have the input's type, or the same width
+    /// under another name (`color3` and `vector3`, `color4` and `vector4`).
+    fn connected(&self, id: NodeId, ty: Type, at: &Location) -> Result<NodeId, Error> {
+        let found = self.dag.node(id).ty;
+        let relabel = matches!(
+            (found, ty),
+            (Type::Color3, Type::Vector3)
+                | (Type::Vector3, Type::Color3)
+                | (Type::Color4, Type::Vector4)
+                | (Type::Vector4, Type::Color4)
+        );
+        if found == ty || relabel {
+            return Ok(id);
+        }
+        Err(Error::TypeMismatch {
+            at: at.clone(),
+            expected: ty.mtlx_name().to_string(),
+            found: found.mtlx_name().to_string(),
+        })
     }
 
     /// A uniform read as a parameter becomes a constant of its value.

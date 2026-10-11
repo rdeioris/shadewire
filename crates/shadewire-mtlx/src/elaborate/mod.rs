@@ -18,6 +18,8 @@ pub mod units;
 pub mod values;
 
 #[cfg(test)]
+mod connection_tests;
+#[cfg(test)]
 mod convert_tests;
 #[cfg(test)]
 mod cycle_tests;
