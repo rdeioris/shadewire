@@ -1,23 +1,25 @@
 //! A complete, simple host for generated WGSL, used by tests and as a template.
 //!
 //! Every host function the reflection names returns a private variable (zero unless the
-//! entry sets it); transforms are identities. Reflection carries no geomprop defaults,
-//! so geomprops read as zero.
+//! entry sets it); transforms are identities. Geomprops start at their authored default
+//! when reflection has one, else zero.
 
-use shadewire_ir::{Reflection, Type};
+use shadewire_ir::{Reflection, Type, Value};
 
 use crate::emit::names::ident;
-use crate::emit::types::wgsl_type;
+use crate::emit::types::{literal, wgsl_type};
 
 /// One host read: the function name and the type it returns.
 struct HostRead {
     function: String,
     ty: Type,
+    /// The starting value of the private variable; zero when absent.
+    init: Option<Value>,
 }
 
 fn named_read(reflection: &Reflection, name: &str) -> HostRead {
     let ty = reflection.context.types.get(name).copied().unwrap_or(Type::Float);
-    HostRead { function: format!("mx_{name}"), ty }
+    HostRead { function: format!("mx_{name}"), ty, init: None }
 }
 
 fn varyings(reflection: &Reflection) -> Vec<HostRead> {
@@ -31,7 +33,7 @@ fn all_reads(reflection: &Reflection) -> Vec<HostRead> {
         out.push(named_read(reflection, name));
     }
     for g in &context.geomprops {
-        out.push(HostRead { function: g.function.clone(), ty: g.ty });
+        out.push(HostRead { function: g.function.clone(), ty: g.ty, init: g.default.clone().filter(|d| d.ty() == g.ty) });
     }
     out
 }
@@ -82,7 +84,8 @@ pub fn prelude(reflection: &Reflection, model_struct: &str) -> String {
     for r in all_reads(reflection) {
         let ty = wgsl_type(r.ty);
         let var = format!("sw_in_{}", member_name(&r.function));
-        out.push_str(&format!("var<private> {var}: {ty};\nfn {}() -> {ty} {{ return {var}; }}\n", r.function));
+        let start = r.init.as_ref().map_or(String::new(), |v| format!(" = {}", literal(v)));
+        out.push_str(&format!("var<private> {var}: {ty}{start};\nfn {}() -> {ty} {{ return {var}; }}\n", r.function));
     }
     for t in &reflection.context.transforms {
         out.push_str(&format!("fn mx_{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
@@ -127,6 +130,21 @@ mod tests {
         let prelude = prelude(&r, "GltfPbr");
         assert!(prelude.contains("fn mx_transform_normal_object_to_world(v: vec3<f32>) -> vec3<f32>"));
         link(&generated, &prelude).unwrap();
+    }
+
+    #[test]
+    fn geomprops_start_at_their_authored_default() {
+        let mut dag = Dag::new("gltf_pbr");
+        let g = add(&mut dag, NodeKind::Context(ContextRead::GeomProp { name: "tint".into(), ty: Type::Color3 }), Type::Color3);
+        let z = add(&mut dag, NodeKind::Context(ContextRead::GeomProp { name: "bare".into(), ty: Type::Float }), Type::Float);
+        dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: g });
+        dag.surface.fields.push(SurfaceField { name: "roughness".into(), ty: Type::Float, node: z });
+        dag.geomprop_defaults.insert("tint".into(), Value::Color3([1.0, 0.5, 0.25]));
+        let r = reflection(&dag);
+        let prelude = prelude(&r, "GltfPbr");
+        assert!(prelude.contains("var<private> sw_in_geomprop_tint: vec3<f32> = vec3<f32>(1.0, 0.5, 0.25);"), "{prelude}");
+        assert!(prelude.contains("var<private> sw_in_geomprop_bare: f32;"), "{prelude}");
+        link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
     }
 
     #[test]

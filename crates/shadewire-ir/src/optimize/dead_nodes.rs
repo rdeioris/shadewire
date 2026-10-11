@@ -17,6 +17,7 @@ pub fn run(dag: &Dag) -> Dag {
     let mut new = Dag::new(&dag.surface.model);
     new.textures = dag.textures.clone();
     new.approximations = dag.approximations.clone();
+    new.geomprop_defaults = dag.geomprop_defaults.clone();
     let mut map: Vec<Option<NodeId>> = vec![None; dag.nodes.len()];
     for (index, old) in dag.nodes.iter().enumerate() {
         if !live[index] {

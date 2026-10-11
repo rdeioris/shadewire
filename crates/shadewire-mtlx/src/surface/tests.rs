@@ -205,3 +205,22 @@ fn standard_surface_versions_read_their_own_defaults() {
     let old = inline(&format!(r#"<standard_surface name="s" type="surfaceshader" version="1.0.0"/>{material}"#));
     assert_eq!(field_value(&compile(&old, None, &PHASE_ONE_MODELS).unwrap(), "base"), Value::Float(0.8));
 }
+
+#[test]
+fn geomprop_defaults_reach_the_dag() {
+    let doc = inline(
+        r#"
+        <geompropvalue name="tint" type="color3">
+          <input name="geomprop" type="string" value="tintprop"/>
+          <input name="default" type="color3" value="1, 1, 1"/>
+        </geompropvalue>
+        <standard_surface name="s" type="surfaceshader">
+          <input name="base_color" type="color3" nodename="tint"/>
+        </standard_surface>
+        <surfacematerial name="m" type="material">
+          <input name="surfaceshader" type="surfaceshader" nodename="s"/>
+        </surfacematerial>"#,
+    );
+    let dag = compile(&doc, None, &PHASE_ONE_MODELS).unwrap();
+    assert_eq!(dag.geomprop_defaults.get("tintprop"), Some(&Value::Color3([1.0, 1.0, 1.0])));
+}

@@ -126,6 +126,7 @@ pub fn elaborate(
     let fields = elaborator.surface_fields(&source)?;
     elaborator.dag.surface.fields = fields;
     elaborator.dag.surface.model = model;
+    elaborator.dag.geomprop_defaults = elaborator.geomprop_defaults.drain().collect();
     Ok(elaborator.dag)
 }
 

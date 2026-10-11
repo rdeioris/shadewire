@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{transform_name, ContextClass, ContextRead, Dag, NodeKind, Op, Type};
+use crate::{transform_name, ContextClass, ContextRead, Dag, NodeKind, Op, Type, Value};
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct GeomPropReflection {
@@ -10,6 +10,8 @@ pub struct GeomPropReflection {
     #[serde(rename = "type")]
     pub ty: Type,
     pub function: String,
+    /// The authored `default` of the `geompropvalue`, when it had one.
+    pub default: Option<Value>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -70,7 +72,7 @@ pub fn context(dag: &Dag, live: &[bool]) -> ContextReflection {
                     ContextClass::GeomProp => {
                         if let ContextRead::GeomProp { name, ty } = read {
                             if !geomprops.iter().any(|g| g.name == *name) {
-                                geomprops.push(GeomPropReflection { name: name.clone(), ty: *ty, function: read.function_name() });
+                                geomprops.push(GeomPropReflection { name: name.clone(), ty: *ty, function: read.function_name(), default: dag.geomprop_defaults.get(name).cloned() });
                             }
                         }
                     }

@@ -23,6 +23,16 @@ mod tests {
     }
 
     #[test]
+    fn geomprop_defaults_survive_every_pass() {
+        let mut dag = Dag::new("m");
+        let g = dag.add(n(NodeKind::Context(ContextRead::GeomProp { name: "tint".into(), ty: Type::Float })));
+        dag.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Float, node: g });
+        dag.geomprop_defaults.insert("tint".into(), Value::Float(0.5));
+        let out = super::optimize(&dag);
+        assert_eq!(out.geomprop_defaults.get("tint"), Some(&Value::Float(0.5)));
+    }
+
+    #[test]
     fn whole_pipeline_folds_simplifies_shares_and_compacts() {
         let mut dag = Dag::new("m");
         let one = dag.add(n(NodeKind::Const(Value::Float(1.0))));

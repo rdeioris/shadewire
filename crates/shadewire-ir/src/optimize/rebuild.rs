@@ -12,6 +12,7 @@ impl Rebuilder {
         let mut new = Dag::new(&old.surface.model);
         new.textures = old.textures.clone();
         new.approximations = old.approximations.clone();
+        new.geomprop_defaults = old.geomprop_defaults.clone();
         Rebuilder { new, map: Vec::with_capacity(old.nodes.len()) }
     }
 

@@ -210,6 +210,23 @@ mod tests {
     }
 
     #[test]
+    fn geomprop_default_is_reflected_and_serialised() {
+        let mut dag = Dag::new("m");
+        let g = dag.add(node(NodeKind::Context(ContextRead::GeomProp { name: "tint".into(), ty: Type::Color3 }), Type::Color3));
+        let h = dag.add(node(NodeKind::Context(ContextRead::GeomProp { name: "bare".into(), ty: Type::Float }), Type::Float));
+        dag.surface.fields.push(SurfaceField { name: "a".into(), ty: Type::Color3, node: g });
+        dag.surface.fields.push(SurfaceField { name: "b".into(), ty: Type::Float, node: h });
+        dag.geomprop_defaults.insert("tint".into(), Value::Color3([1.0, 1.0, 1.0]));
+        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).context;
+        let bare = c.geomprops.iter().find(|g| g.name == "bare").unwrap();
+        let tint = c.geomprops.iter().find(|g| g.name == "tint").unwrap();
+        assert_eq!(bare.default, None);
+        assert_eq!(tint.default, Some(Value::Color3([1.0, 1.0, 1.0])));
+        let json = serde_json::to_string(tint).unwrap();
+        assert!(json.contains("\"default\":[1.0,1.0,1.0]"), "{json}");
+    }
+
+    #[test]
     fn context_splits_by_class_and_lists_transforms() {
         let mut dag = Dag::new("m");
         let p = dag.add(node(NodeKind::Context(ContextRead::Position(Space::World)), Type::Vector3));
@@ -231,7 +248,7 @@ mod tests {
         assert_eq!(c.varyings, vec!["position_world".to_string()]);
         assert_eq!(c.derived, vec!["view_direction_world".to_string()]);
         assert_eq!(c.globals, vec!["time".to_string()]);
-        assert_eq!(c.geomprops, vec![GeomPropReflection { name: "tint".into(), ty: Type::Color3, function: "mx_geomprop_tint".into() }]);
+        assert_eq!(c.geomprops, vec![GeomPropReflection { name: "tint".into(), ty: Type::Color3, function: "mx_geomprop_tint".into(), default: None }]);
         assert_eq!(c.transforms, vec!["transform_point_world_to_object".to_string()]);
     }
 }

@@ -1044,8 +1044,10 @@ name = "shadewire-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "naga",
  "serde_json",
  "shadewire",
+ "shadewire-ir",
 ]
 
 [[package]]
@@ -1053,6 +1055,7 @@ name = "shadewire-ir"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "thiserror",
 ]
 

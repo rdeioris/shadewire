@@ -1,4 +1,6 @@
-use crate::{Node, NodeId, NodeKind, Surface, TextureDesc};
+use std::collections::BTreeMap;
+
+use crate::{Node, NodeId, NodeKind, Surface, TextureDesc, Value};
 
 #[derive(Clone, Debug)]
 pub struct Dag {
@@ -6,6 +8,8 @@ pub struct Dag {
     pub textures: Vec<TextureDesc>,
     pub surface: Surface,
     pub approximations: Vec<String>,
+    /// `geompropvalue` defaults by property name; reflection reports them to the host.
+    pub geomprop_defaults: BTreeMap<String, Value>,
 }
 
 impl Dag {
@@ -15,6 +19,7 @@ impl Dag {
             textures: Vec::new(),
             surface: Surface { model: model.to_string(), fields: Vec::new() },
             approximations: Vec::new(),
+            geomprop_defaults: BTreeMap::new(),
         }
     }
 
