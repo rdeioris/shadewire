@@ -20,9 +20,10 @@ fn examples() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../vendor/materialx/resources/Materials/Examples")
 }
 
-fn targets() -> [Target; 4] {
+fn targets() -> [Target; 5] {
     [
         Target::Hlsl { shader_model: hlsl::ShaderModel::V6_0 },
+        Target::Glsl { version: glsl::Version::Desktop(450) },
         Target::Glsl { version: glsl::Version::Embedded { version: 300, is_webgl: false } },
         Target::Msl { version: (2, 1) },
         Target::SpirV,
