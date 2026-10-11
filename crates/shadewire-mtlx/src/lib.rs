@@ -7,6 +7,7 @@ pub mod index;
 pub mod library;
 pub mod parse;
 pub mod resolve_nodedef;
+pub mod upgrade;
 pub mod version;
 
 pub use document::Document;
