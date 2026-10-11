@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{AddressMode, Dag, FilterMode};
+use crate::{AddressMode, Dag, FilterMode, NodeKind};
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct TextureReflection {
@@ -13,27 +13,42 @@ pub struct TextureReflection {
     pub filter: FilterMode,
 }
 
-/// Each texture takes two bindings (texture, sampler) starting at `first`.
-pub fn textures(dag: &Dag, first: u32) -> Vec<TextureReflection> {
-    dag.textures
-        .iter()
-        .enumerate()
-        .map(|(index, t)| TextureReflection {
+/// Textures a live Sample reads, as `Dag::textures` indices in ascending order.
+fn used(dag: &Dag, live: &[bool]) -> Vec<usize> {
+    let mut used: Vec<usize> = Vec::new();
+    for (i, node) in dag.nodes.iter().enumerate() {
+        if let NodeKind::Sample { texture, .. } = &node.kind {
+            if live[i] && !used.contains(texture) {
+                used.push(*texture);
+            }
+        }
+    }
+    used.sort();
+    used
+}
+
+/// Each used texture takes two bindings (texture, sampler) starting at `first`.
+pub fn textures(dag: &Dag, live: &[bool], first: u32) -> Vec<TextureReflection> {
+    let mut out = Vec::new();
+    for (slot, index) in used(dag, live).into_iter().enumerate() {
+        let t = &dag.textures[index];
+        out.push(TextureReflection {
             index,
-            binding: first + 2 * index as u32,
-            sampler_binding: first + 2 * index as u32 + 1,
+            binding: first + 2 * slot as u32,
+            sampler_binding: first + 2 * slot as u32 + 1,
             file: t.file.clone(),
             colorspace: t.colorspace.clone(),
             address: [t.address_u, t.address_v],
             filter: t.filter,
-        })
-        .collect()
+        });
+    }
+    out
 }
 
-/// Approximations the texture table forces on the generated code.
-pub fn approximations(dag: &Dag) -> Vec<String> {
+/// Approximations the used textures force on the generated code.
+pub fn approximations(dag: &Dag, live: &[bool]) -> Vec<String> {
     let mut out = Vec::new();
-    if dag.textures.iter().any(|t| t.filter == FilterMode::Cubic) {
+    if used(dag, live).iter().any(|i| dag.textures[*i].filter == FilterMode::Cubic) {
         out.push("cubic filter as linear".to_string());
     }
     out
@@ -42,33 +57,38 @@ pub fn approximations(dag: &Dag) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::TextureDesc;
+    use crate::reflection::live::live_nodes;
+    use crate::{Node, SurfaceField, TextureDesc, Type, Value};
 
-    fn desc(filter: FilterMode) -> TextureDesc {
-        TextureDesc { file: "a.png".into(), colorspace: None, address_u: AddressMode::Periodic, address_v: AddressMode::Clamp, filter }
+    fn desc(file: &str, filter: FilterMode) -> TextureDesc {
+        TextureDesc { file: file.into(), colorspace: None, address_u: AddressMode::Periodic, address_v: AddressMode::Clamp, filter }
+    }
+
+    /// Adds a texture and a surface field that samples it.
+    fn sampled(dag: &mut Dag, file: &str, filter: FilterMode) {
+        let texture = dag.add_texture(desc(file, filter));
+        let uv = dag.add(Node { kind: NodeKind::Const(Value::Vector2([0.0; 2])), ty: Type::Vector2, origin: String::new() });
+        let s = dag.add(Node { kind: NodeKind::Sample { texture, uv, default: Value::Float(0.0) }, ty: Type::Float, origin: String::new() });
+        dag.surface.fields.push(SurfaceField { name: file.into(), ty: Type::Float, node: s });
     }
 
     #[test]
     fn cubic_filter_is_reported_once() {
         let mut dag = Dag::new("m");
-        dag.add_texture(desc(FilterMode::Cubic));
-        let mut other = desc(FilterMode::Cubic);
-        other.file = "b.png".into();
-        dag.add_texture(other);
-        assert_eq!(approximations(&dag), vec!["cubic filter as linear".to_string()]);
+        sampled(&mut dag, "a.png", FilterMode::Cubic);
+        sampled(&mut dag, "b.png", FilterMode::Cubic);
+        assert_eq!(approximations(&dag, &live_nodes(&dag)), vec!["cubic filter as linear".to_string()]);
         let mut linear = Dag::new("m");
-        linear.add_texture(desc(FilterMode::Linear));
-        assert!(approximations(&linear).is_empty());
+        sampled(&mut linear, "a.png", FilterMode::Linear);
+        assert!(approximations(&linear, &live_nodes(&linear)).is_empty());
     }
 
     #[test]
     fn bindings_come_in_pairs() {
         let mut dag = Dag::new("m");
-        dag.add_texture(desc(FilterMode::Linear));
-        let mut other = desc(FilterMode::Linear);
-        other.file = "b.png".into();
-        dag.add_texture(other);
-        let t = textures(&dag, 3);
+        sampled(&mut dag, "a.png", FilterMode::Linear);
+        sampled(&mut dag, "b.png", FilterMode::Linear);
+        let t = textures(&dag, &live_nodes(&dag), 3);
         assert_eq!((t[0].binding, t[0].sampler_binding), (3, 4));
         assert_eq!((t[1].binding, t[1].sampler_binding), (5, 6));
         assert_eq!(t[0].address, [AddressMode::Periodic, AddressMode::Clamp]);

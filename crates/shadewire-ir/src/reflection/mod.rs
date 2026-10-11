@@ -1,4 +1,5 @@
 mod context;
+mod live;
 mod params;
 mod textures;
 pub mod uniforms;
@@ -54,9 +55,13 @@ pub struct Reflection {
 }
 
 pub fn reflect(dag: &Dag, bindings: &BindingOptions, source: &SourceInfo) -> Reflection {
+    let live = live::live_nodes(dag);
     let mut members: Vec<(String, Type)> = Vec::new();
     let mut defaults: Vec<Value> = Vec::new();
-    for node in &dag.nodes {
+    for (i, node) in dag.nodes.iter().enumerate() {
+        if !live[i] {
+            continue;
+        }
         if let NodeKind::Uniform { name, value } = &node.kind {
             members.push((name.clone(), node.ty));
             defaults.push(value.clone());
@@ -79,7 +84,7 @@ pub fn reflect(dag: &Dag, bindings: &BindingOptions, source: &SourceInfo) -> Ref
     let first_texture = bindings.first_binding + has_uniforms as u32;
 
     let mut approximations = dag.approximations.clone();
-    for note in textures::approximations(dag) {
+    for note in textures::approximations(dag, &live) {
         if !approximations.contains(&note) {
             approximations.push(note);
         }
@@ -96,8 +101,8 @@ pub fn reflect(dag: &Dag, bindings: &BindingOptions, source: &SourceInfo) -> Ref
         uniform_block_size: layout.block_size,
         uniform_binding: has_uniforms.then_some(bindings.first_binding),
         group: bindings.group,
-        textures: textures::textures(dag, first_texture),
-        context: context::context(dag),
+        textures: textures::textures(dag, &live, first_texture),
+        context: context::context(dag, &live),
         displacement: None,
         approximations,
     }
@@ -161,6 +166,29 @@ mod tests {
     }
 
     #[test]
+    fn unreachable_nodes_are_not_reported() {
+        let mut dag = sample_dag(false);
+        let tex = dag.add_texture(TextureDesc {
+            file: "dead.png".into(),
+            colorspace: None,
+            address_u: AddressMode::Clamp,
+            address_v: AddressMode::Clamp,
+            filter: FilterMode::Cubic,
+        });
+        dag.add(node(NodeKind::Uniform { name: "dead_uniform".into(), value: Value::Float(1.0) }, Type::Float));
+        dag.add(node(NodeKind::Context(ContextRead::Time), Type::Float));
+        let uv = dag.add(node(NodeKind::Const(Value::Vector2([0.0; 2])), Type::Vector2));
+        dag.add(node(NodeKind::Sample { texture: tex, uv, default: Value::Float(0.0) }, Type::Float));
+        let r = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info());
+        assert!(r.uniforms.is_empty());
+        assert_eq!(r.uniform_binding, None);
+        assert!(r.context.globals.is_empty());
+        assert_eq!(r.textures.len(), 1);
+        assert_eq!(r.textures[0].file, "a.png");
+        assert!(r.approximations.is_empty());
+    }
+
+    #[test]
     fn without_uniforms_textures_start_at_first_binding() {
         let r = reflect(&sample_dag(false), &BindingOptions { group: 0, first_binding: 4 }, &info());
         assert_eq!(r.uniform_binding, None);
@@ -181,11 +209,17 @@ mod tests {
             NodeKind::Op { op: Op::Transform { kind: TransformKind::Point, from: Space::World, to: Space::Object }, args: vec![p] },
             Type::Vector3,
         ));
+        // Every node feeds a surface field so all of them are live.
+        for n in 0..dag.nodes.len() {
+            let id = NodeId(n as u32);
+            let ty = dag.node(id).ty;
+            dag.surface.fields.push(SurfaceField { name: format!("f{n}"), ty, node: id });
+        }
         let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).context;
         assert_eq!(c.varyings, vec!["position_world".to_string()]);
         assert_eq!(c.derived, vec!["view_direction_world".to_string()]);
         assert_eq!(c.globals, vec!["time".to_string()]);
-        assert_eq!(c.geomprops, vec![GeomPropReflection { name: "geomprop_tint".into(), ty: Type::Color3, function: "mx_geomprop_tint".into() }]);
+        assert_eq!(c.geomprops, vec![GeomPropReflection { name: "tint".into(), ty: Type::Color3, function: "mx_geomprop_tint".into() }]);
         assert_eq!(c.transforms, vec!["transform_point_world_to_object".to_string()]);
     }
 }

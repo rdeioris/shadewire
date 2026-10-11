@@ -12,6 +12,7 @@ pub struct ParamReflection {
     /// "constant", "uniform" or "varying".
     pub kind: &'static str,
     pub value: Option<Value>,
+    /// Some only when the field node itself is a Uniform.
     pub uniform: Option<String>,
 }
 

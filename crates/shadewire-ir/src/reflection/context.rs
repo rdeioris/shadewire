@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{ContextClass, Dag, NodeKind, Op, TransformKind, Type};
+use crate::{ContextClass, ContextRead, Dag, NodeKind, Op, TransformKind, Type};
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct GeomPropReflection {
@@ -33,22 +33,26 @@ fn sorted_unique(mut names: Vec<String>) -> Vec<String> {
     names
 }
 
-pub fn context(dag: &Dag) -> ContextReflection {
+pub fn context(dag: &Dag, live: &[bool]) -> ContextReflection {
     let mut varyings = Vec::new();
     let mut derived = Vec::new();
     let mut globals = Vec::new();
     let mut geomprops: Vec<GeomPropReflection> = Vec::new();
     let mut transforms = Vec::new();
-    for node in &dag.nodes {
+    for (i, node) in dag.nodes.iter().enumerate() {
+        if !live[i] {
+            continue;
+        }
         match &node.kind {
             NodeKind::Context(read) => match read.class() {
                 ContextClass::Varying => varyings.push(read.reflection_name()),
                 ContextClass::Derived => derived.push(read.reflection_name()),
                 ContextClass::Global => globals.push(read.reflection_name()),
                 ContextClass::GeomProp => {
-                    let name = read.reflection_name();
-                    if !geomprops.iter().any(|g| g.name == name) {
-                        geomprops.push(GeomPropReflection { name, ty: read.ty(), function: read.function_name() });
+                    if let ContextRead::GeomProp { name, ty } = read {
+                        if !geomprops.iter().any(|g| g.name == *name) {
+                            geomprops.push(GeomPropReflection { name: name.clone(), ty: *ty, function: read.function_name() });
+                        }
                     }
                 }
             },
