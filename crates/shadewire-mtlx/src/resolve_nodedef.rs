@@ -18,7 +18,7 @@ pub fn resolve_nodedef<'a>(
         at: at.clone(),
         category: node.category.clone(),
         output: node.port_type.mtlx_name(),
-        inputs: if given.is_empty() { "none".to_string() } else { given.join(", ") },
+        inputs: if given.is_empty() { "none".into() } else { given.join(", ").into() },
     };
 
     if let Some(name) = &node.nodedef {
@@ -156,7 +156,10 @@ mod tests {
         let n = node(r#"<add name="a" type="float"/>"#);
         let vector2 = PortType::Value(Type::Vector2);
         let err = resolve(&n, &[("in1", vector2), ("in2", float())]).unwrap_err();
-        assert_eq!(err.to_string(), "<string>:1 (test): no nodedef matches add -> float (inputs: in1 vector2, in2 float)");
+        assert_eq!(
+            err.to_string(),
+            "<string>:1 (test): no nodedef matches add -> float (inputs: in1 vector2, in2 float)"
+        );
         let n = node(r#"<add name="a" type="boolean"/>"#);
         let err = resolve(&n, &[]).unwrap_err();
         assert_eq!(err.to_string(), "<string>:1 (test): no nodedef matches add -> boolean (inputs: none)");
