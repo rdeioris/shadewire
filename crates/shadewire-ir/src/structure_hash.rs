@@ -52,6 +52,9 @@ impl Fnv {
 }
 
 /// A hash of the DAG's shape. Uniform values are left out, so changing one does not change it.
+/// The generated WGSL also depends on the bind group, the first binding and `flip_v`, which
+/// are not part of the DAG: a shader cache must key on `(structure_hash, group,
+/// first_binding, flip_v)`.
 pub fn structure_hash(dag: &Dag) -> String {
     let mut h = Fnv::new();
     h.text(&dag.surface.model);
