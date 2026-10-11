@@ -36,10 +36,17 @@ impl Fnv {
         self.bytes(&x.to_bits().to_le_bytes());
     }
 
+    /// Booleans and integers are hashed natively, so large integers stay distinct.
     fn value(&mut self, value: &Value) {
         self.text(value.ty().mtlx_name());
-        for x in value.floats() {
-            self.float(x);
+        match value {
+            Value::Boolean(b) => self.byte(*b as u8),
+            Value::Integer(i) => self.bytes(&i.to_le_bytes()),
+            _ => {
+                for x in value.floats() {
+                    self.float(x);
+                }
+            }
         }
     }
 }
@@ -105,6 +112,17 @@ mod tests {
     #[test]
     fn uniform_values_do_not_change_the_hash() {
         assert_eq!(structure_hash(&dag_with_uniform(0.2)), structure_hash(&dag_with_uniform(0.9)));
+    }
+
+    #[test]
+    fn large_integer_constants_hash_differently() {
+        let int_dag = |n: i32| {
+            let mut dag = Dag::new("m");
+            let c = dag.add(Node { kind: NodeKind::Const(Value::Integer(n)), ty: Type::Integer, origin: String::new() });
+            dag.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Integer, node: c });
+            dag
+        };
+        assert_ne!(structure_hash(&int_dag(16777216)), structure_hash(&int_dag(16777217)));
     }
 
     #[test]
