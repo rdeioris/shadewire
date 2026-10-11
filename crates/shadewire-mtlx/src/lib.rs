@@ -6,9 +6,11 @@ pub mod include;
 pub mod index;
 pub mod library;
 pub mod parse;
+pub mod resolve_nodedef;
 pub mod version;
 
 pub use document::Document;
 pub use element::Element;
 pub use index::Index;
 pub use library::Library;
+pub use resolve_nodedef::resolve_nodedef;
