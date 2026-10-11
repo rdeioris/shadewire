@@ -22,8 +22,8 @@ pub fn input_names(op: &Op) -> &'static [&'static str] {
         Op::Fractal3d => &["amplitude", "octaves", "lacunarity", "diminish", "position"],
         Op::CellNoise2d => &["texcoord"],
         Op::CellNoise3d => &["position"],
-        Op::WorleyNoise2d => &["texcoord", "jitter"],
-        Op::WorleyNoise3d => &["position", "jitter"],
+        Op::WorleyNoise2d => &["texcoord", "jitter", "style"],
+        Op::WorleyNoise3d => &["position", "jitter", "style"],
         Op::NormalMap => &["in", "scale", "normal", "tangent", "bitangent"],
     }
 }
@@ -115,5 +115,11 @@ mod tests {
     #[test]
     fn mix_inputs_are_fg_bg_mix() {
         assert_eq!(input_names(&Op::Mix), &["fg", "bg", "mix"]);
+    }
+
+    #[test]
+    fn worley_inputs_include_style() {
+        assert_eq!(input_names(&Op::WorleyNoise2d), &["texcoord", "jitter", "style"]);
+        assert_eq!(input_names(&Op::WorleyNoise3d), &["position", "jitter", "style"]);
     }
 }
