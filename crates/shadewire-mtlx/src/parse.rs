@@ -29,6 +29,10 @@ impl<'a> Lines<'a> {
     }
 }
 
+/// Deeper than any MaterialX document nests; past it the element tree is refused
+/// so building and dropping it cannot overflow the stack.
+const MAX_NESTING: usize = 64;
+
 fn fail(file: Option<&str>, line: u32, message: String) -> Error {
     Error::Parse { at: Location { file: file.map(str::to_string), line, path: String::new() }, message }
 }
@@ -63,6 +67,9 @@ pub fn parse_str(text: &str, file: Option<&str>) -> Result<Element, Error> {
         // trim_text skips leading whitespace, so find the real start of the tag
         let tag_pos = text[start_pos.min(text.len())..].find('<').map_or(start_pos, |o| start_pos + o);
         let line = lines.at(tag_pos);
+        if matches!(event, Event::Start(_) | Event::Empty(_)) && stack.len() >= MAX_NESTING {
+            return Err(fail(file, line, format!("elements nested deeper than {MAX_NESTING}")));
+        }
         match event {
             Event::Start(s) => stack.push(open(&s, line, file)?),
             Event::Empty(s) => {
@@ -109,6 +116,27 @@ mod tests {
     fn reports_bad_xml_with_a_line() {
         let err = parse_str("<materialx>\n<a>\n</materialx>", Some("bad.mtlx")).unwrap_err();
         assert!(err.to_string().contains("bad.mtlx"));
+    }
+
+    fn nested(depth: usize) -> String {
+        let mut text = String::from("<materialx>");
+        text.push_str(&"<a>".repeat(depth - 1));
+        text.push_str(&"</a>".repeat(depth - 1));
+        text.push_str("</materialx>");
+        text
+    }
+
+    #[test]
+    fn nesting_up_to_the_limit_is_read() {
+        assert!(parse_str(&nested(64), None).is_ok());
+    }
+
+    #[test]
+    fn deep_nesting_is_a_parse_error() {
+        for depth in [200_000, 65] {
+            let err = parse_str(&nested(depth), None).unwrap_err();
+            assert!(err.to_string().contains("elements nested deeper than 64"), "{err}");
+        }
     }
 
     #[test]
