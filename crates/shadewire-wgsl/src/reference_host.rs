@@ -69,11 +69,8 @@ fn fragment_entry(reflection: &Reflection, model_struct: &str) -> String {
     };
     out.push_str(&format!("@fragment\nfn sw_reference_main({parameter}) -> @location(0) vec4<f32> {{\n"));
     for v in &inputs {
-        out.push_str(&format!(
-            "    {} = input.{};\n",
-            format!("sw_in_{}", member_name(&v.function)),
-            member_name(&v.function)
-        ));
+        let member = member_name(&v.function);
+        out.push_str(&format!("    sw_in_{member} = input.{member};\n"));
     }
     for name in &reflection.context.derived {
         if name.starts_with("view_direction_") {

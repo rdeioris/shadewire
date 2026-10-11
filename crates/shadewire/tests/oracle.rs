@@ -199,7 +199,7 @@ fn compare(baked: &Baked, convention: VConvention) -> Vec<FieldError> {
                 for (c, ours_c) in ours.iter().enumerate() {
                     let e = (ours_c - theirs[c]).abs();
                     // A NaN error sticks: no later texel may hide it.
-                    if !error.max.is_nan() && !(e <= error.max) {
+                    if !error.max.is_nan() && (e.is_nan() || e > error.max) {
                         *error = FieldError { field: name.clone(), max: e, at: (x, y), ours: ours.clone(), theirs };
                     }
                 }
@@ -289,7 +289,8 @@ fn interpreter_matches_materialx_glsl() {
         let tolerance = if IMAGE_MATERIALS.contains(&baked.material.as_str()) { IMAGE_TOLERANCE } else { TOLERANCE };
         let errors = compare(&baked, convention);
         assert_eq!(field_names(&baked), expected_fields(&baked.material), "{} baked fields", baked.material);
-        failed |= !(worst(&errors) <= tolerance);
+        let w = worst(&errors);
+        failed |= w.is_nan() || w > tolerance;
         report.push(describe(&baked.material, &errors));
     }
     println!("uv convention {convention:?}\n{}", report.join("\n"));

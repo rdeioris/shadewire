@@ -39,7 +39,7 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
             for (_, global) in module.global_variables.iter() {
                 if let Some(binding) = &global.binding {
                     binding_map.insert(
-                        binding.clone(),
+                        *binding,
                         hlsl::BindTarget {
                             space: binding.group as u8,
                             register: binding.binding,
