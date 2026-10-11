@@ -6,6 +6,12 @@
 //! in the V-down space MaterialX's GLSL computes them in (`mx_transform_uv` with
 //! `fileTextureVerticalFlip`): each op flips its coordinate in and its result out, so the
 //! tile pattern is the MaterialX viewer's, whatever the host's `flip_v`.
+//!
+//! Precision limit: the shadertoy hash is float arithmetic on values near 50 (its input,
+//! `fract(id * 0.1031)`, is a fresh value for almost every tile id, negative ids too). A fused
+//! multiply-add, which drivers are free to use, moves a tile's random values by about 1e-3:
+//! about 0.4 degrees of rotation and 1e-3 uv of offset. The interpreter and the GPU, and
+//! MaterialX's own GLSL across drivers, agree only that far. Blend weights use no hash.
 
 use crate::{Op, Type, Value};
 

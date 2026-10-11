@@ -79,6 +79,17 @@ mod tests {
         assert!(out.wgsl.contains("fn sw_eval_surface() -> StandardSurface"), "{}", out.wgsl);
     }
 
+    /// Hextile gradients use derivatives: hosts learn that the function is fragment-only.
+    #[test]
+    fn derivatives_are_reported_fragment_only() {
+        let (text, path) = example("StandardSurface/standard_surface_onyx_hextiled.mtlx");
+        let out = compile_mtlx(&text, Some(&path), None, &CompileOptions::default()).unwrap();
+        assert!(out.reflection.approximations.contains(&"fragment stage only (derivatives)".to_string()));
+        let (text, path) = example("StandardSurface/standard_surface_default.mtlx");
+        let out = compile_mtlx(&text, Some(&path), None, &CompileOptions::default()).unwrap();
+        assert!(out.reflection.approximations.is_empty(), "{:?}", out.reflection.approximations);
+    }
+
     #[test]
     fn constants_option_removes_the_uniform_block() {
         let (text, path) = example("StandardSurface/standard_surface_default.mtlx");

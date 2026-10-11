@@ -30,11 +30,11 @@ fn targets() -> [Target; 4] {
 }
 
 /// The `surfacematerial` names of a document, includes resolved.
-fn materials(text: &str, path: &Path) -> Vec<String> {
+fn materials(text: &str, path: &Path) -> Result<Vec<String>, Error> {
     let name = path.display().to_string();
-    let root = parse_str(text, Some(&name)).unwrap();
-    let root = resolve_includes(root, path.parent(), Some(&name)).unwrap();
-    root.children.iter().filter(|c| c.category == "surfacematerial").map(|c| c.name().to_string()).collect()
+    let root = parse_str(text, Some(&name))?;
+    let root = resolve_includes(root, path.parent(), Some(&name))?;
+    Ok(root.children.iter().filter(|c| c.category == "surfacematerial").map(|c| c.name().to_string()).collect())
 }
 
 /// The variant name of an error, as the allow-list spells it.
@@ -74,17 +74,27 @@ fn every_example_compiles_or_is_allow_listed() {
     let mut failures = Vec::new();
     let (mut total, mut compiled) = (0, 0);
     for folder in FOLDERS {
-        let mut files: Vec<PathBuf> = std::fs::read_dir(examples().join(folder))
-            .unwrap()
-            .map(|e| e.unwrap().path())
+        let dir = examples().join(folder);
+        let mut files: Vec<PathBuf> = std::fs::read_dir(&dir)
+            .unwrap_or_else(|e| panic!("{}: {e}", dir.display()))
+            .map(|e| e.unwrap_or_else(|e| panic!("{}: {e}", dir.display())).path())
             .filter(|p| p.extension().is_some_and(|x| x == "mtlx"))
             .collect();
         files.sort();
+        let mut in_folder = 0;
         for path in files {
-            let text = std::fs::read_to_string(&path).unwrap();
-            let file = format!("{folder}/{}", path.file_name().unwrap().to_string_lossy());
-            for material in materials(&text, &path) {
+            let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+            let file = format!("{folder}/{}", path.file_name().unwrap_or_default().to_string_lossy());
+            let names = match materials(&text, &path) {
+                Ok(names) => names,
+                Err(error) => {
+                    failures.push(format!("{file}: cannot list its materials: {error}"));
+                    continue;
+                }
+            };
+            for material in names {
                 total += 1;
+                in_folder += 1;
                 match check(&text, &path, &material) {
                     Ok(()) => {
                         compiled += 1;
@@ -104,6 +114,9 @@ fn every_example_compiles_or_is_allow_listed() {
                     }
                 }
             }
+        }
+        if in_folder == 0 {
+            failures.push(format!("{folder}: no material found"));
         }
     }
     for key in allowed.difference(&used) {

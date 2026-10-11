@@ -2,6 +2,8 @@
 // Mirrors crates/shadewire-ir/src/ops/hextile.rs: tiles are laid out in the V-down space
 // MaterialX's GLSL uses, so each function flips its coordinate in and its result out.
 // Morten S. Mikkelsen, Practical Real-Time Hex-Tiling, JCGT 11(2), 2022.
+// Precision limit: the float hash moves by about 1e-3 when a driver fuses its multiply-adds
+// (about 0.4 degrees of tile rotation, 1e-3 uv of offset); MaterialX's GLSL varies the same way.
 
 const MX_HEXTILE_SKEW_X: f32 = -0.57735027;
 const MX_HEXTILE_SKEW_Y: f32 = 1.15470054;

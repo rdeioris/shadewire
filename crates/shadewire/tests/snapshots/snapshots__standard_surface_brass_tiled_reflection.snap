@@ -7,7 +7,7 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
   "source": "mtlx",
   "mtlx_version": "1.39",
   "model": "standard_surface",
-  "structure_hash": "e7d785c34ddb8ad6",
+  "structure_hash": "371ac154dbcf83a0",
   "params": {
     "base": {
       "type": "float",

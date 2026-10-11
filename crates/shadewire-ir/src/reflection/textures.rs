@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{AddressMode, Dag, FilterMode, NodeKind};
+use crate::{AddressMode, Dag, FilterMode, Node, NodeKind, Op};
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct TextureReflection {
@@ -45,11 +45,19 @@ pub fn textures(dag: &Dag, live: &[bool], first: u32) -> Vec<TextureReflection> 
     out
 }
 
-/// Approximations the used textures force on the generated code.
+/// The note a DAG with screen-space derivatives (the gradients of hextile samples) carries:
+/// `sw_eval_surface` then runs only in a fragment shader, not in compute.
+pub const FRAGMENT_ONLY: &str = "fragment stage only (derivatives)";
+
+/// Approximations and limits the used textures and their gradients force on the generated code.
 pub fn approximations(dag: &Dag, live: &[bool]) -> Vec<String> {
     let mut out = Vec::new();
     if used(dag, live).iter().any(|i| dag.textures[*i].filter == FilterMode::Cubic) {
         out.push("cubic filter as linear".to_string());
+    }
+    let derivative = |n: &Node| matches!(n.kind, NodeKind::Op { op: Op::Dpdx | Op::Dpdy, .. });
+    if dag.nodes.iter().zip(live).any(|(n, l)| *l && derivative(n)) {
+        out.push(FRAGMENT_ONLY.to_string());
     }
     out
 }
@@ -58,7 +66,7 @@ pub fn approximations(dag: &Dag, live: &[bool]) -> Vec<String> {
 mod tests {
     use super::*;
     use crate::reflection::live::live_nodes;
-    use crate::{Node, SurfaceField, TextureDesc, Type, Value};
+    use crate::{SurfaceField, TextureDesc, Type, Value};
 
     fn desc(file: &str, filter: FilterMode) -> TextureDesc {
         TextureDesc {
@@ -92,6 +100,30 @@ mod tests {
         let mut linear = Dag::new("m");
         sampled(&mut linear, "a.png", FilterMode::Linear);
         assert!(approximations(&linear, &live_nodes(&linear)).is_empty());
+    }
+
+    #[test]
+    fn live_derivatives_are_fragment_only() {
+        let mut dag = Dag::new("m");
+        let uv = dag.add(Node {
+            kind: NodeKind::Context(crate::ContextRead::TexCoord { index: 0, ty: Type::Vector2 }),
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
+        let dead = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Dpdy, args: vec![uv] },
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
+        dag.surface.fields.push(SurfaceField { name: "uv".into(), ty: Type::Vector2, node: uv });
+        assert!(approximations(&dag, &live_nodes(&dag)).is_empty(), "{dead:?} is dead");
+        let dx = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Dpdx, args: vec![uv] },
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
+        dag.surface.fields.push(SurfaceField { name: "dx".into(), ty: Type::Vector2, node: dx });
+        assert_eq!(approximations(&dag, &live_nodes(&dag)), vec![FRAGMENT_ONLY.to_string()]);
     }
 
     #[test]

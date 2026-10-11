@@ -78,8 +78,13 @@ pub fn structure_hash(dag: &Dag) -> String {
                 h.text(&format!("{:?}{:?}{:?}", desc.address_u, desc.address_v, desc.filter));
                 h.number(uv.0 as u64);
                 h.value(default);
-                for id in grad.iter().flatten() {
-                    h.number(id.0 as u64);
+                match grad {
+                    None => h.byte(0),
+                    Some([dx, dy]) => {
+                        h.byte(1);
+                        h.number(dx.0 as u64);
+                        h.number(dy.0 as u64);
+                    }
                 }
             }
             NodeKind::Op { op, args } => {
@@ -142,5 +147,43 @@ mod tests {
         a.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Float, node: ca });
         b.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Float, node: cb });
         assert_ne!(structure_hash(&a), structure_hash(&b));
+    }
+
+    fn sample_dag(grad: Option<[usize; 2]>) -> Dag {
+        let mut dag = Dag::new("m");
+        let texture = dag.add_texture(TextureDesc {
+            file: "a.png".into(),
+            colorspace: None,
+            address_u: AddressMode::Periodic,
+            address_v: AddressMode::Periodic,
+            filter: FilterMode::Linear,
+        });
+        let read = ContextRead::TexCoord { index: 0, ty: Type::Vector2 };
+        let uv = dag.add(Node { kind: NodeKind::Context(read), ty: Type::Vector2, origin: String::new() });
+        let du = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Dpdx, args: vec![uv] },
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
+        let ids = [uv, du];
+        let grad = grad.map(|[x, y]| [ids[x], ids[y]]);
+        let kind = NodeKind::Sample { texture, uv, default: Value::Float(0.0), grad };
+        let s = dag.add(Node { kind, ty: Type::Float, origin: String::new() });
+        dag.surface.fields.push(SurfaceField { name: "f".into(), ty: Type::Float, node: s });
+        dag
+    }
+
+    /// Whether a sample has gradients, and which, is structure.
+    #[test]
+    fn sample_gradients_change_the_hash() {
+        let hashes: Vec<String> = [None, Some([0, 0]), Some([1, 1]), Some([0, 1])]
+            .into_iter()
+            .map(|g| structure_hash(&sample_dag(g)))
+            .collect();
+        for i in 0..hashes.len() {
+            for j in i + 1..hashes.len() {
+                assert_ne!(hashes[i], hashes[j], "{i} vs {j}");
+            }
+        }
     }
 }
