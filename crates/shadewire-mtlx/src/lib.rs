@@ -3,13 +3,12 @@
 pub mod document;
 pub mod element;
 pub mod include;
+pub mod index;
+pub mod library;
 pub mod parse;
 pub mod version;
 
-pub use element::Element;
 pub use document::Document;
-pub mod index;
-pub mod library;
-
+pub use element::Element;
 pub use index::Index;
 pub use library::Library;

@@ -4,9 +4,29 @@ use shadewire_ir::{Error, Location};
 
 use crate::element::Element;
 
-fn line_at(text: &str, pos: usize) -> u32 {
-    let end = pos.min(text.len());
-    1 + text.as_bytes()[..end].iter().filter(|&&b| b == b'\n').count() as u32
+/// Line numbers for increasing byte positions; counts each byte once.
+struct Lines<'a> {
+    text: &'a str,
+    pos: usize,
+    line: u32,
+}
+
+impl<'a> Lines<'a> {
+    fn new(text: &'a str) -> Lines<'a> {
+        Lines { text, pos: 0, line: 1 }
+    }
+
+    fn at(&mut self, pos: usize) -> u32 {
+        let end = pos.min(self.text.len());
+        if end < self.pos {
+            self.pos = 0;
+            self.line = 1;
+        }
+        let new = self.text.as_bytes()[self.pos..end].iter().filter(|&&b| b == 0x0A).count();
+        self.line += new as u32;
+        self.pos = end;
+        self.line
+    }
 }
 
 fn fail(file: Option<&str>, line: u32, message: String) -> Error {
@@ -37,16 +57,18 @@ pub fn parse_str(text: &str, file: Option<&str>) -> Result<Element, Error> {
     reader.config_mut().trim_text(true);
     let mut stack: Vec<Element> = Vec::new();
     let mut root: Option<Element> = None;
+    let mut lines = Lines::new(text);
     loop {
         let start_pos = reader.buffer_position() as usize;
-        let event = reader
-            .read_event()
-            .map_err(|e| fail(file, line_at(text, reader.buffer_position() as usize), e.to_string()))?;
+        let event = match reader.read_event() {
+            Ok(event) => event,
+            Err(e) => return Err(fail(file, lines.at(reader.buffer_position() as usize), e.to_string())),
+        };
         // trim_text skips leading whitespace, so find the real start of the tag
         let tag_pos = text[start_pos.min(text.len())..]
             .find('<')
             .map_or(start_pos, |o| start_pos + o);
-        let line = line_at(text, tag_pos);
+        let line = lines.at(tag_pos);
         match event {
             Event::Start(s) => stack.push(open(&s, line, file)?),
             Event::Empty(s) => {

@@ -16,7 +16,8 @@ pub struct Library {
 
 /// Generator directories (genglsl, genosl, ...) hold per-language sources, not definitions.
 fn in_gen_dir(path: &std::path::Path) -> bool {
-    path.components().any(|c| c.as_os_str().to_str().is_some_and(|s| s.starts_with("gen")))
+    let Some(dirs) = path.parent() else { return false };
+    dirs.components().any(|c| c.as_os_str().to_str().is_some_and(|s| s.starts_with("gen")))
 }
 
 fn collect<'a>(dir: &'a Dir<'static>, out: &mut Vec<&'a include_dir::File<'static>>) {

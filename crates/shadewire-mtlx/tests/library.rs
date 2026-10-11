@@ -11,7 +11,7 @@ fn library_has_the_phase_one_models() {
     }
 }
 
-/// Every leaf nodedef we map to an op must have exactly the op's value inputs.
+/// Every leaf nodedef we map to an op must have a subset of the op's inputs.
 #[test]
 fn op_inputs_match_library() {
     let empty = Document::empty();
@@ -44,4 +44,20 @@ fn index_lookups() {
     assert!(index.unit_scale("distance", "meter").is_some());
     assert!(index.geompropdef("Nworld").is_some());
     assert!(index.nodedef("ND_nope").is_none());
+}
+
+#[test]
+fn user_definitions_shadow_the_library() {
+    use shadewire_mtlx::{parse::parse_str, document::build::build};
+    let text = r#"<materialx version="1.39">
+  <nodedef name="ND_add_float" node="add"><input name="only" type="float" value="0"/><output name="out" type="float"/></nodedef>
+  <nodegraph name="NG_add_float" nodedef="ND_add_float"><output name="out" type="float"/></nodegraph>
+</materialx>"#;
+    let user = build(&parse_str(text, None).unwrap(), None).unwrap();
+    let index = Index::new(&user, library::standard());
+    assert_eq!(index.nodedef("ND_add_float").unwrap().inputs[0].name, "only");
+    assert_eq!(index.nodedefs_for_category("add")[0].inputs[0].name, "only");
+    assert!(index.nodedefs_for_category("add").len() > 1);
+    assert!(index.graph_for_nodedef("ND_add_float").is_some());
+    assert_eq!(index.nodegraph("NG_add_float").unwrap().line, user.nodegraphs[0].line);
 }
