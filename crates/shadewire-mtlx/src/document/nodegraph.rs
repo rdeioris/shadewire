@@ -2,7 +2,7 @@ use super::node::{build_node, Node};
 use super::nodedef::{build_ports, PortDef};
 use super::port_type::PortType;
 
-use crate::document::inherit::Inherit;
+use crate::document::inherit::{own, Inherit};
 use crate::element::Element;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -24,10 +24,6 @@ pub struct NodeGraph {
     pub nodes: Vec<Node>,
     pub outputs: Vec<Output>,
     pub line: u32,
-}
-
-fn own(value: Option<&str>) -> Option<String> {
-    value.map(str::to_string)
 }
 
 pub fn build_output(element: &Element) -> Output {

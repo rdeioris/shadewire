@@ -1,6 +1,6 @@
 use super::port_type::PortType;
 
-use crate::document::inherit::Inherit;
+use crate::document::inherit::{own, Inherit};
 use crate::element::Element;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -29,22 +29,11 @@ pub struct Node {
     pub line: u32,
 }
 
-fn own(value: Option<&str>) -> Option<String> {
-    value.map(str::to_string)
-}
-
 /// `inherit` is the context of the node (document and graph already folded in).
 pub fn build_input(element: &Element, inherit: &Inherit) -> Input {
     let port_type = PortType::parse(element.attr("type").unwrap_or(""));
-    let colorspace = if port_type.has_colorspace() {
-        own(element.attr("colorspace")).or_else(|| inherit.colorspace.clone())
-    } else {
-        None
-    };
-    let mut value = own(element.attr("value"));
-    if port_type == PortType::Filename {
-        value = value.map(|v| format!("{}{v}", inherit.fileprefix));
-    }
+    let (value, colorspace) =
+        inherit.resolve(&port_type, element.attr("colorspace"), element.attr("value"));
     Input {
         name: element.name().to_string(),
         port_type,
