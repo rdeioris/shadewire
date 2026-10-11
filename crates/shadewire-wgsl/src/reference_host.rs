@@ -4,7 +4,7 @@
 //! entry sets it); transforms are identities. Geomprops start at their authored default
 //! when reflection has one, else zero.
 
-use shadewire_ir::{Reflection, Type, Value};
+use shadewire_ir::{ContextEntry, Reflection, Type, Value};
 
 use crate::emit::names::ident;
 use crate::emit::types::{literal, wgsl_type};
@@ -17,20 +17,19 @@ struct HostRead {
     init: Option<Value>,
 }
 
-fn named_read(reflection: &Reflection, name: &str) -> HostRead {
-    let ty = reflection.context.types.get(name).copied().unwrap_or(Type::Float);
-    HostRead { function: format!("mx_{name}"), ty, init: None }
+fn named_read(entry: &ContextEntry) -> HostRead {
+    HostRead { function: format!("mx_{}", entry.name), ty: entry.ty, init: None }
 }
 
 fn varyings(reflection: &Reflection) -> Vec<HostRead> {
-    reflection.context.varyings.iter().map(|n| named_read(reflection, n)).collect()
+    reflection.context.varyings.iter().map(named_read).collect()
 }
 
 fn all_reads(reflection: &Reflection) -> Vec<HostRead> {
     let context = &reflection.context;
     let mut out: Vec<HostRead> = Vec::new();
-    for name in context.varyings.iter().chain(&context.derived).chain(&context.globals) {
-        out.push(named_read(reflection, name));
+    for entry in context.varyings.iter().chain(&context.derived).chain(&context.globals) {
+        out.push(named_read(entry));
     }
     for g in &context.geomprops {
         out.push(HostRead {
@@ -72,9 +71,9 @@ fn fragment_entry(reflection: &Reflection, model_struct: &str) -> String {
         let member = member_name(&v.function);
         out.push_str(&format!("    sw_in_{member} = input.{member};\n"));
     }
-    for name in &reflection.context.derived {
-        if name.starts_with("view_direction_") {
-            out.push_str(&format!("    sw_in_{name} = vec3<f32>(0.0, 0.0, -1.0);\n"));
+    for entry in &reflection.context.derived {
+        if entry.name.starts_with("view_direction_") {
+            out.push_str(&format!("    sw_in_{} = vec3<f32>(0.0, 0.0, -1.0);\n", entry.name));
         }
     }
     out.push_str(&format!("    let s: {model_struct} = sw_eval_surface();\n"));

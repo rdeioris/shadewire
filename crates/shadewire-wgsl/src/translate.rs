@@ -124,7 +124,7 @@ mod tests {
         dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: mul });
         dag.surface.fields.push(SurfaceField { name: "base_weight".into(), ty: Type::Float, node: noise });
         let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };
-        let r = reflect(&dag, &BindingOptions { group: 2, first_binding: 0 }, &info);
+        let r = reflect(&dag, &BindingOptions { group: 2, first_binding: 0 }, &info).unwrap();
         let generated = emit(&dag, &r, &EmitOptions::default());
         let prelude = reference_host::prelude(&r, "OpenPbrSurface");
         link(&generated, &prelude).unwrap_or_else(|e| panic!("{generated}\n{e}"))

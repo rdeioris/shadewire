@@ -18,7 +18,7 @@ pub fn add(dag: &mut Dag, kind: NodeKind, ty: Type) -> NodeId {
 /// Reflection at group 0, first binding 0.
 pub fn reflection(dag: &Dag) -> Reflection {
     let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };
-    reflect(dag, &BindingOptions { group: 0, first_binding: 0 }, &info)
+    reflect(dag, &BindingOptions { group: 0, first_binding: 0 }, &info).unwrap()
 }
 
 /// Parses and validates a whole module (all flags, all capabilities).

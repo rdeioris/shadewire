@@ -39,7 +39,7 @@ mod tests {
         let s = dag.add(Node { kind, ty: Type::Float, origin: String::new() });
         dag.surface.fields.push(SurfaceField { name: "f".into(), ty: Type::Float, node: s });
         let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };
-        let r = reflect(&dag, &BindingOptions { group: 1, first_binding: 4 }, &info);
+        let r = reflect(&dag, &BindingOptions { group: 1, first_binding: 4 }, &info).unwrap();
         assert_eq!(
             texture_bindings(&r),
             "@group(1) @binding(4) var sw_t1: texture_2d<f32>;\n@group(1) @binding(5) var sw_s1: sampler;\n"

@@ -8,9 +8,9 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{Dag, NodeKind, Type, Value, structure_hash};
+use crate::{Dag, Error, NodeKind, Type, Value, structure_hash};
 
-pub use context::{ContextReflection, GeomPropReflection};
+pub use context::{ContextEntry, ContextReflection, GeomPropReflection};
 pub use params::ParamReflection;
 pub use textures::TextureReflection;
 
@@ -54,7 +54,9 @@ pub struct Reflection {
     pub approximations: Vec<String>,
 }
 
-pub fn reflect(dag: &Dag, bindings: &BindingOptions, source: &SourceInfo) -> Reflection {
+/// What a host must bind and provide for `dag`. Fails when two context reads
+/// share a host function but not a type.
+pub fn reflect(dag: &Dag, bindings: &BindingOptions, source: &SourceInfo) -> Result<Reflection, Error> {
     let live = live::live_nodes(dag);
     let mut members: Vec<(String, Type)> = Vec::new();
     let mut defaults: Vec<Value> = Vec::new();
@@ -90,7 +92,7 @@ pub fn reflect(dag: &Dag, bindings: &BindingOptions, source: &SourceInfo) -> Ref
         }
     }
 
-    Reflection {
+    Ok(Reflection {
         shadewire: env!("CARGO_PKG_VERSION").to_string(),
         source: source.source.clone(),
         mtlx_version: source.mtlx_version.clone(),
@@ -102,10 +104,10 @@ pub fn reflect(dag: &Dag, bindings: &BindingOptions, source: &SourceInfo) -> Ref
         uniform_binding: has_uniforms.then_some(bindings.first_binding),
         group: bindings.group,
         textures: textures::textures(dag, &live, first_texture),
-        context: context::context(dag, &live),
+        context: context::context(dag, &live)?,
         displacement: None,
         approximations,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -147,13 +149,13 @@ mod tests {
     #[test]
     fn reflects_kinds_and_bindings() {
         let dag = sample_dag(true);
-        let r = reflect(&dag, &BindingOptions { group: 1, first_binding: 4 }, &info());
+        let r = reflect(&dag, &BindingOptions { group: 1, first_binding: 4 }, &info()).unwrap();
         assert_eq!(r.params["base_weight"].kind, "constant");
         assert_eq!(r.params["base_weight"].value, Some(Value::Float(0.5)));
         assert_eq!(r.params["coat_weight"].kind, "uniform");
         assert_eq!(r.params["coat_weight"].uniform, Some("coat_weight".to_string()));
         assert_eq!(r.params["specular_weight"].kind, "varying");
-        assert_eq!(r.context.varyings, vec!["texcoord_0".to_string()]);
+        assert_eq!(r.context.varyings, vec![ContextEntry { name: "texcoord_0".into(), ty: Type::Vector2 }]);
         assert_eq!(r.group, 1);
         assert_eq!(r.uniform_binding, Some(4));
         assert_eq!(r.uniform_block_size, 16);
@@ -181,7 +183,7 @@ mod tests {
         dag.add(node(NodeKind::Context(ContextRead::Time), Type::Float));
         let uv = dag.add(node(NodeKind::Const(Value::Vector2([0.0; 2])), Type::Vector2));
         dag.add(node(NodeKind::Sample { texture: tex, uv, default: Value::Float(0.0), grad: None }, Type::Float));
-        let r = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info());
+        let r = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).unwrap();
         assert!(r.uniforms.is_empty());
         assert_eq!(r.uniform_binding, None);
         assert!(r.context.globals.is_empty());
@@ -192,7 +194,7 @@ mod tests {
 
     #[test]
     fn without_uniforms_textures_start_at_first_binding() {
-        let r = reflect(&sample_dag(false), &BindingOptions { group: 0, first_binding: 4 }, &info());
+        let r = reflect(&sample_dag(false), &BindingOptions { group: 0, first_binding: 4 }, &info()).unwrap();
         assert_eq!(r.uniform_binding, None);
         assert_eq!(r.uniform_block_size, 0);
         assert_eq!(r.textures[0].binding, 4);
@@ -209,7 +211,7 @@ mod tests {
             ));
             dag.surface.fields.push(SurfaceField { name: name.into(), ty: Type::Float, node: id });
         }
-        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).context;
+        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).unwrap().context;
         let f: Vec<&str> = c.geomprops.iter().map(|g| g.function.as_str()).collect();
         assert_eq!(f, vec!["mx_geomprop_my_prop", "mx_geomprop_my_prop_2", "mx_geomprop_plain"]);
     }
@@ -226,7 +228,7 @@ mod tests {
         dag.surface.fields.push(SurfaceField { name: "a".into(), ty: Type::Color3, node: g });
         dag.surface.fields.push(SurfaceField { name: "b".into(), ty: Type::Float, node: h });
         dag.geomprop_defaults.insert("tint".into(), Value::Color3([1.0, 1.0, 1.0]));
-        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).context;
+        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).unwrap().context;
         let bare = c.geomprops.iter().find(|g| g.name == "bare").unwrap();
         let tint = c.geomprops.iter().find(|g| g.name == "tint").unwrap();
         assert_eq!(bare.default, None);
@@ -256,10 +258,10 @@ mod tests {
             let ty = dag.node(id).ty;
             dag.surface.fields.push(SurfaceField { name: format!("f{n}"), ty, node: id });
         }
-        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).context;
-        assert_eq!(c.varyings, vec!["position_world".to_string()]);
-        assert_eq!(c.derived, vec!["view_direction_world".to_string()]);
-        assert_eq!(c.globals, vec!["time".to_string()]);
+        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).unwrap().context;
+        assert_eq!(c.varyings, vec![ContextEntry { name: "position_world".into(), ty: Type::Vector3 }]);
+        assert_eq!(c.derived, vec![ContextEntry { name: "view_direction_world".into(), ty: Type::Vector3 }]);
+        assert_eq!(c.globals, vec![ContextEntry { name: "time".into(), ty: Type::Float }]);
         assert_eq!(
             c.geomprops,
             vec![GeomPropReflection {

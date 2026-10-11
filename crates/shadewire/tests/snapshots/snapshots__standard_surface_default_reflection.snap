@@ -583,8 +583,14 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
   "textures": [],
   "context": {
     "varyings": [
-      "normal_world",
-      "tangent_world"
+      {
+        "name": "normal_world",
+        "type": "vector3"
+      },
+      {
+        "name": "tangent_world",
+        "type": "vector3"
+      }
     ],
     "derived": [],
     "globals": [],

@@ -366,9 +366,18 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
   ],
   "context": {
     "varyings": [
-      "normal_world",
-      "tangent_world",
-      "texcoord_0"
+      {
+        "name": "normal_world",
+        "type": "vector3"
+      },
+      {
+        "name": "tangent_world",
+        "type": "vector3"
+      },
+      {
+        "name": "texcoord_0",
+        "type": "vector2"
+      }
     ],
     "derived": [],
     "globals": [],

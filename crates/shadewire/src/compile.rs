@@ -53,7 +53,7 @@ pub fn compile_mtlx(
 
     let bindings = BindingOptions { group: options.group, first_binding: options.first_binding };
     let source = SourceInfo { source: "mtlx".to_string(), mtlx_version: format!("{major}.{minor}") };
-    let reflection = reflect(&dag, &bindings, &source);
+    let reflection = reflect(&dag, &bindings, &source)?;
     let wgsl = emit(&dag, &reflection, &EmitOptions { flip_v: options.flip_v });
     Ok(Compiled { wgsl, reflection, dag })
 }
@@ -131,6 +131,29 @@ mod tests {
         assert!(out.reflection.uniforms.iter().any(|u| u.name == "base_color"));
         let base = &out.reflection.params["base"];
         assert_eq!((base.kind, base.uniform.as_deref()), ("uniform", Some("base")));
+    }
+
+    /// One host function per reflection name: `mx_texcoord_0` cannot return two types.
+    #[test]
+    fn one_context_read_at_two_types_is_an_error() {
+        let text = r#"<materialx version="1.39">
+            <texcoord name="uv2" type="vector2"/>
+            <texcoord name="uv3" type="vector3"/>
+            <extract name="u" type="float"><input name="in" type="vector2" nodename="uv2"/><input name="index" type="integer" value="0"/></extract>
+            <extract name="w" type="float"><input name="in" type="vector3" nodename="uv3"/><input name="index" type="integer" value="2"/></extract>
+            <surface_unlit name="s" type="surfaceshader">
+              <input name="emission" type="float" nodename="u"/>
+              <input name="transmission" type="float" nodename="w"/>
+            </surface_unlit>
+            <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s"/></surfacematerial>
+        </materialx>"#;
+        let err = compile_mtlx(text, None, None, &CompileOptions::default()).unwrap_err();
+        match err {
+            Error::TypeMismatch { at, expected, found } => {
+                assert_eq!((at.path.as_str(), expected.as_str(), found.as_str()), ("uv3", "vector2", "vector3"));
+            }
+            other => panic!("expected a type mismatch, got {other:?}"),
+        }
     }
 
     #[test]

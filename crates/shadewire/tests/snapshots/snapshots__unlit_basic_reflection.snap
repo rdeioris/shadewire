@@ -63,7 +63,10 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
   "textures": [],
   "context": {
     "varyings": [
-      "texcoord_0"
+      {
+        "name": "texcoord_0",
+        "type": "vector2"
+      }
     ],
     "derived": [],
     "globals": [],
