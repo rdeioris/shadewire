@@ -1,6 +1,7 @@
 //! The typed MaterialX document.
 
 pub mod build;
+pub mod flatten;
 pub mod geompropdef;
 pub mod inherit;
 pub mod node;

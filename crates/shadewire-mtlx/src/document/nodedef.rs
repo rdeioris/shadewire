@@ -28,6 +28,10 @@ pub struct NodeDef {
     pub inputs: Vec<PortDef>,
     /// The nodedef this one inherits ports from (`inherit=`).
     pub inherits: Option<String>,
+    /// `version=`, compared as a string like MaterialX does.
+    pub version: Option<String>,
+    /// `isdefaultversion="true"`: the version a node without `version=` gets.
+    pub is_default_version: bool,
     pub line: u32,
 }
 
@@ -67,6 +71,8 @@ pub fn build_nodedef(element: &Element, inherit: &Inherit) -> NodeDef {
         outputs: build_ports(element, "output", &inherit),
         inputs: build_ports(element, "input", &inherit),
         inherits: own(element.attr("inherit")),
+        version: own(element.attr("version")),
+        is_default_version: element.attr("isdefaultversion") == Some("true"),
         line: element.line,
     }
 }

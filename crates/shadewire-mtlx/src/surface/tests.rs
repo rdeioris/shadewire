@@ -196,3 +196,12 @@ fn other_shaders_are_not_a_known_shading_model() {
     let known = matches!(&err, Error::UnsupportedSurface { node, reason, .. } if node == "surf" && reason == "not a known shading model");
     assert!(known, "{err:?}");
 }
+
+#[test]
+fn standard_surface_versions_read_their_own_defaults() {
+    let material = r#"<surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s"/></surfacematerial>"#;
+    let current = inline(&format!(r#"<standard_surface name="s" type="surfaceshader"/>{material}"#));
+    assert_eq!(field_value(&compile(&current, None, &PHASE_ONE_MODELS).unwrap(), "base"), Value::Float(1.0));
+    let old = inline(&format!(r#"<standard_surface name="s" type="surfaceshader" version="1.0.0"/>{material}"#));
+    assert_eq!(field_value(&compile(&old, None, &PHASE_ONE_MODELS).unwrap(), "base"), Value::Float(0.8));
+}

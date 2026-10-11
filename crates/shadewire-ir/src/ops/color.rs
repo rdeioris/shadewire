@@ -86,7 +86,7 @@ mod tests {
     #[test]
     fn hsv_round_trip() {
         let c = Value::Color3([0.2, 0.6, 0.4]);
-        let hsv = eval(&Op::RgbToHsv, &[c.clone()], Type::Color3);
+        let hsv = eval(&Op::RgbToHsv, std::slice::from_ref(&c), Type::Color3);
         let back = eval(&Op::HsvToRgb, &[hsv], Type::Color3).floats();
         for (a, b) in back.iter().zip(c.floats()) { assert!((a - b).abs() < 1e-6); }
     }

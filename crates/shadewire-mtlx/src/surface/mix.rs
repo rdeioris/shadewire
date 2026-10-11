@@ -31,6 +31,10 @@ impl<'a> Elaborator<'a> {
     fn mixed_fields(&mut self, fg: &SurfaceSource<'a>, bg: &SurfaceSource<'a>, mix: &MixInput<'a>) -> Result<Vec<SurfaceField>, Error> {
         let fg_fields = self.surface_fields(fg)?;
         let bg_fields = self.surface_fields(bg)?;
+        if !sides_line_up(&fg_fields, &bg_fields) {
+            let at = self.at(mix.node.line, mix.scope.origin(&mix.node.name));
+            return Err(Error::UnsupportedSurface { at, node: mix.node.name.clone(), reason: "mix sides differ".to_string() });
+        }
         let weight = self.surface_input_value(&mix.scope, mix.node, mix.nodedef, "mix", mix.scope.user)?;
         let origin = mix.scope.origin(&mix.node.name);
         let mut out = Vec::with_capacity(fg_fields.len());
@@ -56,5 +60,29 @@ impl<'a> Elaborator<'a> {
             _ => NodeKind::Op { op: Op::Mix, args: vec![fg, bg, weight] },
         };
         self.dag.add(Node { kind, ty, origin })
+    }
+}
+
+/// Whether two surfaces' fields pair up by name and type, position by position.
+pub fn sides_line_up(fg: &[SurfaceField], bg: &[SurfaceField]) -> bool {
+    fg.len() == bg.len() && fg.iter().zip(bg).all(|(f, b)| f.name == b.name && f.ty == b.ty)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sides_line_up;
+    use shadewire_ir::{NodeId, SurfaceField, Type};
+
+    fn field(name: &str, ty: Type) -> SurfaceField {
+        SurfaceField { name: name.to_string(), ty, node: NodeId(0) }
+    }
+
+    #[test]
+    fn sides_must_pair_by_name_and_type() {
+        let fg = [field("a", Type::Float), field("b", Type::Color3)];
+        assert!(sides_line_up(&fg, &[field("a", Type::Float), field("b", Type::Color3)]));
+        assert!(!sides_line_up(&fg, &[field("a", Type::Float)]));
+        assert!(!sides_line_up(&fg, &[field("a", Type::Float), field("c", Type::Color3)]));
+        assert!(!sides_line_up(&fg, &[field("a", Type::Float), field("b", Type::Vector3)]));
     }
 }

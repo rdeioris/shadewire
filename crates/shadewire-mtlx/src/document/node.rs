@@ -25,6 +25,8 @@ pub struct Node {
     pub name: String,
     pub port_type: PortType,
     pub nodedef: Option<String>,
+    /// The nodedef version asked for (`version=`); `None` takes the default version.
+    pub version: Option<String>,
     pub inputs: Vec<Input>,
     pub line: u32,
 }
@@ -57,6 +59,7 @@ pub fn build_node(element: &Element, inherit: &Inherit) -> Node {
         name: element.name().to_string(),
         port_type: PortType::parse(element.attr("type").unwrap_or("")),
         nodedef: own(element.attr("nodedef")),
+        version: own(element.attr("version")),
         inputs: element
             .children
             .iter()

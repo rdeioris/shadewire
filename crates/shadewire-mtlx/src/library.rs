@@ -5,7 +5,8 @@ use std::sync::OnceLock;
 use include_dir::{include_dir, Dir};
 
 use crate::document::build::build;
-use crate::document::{Document, NodeDef, PortDef};
+use crate::document::flatten::flatten_inheritance;
+use crate::document::Document;
 use crate::parse::parse_str;
 
 static LIBRARIES: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/../../vendor/materialx/libraries");
@@ -46,47 +47,10 @@ fn load() -> Library {
         })
         .collect();
     let mut library = Library { documents };
-    flatten_inheritance(&mut library);
-    library
-}
-
-/// Gives every nodedef with `inherit=` its parent's ports: the parent's
-/// inputs in order, overridden by the child's own of the same name, then the
-/// child's new inputs; the parent's outputs when the child declares none.
-fn flatten_inheritance(library: &mut Library) {
-    // Children are resolved in passes so chains settle whatever the file order.
-    for _ in 0..8 {
-        let mut changed = false;
-        let snapshot: Vec<NodeDef> = library.documents.iter().flat_map(|d| d.nodedefs.iter().cloned()).collect();
-        for doc in &mut library.documents {
-            for nodedef in &mut doc.nodedefs {
-                let Some(parent_name) = nodedef.inherits.clone() else { continue };
-                let Some(parent) = snapshot.iter().find(|n| n.name == parent_name) else { continue };
-                if parent.inherits.is_some() {
-                    continue;
-                }
-                let mut inputs: Vec<PortDef> = parent
-                    .inputs
-                    .iter()
-                    .map(|p| nodedef.inputs.iter().find(|own| own.name == p.name).unwrap_or(p).clone())
-                    .collect();
-                for own in &nodedef.inputs {
-                    if !inputs.iter().any(|p| p.name == own.name) {
-                        inputs.push(own.clone());
-                    }
-                }
-                nodedef.inputs = inputs;
-                if nodedef.outputs.is_empty() {
-                    nodedef.outputs = parent.outputs.clone();
-                }
-                nodedef.inherits = None;
-                changed = true;
-            }
-        }
-        if !changed {
-            break;
-        }
+    if let Err(message) = flatten_inheritance(&mut library.documents) {
+        panic!("standard library: {message}");
     }
+    library
 }
 
 pub fn standard() -> &'static Library {

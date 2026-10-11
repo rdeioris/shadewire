@@ -20,12 +20,15 @@ pub fn resolve_nodedef<'a>(
     };
 
     if let Some(name) = &node.nodedef {
-        return index.nodedef(name).ok_or_else(no_match);
+        return index.nodedef(name).ok_or_else(no_match).and_then(|nd| flattened(nd, at));
     }
 
     let mut best: Option<(&'a NodeDef, usize)> = None;
     for candidate in index.nodedefs_for_category(&node.category) {
-        if !output_matches(candidate, &node.port_type) || !inputs_match(candidate, input_types) {
+        if !version_matches(candidate, node.version.as_deref())
+            || !output_matches(candidate, &node.port_type)
+            || !inputs_match(candidate, input_types)
+        {
             continue;
         }
         let unspecified = candidate.inputs.len() - input_types.len().min(candidate.inputs.len());
@@ -34,7 +37,28 @@ pub fn resolve_nodedef<'a>(
             best = Some((candidate, unspecified));
         }
     }
-    best.map(|(nodedef, _)| nodedef).ok_or_else(no_match)
+    best.map(|(nodedef, _)| nodedef).ok_or_else(no_match).and_then(|nd| flattened(nd, at))
+}
+
+/// MaterialX `NodeDef::isVersionCompatible`: the same version string, or the
+/// default version (or an unversioned nodedef) for a node that names none.
+fn version_matches(nodedef: &NodeDef, wanted: Option<&str>) -> bool {
+    match wanted {
+        Some(version) => nodedef.version.as_deref() == Some(version),
+        None => nodedef.version.is_none() || nodedef.is_default_version,
+    }
+}
+
+/// Library nodedefs are flattened at load; phase 1 does not flatten a user
+/// document's `inherit=`, so such a nodedef is refused rather than read short.
+fn flattened<'a>(nodedef: &'a NodeDef, at: &Location) -> Result<&'a NodeDef, Error> {
+    match &nodedef.inherits {
+        Some(parent) => Err(Error::BadValue {
+            at: at.clone(),
+            message: format!("nodedef {} inherits from {parent}; inherit= in a user document is not supported", nodedef.name),
+        }),
+        None => Ok(nodedef),
+    }
 }
 
 fn output_matches(nodedef: &NodeDef, node_type: &PortType) -> bool {
@@ -136,5 +160,34 @@ mod tests {
         let n = node(r#"<add name="a" type="color3"/>"#);
         let untyped = PortType::Other(String::new());
         assert!(resolve(&n, &[("in1", untyped)]).is_ok());
+    }
+
+    #[test]
+    fn a_versionless_node_takes_the_default_version() {
+        let n = node(r#"<standard_surface name="s" type="surfaceshader"/>"#);
+        assert_eq!(resolve(&n, &[]).unwrap(), "ND_standard_surface_surfaceshader");
+        let n = node(r#"<UsdUVTexture name="t" type="multioutput"/>"#);
+        assert_eq!(resolve(&n, &[]).unwrap(), "ND_UsdUVTexture_23");
+    }
+
+    #[test]
+    fn a_versioned_node_takes_that_version() {
+        let n = node(r#"<standard_surface name="s" type="surfaceshader" version="1.0.0"/>"#);
+        assert_eq!(resolve(&n, &[]).unwrap(), "ND_standard_surface_surfaceshader_100");
+        let n = node(r#"<UsdUVTexture name="t" type="multioutput" version="2.2"/>"#);
+        assert_eq!(resolve(&n, &[]).unwrap(), "ND_UsdUVTexture");
+        let n = node(r#"<standard_surface name="s" type="surfaceshader" version="9.9"/>"#);
+        assert!(matches!(resolve(&n, &[]), Err(Error::NoMatchingNodeDef { .. })));
+    }
+
+    #[test]
+    fn a_user_nodedef_with_inherit_is_an_error_naming_it() {
+        let text = r#"<materialx version="1.39">
+            <nodedef name="ND_mine" node="mine" inherit="ND_add_float"><output name="out" type="float"/></nodedef>
+            <mine name="m" type="float"/></materialx>"#;
+        let user = build(&parse_str(text, None).unwrap(), None).unwrap();
+        let index = Index::new(&user, library::standard());
+        let err = resolve_nodedef(&index, &user.nodes[0], &[], &at()).unwrap_err();
+        assert!(matches!(&err, Error::BadValue { message, .. } if message.contains("ND_mine")), "{err:?}");
     }
 }

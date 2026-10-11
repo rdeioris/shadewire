@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn normalize_and_magnitude() {
         let v = Value::Vector3([3.0, 0.0, 4.0]);
-        assert_eq!(eval(&Op::Magnitude, &[v.clone()], Type::Float), Value::Float(5.0));
+        assert_eq!(eval(&Op::Magnitude, std::slice::from_ref(&v), Type::Float), Value::Float(5.0));
         assert_eq!(eval(&Op::Normalize, &[v], Type::Vector3), Value::Vector3([0.6, 0.0, 0.8]));
     }
 }
