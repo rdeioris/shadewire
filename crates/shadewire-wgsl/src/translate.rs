@@ -34,14 +34,17 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
             .map(Output::Text)
             .map_err(|e| Error::Naga(e.to_string())),
         Target::Hlsl { shader_model } => {
-            // Register and space follow the WGSL group and binding.
+            // Register and space follow the WGSL group and binding. HLSL spaces are u8 here.
             let mut binding_map = hlsl::BindingMap::default();
             for (_, global) in module.global_variables.iter() {
                 if let Some(binding) = &global.binding {
+                    let space = u8::try_from(binding.group).map_err(|_| {
+                        Error::Naga(format!("bind group too large for HLSL space: {}", binding.group))
+                    })?;
                     binding_map.insert(
                         *binding,
                         hlsl::BindTarget {
-                            space: binding.group as u8,
+                            space,
                             register: binding.binding,
                             ..Default::default()
                         },
@@ -98,6 +101,10 @@ mod tests {
     use shadewire_ir::*;
 
     fn linked() -> String {
+        linked_at(2)
+    }
+
+    fn linked_at(group: u32) -> String {
         let mut dag = Dag::new("open_pbr_surface");
         let tint = add(
             &mut dag,
@@ -124,7 +131,7 @@ mod tests {
         dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: mul });
         dag.surface.fields.push(SurfaceField { name: "base_weight".into(), ty: Type::Float, node: noise });
         let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };
-        let r = reflect(&dag, &BindingOptions { group: 2, first_binding: 0 }, &info).unwrap();
+        let r = reflect(&dag, &BindingOptions { group, first_binding: 0 }, &info).unwrap();
         let generated = emit(&dag, &r, &EmitOptions::default());
         let prelude = reference_host::prelude(&r, "OpenPbrSurface");
         link(&generated, &prelude).unwrap_or_else(|e| panic!("{generated}\n{e}"))
@@ -151,6 +158,16 @@ mod tests {
         match translate(&linked(), Target::SpirV).unwrap() {
             Output::Words(w) => assert_eq!(w[0], 0x0723_0203),
             Output::Text(_) => panic!("expected words"),
+        }
+    }
+
+    #[test]
+    fn a_group_past_255_has_no_hlsl_space() {
+        let hlsl = Target::Hlsl { shader_model: hlsl::ShaderModel::V6_0 };
+        assert!(translate(&linked_at(255), hlsl.clone()).is_ok());
+        match translate(&linked_at(256), hlsl) {
+            Err(Error::Naga(message)) => assert_eq!(message, "bind group too large for HLSL space: 256"),
+            other => panic!("expected a naga error, got {other:?}"),
         }
     }
 
