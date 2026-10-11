@@ -34,11 +34,13 @@ pub fn node_lets(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> V
                 }
             }
             NodeKind::Context(read) => cast(&format!("{}()", context_function(read, reflection)), read.ty(), node.ty),
-            NodeKind::Sample { texture, uv, default } => {
+            NodeKind::Sample { texture, uv, default, grad } => {
                 let t = reflection.textures.iter().find(|t| t.index == *texture).expect("live texture is reflected");
                 let work = work_type(node.ty);
                 let fallback = cast(&literal(default), default.ty(), work);
-                let fetch = sample_expr(t, &node_name(*uv), work, &fallback, options.flip_v);
+                let grad = grad.map(|[dx, dy]| (node_name(dx), node_name(dy)));
+                let grad = grad.as_ref().map(|(dx, dy)| (dx.as_str(), dy.as_str()));
+                let fetch = sample_expr(t, &node_name(*uv), work, &fallback, grad, options.flip_v);
                 cast(&fetch, work, node.ty)
             }
             NodeKind::Const(_) | NodeKind::Op { .. } => pure_expr(dag, id),
@@ -128,7 +130,7 @@ mod tests {
         dag.add_texture(mk("dead.png", AddressMode::Periodic));
         let t = dag.add_texture(mk("a.png", AddressMode::Constant));
         let uv = add(&mut dag, NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2);
-        let s = add(&mut dag, NodeKind::Sample { texture: t, uv, default: Value::Float(0.5) }, Type::Color3);
+        let s = add(&mut dag, NodeKind::Sample { texture: t, uv, default: Value::Float(0.5), grad: None }, Type::Color3);
         dag.surface.fields.push(SurfaceField { name: "c".into(), ty: Type::Color3, node: s });
         let lines = node_lets(&dag, &reflection(&dag), &EmitOptions::default());
         assert_eq!(

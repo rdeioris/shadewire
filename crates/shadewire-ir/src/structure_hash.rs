@@ -70,7 +70,7 @@ pub fn structure_hash(dag: &Dag) -> String {
                 h.byte(2);
                 h.text(&read.reflection_name());
             }
-            NodeKind::Sample { texture, uv, default } => {
+            NodeKind::Sample { texture, uv, default, grad } => {
                 h.byte(3);
                 let desc = &dag.textures[*texture];
                 h.text(&desc.file);
@@ -78,6 +78,9 @@ pub fn structure_hash(dag: &Dag) -> String {
                 h.text(&format!("{:?}{:?}{:?}", desc.address_u, desc.address_v, desc.filter));
                 h.number(uv.0 as u64);
                 h.value(default);
+                for id in grad.iter().flatten() {
+                    h.number(id.0 as u64);
+                }
             }
             NodeKind::Op { op, args } => {
                 h.byte(4);

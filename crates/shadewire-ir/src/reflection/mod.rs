@@ -132,7 +132,7 @@ mod tests {
         });
         let c = dag.add(node(NodeKind::Const(Value::Float(0.5)), Type::Float));
         let uv = dag.add(node(NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2));
-        let s = dag.add(node(NodeKind::Sample { texture: tex, uv, default: Value::Float(0.0) }, Type::Float));
+        let s = dag.add(node(NodeKind::Sample { texture: tex, uv, default: Value::Float(0.0), grad: None }, Type::Float));
         dag.surface.fields.push(SurfaceField { name: "base_weight".into(), ty: Type::Float, node: c });
         dag.surface.fields.push(SurfaceField { name: "specular_weight".into(), ty: Type::Float, node: s });
         if with_uniform {
@@ -178,7 +178,7 @@ mod tests {
         dag.add(node(NodeKind::Uniform { name: "dead_uniform".into(), value: Value::Float(1.0) }, Type::Float));
         dag.add(node(NodeKind::Context(ContextRead::Time), Type::Float));
         let uv = dag.add(node(NodeKind::Const(Value::Vector2([0.0; 2])), Type::Vector2));
-        dag.add(node(NodeKind::Sample { texture: tex, uv, default: Value::Float(0.0) }, Type::Float));
+        dag.add(node(NodeKind::Sample { texture: tex, uv, default: Value::Float(0.0), grad: None }, Type::Float));
         let r = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info());
         assert!(r.uniforms.is_empty());
         assert_eq!(r.uniform_binding, None);

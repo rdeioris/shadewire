@@ -26,7 +26,10 @@ fn body(node: &Node) -> String {
         NodeKind::Const(value) => format!("const {}", value_text(value)),
         NodeKind::Uniform { name, value } => format!("uniform {name} = {}", value_text(value)),
         NodeKind::Context(read) => format!("context {}", read.reflection_name()),
-        NodeKind::Sample { texture, uv, .. } => format!("sample t{texture}(%{})", uv.index()),
+        NodeKind::Sample { texture, uv, grad: None, .. } => format!("sample t{texture}(%{})", uv.index()),
+        NodeKind::Sample { texture, uv, grad: Some([dx, dy]), .. } => {
+            format!("sample t{texture}(%{}) grad(%{}, %{})", uv.index(), dx.index(), dy.index())
+        }
         NodeKind::Op { op, args } => {
             let args: Vec<String> = args.iter().map(|a| format!("%{}", a.index())).collect();
             format!("{:?}({})", op, args.join(", "))
@@ -56,12 +59,23 @@ mod tests {
         dag.add(Node { kind: NodeKind::Const(Value::Vector3([1.0, 0.5, 0.0])), ty: Type::Vector3, origin: "n1".into() });
         dag.add(Node { kind: NodeKind::Uniform { name: "tint".into(), value: Value::Color3([0.2, 0.3, 0.4]) }, ty: Type::Color3, origin: String::new() });
         let uv = dag.add(Node { kind: NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), ty: Type::Vector2, origin: String::new() });
-        let s = dag.add(Node { kind: NodeKind::Sample { texture: t, uv, default: Value::Float(0.0) }, ty: Type::Float, origin: String::new() });
+        let s = dag.add(Node { kind: NodeKind::Sample { texture: t, uv, default: Value::Float(0.0), grad: None }, ty: Type::Float, origin: String::new() });
         dag.surface.fields.push(SurfaceField { name: "out".into(), ty: Type::Float, node: s });
         assert_eq!(
             dag.dump(),
             "model open_pbr_surface\n%0 vector3 = const 1, 0.5, 0    # n1\n%1 color3 = uniform tint = 0.2, 0.3, 0.4\n%2 vector2 = context texcoord_0\n%3 float = sample t0(%2)\nout = %3\n"
         );
+    }
+
+    #[test]
+    fn sample_gradients_dump_after_the_uv() {
+        let mut dag = Dag::new("m");
+        let t = dag.add_texture(TextureDesc { file: "a.png".into(), colorspace: None, address_u: AddressMode::Periodic, address_v: AddressMode::Periodic, filter: FilterMode::Linear });
+        let uv = dag.add(Node { kind: NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), ty: Type::Vector2, origin: String::new() });
+        let s = dag.add(Node { kind: NodeKind::Sample { texture: t, uv, default: Value::Float(0.0), grad: Some([uv, uv]) }, ty: Type::Float, origin: String::new() });
+        dag.surface.fields.push(SurfaceField { name: "out".into(), ty: Type::Float, node: s });
+        assert!(dag.dump().contains("%1 float = sample t0(%0) grad(%0, %0)
+"), "{}", dag.dump());
     }
 
     #[test]

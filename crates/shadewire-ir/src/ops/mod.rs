@@ -2,6 +2,7 @@ pub mod broadcast;
 pub mod catalog;
 pub mod channel;
 pub mod color;
+pub mod derivative;
 pub mod logic;
 pub mod math;
 pub mod noise;
@@ -32,5 +33,6 @@ pub fn eval_op(op: &Op, args: &[Value], ty: Type, ctx: &mut dyn ContextSource) -
         Op::Noise2d | Op::Noise3d | Op::Fractal3d | Op::CellNoise2d | Op::CellNoise3d
         | Op::WorleyNoise2d | Op::WorleyNoise3d => noise::eval(op, args, ty),
         Op::NormalMap => normal::eval(op, args, ty),
+        Op::Dpdx | Op::Dpdy => derivative::eval(op, args, ty),
     }
 }

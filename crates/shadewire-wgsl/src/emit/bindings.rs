@@ -28,7 +28,7 @@ mod tests {
         dag.add_texture(mk("dead.png"));
         let live = dag.add_texture(mk("a.png"));
         let uv = dag.add(Node { kind: NodeKind::Const(Value::Vector2([0.0; 2])), ty: Type::Vector2, origin: String::new() });
-        let kind = NodeKind::Sample { texture: live, uv, default: Value::Float(0.0) };
+        let kind = NodeKind::Sample { texture: live, uv, default: Value::Float(0.0), grad: None };
         let s = dag.add(Node { kind, ty: Type::Float, origin: String::new() });
         dag.surface.fields.push(SurfaceField { name: "f".into(), ty: Type::Float, node: s });
         let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };

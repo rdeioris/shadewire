@@ -3,6 +3,7 @@
 
 mod channel;
 mod color;
+mod derivative;
 mod logic;
 mod math;
 mod noise;
@@ -36,6 +37,7 @@ pub fn emit_op(op: &Op, args: &[Arg], ty: Type) -> String {
         Op::Noise2d | Op::Noise3d | Op::Fractal3d | Op::CellNoise2d | Op::CellNoise3d
         | Op::WorleyNoise2d | Op::WorleyNoise3d => noise::emit(op, args, ty),
         Op::NormalMap => normal::emit(op, args, ty),
+        Op::Dpdx | Op::Dpdy => derivative::emit(op, args, ty),
     }
 }
 

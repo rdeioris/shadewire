@@ -23,9 +23,12 @@ impl Rebuilder {
     pub fn remapped_kind(&self, kind: &NodeKind) -> NodeKind {
         match kind {
             NodeKind::Op { op, args } => NodeKind::Op { op: *op, args: args.iter().map(|a| self.remap(*a)).collect() },
-            NodeKind::Sample { texture, uv, default } => {
-                NodeKind::Sample { texture: *texture, uv: self.remap(*uv), default: default.clone() }
-            }
+            NodeKind::Sample { texture, uv, default, grad } => NodeKind::Sample {
+                texture: *texture,
+                uv: self.remap(*uv),
+                default: default.clone(),
+                grad: grad.map(|[dx, dy]| [self.remap(dx), self.remap(dy)]),
+            },
             other => other.clone(),
         }
     }

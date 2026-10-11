@@ -10,7 +10,8 @@ pub fn eval_nodes(dag: &Dag, ctx: &mut dyn ContextSource, textures: &dyn Texture
             NodeKind::Const(v) => v.clone(),
             NodeKind::Uniform { value, .. } => value.clone(),
             NodeKind::Context(read) => ctx.read(read),
-            NodeKind::Sample { texture, uv, default } => {
+            // The interpreter has no neighbouring fragments: gradients pick no mip level.
+            NodeKind::Sample { texture, uv, default, .. } => {
                 let uv_floats = values[uv.index()].floats();
                 match textures.sample(&dag.textures[*texture], [uv_floats[0], uv_floats[1]]) {
                     Some(rgba) => Value::from_floats(node.ty, &rgba[..node.ty.component_count()]),

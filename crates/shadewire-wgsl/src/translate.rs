@@ -97,7 +97,7 @@ mod tests {
             address_v: AddressMode::Periodic,
             filter: FilterMode::Linear,
         });
-        let tex = add(&mut dag, NodeKind::Sample { texture: t, uv, default: Value::Color3([0.0; 3]) }, Type::Color3);
+        let tex = add(&mut dag, NodeKind::Sample { texture: t, uv, default: Value::Color3([0.0; 3]), grad: None }, Type::Color3);
         let amp = add(&mut dag, NodeKind::Const(Value::Float(1.0)), Type::Float);
         let pivot = add(&mut dag, NodeKind::Const(Value::Float(0.0)), Type::Float);
         let noise = add(&mut dag, NodeKind::Op { op: Op::Noise2d, args: vec![amp, pivot, uv] }, Type::Float);

@@ -26,7 +26,7 @@ impl<'a> Elaborator<'a> {
         let texture = self.dag.add_texture(TextureDesc { file: file.text, colorspace: colorspace.clone(), address_u, address_v, filter });
         let default = self.constant_input(scope, node, nd, "default", at)?;
         let uv = self.image_uv(scope, node, nd, at)?;
-        let sample = self.dag.add(IrNode { kind: NodeKind::Sample { texture, uv, default }, ty, origin: at.path.clone() });
+        let sample = self.dag.add(IrNode { kind: NodeKind::Sample { texture, uv, default, grad: None }, ty, origin: at.path.clone() });
         self.convert_sample_colorspace(sample, colorspace.as_deref(), at)
     }
 

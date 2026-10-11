@@ -85,8 +85,8 @@ fn sw_eval_surface() -> OpenPbrSurface {
         let t0 = dag.add_texture(tex(AddressMode::Periodic));
         let t1 = dag.add_texture(tex(AddressMode::Constant));
         let uv = add(&mut dag, NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2);
-        let c = add(&mut dag, NodeKind::Sample { texture: t0, uv, default: Value::Color3([0.0; 3]) }, Type::Color3);
-        let a = add(&mut dag, NodeKind::Sample { texture: t1, uv, default: Value::Float(1.0) }, Type::Float);
+        let c = add(&mut dag, NodeKind::Sample { texture: t0, uv, default: Value::Color3([0.0; 3]), grad: None }, Type::Color3);
+        let a = add(&mut dag, NodeKind::Sample { texture: t1, uv, default: Value::Float(1.0), grad: None }, Type::Float);
         let flag = add(&mut dag, NodeKind::Uniform { name: "flag".into(), value: Value::Boolean(true) }, Type::Boolean);
         let n = add(&mut dag, NodeKind::Uniform { name: "n".into(), value: Value::Integer(2) }, Type::Integer);
         let prop = add(&mut dag, NodeKind::Context(ContextRead::GeomProp { name: "my-prop".into(), ty: Type::Color3 }), Type::Color3);
@@ -120,6 +120,23 @@ fn sw_eval_surface() -> OpenPbrSurface {
         let text = emit(&dag, &r, &EmitOptions::default());
         assert!(text.contains("mx_geomprop_my_prop()"), "{text}");
         assert!(text.contains("return StandardSurface(n25, n10, n8);"), "{text}");
+        validates(&dag, &r, &text);
+    }
+
+    /// Derivatives and the explicit-gradient lookup they feed are fragment-stage builtins.
+    #[test]
+    fn gradient_samples_validate() {
+        let mut dag = Dag::new("standard_surface");
+        let t = dag.add_texture(TextureDesc { file: "a.png".into(), colorspace: None, address_u: AddressMode::Periodic, address_v: AddressMode::Constant, filter: FilterMode::Linear });
+        let uv = add(&mut dag, NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2);
+        let dx = add(&mut dag, NodeKind::Op { op: Op::Dpdx, args: vec![uv] }, Type::Vector2);
+        let dy = add(&mut dag, NodeKind::Op { op: Op::Dpdy, args: vec![uv] }, Type::Vector2);
+        let kind = NodeKind::Sample { texture: t, uv, default: Value::Color3([0.0; 3]), grad: Some([dx, dy]) };
+        let c = add(&mut dag, kind, Type::Color3);
+        dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: c });
+        let r = reflection(&dag);
+        let text = emit(&dag, &r, &EmitOptions::default());
+        assert!(text.contains("textureSampleGrad(sw_t0, sw_s0, vec2<f32>(n0.x, 1.0 - n0.y), vec2<f32>(n1.x, -n1.y), vec2<f32>(n2.x, -n2.y))"), "{text}");
         validates(&dag, &r, &text);
     }
 

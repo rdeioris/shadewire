@@ -9,7 +9,7 @@ use super::tests::doc;
 /// samples sit under their colorspace conversion).
 fn sample(dag: &Dag) -> (&TextureDesc, NodeId, Value) {
     let mut samples = dag.nodes.iter().filter_map(|n| match &n.kind {
-        NodeKind::Sample { texture, uv, default } => Some((&dag.textures[*texture], *uv, default.clone())),
+        NodeKind::Sample { texture, uv, default, .. } => Some((&dag.textures[*texture], *uv, default.clone())),
         _ => None,
     });
     let found = samples.next().expect("no sample");

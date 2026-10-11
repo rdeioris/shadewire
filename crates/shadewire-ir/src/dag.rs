@@ -51,11 +51,12 @@ impl Dag {
     }
 }
 
-/// The nodes a kind reads: the uv of a sample, the arguments of an op.
+/// The nodes a kind reads: the uv and gradients of a sample, the arguments of an op.
 pub fn node_args(kind: &NodeKind) -> Vec<NodeId> {
     match kind {
         NodeKind::Op { args, .. } => args.clone(),
-        NodeKind::Sample { uv, .. } => vec![*uv],
+        NodeKind::Sample { uv, grad: None, .. } => vec![*uv],
+        NodeKind::Sample { uv, grad: Some([dx, dy]), .. } => vec![*uv, *dx, *dy],
         NodeKind::Const(_) | NodeKind::Uniform { .. } | NodeKind::Context(_) => Vec::new(),
     }
 }

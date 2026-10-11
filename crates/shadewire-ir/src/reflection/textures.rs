@@ -68,7 +68,7 @@ mod tests {
     fn sampled(dag: &mut Dag, file: &str, filter: FilterMode) {
         let texture = dag.add_texture(desc(file, filter));
         let uv = dag.add(Node { kind: NodeKind::Const(Value::Vector2([0.0; 2])), ty: Type::Vector2, origin: String::new() });
-        let s = dag.add(Node { kind: NodeKind::Sample { texture, uv, default: Value::Float(0.0) }, ty: Type::Float, origin: String::new() });
+        let s = dag.add(Node { kind: NodeKind::Sample { texture, uv, default: Value::Float(0.0), grad: None }, ty: Type::Float, origin: String::new() });
         dag.surface.fields.push(SurfaceField { name: file.into(), ty: Type::Float, node: s });
     }
 

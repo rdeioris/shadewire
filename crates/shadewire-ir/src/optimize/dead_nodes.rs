@@ -39,7 +39,12 @@ fn remap_kind(kind: &NodeKind, map: &[Option<NodeId>]) -> NodeKind {
     let get = |id: &NodeId| map[id.index()].expect("argument of a live node is live");
     match kind {
         NodeKind::Op { op, args } => NodeKind::Op { op: *op, args: args.iter().map(get).collect() },
-        NodeKind::Sample { texture, uv, default } => NodeKind::Sample { texture: *texture, uv: get(uv), default: default.clone() },
+        NodeKind::Sample { texture, uv, default, grad } => NodeKind::Sample {
+            texture: *texture,
+            uv: get(uv),
+            default: default.clone(),
+            grad: grad.map(|[dx, dy]| [get(&dx), get(&dy)]),
+        },
         other => other.clone(),
     }
 }
@@ -59,5 +64,22 @@ mod tests {
         assert_eq!(out.nodes.len(), 2);
         assert_eq!(out.surface.fields[0].node, NodeId(1));
         assert_eq!(out.node(NodeId(1)).kind, NodeKind::Op { op: Op::Sin, args: vec![NodeId(0)] });
+    }
+
+    #[test]
+    fn sample_gradients_stay_live_and_are_remapped() {
+        let mut dag = Dag::new("m");
+        let t = dag.add_texture(TextureDesc { file: "a.png".into(), colorspace: None, address_u: AddressMode::Periodic, address_v: AddressMode::Periodic, filter: FilterMode::Linear });
+        dag.add(Node { kind: NodeKind::Const(Value::Float(9.0)), ty: Type::Float, origin: String::new() });
+        let uv = dag.add(Node { kind: NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), ty: Type::Vector2, origin: String::new() });
+        let dx = dag.add(Node { kind: NodeKind::Op { op: Op::Sin, args: vec![uv] }, ty: Type::Vector2, origin: String::new() });
+        let dy = dag.add(Node { kind: NodeKind::Op { op: Op::Cos, args: vec![uv] }, ty: Type::Vector2, origin: String::new() });
+        let kind = NodeKind::Sample { texture: t, uv, default: Value::Float(0.0), grad: Some([dx, dy]) };
+        let s = dag.add(Node { kind, ty: Type::Float, origin: String::new() });
+        dag.surface.fields.push(SurfaceField { name: "f".into(), ty: Type::Float, node: s });
+        let out = super::run(&dag);
+        assert_eq!(out.nodes.len(), 4);
+        let NodeKind::Sample { uv, grad, .. } = &out.node(out.surface.fields[0].node).kind else { panic!() };
+        assert_eq!((*uv, *grad), (NodeId(0), Some([NodeId(1), NodeId(2)])));
     }
 }

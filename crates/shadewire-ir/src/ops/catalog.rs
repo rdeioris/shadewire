@@ -7,7 +7,7 @@ pub fn input_names(op: &Op) -> &'static [&'static str] {
         Op::Invert | Op::Rotate2d => &["in", "amount"],
         Op::Absval | Op::Sign | Op::Floor | Op::Ceil | Op::Round | Op::Fract | Op::Sqrt | Op::Exp | Op::Ln
         | Op::Sin | Op::Cos | Op::Tan | Op::Asin | Op::Acos | Op::Normalize | Op::Magnitude
-        | Op::Not | Op::Convert | Op::RgbToHsv | Op::HsvToRgb | Op::Transform { .. } | Op::Extract(_) => &["in"],
+        | Op::Not | Op::Convert | Op::RgbToHsv | Op::HsvToRgb | Op::Transform { .. } | Op::Extract(_) | Op::Dpdx | Op::Dpdy => &["in"],
         Op::Clamp | Op::Smoothstep => &["in", "low", "high"],
         Op::Mix => &["fg", "bg", "mix"],
         Op::Remap => &["in", "inlow", "inhigh", "outlow", "outhigh"],

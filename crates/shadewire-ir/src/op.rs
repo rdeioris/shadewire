@@ -94,6 +94,9 @@ pub enum Op {
     WorleyNoise3d,
     // normal.rs
     NormalMap,
+    // derivative.rs: screen-space derivatives, for sample gradients
+    Dpdx,
+    Dpdy,
 }
 
 impl Op {
