@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <multiply name="tcs" type="vector2"><input name="in1" type="vector2" nodename="uv" /><input name="in2" type="vector2" value="0.01, 0.01" /></multiply>
+    <add name="tc" type="vector2"><input name="in1" type="vector2" nodename="tcs" /><input name="in2" type="vector2" value="0.2165, 0.875" /></add>
+    <hextiledimage name="color" type="color3">
+      <input name="file" type="filename" value="resources/Images/grid.png" colorspace="srgb_texture" />
+      <input name="texcoord" type="vector2" nodename="tc" />
+      <input name="falloff" type="float" value="0.75" />
+    </hextiledimage>
+    <output name="out_color" type="color3" nodename="color" />
+  </nodegraph>
+  <standard_surface name="SS" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="out_color" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS" />
+  </surfacematerial>
+</materialx>

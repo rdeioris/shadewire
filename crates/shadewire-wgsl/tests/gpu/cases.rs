@@ -2,6 +2,7 @@
 
 mod channel;
 mod color;
+mod hextile;
 mod logic;
 mod math;
 mod noise;
@@ -13,7 +14,7 @@ use shadewire_ir::{Dag, Node, NodeId, NodeKind, Op, SurfaceField, Type, Value};
 
 /// Tolerance for exact-arithmetic families: math, vector, logic, channel.
 pub const EXACT: f32 = 1e-5;
-/// Tolerance for transcendental ops (trig, pow, exp, ln) and noise.
+/// Tolerance for transcendental ops (trig, pow, exp, ln), noise and hextile.
 pub const TRANSCENDENTAL: f32 = 1e-4;
 
 pub struct Case {
@@ -35,6 +36,7 @@ pub fn all() -> Vec<Case> {
     cases.extend(color::cases());
     cases.extend(noise::cases());
     cases.extend(normal::cases());
+    cases.extend(hextile::cases());
     cases
 }
 

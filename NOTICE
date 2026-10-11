@@ -10,6 +10,8 @@ Copyright Contributors to the MaterialX Project, licensed under the Apache Licen
   vector.wgsl: libraries/stdlib/genglsl/mx_rotate_vector2.glsl)
 - crates/shadewire-ir/src/ops/normal.rs: port of libraries/stdlib/genglsl/mx_normalmap.glsl
 - crates/shadewire-ir/src/ops/vector.rs (rotate2d): port of libraries/stdlib/genglsl/mx_rotate_vector2.glsl
+- crates/shadewire-ir/src/ops/hextile.rs: port of libraries/stdlib/genglsl/lib/mx_hextile.glsl
+- crates/shadewire-mtlx/src/elaborate/hextile.rs: lowering of libraries/stdlib/genglsl/mx_hextiledimage.glsl
 
 crates/shadewire-ir/src/ops/noise/*.rs and crates/shadewire-wgsl/lib/noise_*.wgsl derive from
 the Open Shading Language noise library (github.com/imageworks/OpenShadingLanguage,

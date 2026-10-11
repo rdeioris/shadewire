@@ -140,7 +140,7 @@ fn sw_eval_surface() -> OpenPbrSurface {
         validates(&dag, &r, &text);
     }
 
-    /// Every color, noise, normal and rotate op at every result width, with the library they call.
+    /// Every color, noise, normal, rotate and hextile op at every result width, with the library they call.
     #[test]
     fn leaf_library_ops_emit_and_validate() {
         let mut dag = Dag::new("m");
@@ -167,6 +167,9 @@ fn sw_eval_surface() -> OpenPbrSurface {
             (Op::CellNoise3d, vec![pos], Type::Float),
             (Op::NormalMap, vec![col3, amp, n, t, b], Type::Vector3),
             (Op::Rotate2d, vec![uv, amp], Type::Vector2),
+            (Op::HextileCoord(1), vec![uv, amp, uv, amp, uv, amp, uv], Type::Vector2),
+            (Op::HextileGrad(2), vec![uv, uv, amp, uv, amp, uv], Type::Vector2),
+            (Op::HextileWeights, vec![uv, col3, amp], Type::Vector3),
         ];
         for ty in [Type::Float, Type::Vector2, Type::Vector3, Type::Vector4] {
             fields.push((Op::Noise2d, vec![amp, amp, uv], ty));

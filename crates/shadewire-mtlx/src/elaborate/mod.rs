@@ -5,6 +5,7 @@
 pub mod colorspace;
 pub mod defaults;
 pub mod fold;
+pub mod hextile;
 pub mod image;
 pub mod inputs;
 pub mod instance;

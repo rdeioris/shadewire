@@ -25,6 +25,9 @@ pub fn input_names(op: &Op) -> &'static [&'static str] {
         Op::WorleyNoise2d => &["texcoord", "jitter", "style"],
         Op::WorleyNoise3d => &["position", "jitter", "style"],
         Op::NormalMap => &["in", "scale", "normal", "tangent", "bitangent"],
+        Op::HextileCoord(_) => &["coord", "rotation", "rotationrange", "scale", "scalerange", "offset", "offsetrange"],
+        Op::HextileGrad(_) => &["grad", "coord", "rotation", "rotationrange", "scale", "scalerange"],
+        Op::HextileWeights => &["coord", "weights", "falloff"],
     }
 }
 

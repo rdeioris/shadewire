@@ -94,6 +94,10 @@ pub enum Op {
     WorleyNoise3d,
     // normal.rs
     NormalMap,
+    // hextile.rs: tile `n`'s coordinate and gradient, the blend weights
+    HextileCoord(u8),
+    HextileGrad(u8),
+    HextileWeights,
     // derivative.rs: screen-space derivatives, for sample gradients
     Dpdx,
     Dpdy,

@@ -93,14 +93,15 @@ fn load_png(path: &Path) -> Image {
     Image { width: info.width as usize, height: info.height as usize, rgba }
 }
 
-/// Closest filter, periodic wrap; images are stored top row first.
+/// Closest or linear (GL's, texel centers at +0.5) filter, periodic wrap; images are
+/// stored top row first. Oracle uvs stay magnified, so mip level 0 is what GL reads.
 struct PngTextures(HashMap<String, Image>);
 
 impl PngTextures {
     fn for_dag(dag: &Dag) -> PngTextures {
         let mut images = HashMap::new();
         for texture in &dag.textures {
-            assert_eq!(texture.filter, FilterMode::Closest, "oracle images use the closest filter");
+            assert_ne!(texture.filter, FilterMode::Cubic, "oracle images use the closest or linear filter");
             assert_eq!((texture.address_u, texture.address_v), (AddressMode::Periodic, AddressMode::Periodic));
             let path = root().join("vendor/materialx").join(&texture.file);
             images.insert(texture.file.clone(), load_png(&path));
@@ -112,9 +113,28 @@ impl PngTextures {
 impl TextureSource for PngTextures {
     fn sample(&self, texture: &TextureDesc, uv: [f32; 2]) -> Option<[f32; 4]> {
         let image = &self.0[&texture.file];
-        let x = ((uv[0] * image.width as f32).floor() as i64).rem_euclid(image.width as i64) as usize;
-        let y = (((1.0 - uv[1]) * image.height as f32).floor() as i64).rem_euclid(image.height as i64) as usize;
-        Some(image.rgba[y * image.width + x])
+        let texel = |x: i64, y: i64| {
+            let x = x.rem_euclid(image.width as i64) as usize;
+            let y = y.rem_euclid(image.height as i64) as usize;
+            image.rgba[y * image.width + x]
+        };
+        let x = uv[0] * image.width as f32;
+        let y = (1.0 - uv[1]) * image.height as f32;
+        if texture.filter == FilterMode::Closest {
+            return Some(texel(x.floor() as i64, y.floor() as i64));
+        }
+        let (x, y) = (x - 0.5, y - 0.5);
+        let (x0, y0) = (x.floor(), y.floor());
+        let (fx, fy) = (x - x0, y - y0);
+        let (x0, y0) = (x0 as i64, y0 as i64);
+        let (a, b, c, d) = (texel(x0, y0), texel(x0 + 1, y0), texel(x0, y0 + 1), texel(x0 + 1, y0 + 1));
+        let mut out = [0.0; 4];
+        for i in 0..4 {
+            let top = a[i] + (b[i] - a[i]) * fx;
+            let bottom = c[i] + (d[i] - c[i]) * fx;
+            out[i] = top + (bottom - top) * fy;
+        }
+        Some(out)
     }
 }
 

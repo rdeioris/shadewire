@@ -1,5 +1,5 @@
 //! Categories with no op and no implementation graph: pass-throughs,
-//! channel splits, host reads and `image`.
+//! channel splits, host reads, `image` and `hextiledimage`.
 
 use shadewire_ir::{ContextRead, Error, Location, Node as IrNode, NodeId, NodeKind, Op, Space, Type, Value};
 
@@ -28,6 +28,7 @@ pub fn is_special(category: &str) -> bool {
             | "time"
             | "frame"
             | "image"
+            | "hextiledimage"
             | "transformmatrix"
     )
 }
@@ -53,6 +54,7 @@ impl<'a> Elaborator<'a> {
                 return Ok(self.dag.add(IrNode { kind: NodeKind::Op { op, args }, ty: out, origin: at.path.clone() }));
             }
             "image" => return self.elaborate_image(scope, node, nd, out, &at),
+            "hextiledimage" => return self.elaborate_hextiled_image(scope, node, nd, out, &at),
             "transformmatrix" => return self.elaborate_transformmatrix(scope, node, nd, out, &at),
             "position" => ContextRead::Position(self.read_space(scope, node, nd, "object", &at)?),
             "normal" => ContextRead::Normal(self.read_space(scope, node, nd, "object", &at)?),

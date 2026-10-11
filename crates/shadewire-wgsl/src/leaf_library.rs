@@ -5,8 +5,8 @@ use shadewire_ir::reflection::live::live_nodes;
 use shadewire_ir::{Dag, NodeKind, Op};
 
 /// Every library file, in dependency order.
-pub const FILES: [&str; 9] =
-    ["color", "normal", "vector", "noise_basics", "noise_hash", "noise_perlin", "noise_fractal", "noise_cell", "noise_worley"];
+pub const FILES: [&str; 10] =
+    ["color", "normal", "vector", "hextile", "noise_basics", "noise_hash", "noise_perlin", "noise_fractal", "noise_cell", "noise_worley"];
 
 /// The library sources a DAG needs, each once, in dependency order.
 pub fn files_for(dag: &Dag) -> Vec<&'static str> {
@@ -35,6 +35,7 @@ pub fn needs(op: &Op) -> &'static [&'static str] {
         Op::RgbToHsv | Op::HsvToRgb => &["color"],
         Op::NormalMap => &["normal"],
         Op::Rotate2d => &["vector"],
+        Op::HextileCoord(_) | Op::HextileGrad(_) | Op::HextileWeights => &["hextile"],
         Op::Noise2d | Op::Noise3d => &["noise_basics", "noise_hash", "noise_perlin"],
         Op::Fractal3d => &["noise_basics", "noise_hash", "noise_perlin", "noise_fractal"],
         Op::CellNoise2d | Op::CellNoise3d => &["noise_basics", "noise_hash", "noise_cell"],
@@ -49,6 +50,7 @@ pub fn source(name: &str) -> &'static str {
         "color" => include_str!("../lib/color.wgsl"),
         "normal" => include_str!("../lib/normal.wgsl"),
         "vector" => include_str!("../lib/vector.wgsl"),
+        "hextile" => include_str!("../lib/hextile.wgsl"),
         "noise_basics" => include_str!("../lib/noise_basics.wgsl"),
         "noise_hash" => include_str!("../lib/noise_hash.wgsl"),
         "noise_perlin" => include_str!("../lib/noise_perlin.wgsl"),
@@ -73,6 +75,7 @@ mod tests {
             vec!["noise_basics", "noise_hash", "noise_perlin", "noise_fractal"],
             vec!["normal"],
             vec!["vector"],
+            vec!["hextile"],
         ] {
             let text: String = set.iter().map(|f| source(f)).collect::<Vec<_>>().join("\n");
             let module =
