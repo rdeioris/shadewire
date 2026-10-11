@@ -51,7 +51,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "needs Op::Extract (task 6)"]
     fn evaluates_a_small_graph() {
         let mut dag = Dag::new("open_pbr_surface");
         let uv = dag.add(Node { kind: NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), ty: Type::Vector2, origin: String::new() });
