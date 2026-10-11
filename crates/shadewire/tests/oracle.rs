@@ -239,12 +239,17 @@ fn uv_convention() -> VConvention {
     matches[0]
 }
 
+/// Materials that sample an image.
+const IMAGE_MATERIALS: [&str; 2] = ["hextile_grid", "image_grid"];
+
 /// Materials whose graph also drives `specular_roughness` (the scalar ops).
 const SCALAR_MATERIALS: [&str; 8] =
     ["cellnoise2d", "fractal3d", "logic_switch", "math_ops", "noise2d", "noise3d", "trig_ops", "worley2d"];
 
 fn expected_fields(material: &str) -> Vec<&'static str> {
-    if SCALAR_MATERIALS.contains(&material) {
+    if material == "unlit_basic" {
+        vec!["emission"]
+    } else if SCALAR_MATERIALS.contains(&material) {
         vec!["base_color", "specular_roughness"]
     } else {
         vec!["base_color"]
@@ -266,17 +271,18 @@ fn interpreter_matches_materialx_glsl() {
         .filter(|p| p.extension().is_some_and(|e| e == "json"))
         .collect();
     paths.sort();
-    assert_eq!(paths.len(), 14, "one baked json per oracle material");
+    assert_eq!(paths.len(), 17, "one baked json per oracle material");
     let mut report = Vec::new();
     let mut failed = false;
     for path in &paths {
         let baked = load_baked(path);
-        let tolerance = if baked.material == "image_grid" { IMAGE_TOLERANCE } else { TOLERANCE };
+        // GL filters with 8-bit weights: linear (hextile_grid) moves texels by up to 1/256.
+        let tolerance = if IMAGE_MATERIALS.contains(&baked.material.as_str()) { IMAGE_TOLERANCE } else { TOLERANCE };
         let errors = compare(&baked, convention);
         assert_eq!(field_names(&baked), expected_fields(&baked.material), "{} baked fields", baked.material);
         failed |= !(worst(&errors) <= tolerance);
         report.push(describe(&baked.material, &errors));
     }
     println!("uv convention {convention:?}\n{}", report.join("\n"));
-    assert!(!failed, "oracle mismatch (tolerance {TOLERANCE:e}, image_grid {IMAGE_TOLERANCE:e}):\n{}", report.join("\n"));
+    assert!(!failed, "oracle mismatch (tolerance {TOLERANCE:e}, images {IMAGE_TOLERANCE:e}):\n{}", report.join("\n"));
 }
