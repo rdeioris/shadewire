@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = ["crates/shadewire-ir", "crates/shadewire-mtlx", "crates/shadewire-wgsl", "crates/shadewire", "crates/shadewire-cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+authors = ["Roberto De Ioris"]
+repository = "https://github.com/rdeioris/shadewire"
+
+[workspace.dependencies]
+shadewire-ir = { path = "crates/shadewire-ir" }
+shadewire-mtlx = { path = "crates/shadewire-mtlx" }
+shadewire-wgsl = { path = "crates/shadewire-wgsl" }
+shadewire = { path = "crates/shadewire" }
+naga = { version = "30", features = ["wgsl-in", "wgsl-out", "hlsl-out", "glsl-out", "msl-out", "spv-out"] }
+quick-xml = "0.38"
+include_dir = "0.7"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+wgpu = "30"
+pollster = "0.4"
+insta = "1"
+png = "0.17"

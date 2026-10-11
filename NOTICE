@@ -1,0 +1,9 @@
+Shadewire
+Copyright (c) 2026 Roberto De Ioris (MIT, see LICENSE)
+
+This product includes files from MaterialX (https://github.com/AcademySoftwareFoundation/MaterialX),
+Copyright Contributors to the MaterialX Project, licensed under the Apache License 2.0
+(vendor/materialx/LICENSE):
+- vendor/materialx/** (unmodified copies)
+- crates/shadewire-wgsl/lib/*.wgsl and crates/shadewire-ir/src/ops/noise/*.rs, color.rs:
+  ports of libraries/stdlib/genglsl/lib/*.glsl

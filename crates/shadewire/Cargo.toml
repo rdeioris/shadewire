@@ -1,0 +1,19 @@
+[package]
+name = "shadewire"
+description = "Compile MaterialX material graphs to WGSL surface-parameter functions"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+shadewire-ir.workspace = true
+shadewire-mtlx.workspace = true
+shadewire-wgsl.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+png.workspace = true

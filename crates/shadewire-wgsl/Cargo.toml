@@ -1,0 +1,17 @@
+[package]
+name = "shadewire-wgsl"
+description = "WGSL emitter for Shadewire material DAGs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+shadewire-ir.workspace = true
+naga.workspace = true
+
+[dev-dependencies]
+wgpu.workspace = true
+pollster.workspace = true

@@ -1,0 +1,15 @@
+[package]
+name = "shadewire-mtlx"
+description = "MaterialX document reader and graph lowering for Shadewire"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+shadewire-ir.workspace = true
+quick-xml.workspace = true
+include_dir.workspace = true
+thiserror.workspace = true
