@@ -4,7 +4,7 @@ pub mod cases;
 
 use std::sync::mpsc;
 
-use shadewire_ir::{Dag, NodeKind};
+use shadewire_ir::{Dag, NodeId, NodeKind};
 
 /// The compute module around `wgsl_functions` (library files + `case_0 .. case_{count-1}`).
 /// `sw_zero` is a runtime 0.0 that `opaque_constants` adds to every constant.
@@ -22,29 +22,53 @@ pub fn shader(wgsl_functions: &str, count: usize) -> String {
 
 /// Rewrites a probe function so each `Const` node reads `value + sw_zero`: with literal
 /// arguments naga (and the driver) would fold the op at compile time on the CPU and the
-/// GPU would never compute it.
-pub fn opaque_constants(dag: &Dag, probe: &str) -> String {
+/// GPU would never compute it. `node` is the probed node: every `Const` it reads must have
+/// been rewritten, or the probe format changed and this panics naming the probe.
+pub fn opaque_constants(dag: &Dag, node: NodeId, probe: &str) -> String {
     let mut out = String::new();
+    let mut rewritten = 0;
     for line in probe.lines() {
-        out.push_str(&opaque_line(dag, line));
+        match opaque_line(dag, line) {
+            Some(opaque) => {
+                rewritten += 1;
+                out.push_str(&opaque);
+            }
+            None => out.push_str(line),
+        }
         out.push('\n');
     }
+    let wanted = live_constants(dag, node);
+    let name = probe.lines().next().unwrap_or("").trim_start_matches("fn ").split('(').next().unwrap_or("");
+    assert_eq!(rewritten, wanted, "probe {name}: made {rewritten} constants opaque, it reads {wanted}");
     out
 }
 
-/// `    let nI: T = expr;` for a `Const` node I becomes `    let nI: T = <expr made opaque>;`.
-/// Any line not of exactly that shape passes through unchanged.
-fn opaque_line(dag: &Dag, line: &str) -> String {
-    let Some(rest) = line.trim_start().strip_prefix("let n") else { return line.to_string() };
-    let Some((index, rest)) = rest.split_once(": ") else { return line.to_string() };
-    if index.is_empty() || !index.bytes().all(|b| b.is_ascii_digit()) {
-        return line.to_string();
+/// How many `Const` nodes `node` reads, itself included.
+fn live_constants(dag: &Dag, node: NodeId) -> usize {
+    let mut seen = vec![false; dag.nodes.len()];
+    let mut stack = vec![node];
+    while let Some(id) = stack.pop() {
+        if !seen[id.index()] {
+            seen[id.index()] = true;
+            stack.extend(dag.args(id));
+        }
     }
-    let Ok(index) = index.parse::<usize>() else { return line.to_string() };
-    let Some((ty, expr)) = rest.split_once(" = ") else { return line.to_string() };
-    let Some(expr) = expr.strip_suffix(';') else { return line.to_string() };
+    dag.nodes.iter().zip(&seen).filter(|(n, live)| **live && matches!(n.kind, NodeKind::Const(_))).count()
+}
+
+/// `    let nI: T = expr;` for a `Const` node I becomes `    let nI: T = <expr made opaque>;`.
+/// `None` for any line not of exactly that shape.
+fn opaque_line(dag: &Dag, line: &str) -> Option<String> {
+    let rest = line.trim_start().strip_prefix("let n")?;
+    let (index, rest) = rest.split_once(": ")?;
+    if index.is_empty() || !index.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let index: usize = index.parse().ok()?;
+    let (ty, expr) = rest.split_once(" = ")?;
+    let expr = expr.strip_suffix(';')?;
     if !matches!(dag.nodes.get(index).map(|n| &n.kind), Some(NodeKind::Const(_))) {
-        return line.to_string();
+        return None;
     }
     let opaque = match ty {
         "f32" => format!("({expr} + sw_zero)"),
@@ -52,7 +76,7 @@ fn opaque_line(dag: &Dag, line: &str) -> String {
         "bool" => format!("(({expr}) == (sw_zero == 0.0))"),
         vector => format!("({expr} + {vector}(sw_zero))"),
     };
-    format!("    let n{index}: {ty} = {opaque};")
+    Some(format!("    let n{index}: {ty} = {opaque};"))
 }
 
 /// Runs `case_0 .. case_{count-1}` once and reads back their vec4 results.
@@ -145,4 +169,49 @@ async fn run(source: &str, count: usize) -> Option<Vec<[f32; 4]>> {
     staging.destroy();
     device.destroy();
     Some(values)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::opaque_constants;
+    use shadewire_ir::{Dag, Node, NodeId, NodeKind, Op, Type, Value};
+
+    fn two_constants() -> (Dag, NodeId) {
+        let mut dag = Dag::new("m");
+        let mut add = |kind, ty| dag.add(Node { kind, ty, origin: String::new() });
+        let a = add(NodeKind::Const(Value::Float(2.0)), Type::Float);
+        let b = add(NodeKind::Const(Value::Color3([0.1, 0.2, 0.3])), Type::Color3);
+        let m = add(NodeKind::Op { op: Op::Multiply, args: vec![b, a] }, Type::Color3);
+        (dag, m)
+    }
+
+    #[test]
+    fn both_constants_are_made_opaque() {
+        let (dag, m) = two_constants();
+        let probe = "fn case_7() -> vec4<f32> {
+    let n0: f32 = 2.0;
+    let n1: vec3<f32> = vec3<f32>(0.1, 0.2, 0.3);
+    let n2: vec3<f32> = (n1 * vec3<f32>(n0));
+    return vec4<f32>(n2, 0.0);
+}
+";
+        let out = opaque_constants(&dag, m, probe);
+        assert!(out.contains("    let n0: f32 = (2.0 + sw_zero);\n"), "{out}");
+        assert!(out.contains("    let n1: vec3<f32> = (vec3<f32>(0.1, 0.2, 0.3) + vec3<f32>(sw_zero));\n"), "{out}");
+        assert!(out.contains("    let n2: vec3<f32> = (n1 * vec3<f32>(n0));\n"), "{out}");
+    }
+
+    #[test]
+    #[should_panic(expected = "probe case_7: made 1 constants opaque, it reads 2")]
+    fn a_malformed_constant_line_fails_the_guard() {
+        let (dag, m) = two_constants();
+        let probe = "fn case_7() -> vec4<f32> {
+    let n0: f32 = 2.0;
+    let n1 : vec3<f32> = vec3<f32>(0.1, 0.2, 0.3);
+    let n2: vec3<f32> = (n1 * vec3<f32>(n0));
+    return vec4<f32>(n2, 0.0);
+}
+";
+        opaque_constants(&dag, m, probe);
+    }
 }

@@ -54,7 +54,7 @@ fn wgsl_functions(cases: &[Case]) -> String {
     }
     for (i, case) in cases.iter().enumerate() {
         let probe = probe_function(&case.dag, case.node, &format!("case_{i}"));
-        text.push(gpu::opaque_constants(&case.dag, &probe));
+        text.push(gpu::opaque_constants(&case.dag, case.node, &probe));
     }
     text.join("\n")
 }
