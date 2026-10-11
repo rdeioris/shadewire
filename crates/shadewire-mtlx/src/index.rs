@@ -37,6 +37,12 @@ impl<'a> Index<'a> {
             .find_map(|d| d.nodegraphs.iter().find(|g| g.nodedef.as_deref() == Some(nodedef)))
     }
 
+    /// The file of the document holding `graph`, if it was named.
+    pub fn graph_file(&self, graph: &NodeGraph) -> Option<&'a str> {
+        let document = self.documents.iter().find(|d| d.nodegraphs.iter().any(|g| std::ptr::eq(g, graph)))?;
+        document.file.as_deref()
+    }
+
     pub fn nodegraph(&self, name: &str) -> Option<&'a NodeGraph> {
         self.documents.iter().find_map(|d| d.nodegraphs.iter().find(|g| g.name == name))
     }

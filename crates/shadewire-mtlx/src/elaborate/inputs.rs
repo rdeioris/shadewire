@@ -42,7 +42,7 @@ impl<'a> Elaborator<'a> {
     ) -> Result<NodeId, Error> {
         let given = node.inputs.iter().find(|i| i.name == input_name);
         let path = format!("{}.{input_name}", scope.origin(&node.name));
-        let at = self.at(given.map_or(node.line, |i| i.line), path);
+        let at = self.at(scope, given.map_or(node.line, |i| i.line), path);
         let port = nd.inputs.iter().find(|p| p.name == input_name).ok_or_else(|| Error::BadValue {
             at: at.clone(),
             message: format!("{} has no input {input_name}", nd.name),
@@ -111,7 +111,7 @@ impl<'a> Elaborator<'a> {
                         return Ok(Some(TextValue { text: bound.text.clone(), colorspace }));
                     }
                     Some(Binding::Node(_)) => {
-                        let at = self.at(input.line, format!("{}.{input_name}", scope.origin(&node.name)));
+                        let at = self.at(scope, input.line, format!("{}.{input_name}", scope.origin(&node.name)));
                         return Err(Error::BadValue { at, message: format!("interface input {name} is not a string") });
                     }
                     Some(Binding::Unbound) | None => {}

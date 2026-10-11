@@ -41,7 +41,7 @@ impl<'a> Elaborator<'a> {
         nd: &'a NodeDef,
         output: Option<&str>,
     ) -> Result<NodeId, Error> {
-        let at = self.at(node.line, scope.origin(&node.name));
+        let at = self.at(scope, node.line, scope.origin(&node.name));
         let out = self.output_type(nd, output, &at)?;
         let read = match node.category.as_str() {
             "constant" => return self.input_value(scope, node, nd, "value"),

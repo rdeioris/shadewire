@@ -39,6 +39,8 @@ pub struct Scope<'a> {
     /// Readable path of the scope: `""` at top level, the graph name for a
     /// user graph, `<parent path>/<node name>` for an inlined instance.
     pub path: String,
+    /// The file of a library graph's document; `None` for the elaborated document.
+    pub file: Option<&'a str>,
 }
 
 impl<'a> Scope<'a> {
@@ -64,7 +66,7 @@ impl<'a> Elaborator<'a> {
 
     /// The document's top level. Its id is 0.
     pub fn top_scope(&self, nodes: &'a [Node]) -> Scope<'a> {
-        Scope { id: 0, graph: None, nodes, interface: HashMap::new(), user: true, path: String::new() }
+        Scope { id: 0, graph: None, nodes, interface: HashMap::new(), user: true, path: String::new(), file: None }
     }
 
     /// A user nodegraph referenced by name (`nodegraph=`). Entered once: every
@@ -91,7 +93,7 @@ impl<'a> Elaborator<'a> {
                 }
                 (PortType::Value(ty), Some(text), _) if !text.is_empty() => {
                     let ty = self.value_type(&PortType::Value(*ty), &port_at)?;
-                    let scope = Scope { id, graph: Some(graph), nodes: &graph.nodes, interface: HashMap::new(), user: true, path: name.to_string() };
+                    let scope = Scope { id, graph: Some(graph), nodes: &graph.nodes, interface: HashMap::new(), user: true, path: name.to_string(), file: None };
                     let id = self.authored_value(&scope, &port.name, ty, text, true, &port_at)?;
                     Binding::Node(self.convert_colorspace(id, ty, port.colorspace.as_deref(), &port_at)?)
                 }
@@ -110,7 +112,7 @@ impl<'a> Elaborator<'a> {
             };
             interface.insert(port.name.clone(), binding);
         }
-        let scope = Scope { id, graph: Some(graph), nodes: &graph.nodes, interface, user: true, path: name.to_string() };
+        let scope = Scope { id, graph: Some(graph), nodes: &graph.nodes, interface, user: true, path: name.to_string(), file: None };
         self.user_scopes.insert(name.to_string(), scope.clone());
         Ok(scope)
     }

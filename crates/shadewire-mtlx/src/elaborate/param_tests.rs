@@ -64,7 +64,8 @@ fn geompropvalue_color_default_in_a_colorspace_folds_to_a_constant() {
     );
     let options = ElaborateOptions::default();
     let mut e = Elaborator::new(&d, crate::library::standard(), &options, "test");
-    let at = e.at(0, "g".to_string());
+    let top = e.top_scope(&d.nodes);
+    let at = e.at(&top, 0, "g".to_string());
     let scope = e.user_graph_scope("g", &at).unwrap();
     e.graph_output(&scope, Some("out"), &at).unwrap();
     let Some(Value::Color3(c)) = e.geomprop_defaults.get("tint") else { panic!("{:?}", e.geomprop_defaults) };

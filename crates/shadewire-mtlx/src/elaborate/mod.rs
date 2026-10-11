@@ -95,8 +95,10 @@ impl<'a> Elaborator<'a> {
         }
     }
 
-    pub fn at(&self, line: u32, path: String) -> Location {
-        Location { file: self.file.clone(), line, path }
+    /// A location in `scope`: its library file, or the elaborated document's.
+    pub fn at(&self, scope: &Scope<'a>, line: u32, path: String) -> Location {
+        let file = scope.file.map(str::to_string).or_else(|| self.file.clone());
+        Location { file, line, path }
     }
 
     /// The value type of a port. Matrices and non-value ports are unsupported.
@@ -137,7 +139,8 @@ pub fn elaborate(
 pub(crate) fn elaborate_output(doc: &Document, graph: &str, output: &str) -> Result<Dag, Error> {
     let options = ElaborateOptions::default();
     let mut elaborator = Elaborator::new(doc, crate::library::standard(), &options, "test");
-    let at = elaborator.at(0, graph.to_string());
+    let top = elaborator.top_scope(&doc.nodes);
+    let at = elaborator.at(&top, 0, graph.to_string());
     let scope = elaborator.user_graph_scope(graph, &at)?;
     let id = elaborator.graph_output(&scope, Some(output), &at)?;
     let ty = elaborator.dag.node(id).ty;

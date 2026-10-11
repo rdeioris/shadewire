@@ -32,7 +32,7 @@ impl<'a> Elaborator<'a> {
         let fg_fields = self.surface_fields(fg)?;
         let bg_fields = self.surface_fields(bg)?;
         if !sides_line_up(&fg_fields, &bg_fields) {
-            let at = self.at(mix.node.line, mix.scope.origin(&mix.node.name));
+            let at = self.at(&mix.scope, mix.node.line, mix.scope.origin(&mix.node.name));
             return Err(Error::UnsupportedSurface { at, node: mix.node.name.clone(), reason: "mix sides differ".to_string() });
         }
         let weight = self.surface_input_value(&mix.scope, mix.node, mix.nodedef, "mix", mix.scope.user)?;

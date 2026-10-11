@@ -205,3 +205,25 @@ fn a_nodedef_without_graph_or_op_is_a_missing_leaf() {
     let err = elaborate_output(&d, "g", "out").unwrap_err();
     assert_eq!(err.to_string(), "test.mtlx:3 (g/x): no implementation for ND_mystery_float");
 }
+
+/// A node inside a library graph is reported in the library file, not the user's document.
+#[test]
+fn library_graph_errors_name_the_library_file() {
+    let lib_text = r#"<materialx version="1.39">
+        <nodedef name="ND_broken_float" node="broken"><output name="out" type="float"/></nodedef>
+        <nodegraph name="NG_broken_float" nodedef="ND_broken_float">
+          <bogus name="b" type="float"/>
+          <output name="out" type="float" nodename="b"/>
+        </nodegraph></materialx>"#;
+    let lib_doc = build(&parse_str(lib_text, None).unwrap(), Some("lib/broken.mtlx")).unwrap();
+    let library = crate::library::Library { documents: vec![lib_doc] };
+    let d = doc(r#"<nodegraph name="g"><broken name="n" type="float"/><output name="out" type="float" nodename="n"/></nodegraph>"#);
+    let options = super::ElaborateOptions::default();
+    let mut elaborator = super::Elaborator::new(&d, &library, &options, "test");
+    let top = elaborator.top_scope(&d.nodes);
+    let at = elaborator.at(&top, 0, "g".to_string());
+    let scope = elaborator.user_graph_scope("g", &at).unwrap();
+    let err = elaborator.graph_output(&scope, Some("out"), &at).unwrap_err();
+    let Error::UnknownNode { at, category } = err else { panic!("{err:?}") };
+    assert_eq!((at.file.as_deref(), at.line, category.as_str()), (Some("lib/broken.mtlx"), 4, "bogus"));
+}

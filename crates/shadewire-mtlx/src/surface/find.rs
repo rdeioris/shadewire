@@ -55,12 +55,12 @@ impl<'a> Elaborator<'a> {
     }
 
     fn unsupported(&self, scope: &Scope<'a>, node: &Node, reason: &str) -> Error {
-        Error::UnsupportedSurface { at: self.at(node.line, scope.origin(&node.name)), node: node.name.clone(), reason: reason.to_string() }
+        Error::UnsupportedSurface { at: self.at(scope, node.line, scope.origin(&node.name)), node: node.name.clone(), reason: reason.to_string() }
     }
 
     /// The surface behind shader input `input_name` of `node`.
     fn follow_shader_input(&mut self, scope: &Scope<'a>, node: &'a Node, input_name: &str, depth: u32) -> Result<SurfaceSource<'a>, Error> {
-        let at = self.at(node.line, scope.origin(&node.name));
+        let at = self.at(scope, node.line, scope.origin(&node.name));
         if depth > MAX_DEPTH {
             return Err(Error::Cycle { at, node: node.name.clone() });
         }
@@ -96,7 +96,7 @@ impl<'a> Elaborator<'a> {
             at: at.clone(),
             message: format!("{} has no surfaceshader output {}", graph.name, output.unwrap_or("")),
         })?;
-        let out_at = self.at(found.line, scope.origin(&found.name));
+        let out_at = self.at(scope, found.line, scope.origin(&found.name));
         if let Some(name) = &found.nodename {
             let target = scope.find_node(name).ok_or_else(|| Error::BadValue { at: out_at.clone(), message: format!("no node named {name}") })?;
             return self.surface_at(scope, target, depth + 1);
@@ -110,7 +110,7 @@ impl<'a> Elaborator<'a> {
 
     /// What shader node `node` is: a model, a mix, a `dot`, or a graph-implemented nodedef.
     fn surface_at(&mut self, scope: &Scope<'a>, node: &'a Node, depth: u32) -> Result<SurfaceSource<'a>, Error> {
-        let at = self.at(node.line, scope.origin(&node.name));
+        let at = self.at(scope, node.line, scope.origin(&node.name));
         let is_shader = node.port_type == PortType::SurfaceShader;
         if PHASE_ONE_MODELS.contains(&node.category.as_str()) {
             let nodedef = self.shader_nodedef(node, &at)?;
@@ -134,7 +134,8 @@ impl<'a> Elaborator<'a> {
             if let Some(graph) = self.index.graph_for_nodedef(&nodedef.name) {
                 let interface = self.bind_interface(scope, node, nodedef, scope.user)?;
                 let path = scope.origin(&node.name);
-                let child = Scope { id: self.new_scope_id(), graph: Some(graph), nodes: &graph.nodes, interface, user: false, path };
+                let file = self.index.graph_file(graph);
+        let child = Scope { id: self.new_scope_id(), graph: Some(graph), nodes: &graph.nodes, interface, user: false, path, file };
                 return self.follow_graph_output(&child, None, &at, depth + 1);
             }
         }

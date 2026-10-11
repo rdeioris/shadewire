@@ -118,7 +118,8 @@ fn time_and_frame_are_global_reads() {
 fn with_defaults(d: &Document) -> (Dag, HashMap<String, Value>) {
     let options = ElaborateOptions::default();
     let mut elaborator = Elaborator::new(d, crate::library::standard(), &options, "test");
-    let at = elaborator.at(0, "g".to_string());
+    let top = elaborator.top_scope(&d.nodes);
+    let at = elaborator.at(&top, 0, "g".to_string());
     let scope = elaborator.user_graph_scope("g", &at).unwrap();
     let id = elaborator.graph_output(&scope, Some("out"), &at).unwrap();
     let ty = elaborator.dag.node(id).ty;

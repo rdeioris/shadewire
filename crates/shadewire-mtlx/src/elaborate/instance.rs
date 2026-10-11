@@ -16,7 +16,7 @@ impl<'a> Elaborator<'a> {
     pub fn node_output(&mut self, scope: &Scope<'a>, node_name: &str, output: Option<&str>) -> Result<NodeId, Error> {
         let origin = scope.origin(node_name);
         let node = scope.find_node(node_name).ok_or_else(|| Error::BadValue {
-            at: self.at(scope.graph.map_or(0, |g| g.line), origin.clone()),
+            at: self.at(scope, scope.graph.map_or(0, |g| g.line), origin.clone()),
             message: format!("no node named {node_name}"),
         })?;
         // A single-output node has one output whatever name it is read by.
@@ -28,7 +28,7 @@ impl<'a> Elaborator<'a> {
         if let Some(id) = self.memo.get(&key) {
             return Ok(*id);
         }
-        let at = self.at(node.line, origin);
+        let at = self.at(scope, node.line, origin);
         if !self.in_progress.insert(key.clone()) {
             return Err(Error::Cycle { at, node: node_name.to_string() });
         }
@@ -134,7 +134,8 @@ impl<'a> Elaborator<'a> {
         output: Option<&str>,
         at: &Location,
     ) -> Result<NodeId, Error> {
-        let child = Scope { id: self.new_scope_id(), graph: Some(graph), nodes: &graph.nodes, interface, user: false, path };
+        let file = self.index.graph_file(graph);
+        let child = Scope { id: self.new_scope_id(), graph: Some(graph), nodes: &graph.nodes, interface, user: false, path, file };
         let wanted = output.or(nd.outputs.first().map(|o| o.name.as_str()));
         if !self.inlining.insert(nd.name.clone()) {
             return Err(Error::Cycle { at: at.clone(), node: node_name.to_string() });
@@ -160,7 +161,7 @@ impl<'a> Elaborator<'a> {
         };
         let key = (scope.id, found.name.clone());
         if !self.following_outputs.insert(key.clone()) {
-            let at = self.at(found.line, scope.origin(&found.name));
+            let at = self.at(scope, found.line, scope.origin(&found.name));
             return Err(Error::Cycle { at, node: format!("{}/{}", graph.name, found.name) });
         }
         let result = self.follow_output(scope, found);
@@ -170,7 +171,7 @@ impl<'a> Elaborator<'a> {
 
     /// Where a graph `<output>` element points: a node, a nodegraph or an interface input.
     fn follow_output(&mut self, scope: &Scope<'a>, output: &Output) -> Result<NodeId, Error> {
-        let at = self.at(output.line, scope.origin(&output.name));
+        let at = self.at(scope, output.line, scope.origin(&output.name));
         if let Some(nodename) = &output.nodename {
             return self.node_output(scope, nodename, output.output.as_deref());
         }
