@@ -4,7 +4,7 @@ Copyright (c) 2026 Roberto De Ioris (MIT, see LICENSE)
 This product includes files from MaterialX (https://github.com/AcademySoftwareFoundation/MaterialX),
 Copyright Contributors to the MaterialX Project, licensed under the Apache License 2.0
 (vendor/materialx/LICENSE):
-- vendor/materialx/** (unmodified copies)
+- vendor/materialx/**: selected files from tag v1.39.5 (see vendor/materialx/UPSTREAM), line endings normalised
 - crates/shadewire-wgsl/lib/*.wgsl and crates/shadewire-ir/src/ops/noise/*.rs, color.rs:
   ports of libraries/stdlib/genglsl/lib/*.glsl (normal.wgsl: libraries/stdlib/genglsl/mx_normalmap.glsl,
   vector.wgsl: libraries/stdlib/genglsl/mx_rotate_vector2.glsl)
@@ -12,6 +12,8 @@ Copyright Contributors to the MaterialX Project, licensed under the Apache Licen
 - crates/shadewire-ir/src/ops/vector.rs (rotate2d): port of libraries/stdlib/genglsl/mx_rotate_vector2.glsl
 - crates/shadewire-ir/src/ops/hextile.rs: port of libraries/stdlib/genglsl/lib/mx_hextile.glsl
 - crates/shadewire-mtlx/src/elaborate/hextile.rs: lowering of libraries/stdlib/genglsl/mx_hextiledimage.glsl
+- crates/shadewire-mtlx/src/elaborate/ramp.rs: lowering of libraries/stdlib/genglsl/mx_ramplr_*.glsl and
+  mx_ramptb_*.glsl
 
 crates/shadewire-ir/src/ops/noise/*.rs and crates/shadewire-wgsl/lib/noise_*.wgsl derive from
 the Open Shading Language noise library (github.com/imageworks/OpenShadingLanguage,
