@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use shadewire_ir::{op_for_category, Error, Location, NodeId, Value, NodeKind, Node as IrNode};
 
+use super::ramp::is_ramp;
 use super::special::is_special;
 use super::{Binding, Elaborator, MemoKey, Scope};
 use crate::document::{Node, NodeDef, NodeGraph, Output, PortType};
@@ -55,6 +56,9 @@ impl<'a> Elaborator<'a> {
             return self.elaborate_special(scope, node, nd, output);
         }
         let out = self.output_type(nd, output, at)?;
+        if is_ramp(&node.category) {
+            return self.elaborate_ramp(scope, node, nd, out, at);
+        }
         let value_inputs = nd.inputs.iter().filter(|p| matches!(p.port_type, PortType::Value(_))).count();
         match op_for_category(&node.category, out, value_inputs) {
             Some(op) => self.leaf(scope, node, nd, op, out, at),

@@ -10,6 +10,7 @@ pub mod inputs;
 pub mod instance;
 pub mod leaf;
 pub mod matrix;
+pub mod ramp;
 pub mod scope;
 pub mod special;
 pub mod units;
