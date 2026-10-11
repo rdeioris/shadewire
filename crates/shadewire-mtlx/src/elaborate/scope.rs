@@ -92,7 +92,8 @@ impl<'a> Elaborator<'a> {
                 (PortType::Value(ty), Some(text), _) if !text.is_empty() => {
                     let ty = self.value_type(&PortType::Value(*ty), &port_at)?;
                     let scope = Scope { id, graph: Some(graph), nodes: &graph.nodes, interface: HashMap::new(), user: true, path: name.to_string() };
-                    Binding::Node(self.authored_value(&scope, &port.name, ty, text, true, &port_at)?)
+                    let id = self.authored_value(&scope, &port.name, ty, text, true, &port_at)?;
+                    Binding::Node(self.convert_colorspace(id, ty, port.colorspace.as_deref(), &port_at)?)
                 }
                 (PortType::Value(ty), _, Some(geomprop)) => {
                     let ty = self.value_type(&PortType::Value(*ty), &port_at)?;

@@ -2,15 +2,20 @@
 //! inlined per instance, leaf nodedefs become ops, inputs follow connections,
 //! interfaces and defaults.
 
+pub mod colorspace;
 pub mod defaults;
 pub mod image;
 pub mod inputs;
 pub mod instance;
 pub mod leaf;
+pub mod matrix;
 pub mod scope;
 pub mod special;
+pub mod units;
 pub mod values;
 
+#[cfg(test)]
+mod convert_tests;
 #[cfg(test)]
 mod cycle_tests;
 #[cfg(test)]

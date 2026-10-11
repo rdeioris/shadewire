@@ -31,7 +31,7 @@ impl<'a> Elaborator<'a> {
 
     /// The constant integer `index` input of `extract`.
     fn extract_index(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, at: &Location) -> Result<u32, Error> {
-        let id = self.input_value(scope, node, nd, "index")?;
+        let id = self.param_value(scope, node, nd, "index")?;
         match &self.dag.node(id).kind {
             NodeKind::Const(Value::Integer(i)) if *i >= 0 => Ok(*i as u32),
             other => Err(Error::BadValue { at: at.clone(), message: format!("extract index must be a constant integer, found {other:?}") }),

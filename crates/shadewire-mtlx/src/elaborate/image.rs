@@ -58,8 +58,10 @@ impl<'a> Elaborator<'a> {
         AddressMode::from_mtlx(&text).ok_or_else(|| Error::BadValue { at: at.clone(), message: format!("unknown {name} {text}") })
     }
 
-    /// Converts a sample from its file's colorspace to the working one (Task 17). The identity for now.
-    pub fn convert_sample_colorspace(&mut self, sample: NodeId, _colorspace: Option<&str>, _at: &Location) -> Result<NodeId, Error> {
-        Ok(sample)
+    /// Converts a color sample from its file's colorspace to the working one.
+    /// Float and vector samples are data and stay as read.
+    pub fn convert_sample_colorspace(&mut self, sample: NodeId, colorspace: Option<&str>, at: &Location) -> Result<NodeId, Error> {
+        let ty = self.dag.node(sample).ty;
+        self.convert_colorspace(sample, ty, colorspace, at)
     }
 }

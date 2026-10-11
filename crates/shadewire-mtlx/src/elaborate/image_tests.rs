@@ -5,12 +5,16 @@ use shadewire_ir::{AddressMode, ContextRead, Dag, Error, FilterMode, NodeId, Nod
 use super::elaborate_output;
 use super::tests::doc;
 
-/// The sampled texture, uv node and default of graph `g`'s output `out`.
+/// The sampled texture, uv node and default of the DAG's only sample (color
+/// samples sit under their colorspace conversion).
 fn sample(dag: &Dag) -> (&TextureDesc, NodeId, Value) {
-    match &dag.node(dag.surface.fields[0].node).kind {
-        NodeKind::Sample { texture, uv, default } => (&dag.textures[*texture], *uv, default.clone()),
-        other => panic!("not a sample: {other:?}"),
-    }
+    let mut samples = dag.nodes.iter().filter_map(|n| match &n.kind {
+        NodeKind::Sample { texture, uv, default } => Some((&dag.textures[*texture], *uv, default.clone())),
+        _ => None,
+    });
+    let found = samples.next().expect("no sample");
+    assert!(samples.next().is_none(), "more than one sample");
+    found
 }
 
 #[test]

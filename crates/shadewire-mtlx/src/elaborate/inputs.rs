@@ -1,7 +1,7 @@
 //! Input resolution: connections, nodegraph references, interface bindings,
 //! authored values, then nodedef defaults.
 
-use shadewire_ir::{Error, Location, NodeId};
+use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind};
 
 use super::{Binding, Elaborator, Scope, TextValue};
 use crate::document::{Input, Node, NodeDef, PortDef};
@@ -9,6 +9,16 @@ use crate::document::{Input, Node, NodeDef, PortDef};
 impl<'a> Elaborator<'a> {
     /// The value of value-typed input `input_name` of `node`, whose nodedef is `nd`.
     pub fn input_value(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, input_name: &str) -> Result<NodeId, Error> {
+        self.input_node(scope, node, nd, input_name, false)
+    }
+
+    /// `input_value` for an op parameter or compile-time setting: a uniform
+    /// bound through an interface is read as a constant of its value instead.
+    pub fn param_value(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, input_name: &str) -> Result<NodeId, Error> {
+        self.input_node(scope, node, nd, input_name, true)
+    }
+
+    fn input_node(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, input_name: &str, param: bool) -> Result<NodeId, Error> {
         let given = node.inputs.iter().find(|i| i.name == input_name);
         let path = format!("{}.{input_name}", scope.origin(&node.name));
         let at = self.at(given.map_or(node.line, |i| i.line), path);
@@ -18,7 +28,7 @@ impl<'a> Elaborator<'a> {
         })?;
         let ty = self.value_type(&port.port_type, &at)?;
         let raw = match given {
-            Some(input) => self.given_input(scope, input, ty, &at)?,
+            Some(input) => self.given_input(scope, input, ty, param, &at)?,
             None => None,
         };
         let id = match raw {
@@ -29,7 +39,7 @@ impl<'a> Elaborator<'a> {
     }
 
     /// Steps 1-4: what the node itself says. `None` means use the nodedef default.
-    fn given_input(&mut self, scope: &Scope<'a>, input: &Input, ty: shadewire_ir::Type, at: &Location) -> Result<Option<NodeId>, Error> {
+    fn given_input(&mut self, scope: &Scope<'a>, input: &Input, ty: shadewire_ir::Type, param: bool, at: &Location) -> Result<Option<NodeId>, Error> {
         if let Some(nodename) = &input.nodename {
             return self.node_output(scope, nodename, input.output.as_deref()).map(Some);
         }
@@ -39,7 +49,7 @@ impl<'a> Elaborator<'a> {
         }
         if let Some(name) = &input.interfacename {
             match scope.interface.get(name) {
-                Some(Binding::Node(id)) => return Ok(Some(*id)),
+                Some(Binding::Node(id)) => return Ok(Some(self.as_param(*id, param))),
                 Some(Binding::Text(_)) => {
                     return Err(Error::BadValue {
                         at: at.clone(),
@@ -85,8 +95,29 @@ impl<'a> Elaborator<'a> {
         Ok(port.and_then(|p| p.value.clone().map(|text| TextValue { text, colorspace: p.colorspace.clone() })))
     }
 
-    /// Units and colorspace conversion of an input (Task 17). The identity for now.
-    pub fn convert_input(&mut self, id: NodeId, _given: Option<&Input>, _port: &PortDef, _at: &Location) -> Result<NodeId, Error> {
-        Ok(id)
+    /// A uniform read as a parameter becomes a constant of its value.
+    fn as_param(&mut self, id: NodeId, param: bool) -> NodeId {
+        let node = self.dag.node(id);
+        match &node.kind {
+            NodeKind::Uniform { value, .. } if param => {
+                let constant = IrNode { kind: NodeKind::Const(value.clone()), ty: node.ty, origin: node.origin.clone() };
+                self.dag.add(constant)
+            }
+            _ => id,
+        }
+    }
+
+    /// Colorspace then unit conversion of a value authored on the node itself.
+    /// Connections and interface bindings arrive already converted.
+    pub fn convert_input(&mut self, id: NodeId, given: Option<&Input>, port: &PortDef, at: &Location) -> Result<NodeId, Error> {
+        let Some(input) = given else { return Ok(id) };
+        let authored = input.value.is_some() && input.nodename.is_none() && input.nodegraph.is_none() && input.interfacename.is_none();
+        if !authored {
+            return Ok(id);
+        }
+        let ty = self.dag.node(id).ty;
+        let id = self.convert_colorspace(id, ty, input.colorspace.as_deref(), at)?;
+        let unittype = input.unittype.as_deref().or(port.unittype.as_deref());
+        self.convert_unit(id, ty, input.unit.as_deref(), unittype, port.unit.as_deref(), at)
     }
 }

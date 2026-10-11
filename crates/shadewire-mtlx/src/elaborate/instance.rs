@@ -100,17 +100,26 @@ impl<'a> Elaborator<'a> {
             };
             interface.insert(port.name.clone(), binding);
         }
-        let child = Scope {
-            id: self.new_scope_id(),
-            graph: Some(graph),
-            nodes: &graph.nodes,
-            interface,
-            user: false,
-            path: scope.origin(&node.name),
-        };
+        self.inline_bound(nd, graph, interface, scope.origin(&node.name), &node.name, output, at)
+    }
+
+    /// Follows output `output` (or the nodedef's first) of implementation
+    /// graph `graph` with its interface already bound. `path` names the instance.
+    #[allow(clippy::too_many_arguments)]
+    pub fn inline_bound(
+        &mut self,
+        nd: &'a NodeDef,
+        graph: &'a NodeGraph,
+        interface: HashMap<String, Binding>,
+        path: String,
+        node_name: &str,
+        output: Option<&str>,
+        at: &Location,
+    ) -> Result<NodeId, Error> {
+        let child = Scope { id: self.new_scope_id(), graph: Some(graph), nodes: &graph.nodes, interface, user: false, path };
         let wanted = output.or(nd.outputs.first().map(|o| o.name.as_str()));
         if !self.inlining.insert(nd.name.clone()) {
-            return Err(Error::Cycle { at: at.clone(), node: node.name.clone() });
+            return Err(Error::Cycle { at: at.clone(), node: node_name.to_string() });
         }
         let result = self.graph_output(&child, wanted, at);
         self.inlining.remove(&nd.name);
