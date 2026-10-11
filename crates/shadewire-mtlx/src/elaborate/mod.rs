@@ -35,6 +35,7 @@ use shadewire_ir::{Dag, Error, Location, NodeId, Type, Value};
 use crate::document::{Document, PortType};
 use crate::index::Index;
 use crate::library::Library;
+use crate::surface::find::pick_material;
 
 pub use scope::{Binding, Scope, TextValue};
 
@@ -114,9 +115,18 @@ pub fn elaborate(
     material: Option<&str>,
     models: &[&str],
 ) -> Result<Dag, Error> {
-    let _elaborator = Elaborator::new(doc, lib, options, "");
-    let _ = (material, models);
-    unimplemented!("task 18")
+    let mut elaborator = Elaborator::new(doc, lib, options, "");
+    let material = pick_material(doc, material)?;
+    let top = elaborator.top_scope(&doc.nodes);
+    let source = elaborator.find_surface(&top, material)?;
+    let model = source.model().to_string();
+    if !models.contains(&model.as_str()) {
+        return Err(Error::NoTranslation { from: model, to: models.iter().map(|m| m.to_string()).collect() });
+    }
+    let fields = elaborator.surface_fields(&source)?;
+    elaborator.dag.surface.fields = fields;
+    elaborator.dag.surface.model = model;
+    Ok(elaborator.dag)
 }
 
 /// Test helper: a DAG whose single surface field `out` is output `output` of user nodegraph `graph`.

@@ -88,6 +88,20 @@ impl<'a> Elaborator<'a> {
         output: Option<&str>,
         at: &Location,
     ) -> Result<NodeId, Error> {
+        let interface = self.bind_interface(scope, node, nd, false)?;
+        self.inline_bound(nd, graph, interface, scope.origin(&node.name), &node.name, output, at)
+    }
+
+    /// Binds every nodedef input of `node`, read in the caller's scope, as
+    /// the interface of its implementation graph. Authored values become
+    /// uniforms when `uniform_eligible`.
+    pub fn bind_interface(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        uniform_eligible: bool,
+    ) -> Result<HashMap<String, Binding>, Error> {
         let mut interface = HashMap::new();
         for port in &nd.inputs {
             let binding = match &port.port_type {
@@ -95,12 +109,12 @@ impl<'a> Elaborator<'a> {
                     Some(text) => Binding::Text(text),
                     None => Binding::Unbound,
                 },
-                PortType::Value(_) => Binding::Node(self.input_value(scope, node, nd, &port.name)?),
+                PortType::Value(_) => Binding::Node(self.surface_input_value(scope, node, nd, &port.name, uniform_eligible)?),
                 _ => Binding::Unbound,
             };
             interface.insert(port.name.clone(), binding);
         }
-        self.inline_bound(nd, graph, interface, scope.origin(&node.name), &node.name, output, at)
+        Ok(interface)
     }
 
     /// Follows output `output` (or the nodedef's first) of implementation

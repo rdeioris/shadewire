@@ -26,6 +26,8 @@ pub struct NodeDef {
     pub node: String,
     pub outputs: Vec<PortDef>,
     pub inputs: Vec<PortDef>,
+    /// The nodedef this one inherits ports from (`inherit=`).
+    pub inherits: Option<String>,
     pub line: u32,
 }
 
@@ -64,6 +66,7 @@ pub fn build_nodedef(element: &Element, inherit: &Inherit) -> NodeDef {
         node: element.attr("node").unwrap_or("").to_string(),
         outputs: build_ports(element, "output", &inherit),
         inputs: build_ports(element, "input", &inherit),
+        inherits: own(element.attr("inherit")),
         line: element.line,
     }
 }

@@ -9,16 +9,37 @@ use crate::document::{Input, Node, NodeDef, PortDef};
 impl<'a> Elaborator<'a> {
     /// The value of value-typed input `input_name` of `node`, whose nodedef is `nd`.
     pub fn input_value(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, input_name: &str) -> Result<NodeId, Error> {
-        self.input_node(scope, node, nd, input_name, false)
+        self.input_node(scope, node, nd, input_name, false, false)
+    }
+
+    /// `input_value` for an input of a surface node: a value authored on the
+    /// node becomes a uniform when `uniform_eligible` (the node is in the user's scope).
+    pub fn surface_input_value(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        input_name: &str,
+        uniform_eligible: bool,
+    ) -> Result<NodeId, Error> {
+        self.input_node(scope, node, nd, input_name, false, uniform_eligible)
     }
 
     /// `input_value` for an op parameter or compile-time setting: a uniform
     /// bound through an interface is read as a constant of its value instead.
     pub fn param_value(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, input_name: &str) -> Result<NodeId, Error> {
-        self.input_node(scope, node, nd, input_name, true)
+        self.input_node(scope, node, nd, input_name, true, false)
     }
 
-    fn input_node(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, input_name: &str, param: bool) -> Result<NodeId, Error> {
+    fn input_node(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        input_name: &str,
+        param: bool,
+        uniform_eligible: bool,
+    ) -> Result<NodeId, Error> {
         let given = node.inputs.iter().find(|i| i.name == input_name);
         let path = format!("{}.{input_name}", scope.origin(&node.name));
         let at = self.at(given.map_or(node.line, |i| i.line), path);
@@ -28,7 +49,7 @@ impl<'a> Elaborator<'a> {
         })?;
         let ty = self.value_type(&port.port_type, &at)?;
         let raw = match given {
-            Some(input) => self.given_input(scope, input, ty, param, &at)?,
+            Some(input) => self.given_input(scope, input, ty, param, uniform_eligible, &at)?,
             None => None,
         };
         let id = match raw {
@@ -39,7 +60,15 @@ impl<'a> Elaborator<'a> {
     }
 
     /// Steps 1-4: what the node itself says. `None` means use the nodedef default.
-    fn given_input(&mut self, scope: &Scope<'a>, input: &Input, ty: shadewire_ir::Type, param: bool, at: &Location) -> Result<Option<NodeId>, Error> {
+    fn given_input(
+        &mut self,
+        scope: &Scope<'a>,
+        input: &Input,
+        ty: shadewire_ir::Type,
+        param: bool,
+        uniform_eligible: bool,
+        at: &Location,
+    ) -> Result<Option<NodeId>, Error> {
         if let Some(nodename) = &input.nodename {
             return self.node_output(scope, nodename, input.output.as_deref()).map(Some);
         }
@@ -60,7 +89,7 @@ impl<'a> Elaborator<'a> {
             }
         }
         if let Some(text) = &input.value {
-            return self.authored_value(scope, &input.name, ty, text, false, at).map(Some);
+            return self.authored_value(scope, &input.name, ty, text, uniform_eligible, at).map(Some);
         }
         Ok(None)
     }

@@ -29,7 +29,7 @@ pub use ops::{eval_op, input_names, op_for_category};
 pub use reflection::{reflect, BindingOptions, Reflection, SourceInfo};
 pub use space::Space;
 pub use structure_hash::structure_hash;
-pub use surface::{Surface, SurfaceField};
+pub use surface::{model_struct_name, Surface, SurfaceField};
 pub use texture::{AddressMode, FilterMode, TextureDesc};
 pub use types::Type;
 pub use value::Value;

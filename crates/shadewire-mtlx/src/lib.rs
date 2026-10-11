@@ -8,6 +8,7 @@ pub mod index;
 pub mod library;
 pub mod parse;
 pub mod resolve_nodedef;
+pub mod surface;
 pub mod upgrade;
 pub mod version;
 
