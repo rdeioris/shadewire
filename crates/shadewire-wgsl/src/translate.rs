@@ -1,8 +1,9 @@
 //! Translates a linked WGSL module to the other shading languages through naga.
 
 use naga::back::{glsl, hlsl, msl, spv, wgsl};
-use naga::valid::{Capabilities, ValidationFlags, Validator};
 use shadewire_ir::Error;
+
+use crate::link::parse_and_validate;
 
 #[derive(Clone, Debug)]
 pub enum Target {
@@ -20,11 +21,14 @@ pub enum Output {
 }
 
 pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
-    let module = naga::front::wgsl::parse_str(linked).map_err(|e| Error::Naga(e.emit_to_string(linked)))?;
-    let info = Validator::new(ValidationFlags::all(), Capabilities::all())
-        .validate(&module)
-        .map_err(|e| Error::Naga(format!("{e:?}")))?;
-    let entry = module.entry_points.first().map(|e| (e.stage, e.name.clone()));
+    let (module, info) = parse_and_validate(linked)?;
+    // The first fragment entry point if there is one, else the first entry point.
+    let chosen = module
+        .entry_points
+        .iter()
+        .find(|e| e.stage == naga::ShaderStage::Fragment)
+        .or_else(|| module.entry_points.first());
+    let entry = chosen.map(|e| (e.stage, e.name.clone()));
     match target {
         Target::Wgsl => wgsl::write_string(&module, &info, wgsl::WriterFlags::empty())
             .map(Output::Text)
@@ -120,6 +124,8 @@ mod tests {
         assert!(wgsl.contains("sw_eval_surface"));
         let hlsl = text(Target::Hlsl { shader_model: hlsl::ShaderModel::V6_0 });
         assert!(hlsl.contains("register(b0, space2)"), "{hlsl}");
+        assert!(hlsl.contains("register(t1, space2)"), "{hlsl}");
+        assert!(hlsl.contains("register(s0, space0)"), "{hlsl}");
         let glsl = text(Target::Glsl { version: glsl::Version::Embedded { version: 300, is_webgl: false } });
         assert!(glsl.contains("#version 300 es"), "{glsl}");
         assert!(!text(Target::Msl { version: (2, 1) }).is_empty());

@@ -42,12 +42,8 @@ fn color_field(reflection: &Reflection) -> Option<String> {
     colors.iter().find(|n| n.as_str() == "base_color").or(colors.first()).map(|n| ident(n))
 }
 
-/// `sw_in_position_world` for `mx_position_world`.
-fn var_name(function: &str) -> String {
-    format!("sw_in_{}", function.strip_prefix("mx_").unwrap_or(function))
-}
-
-/// `position_world` for `mx_position_world`: the fragment input member.
+/// `position_world` for `mx_position_world`: the fragment input member; the private
+/// variable is `sw_in_` + this.
 fn member_name(function: &str) -> &str {
     function.strip_prefix("mx_").unwrap_or(function)
 }
@@ -67,7 +63,7 @@ fn fragment_entry(reflection: &Reflection, model_struct: &str) -> String {
     };
     out.push_str(&format!("@fragment\nfn sw_reference_main({parameter}) -> @location(0) vec4<f32> {{\n"));
     for v in &inputs {
-        out.push_str(&format!("    {} = input.{};\n", var_name(&v.function), member_name(&v.function)));
+        out.push_str(&format!("    {} = input.{};\n", format!("sw_in_{}", member_name(&v.function)), member_name(&v.function)));
     }
     for name in &reflection.context.derived {
         if name.starts_with("view_direction_") {
@@ -85,7 +81,7 @@ pub fn prelude(reflection: &Reflection, model_struct: &str) -> String {
     let mut out = String::new();
     for r in all_reads(reflection) {
         let ty = wgsl_type(r.ty);
-        let var = var_name(&r.function);
+        let var = format!("sw_in_{}", member_name(&r.function));
         out.push_str(&format!("var<private> {var}: {ty};\nfn {}() -> {ty} {{ return {var}; }}\n", r.function));
     }
     for t in &reflection.context.transforms {
@@ -113,6 +109,24 @@ mod tests {
         assert!(prelude.contains("@builtin(position)"));
         assert!(prelude.contains("vec3<f32>(0.0), 1.0"));
         link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
+    }
+
+    #[test]
+    fn transform_host_functions_are_pinned() {
+        let mut dag = Dag::new("gltf_pbr");
+        let n = add(&mut dag, NodeKind::Context(ContextRead::Normal(Space::Object)), Type::Vector3);
+        let t = add(
+            &mut dag,
+            NodeKind::Op { op: Op::Transform { kind: TransformKind::Normal, from: Space::Object, to: Space::World }, args: vec![n] },
+            Type::Vector3,
+        );
+        dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: t });
+        let r = reflection(&dag);
+        let generated = emit(&dag, &r, &EmitOptions::default());
+        assert!(generated.contains("mx_transform_normal_object_to_world("), "{generated}");
+        let prelude = prelude(&r, "GltfPbr");
+        assert!(prelude.contains("fn mx_transform_normal_object_to_world(v: vec3<f32>) -> vec3<f32>"));
+        link(&generated, &prelude).unwrap();
     }
 
     #[test]
