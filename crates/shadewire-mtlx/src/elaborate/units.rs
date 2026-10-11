@@ -37,7 +37,7 @@ impl<'a> Elaborator<'a> {
         let scaled = match &self.dag.node(value).kind {
             NodeKind::Const(v) => NodeKind::Const(scale(v, factor, at)?),
             _ => {
-                let splat = scale(&Value::parse(ty, &splat_text(ty)).map_err(|e| bad(at, e.to_string()))?, factor, at)?;
+                let splat = splat(ty, factor, at)?;
                 let factor = self.dag.add(Node { kind: NodeKind::Const(splat), ty, origin: origin.clone() });
                 NodeKind::Op { op: Op::Multiply, args: vec![value, factor] }
             }
@@ -54,15 +54,15 @@ fn bad(at: &Location, message: String) -> Error {
     Error::BadValue { at: at.clone(), message }
 }
 
-/// `1` in every component of a `ty` value, as MaterialX text.
-fn splat_text(ty: Type) -> String {
-    let n = match ty {
-        Type::Vector2 => 2,
-        Type::Vector3 => 3,
-        Type::Vector4 => 4,
-        _ => 1,
-    };
-    vec!["1"; n].join(",")
+/// `factor` in every component of a float or vector `ty` value.
+fn splat(ty: Type, factor: f32, at: &Location) -> Result<Value, Error> {
+    Ok(match ty {
+        Type::Float => Value::Float(factor),
+        Type::Vector2 => Value::Vector2([factor; 2]),
+        Type::Vector3 => Value::Vector3([factor; 3]),
+        Type::Vector4 => Value::Vector4([factor; 4]),
+        other => return Err(bad(at, format!("a distance unit on a {} value", other.mtlx_name()))),
+    })
 }
 
 /// A float or vector value with every component multiplied by `factor`.

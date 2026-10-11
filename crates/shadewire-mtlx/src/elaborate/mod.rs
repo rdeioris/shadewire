@@ -4,6 +4,7 @@
 
 pub mod colorspace;
 pub mod defaults;
+pub mod fold;
 pub mod image;
 pub mod inputs;
 pub mod instance;
@@ -20,6 +21,8 @@ mod convert_tests;
 mod cycle_tests;
 #[cfg(test)]
 mod image_tests;
+#[cfg(test)]
+mod param_tests;
 #[cfg(test)]
 mod special_tests;
 #[cfg(test)]

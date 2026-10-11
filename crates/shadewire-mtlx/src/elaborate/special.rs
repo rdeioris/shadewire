@@ -102,13 +102,15 @@ impl<'a> Elaborator<'a> {
     }
 
     /// A value input that must be known at compile time. It is read as a
-    /// parameter, so it never becomes a uniform; only a constant is accepted.
+    /// parameter, so it never becomes a uniform; a constant, or a conversion
+    /// of one (colorspace, units), folded to its value.
     pub fn constant_input(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, name: &str, at: &Location) -> Result<Value, Error> {
         let id = self.param_value(scope, node, nd, name)?;
-        match &self.dag.node(id).kind {
-            NodeKind::Const(value) => Ok(value.clone()),
-            other => Err(Error::BadValue { at: at.clone(), message: format!("{name} must be a constant, found {other:?}") }),
+        if let Some(value) = self.fold_constant(id) {
+            return Ok(value);
         }
+        let found = &self.dag.node(id).kind;
+        Err(Error::BadValue { at: at.clone(), message: format!("{name} must be a constant, found {found:?}") })
     }
 }
 
