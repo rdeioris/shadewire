@@ -10,6 +10,7 @@ pub struct ParseValueError {
 
 impl Value {
     /// Reads a MaterialX value string: comma-separated components, spaces allowed.
+    /// Every component must be finite.
     pub fn parse(ty: Type, text: &str) -> Result<Value, ParseValueError> {
         let error = || ParseValueError { ty, text: text.to_string() };
         match ty {
@@ -22,7 +23,12 @@ impl Value {
             _ => {
                 let mut floats = Vec::new();
                 for part in text.split(',') {
-                    floats.push(part.trim().parse::<f32>().map_err(|_| error())?);
+                    let value = part.trim().parse::<f32>().map_err(|_| error())?;
+                    // NaN, infinities and values past f32's range (which read as infinity) are refused.
+                    if !value.is_finite() {
+                        return Err(error());
+                    }
+                    floats.push(value);
                 }
                 if floats.len() != ty.component_count() {
                     return Err(error());
@@ -50,6 +56,15 @@ mod tests {
     fn rejects_wrong_component_count() {
         assert!(Value::parse(Type::Color3, "1, 2").is_err());
         assert!(Value::parse(Type::Float, "abc").is_err());
+    }
+
+    #[test]
+    fn rejects_non_finite_values() {
+        for text in ["nan", "inf", "-inf", "infinity", "1e39", "-1e39"] {
+            assert!(Value::parse(Type::Float, text).is_err(), "{text}");
+        }
+        assert!(Value::parse(Type::Color3, "0.5, NaN, 0.5").is_err());
+        assert_eq!(Value::parse(Type::Float, "3.4e38").unwrap(), Value::Float(3.4e38));
     }
 
     #[test]
