@@ -2,6 +2,8 @@
 //! through `dot` nodes, user nodegraph outputs, nodegraph-implemented shader
 //! nodedefs, and same-model `mix` nodes.
 
+use std::rc::Rc;
+
 use shadewire_ir::{Error, Location};
 
 use super::models::PHASE_ONE_MODELS;
@@ -13,16 +15,19 @@ use crate::resolve_nodedef::resolve_nodedef;
 const MAX_DEPTH: u32 = 64;
 
 /// The mix node of a surface mix, for reading its `mix` weight.
+#[derive(Clone)]
 pub struct MixInput<'a> {
     pub node: &'a Node,
     pub nodedef: &'a NodeDef,
     pub scope: Scope<'a>,
 }
 
-/// Where a material's surface comes from.
+/// Where a material's surface comes from. A sub-mix both sides of a mix
+/// reach is one shared source.
+#[derive(Clone)]
 pub enum SurfaceSource<'a> {
     Model { node: &'a Node, nodedef: &'a NodeDef, scope: Scope<'a> },
-    Mix { fg: Box<SurfaceSource<'a>>, bg: Box<SurfaceSource<'a>>, mix_input: MixInput<'a> },
+    Mix { fg: Rc<SurfaceSource<'a>>, bg: Rc<SurfaceSource<'a>>, mix_input: MixInput<'a> },
 }
 
 impl SurfaceSource<'_> {
@@ -31,6 +36,14 @@ impl SurfaceSource<'_> {
         match self {
             SurfaceSource::Model { node, .. } => &node.category,
             SurfaceSource::Mix { fg, .. } => fg.model(),
+        }
+    }
+
+    /// `(scope id, node name)` of the model or mix node this source starts at.
+    pub fn key(&self) -> (u32, String) {
+        match self {
+            SurfaceSource::Model { node, scope, .. } => (scope.id, node.name.clone()),
+            SurfaceSource::Mix { mix_input, .. } => (mix_input.scope.id, mix_input.node.name.clone()),
         }
     }
 }
@@ -142,8 +155,25 @@ impl<'a> Elaborator<'a> {
         })
     }
 
-    /// What shader node `node` is: a model, a mix, a `dot`, or a graph-implemented nodedef.
+    /// What shader node `node` is, found once per scope and node: both sides
+    /// of a mix may reach the same sub-mix.
     fn surface_at(&mut self, scope: &Scope<'a>, node: &'a Node, depth: u32) -> Result<SurfaceSource<'a>, Error> {
+        let key = (scope.id, node.name.clone());
+        if let Some(found) = self.surface_sources.get(&key) {
+            return Ok(found.clone());
+        }
+        let found = self.find_surface_at(scope, node, depth)?;
+        self.surface_sources.insert(key, found.clone());
+        Ok(found)
+    }
+
+    /// What shader node `node` is: a model, a mix, a `dot`, or a graph-implemented nodedef.
+    fn find_surface_at(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        depth: u32,
+    ) -> Result<SurfaceSource<'a>, Error> {
         let at = self.at(scope, node.line, scope.origin(&node.name));
         let is_shader = node.port_type == PortType::SurfaceShader;
         if PHASE_ONE_MODELS.contains(&node.category.as_str()) {
@@ -158,7 +188,7 @@ impl<'a> Elaborator<'a> {
             }
             let nodedef = self.shader_nodedef(node, &at)?;
             let mix_input = MixInput { node, nodedef, scope: scope.clone() };
-            return Ok(SurfaceSource::Mix { fg: Box::new(fg), bg: Box::new(bg), mix_input });
+            return Ok(SurfaceSource::Mix { fg: Rc::new(fg), bg: Rc::new(bg), mix_input });
         }
         if node.category == "dot" && is_shader {
             return self.follow_shader_input(scope, node, "in", depth + 1);

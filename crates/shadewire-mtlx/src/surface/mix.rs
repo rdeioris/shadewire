@@ -12,7 +12,19 @@ pub const SURFACE_MIX: &str = "surface_mix";
 impl<'a> Elaborator<'a> {
     /// One field per value input of the model, in nodedef order. Values
     /// authored on a model node in the user's scope become uniforms.
+    /// Each source is elaborated once, so a sub-mix shared by both sides of
+    /// a mix makes its nodes and uniforms once.
     pub fn surface_fields(&mut self, source: &SurfaceSource<'a>) -> Result<Vec<SurfaceField>, Error> {
+        let key = source.key();
+        if let Some(fields) = self.surface_field_memo.get(&key) {
+            return Ok(fields.clone());
+        }
+        let fields = self.elaborate_surface_fields(source)?;
+        self.surface_field_memo.insert(key, fields.clone());
+        Ok(fields)
+    }
+
+    fn elaborate_surface_fields(&mut self, source: &SurfaceSource<'a>) -> Result<Vec<SurfaceField>, Error> {
         match source {
             SurfaceSource::Model { node, nodedef, scope } => {
                 let mut out = Vec::new();

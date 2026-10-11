@@ -36,12 +36,12 @@ mod tests;
 
 use std::collections::{HashMap, HashSet};
 
-use shadewire_ir::{Dag, Error, Location, NodeId, Type, Value};
+use shadewire_ir::{Dag, Error, Location, NodeId, SurfaceField, Type, Value};
 
 use crate::document::{Document, PortType};
 use crate::index::Index;
 use crate::library::Library;
-use crate::surface::find::pick_material;
+use crate::surface::find::{SurfaceSource, pick_material};
 
 pub use scope::{Binding, Scope, TextValue};
 
@@ -89,6 +89,10 @@ pub struct Elaborator<'a> {
     pub following_outputs: HashSet<(u32, String)>,
     /// `geompropvalue` defaults by property name, for reflection.
     pub geomprop_defaults: HashMap<String, Value>,
+    /// Surface sources found so far, by `(scope id, shader node name)`.
+    pub surface_sources: HashMap<(u32, String), SurfaceSource<'a>>,
+    /// Surface fields elaborated so far, by `SurfaceSource::key`.
+    pub surface_field_memo: HashMap<(u32, String), Vec<SurfaceField>>,
 }
 
 impl<'a> Elaborator<'a> {
@@ -107,6 +111,8 @@ impl<'a> Elaborator<'a> {
             inlining: HashSet::new(),
             following_outputs: HashSet::new(),
             geomprop_defaults: HashMap::new(),
+            surface_sources: HashMap::new(),
+            surface_field_memo: HashMap::new(),
         }
     }
 

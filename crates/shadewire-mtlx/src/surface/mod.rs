@@ -5,6 +5,8 @@ pub mod mix;
 pub mod models;
 
 #[cfg(test)]
+mod diamond_tests;
+#[cfg(test)]
 mod tests;
 
 pub use find::{MixInput, SurfaceSource};
