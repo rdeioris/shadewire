@@ -51,13 +51,19 @@ fn user_definitions_shadow_the_library() {
     use shadewire_mtlx::{parse::parse_str, document::build::build};
     let text = r#"<materialx version="1.39">
   <nodedef name="ND_add_float" node="add"><input name="only" type="float" value="0"/><output name="out" type="float"/></nodedef>
-  <nodegraph name="NG_add_float" nodedef="ND_add_float"><output name="out" type="float"/></nodegraph>
+  <nodegraph name="NG_tiledimage_float" nodedef="ND_tiledimage_float"><output name="out" type="float"/></nodegraph>
 </materialx>"#;
     let user = build(&parse_str(text, None).unwrap(), None).unwrap();
     let index = Index::new(&user, library::standard());
     assert_eq!(index.nodedef("ND_add_float").unwrap().inputs[0].name, "only");
-    assert_eq!(index.nodedefs_for_category("add")[0].inputs[0].name, "only");
+    let adds: Vec<_> = index.nodedefs_for_category("add").into_iter().filter(|n| n.name == "ND_add_float").collect();
+    assert_eq!(adds.len(), 1, "user nodedef hides the library one");
+    assert_eq!(adds[0].inputs[0].name, "only");
     assert!(index.nodedefs_for_category("add").len() > 1);
-    assert!(index.graph_for_nodedef("ND_add_float").is_some());
-    assert_eq!(index.nodegraph("NG_add_float").unwrap().line, user.nodegraphs[0].line);
+    // The library implements ND_tiledimage_float with a graph of the same name that has nodes.
+    let library_graph = library::standard().documents.iter()
+        .flat_map(|d| d.nodegraphs.iter()).find(|g| g.name == "NG_tiledimage_float").unwrap();
+    assert!(!library_graph.nodes.is_empty());
+    assert!(index.graph_for_nodedef("ND_tiledimage_float").unwrap().nodes.is_empty());
+    assert!(index.nodegraph("NG_tiledimage_float").unwrap().nodes.is_empty());
 }

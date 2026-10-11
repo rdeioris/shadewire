@@ -19,12 +19,15 @@ impl<'a> Index<'a> {
         self.documents.iter().find_map(|d| d.nodedefs.iter().find(|n| n.name == name))
     }
 
+    /// Matching nodedefs; a nodedef hides any later one with the same name.
     pub fn nodedefs_for_category(&self, category: &str) -> Vec<&'a NodeDef> {
-        self.documents
-            .iter()
-            .flat_map(|d| d.nodedefs.iter())
-            .filter(|n| n.node == category)
-            .collect()
+        let mut found: Vec<&'a NodeDef> = Vec::new();
+        for nodedef in self.documents.iter().flat_map(|d| d.nodedefs.iter()) {
+            if nodedef.node == category && !found.iter().any(|f| f.name == nodedef.name) {
+                found.push(nodedef);
+            }
+        }
+        found
     }
 
     /// The nodegraph that implements a nodedef, if any.
