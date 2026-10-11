@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
+    <extract name="v" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="1" /></extract>
+    <multiply name="v4" type="float"><input name="in1" type="float" nodename="v" /><input name="in2" type="float" value="4" /></multiply>
+    <floor name="which" type="float"><input name="in" type="float" nodename="v4" /></floor>
+    <switch name="sw" type="color3"><input name="in1" type="color3" value="1, 0, 0" /><input name="in2" type="color3" value="0, 1, 0" /><input name="in3" type="color3" value="0, 0, 1" /><input name="in4" type="color3" value="1, 1, 0" /><input name="which" type="float" nodename="which" /></switch>
+    <ifgreater name="color" type="color3"><input name="value1" type="float" nodename="u" /><input name="value2" type="float" value="0.5" /><input name="in1" type="color3" nodename="sw" /><input name="in2" type="color3" value="0.2, 0.3, 0.4" /></ifgreater>
+    <ifgreatereq name="ge" type="boolean"><input name="value1" type="float" nodename="v" /><input name="value2" type="float" value="0.25" /></ifgreatereq>
+    <ifgreater name="gt" type="boolean"><input name="value1" type="float" nodename="u" /><input name="value2" type="float" value="0.75" /></ifgreater>
+    <and name="both" type="boolean"><input name="in1" type="boolean" nodename="ge" /><input name="in2" type="boolean" nodename="gt" /></and>
+    <not name="nb" type="boolean"><input name="in" type="boolean" nodename="both" /></not>
+    <ifequal name="rough" type="float"><input name="value1" type="boolean" nodename="nb" /><input name="value2" type="boolean" value="true" /><input name="in1" type="float" value="0.8" /><input name="in2" type="float" nodename="u" /></ifequal>
+    <output name="out_color" type="color3" nodename="color" />
+    <output name="out_rough" type="float" nodename="rough" />
+  </nodegraph>
+  <standard_surface name="SS" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="out_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG" output="out_rough" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS" />
+  </surfacematerial>
+</materialx>

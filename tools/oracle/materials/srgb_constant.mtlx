@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
+    <extract name="v" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="1" /></extract>
+    <constant name="k" type="color3"><input name="value" type="color3" value="0.5, 0.2, 0.8" colorspace="srgb_texture" /></constant>
+    <multiply name="color" type="color3"><input name="in1" type="color3" nodename="k" /><input name="in2" type="float" nodename="u" /></multiply>
+    <output name="out_color" type="color3" nodename="color" />
+  </nodegraph>
+  <standard_surface name="SS" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="out_color" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS" />
+  </surfacematerial>
+</materialx>

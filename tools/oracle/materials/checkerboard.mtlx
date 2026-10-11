@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
+    <extract name="v" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="1" /></extract>
+    <checkerboard name="color" type="color3"><input name="color1" type="color3" value="0.9, 0.8, 0.1" /><input name="color2" type="color3" value="0.1, 0.2, 0.6" /><input name="uvtiling" type="vector2" value="5, 3" /><input name="uvoffset" type="vector2" value="0.13, 0.07" /><input name="texcoord" type="vector2" nodename="uv" /></checkerboard>
+    <output name="out_color" type="color3" nodename="color" />
+  </nodegraph>
+  <standard_surface name="SS" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="out_color" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS" />
+  </surfacematerial>
+</materialx>

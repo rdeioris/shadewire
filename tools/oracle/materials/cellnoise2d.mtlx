@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
+    <extract name="v" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="1" /></extract>
+    <multiply name="tc" type="vector2"><input name="in1" type="vector2" nodename="uv" /><input name="in2" type="float" value="8" /></multiply>
+    <cellnoise2d name="rough" type="float"><input name="texcoord" type="vector2" nodename="tc" /></cellnoise2d>
+    <add name="tc2" type="vector2"><input name="in1" type="vector2" nodename="tc" /><input name="in2" type="vector2" value="17.3, 4.1" /></add>
+    <cellnoise2d name="c2" type="float"><input name="texcoord" type="vector2" nodename="tc2" /></cellnoise2d>
+    <combine3 name="color" type="color3"><input name="in1" type="float" nodename="rough" /><input name="in2" type="float" nodename="c2" /><input name="in3" type="float" value="0.5" /></combine3>
+    <output name="out_color" type="color3" nodename="color" />
+    <output name="out_rough" type="float" nodename="rough" />
+  </nodegraph>
+  <standard_surface name="SS" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="out_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG" output="out_rough" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS" />
+  </surfacematerial>
+</materialx>

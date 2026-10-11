@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
+    <extract name="v" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="1" /></extract>
+    <multiply name="u6" type="float"><input name="in1" type="float" nodename="u" /><input name="in2" type="float" value="6.2831853" /></multiply>
+    <multiply name="v6" type="float"><input name="in1" type="float" nodename="v" /><input name="in2" type="float" value="6.2831853" /></multiply>
+    <sin name="su" type="float"><input name="in" type="float" nodename="u6" /></sin>
+    <cos name="cv" type="float"><input name="in" type="float" nodename="v6" /></cos>
+    <subtract name="dx" type="float"><input name="in1" type="float" nodename="u" /><input name="in2" type="float" value="0.5" /></subtract>
+    <subtract name="dy" type="float"><input name="in1" type="float" nodename="v" /><input name="in2" type="float" value="0.5" /></subtract>
+    <atan2 name="at" type="float"><input name="iny" type="float" nodename="dy" /><input name="inx" type="float" nodename="dx" /></atan2>
+    <remap name="r1" type="float"><input name="in" type="float" nodename="su" /><input name="inlow" type="float" value="-1" /><input name="inhigh" type="float" value="1" /></remap>
+    <remap name="r2" type="float"><input name="in" type="float" nodename="cv" /><input name="inlow" type="float" value="-1" /><input name="inhigh" type="float" value="1" /></remap>
+    <remap name="r3" type="float"><input name="in" type="float" nodename="at" /><input name="inlow" type="float" value="-3.1415927" /><input name="inhigh" type="float" value="3.1415927" /></remap>
+    <combine3 name="color" type="color3"><input name="in1" type="float" nodename="r1" /><input name="in2" type="float" nodename="r2" /><input name="in3" type="float" nodename="r3" /></combine3>
+    <acos name="ac" type="float"><input name="in" type="float" nodename="u" /></acos>
+    <asin name="as" type="float"><input name="in" type="float" nodename="v" /></asin>
+    <add name="aa" type="float"><input name="in1" type="float" nodename="ac" /><input name="in2" type="float" nodename="as" /></add>
+    <divide name="rough" type="float"><input name="in1" type="float" nodename="aa" /><input name="in2" type="float" value="3.1415927" /></divide>
+    <output name="out_color" type="color3" nodename="color" />
+    <output name="out_rough" type="float" nodename="rough" />
+  </nodegraph>
+  <standard_surface name="SS" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="out_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG" output="out_rough" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS" />
+  </surfacematerial>
+</materialx>
