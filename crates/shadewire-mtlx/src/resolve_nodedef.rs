@@ -13,10 +13,12 @@ pub fn resolve_nodedef<'a>(
     input_types: &[(String, PortType)],
     at: &Location,
 ) -> Result<&'a NodeDef, Error> {
+    let given: Vec<String> = input_types.iter().map(|(name, ty)| format!("{name} {}", ty.mtlx_name())).collect();
     let no_match = || Error::NoMatchingNodeDef {
         at: at.clone(),
         category: node.category.clone(),
-        output: format!("{:?}", node.port_type),
+        output: node.port_type.mtlx_name(),
+        inputs: if given.is_empty() { "none".to_string() } else { given.join(", ") },
     };
 
     if let Some(name) = &node.nodedef {
@@ -147,6 +149,17 @@ mod tests {
         let n = node(r#"<add name="a" type="matrix44"/>"#);
         let got = resolve(&n, &[("in1", float())]);
         assert!(matches!(got, Err(Error::NoMatchingNodeDef { .. })));
+    }
+
+    #[test]
+    fn no_match_names_mtlx_types_and_the_given_inputs() {
+        let n = node(r#"<add name="a" type="float"/>"#);
+        let vector2 = PortType::Value(Type::Vector2);
+        let err = resolve(&n, &[("in1", vector2), ("in2", float())]).unwrap_err();
+        assert_eq!(err.to_string(), "<string>:1 (test): no nodedef matches add -> float (inputs: in1 vector2, in2 float)");
+        let n = node(r#"<add name="a" type="boolean"/>"#);
+        let err = resolve(&n, &[]).unwrap_err();
+        assert_eq!(err.to_string(), "<string>:1 (test): no nodedef matches add -> boolean (inputs: none)");
     }
 
     #[test]

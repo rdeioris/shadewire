@@ -31,6 +31,21 @@ impl PortType {
         }
     }
 
+    /// The type as MaterialX spells it; an untyped input is `untyped`.
+    pub fn mtlx_name(&self) -> String {
+        match self {
+            PortType::Value(ty) => ty.mtlx_name().to_string(),
+            PortType::String => "string".to_string(),
+            PortType::Filename => "filename".to_string(),
+            PortType::SurfaceShader => "surfaceshader".to_string(),
+            PortType::DisplacementShader => "displacementshader".to_string(),
+            PortType::Material => "material".to_string(),
+            PortType::MultiOutput => "multioutput".to_string(),
+            PortType::Closure(name) | PortType::Other(name) if !name.is_empty() => name.clone(),
+            PortType::Closure(_) | PortType::Other(_) => "untyped".to_string(),
+        }
+    }
+
     /// Types whose values carry a colorspace.
     pub fn has_colorspace(&self) -> bool {
         matches!(self, PortType::Filename | PortType::Value(Type::Color3) | PortType::Value(Type::Color4))
@@ -49,5 +64,13 @@ mod tests {
         assert_eq!(PortType::parse("BSDF"), PortType::Closure("BSDF".into()));
         assert_eq!(PortType::parse("surfaceshader"), PortType::SurfaceShader);
         assert_eq!(PortType::parse("volumeshader"), PortType::Other("volumeshader".into()));
+    }
+
+    #[test]
+    fn mtlx_name_spells_what_parse_reads() {
+        for name in ["float", "color3", "filename", "BSDF", "surfaceshader", "multioutput", "volumeshader"] {
+            assert_eq!(PortType::parse(name).mtlx_name(), name);
+        }
+        assert_eq!(PortType::Other(String::new()).mtlx_name(), "untyped");
     }
 }

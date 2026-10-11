@@ -19,8 +19,9 @@ pub enum Error {
     UnsupportedVersion { at: Location, version: String },
     #[error("{at}: unknown node category {category}")]
     UnknownNode { at: Location, category: String },
-    #[error("{at}: no nodedef matches {category} -> {output}")]
-    NoMatchingNodeDef { at: Location, category: String, output: String },
+    /// `inputs` lists the input types the node gave, such as `in1 vector2, in2 float`.
+    #[error("{at}: no nodedef matches {category} -> {output} (inputs: {inputs})")]
+    NoMatchingNodeDef { at: Location, category: String, output: String, inputs: String },
     #[error("{at}: type mismatch: expected {expected}, found {found}")]
     TypeMismatch { at: Location, expected: String, found: String },
     #[error("{at}: unsupported type {ty}")]
