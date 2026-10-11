@@ -1,3 +1,8 @@
+//! Color ops: luminance, rgbtohsv, hsvtorgb.
+//! Ported from MaterialX libraries/stdlib/genglsl/lib/mx_hsv.glsl (Apache-2.0), itself derived
+//! from OSL opcolor.cpp, Copyright (c) 2009-2010 Sony Pictures Imageworks Inc., et al., BSD-3-Clause.
+//! See NOTICE.
+
 use crate::{Op, Type, Value};
 
 pub fn eval(op: &Op, args: &[Value], ty: Type) -> Value {

@@ -1,3 +1,6 @@
+//! The normalmap op.
+//! Ported from MaterialX libraries/stdlib/genglsl/mx_normalmap.glsl (Apache-2.0). See NOTICE.
+
 use crate::ops::broadcast::broadcast;
 use crate::{Op, Type, Value};
 
