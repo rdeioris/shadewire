@@ -156,6 +156,31 @@ fn extract_index_and_transform_spaces_become_op_params() {
     assert_eq!(*op, Op::Transform { kind: TransformKind::Point, from: Space::Object, to: Space::World });
 }
 
+fn extract_error(source: &str, in_type: &str) -> String {
+    let d = doc(&format!(
+        r#"<nodegraph name="g">
+          {source}
+          <extract name="e" type="float">
+            <input name="in" type="{in_type}" nodename="src"/>
+            <input name="index" type="integer" value="7"/>
+          </extract>
+          <output name="out" type="float" nodename="e"/>
+        </nodegraph>"#
+    ));
+    match elaborate_output(&d, "g", "out") {
+        Err(Error::BadValue { message, .. }) => message,
+        other => panic!("expected a bad value, got {other:?}"),
+    }
+}
+
+#[test]
+fn extract_index_past_the_last_component_is_a_bad_value() {
+    let constant = r#"<constant name="src" type="color3"><input name="value" type="color3" value="1, 2, 3"/></constant>"#;
+    assert_eq!(extract_error(constant, "color3"), "extract index 7 is out of range for color3");
+    let texcoord = r#"<texcoord name="src" type="vector2"/>"#;
+    assert_eq!(extract_error(texcoord, "vector2"), "extract index 7 is out of range for vector2");
+}
+
 #[test]
 fn unknown_space_is_a_bad_value() {
     let d = doc(r#"<nodegraph name="g">

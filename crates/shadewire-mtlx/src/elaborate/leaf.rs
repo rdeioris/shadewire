@@ -3,7 +3,7 @@
 use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind, Op, Space, Type, Value, input_names};
 
 use super::{Elaborator, Scope};
-use crate::document::{Node, NodeDef};
+use crate::document::{Node, NodeDef, PortType};
 
 impl<'a> Elaborator<'a> {
     pub fn leaf(
@@ -46,13 +46,26 @@ impl<'a> Elaborator<'a> {
         at: &Location,
     ) -> Result<u32, Error> {
         let id = self.param_value(scope, node, nd, "index")?;
-        match &self.dag.node(id).kind {
-            NodeKind::Const(Value::Integer(i)) if *i >= 0 => Ok(*i as u32),
-            other => Err(Error::BadValue {
+        let index = match &self.dag.node(id).kind {
+            NodeKind::Const(Value::Integer(i)) if *i >= 0 => *i as u32,
+            other => {
+                return Err(Error::BadValue {
+                    at: at.clone(),
+                    message: format!("extract index must be a constant integer, found {other:?}"),
+                });
+            }
+        };
+        let in_type = match nd.inputs.iter().find(|p| p.name == "in").map(|p| &p.port_type) {
+            Some(PortType::Value(ty)) => *ty,
+            _ => return Err(Error::BadValue { at: at.clone(), message: format!("{} has no value input in", nd.name) }),
+        };
+        if index as usize >= in_type.component_count() {
+            return Err(Error::BadValue {
                 at: at.clone(),
-                message: format!("extract index must be a constant integer, found {other:?}"),
-            }),
+                message: format!("extract index {index} is out of range for {}", in_type.mtlx_name()),
+            });
         }
+        Ok(index)
     }
 
     /// A space string input. `None` when empty; an unknown name is a bad value.
