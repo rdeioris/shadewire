@@ -1,6 +1,7 @@
 //! Shadewire typed material DAG, optimizer and interpreter
 
 mod context;
+pub mod classify;
 pub mod dag;
 mod dump;
 mod error;
@@ -8,6 +9,7 @@ pub mod interpret;
 mod node;
 mod op;
 pub mod ops;
+pub mod optimize;
 mod space;
 mod structure_hash;
 mod surface;
@@ -16,6 +18,7 @@ mod types;
 mod value;
 mod value_parse;
 
+pub use classify::ParamKind;
 pub use context::{ContextClass, ContextRead};
 pub use dag::Dag;
 pub use error::{Error, Location};
