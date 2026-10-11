@@ -8,6 +8,10 @@ pub struct TextureReflection {
     pub binding: u32,
     pub sampler_binding: u32,
     pub file: String,
+    /// The colorspace the file was authored in, for information only: the
+    /// generated shader already converts each sample to the working colorspace,
+    /// so hosts must bind a raw (non-sRGB) texture view. An `*_srgb` view
+    /// would decode the texels a second time.
     pub colorspace: Option<String>,
     pub address: [AddressMode; 2],
     pub filter: FilterMode,
