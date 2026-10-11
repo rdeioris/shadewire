@@ -66,33 +66,43 @@ fn naga_validates(text: &str) {
     validator.validate(&module).unwrap_or_else(|e| panic!("{e:?}"));
 }
 
+/// Case count and worst error of one family.
+struct FamilyStats {
+    name: String,
+    count: usize,
+    worst: f32,
+}
+
+/// Opt-in: about three minutes of driver compile on a shared GPU.
+/// `SHADEWIRE_REQUIRE_GPU=1` turns the no-adapter skip into a failure.
 #[test]
+#[ignore = "gpu parity: cargo test -p shadewire-wgsl --test gpu_parity -- --ignored"]
 fn interpreter_and_wgsl_agree_on_every_op() {
     let cases = all();
     let functions = wgsl_functions(&cases);
     naga_validates(&gpu::shader(&functions, cases.len()));
     let Some(gpu) = gpu::run_probes(&functions, cases.len()) else { return };
     assert_eq!(gpu.len(), cases.len());
-    let mut families: Vec<(String, usize, f32)> = Vec::new();
+    let mut families: Vec<FamilyStats> = Vec::new();
     let mut failures = 0;
     for (case, gpu) in cases.iter().zip(gpu) {
         let cpu = expected(case);
         let e = error(gpu, cpu);
         let fam = family(&case.name);
-        match families.iter_mut().find(|f| f.0 == fam) {
+        match families.iter_mut().find(|f| f.name == fam) {
             Some(f) => {
-                f.1 += 1;
-                f.2 = f.2.max(e);
+                f.count += 1;
+                f.worst = f.worst.max(e);
             }
-            None => families.push((fam.to_string(), 1, e)),
+            None => families.push(FamilyStats { name: fam.to_string(), count: 1, worst: e }),
         }
         if e > case.tolerance {
             failures += 1;
             println!("MISMATCH {}\n    gpu {gpu:?}\n    cpu {cpu:?}\n    error {e:e} > {:e}", case.name, case.tolerance);
         }
     }
-    for (fam, count, worst) in &families {
-        println!("{fam:8} {count:5} cases, max error {worst:e}");
+    for f in &families {
+        println!("{:8} {:5} cases, max error {:e}", f.name, f.count, f.worst);
     }
     println!("{} cases, {failures} mismatches", cases.len());
     assert_eq!(failures, 0, "{failures} of {} cases disagree", cases.len());

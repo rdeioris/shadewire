@@ -33,15 +33,19 @@ pub fn opaque_constants(dag: &Dag, probe: &str) -> String {
 }
 
 /// `    let nI: T = expr;` for a `Const` node I becomes `    let nI: T = <expr made opaque>;`.
+/// Any line not of exactly that shape passes through unchanged.
 fn opaque_line(dag: &Dag, line: &str) -> String {
     let Some(rest) = line.trim_start().strip_prefix("let n") else { return line.to_string() };
-    let (index, rest) = rest.split_once(": ").expect("let nI: T = expr;");
-    let index: usize = index.parse().expect("node index");
-    if !matches!(dag.nodes[index].kind, NodeKind::Const(_)) {
+    let Some((index, rest)) = rest.split_once(": ") else { return line.to_string() };
+    if index.is_empty() || !index.bytes().all(|b| b.is_ascii_digit()) {
         return line.to_string();
     }
-    let (ty, expr) = rest.split_once(" = ").expect("let nI: T = expr;");
-    let expr = expr.strip_suffix(';').expect("ends in ;");
+    let Ok(index) = index.parse::<usize>() else { return line.to_string() };
+    let Some((ty, expr)) = rest.split_once(" = ") else { return line.to_string() };
+    let Some(expr) = expr.strip_suffix(';') else { return line.to_string() };
+    if !matches!(dag.nodes.get(index).map(|n| &n.kind), Some(NodeKind::Const(_))) {
+        return line.to_string();
+    }
     let opaque = match ty {
         "f32" => format!("({expr} + sw_zero)"),
         "i32" => format!("({expr} + i32(sw_zero))"),
@@ -61,7 +65,10 @@ async fn run(source: &str, count: usize) -> Option<Vec<[f32; 4]>> {
     let instance = wgpu::Instance::default();
     let adapter = match instance.request_adapter(&wgpu::RequestAdapterOptions::default()).await {
         Ok(adapter) => adapter,
-        Err(_) => {
+        Err(e) => {
+            if std::env::var("SHADEWIRE_REQUIRE_GPU").as_deref() == Ok("1") {
+                panic!("gpu parity: no adapter and SHADEWIRE_REQUIRE_GPU=1 ({e})");
+            }
             println!("gpu parity skipped: no adapter");
             return None;
         }
