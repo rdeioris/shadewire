@@ -42,17 +42,8 @@ fn widen(expr: &str, ty: Type) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::emit::test_support::{add, naga_validates};
     use shadewire_ir::*;
-
-    fn add(dag: &mut Dag, kind: NodeKind, ty: Type) -> NodeId {
-        dag.add(Node { kind, ty, origin: String::new() })
-    }
-
-    fn validate(text: &str) {
-        let module = naga::front::wgsl::parse_str(text).unwrap_or_else(|e| panic!("{text}: {e:?}"));
-        let mut v = naga::valid::Validator::new(naga::valid::ValidationFlags::all(), naga::valid::Capabilities::all());
-        v.validate(&module).unwrap_or_else(|e| panic!("{text}: {e:?}"));
-    }
 
     #[test]
     fn ancestors_only_widened_to_vec4() {
@@ -65,7 +56,7 @@ mod tests {
             text,
             "fn probe_2() -> vec4<f32> {\n    let n0: f32 = 2.0;\n    let n2: f32 = sqrt(n0);\n    return vec4<f32>(n2, 0.0, 0.0, 0.0);\n}\n"
         );
-        validate(&text);
+        naga_validates(&text);
     }
 
     #[test]
@@ -78,7 +69,7 @@ mod tests {
         assert!(probe_function(&dag, i, "p").contains("return vec4<f32>(f32(n1), 0.0, 0.0, 0.0);"));
         let text = probe_function(&dag, b, "p");
         assert!(text.contains("return vec4<f32>(f32(n2), 0.0, 0.0, 0.0);"), "{text}");
-        validate(&text);
+        naga_validates(&text);
     }
 
     #[test]
@@ -92,7 +83,7 @@ mod tests {
         let low = add(&mut dag, NodeKind::Op { op: Op::Clamp, args: vec![one, one, zero] }, Type::Float);
         let sum = add(&mut dag, NodeKind::Op { op: Op::Add, args: vec![inf, nan] }, Type::Float);
         let all = add(&mut dag, NodeKind::Op { op: Op::Add, args: vec![sum, low] }, Type::Float);
-        validate(&probe_function(&dag, all, "p"));
+        naga_validates(&probe_function(&dag, all, "p"));
     }
 
     #[test]

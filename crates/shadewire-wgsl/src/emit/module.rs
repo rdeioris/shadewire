@@ -37,18 +37,18 @@ pub fn entry(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::emit::test_support::{add, reflection, validates};
     use shadewire_ir::*;
 
     #[test]
     fn entry_returns_fields_in_struct_order() {
         let mut dag = Dag::new("gltf_pbr");
-        let c = dag.add(Node { kind: NodeKind::Const(Value::Float(0.5)), ty: Type::Float, origin: String::new() });
-        let v = dag.add(Node { kind: NodeKind::Const(Value::Vector3([1.0, 0.0, 0.0])), ty: Type::Vector3, origin: String::new() });
+        let c = add(&mut dag, NodeKind::Const(Value::Float(0.5)), Type::Float);
+        let v = add(&mut dag, NodeKind::Const(Value::Vector3([1.0, 0.0, 0.0])), Type::Vector3);
         dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: v });
         dag.surface.fields.push(SurfaceField { name: "roughness".into(), ty: Type::Float, node: c });
         dag.surface.fields.push(SurfaceField { name: "tint".into(), ty: Type::Color3, node: c });
-        let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };
-        let r = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info);
+        let r = reflection(&dag);
         assert_eq!(
             entry(&dag, &r, &EmitOptions::default()),
             "fn sw_eval_surface() -> GltfPbr {
@@ -61,16 +61,14 @@ mod tests {
     }
 
     #[test]
-    fn skeleton_parses_in_naga() {
+    fn skeleton_validates_in_naga() {
         let mut dag = Dag::new("open_pbr_surface");
-        let kind = NodeKind::Uniform { name: "w".into(), value: Value::Float(1.0) };
-        let u = dag.add(Node { kind, ty: Type::Float, origin: String::new() });
+        let u = add(&mut dag, NodeKind::Uniform { name: "w".into(), value: Value::Float(1.0) }, Type::Float);
         dag.surface.fields.push(SurfaceField { name: "base_weight".into(), ty: Type::Float, node: u });
-        let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };
-        let r = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info);
+        let r = reflection(&dag);
         let text = crate::emit(&dag, &r, &EmitOptions::default());
         assert!(text.starts_with("struct OpenPbrSurface {"), "{text}");
         assert!(text.contains("var<uniform> sw_u"), "{text}");
-        naga::front::wgsl::parse_str(&text).unwrap_or_else(|e| panic!("{text}: {e:?}"));
+        validates(&dag, &r, &text);
     }
 }

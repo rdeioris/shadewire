@@ -8,6 +8,11 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     match op {
         Op::Extract(index) => {
             let (expr, from) = &args[0];
+            assert!(
+                (*index as usize) < from.component_count(),
+                "extract index {index} of a {} {from:?}",
+                if from.is_scalar() { "scalar" } else { "narrower" }
+            );
             let component = if from.is_scalar() { cast(expr, *from, Type::Float) } else { format!("{expr}[{index}]") };
             cast(&component, Type::Float, ty)
         }
@@ -42,32 +47,35 @@ fn convert(arg: &Arg, ty: Type) -> String {
 #[cfg(test)]
 mod tests {
     use super::emit;
+    use crate::emit::test_support::args;
     use shadewire_ir::{Op, Type};
-
-    fn arg(ty: Type) -> Vec<(String, Type)> {
-        vec![("n0".to_string(), ty)]
-    }
 
     #[test]
     fn extract_and_combine() {
-        assert_eq!(emit(&Op::Extract(2), &arg(Type::Color3), Type::Float), "n0[2]");
-        let a = [("n0".to_string(), Type::Color3), ("n1".to_string(), Type::Float)];
+        assert_eq!(emit(&Op::Extract(2), &args(&[Type::Color3]), Type::Float), "n0[2]");
+        let a = args(&[Type::Color3, Type::Float]);
         assert_eq!(emit(&Op::Combine, &a, Type::Color4), "vec4<f32>(n0, n1)");
-        let a = [("n0".to_string(), Type::Float), ("n1".to_string(), Type::Integer)];
+        let a = args(&[Type::Float, Type::Integer]);
         assert_eq!(emit(&Op::Combine, &a, Type::Vector2), "vec2<f32>(n0, f32(n1))");
     }
 
     #[test]
     fn convert_follows_the_interpreter() {
-        assert_eq!(emit(&Op::Convert, &arg(Type::Color3), Type::Color4), "vec4<f32>(n0, 1.0)");
-        assert_eq!(emit(&Op::Convert, &arg(Type::Vector2), Type::Vector4), "vec4<f32>(n0, 1.0, 1.0)");
-        assert_eq!(emit(&Op::Convert, &arg(Type::Float), Type::Color4), "vec4<f32>(n0)");
-        assert_eq!(emit(&Op::Convert, &arg(Type::Integer), Type::Color3), "vec3<f32>(f32(n0))");
-        assert_eq!(emit(&Op::Convert, &arg(Type::Color4), Type::Color3), "n0.xyz");
-        assert_eq!(emit(&Op::Convert, &arg(Type::Vector3), Type::Vector2), "n0.xy");
-        assert_eq!(emit(&Op::Convert, &arg(Type::Vector3), Type::Color3), "n0");
-        assert_eq!(emit(&Op::Convert, &arg(Type::Vector3), Type::Float), "n0.x");
-        assert_eq!(emit(&Op::Convert, &arg(Type::Boolean), Type::Float), "f32(n0)");
-        assert_eq!(emit(&Op::Convert, &arg(Type::Float), Type::Integer), "i32(n0)");
+        assert_eq!(emit(&Op::Convert, &args(&[Type::Color3]), Type::Color4), "vec4<f32>(n0, 1.0)");
+        assert_eq!(emit(&Op::Convert, &args(&[Type::Vector2]), Type::Vector4), "vec4<f32>(n0, 1.0, 1.0)");
+        assert_eq!(emit(&Op::Convert, &args(&[Type::Float]), Type::Color4), "vec4<f32>(n0)");
+        assert_eq!(emit(&Op::Convert, &args(&[Type::Integer]), Type::Color3), "vec3<f32>(f32(n0))");
+        assert_eq!(emit(&Op::Convert, &args(&[Type::Color4]), Type::Color3), "n0.xyz");
+        assert_eq!(emit(&Op::Convert, &args(&[Type::Vector3]), Type::Vector2), "n0.xy");
+        assert_eq!(emit(&Op::Convert, &args(&[Type::Vector3]), Type::Color3), "n0");
+        assert_eq!(emit(&Op::Convert, &args(&[Type::Vector3]), Type::Float), "n0.x");
+        assert_eq!(emit(&Op::Convert, &args(&[Type::Boolean]), Type::Float), "f32(n0)");
+        assert_eq!(emit(&Op::Convert, &args(&[Type::Float]), Type::Integer), "i32(n0)");
+    }
+
+    #[test]
+    #[should_panic(expected = "extract index 1 of a scalar")]
+    fn extract_past_a_scalar_panics() {
+        emit(&Op::Extract(1), &args(&[Type::Float]), Type::Float);
     }
 }

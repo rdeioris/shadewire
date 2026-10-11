@@ -60,11 +60,8 @@ fn switch(args: &[Arg], ty: Type) -> String {
 #[cfg(test)]
 mod tests {
     use super::emit;
+    use crate::emit::test_support::args;
     use shadewire_ir::{Op, Type};
-
-    fn args(types: &[Type]) -> Vec<(String, Type)> {
-        types.iter().enumerate().map(|(i, t)| (format!("n{i}"), *t)).collect()
-    }
 
     const F: Type = Type::Float;
     const B: Type = Type::Boolean;

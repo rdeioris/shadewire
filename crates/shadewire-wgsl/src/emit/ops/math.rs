@@ -21,8 +21,10 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
         // WGSL round is half to even, like `round_ties_even`.
         Op::Round => format!("round({})", a[0]),
         Op::Fract => format!("({0} - floor({0}))", a[0]),
+        // WGSL `pow` is what MaterialX genglsl emits. A negative base and 0^0 are undefined
+        // on the GPU (as in GLSL), so they may differ from Rust's `powf` there.
         Op::Power => format!("pow({}, {})", a[0], a[1]),
-        // sign(0.0) is 0.0 in WGSL, as in the interpreter.
+        // sign(0.0) is 0.0 in WGSL, as in the interpreter; `pow` as for Power.
         Op::SafePower => format!("(sign({0}) * pow(abs({0}), {1}))", a[0], a[1]),
         Op::Sqrt => format!("sqrt({})", a[0]),
         Op::Exp => format!("exp({})", a[0]),
@@ -36,10 +38,13 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
             let amount = if args[2].1.is_scalar() { cast(&args[2].0, args[2].1, Type::Float) } else { a[2].clone() };
             format!("({1} + ({0} - {1}) * {2})", a[0], a[1], amount)
         }
+        // The interpreter's `mx_smoothstep`, written out rather than the builtin.
         Op::Smoothstep => {
             let zero = cast("0.0", Type::Float, work_type(ty));
             let one = cast("1.0", Type::Float, work_type(ty));
-            format!("select(select(smoothstep({1}, {2}, {0}), {zero}, {0} <= {1}), {one}, {0} >= {2})", a[0], a[1], a[2])
+            let t = format!("(({0} - {1}) / ({2} - {1}))", a[0], a[1], a[2]);
+            let inner = format!("({t} * {t} * (3.0 - 2.0 * {t}))");
+            format!("select(select({inner}, {zero}, {0} <= {1}), {one}, {0} >= {2})", a[0], a[1], a[2])
         }
         Op::Remap => format!("({3} + ({0} - {1}) * ({4} - {3}) / ({2} - {1}))", a[0], a[1], a[2], a[3], a[4]),
         other => panic!("{other:?} is not a math op"),
@@ -50,11 +55,8 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
 #[cfg(test)]
 mod tests {
     use super::emit;
+    use crate::emit::test_support::args;
     use shadewire_ir::{Op, Type};
-
-    fn args(types: &[Type]) -> Vec<(String, Type)> {
-        types.iter().enumerate().map(|(i, t)| (format!("n{i}"), *t)).collect()
-    }
 
     const F: Type = Type::Float;
     const C3: Type = Type::Color3;
@@ -85,14 +87,16 @@ mod tests {
     }
 
     #[test]
-    fn smoothstep_is_guarded_at_both_ends() {
+    fn smoothstep_is_written_out_and_guarded_at_both_ends() {
+        let t = "((n0 - n1) / (n2 - n1))";
         assert_eq!(
             emit(&Op::Smoothstep, &args(&[F, F, F]), F),
-            "select(select(smoothstep(n1, n2, n0), 0.0, n0 <= n1), 1.0, n0 >= n2)"
+            format!("select(select(({t} * {t} * (3.0 - 2.0 * {t})), 0.0, n0 <= n1), 1.0, n0 >= n2)")
         );
+        let t = "((n0 - vec3<f32>(n1)) / (vec3<f32>(n2) - vec3<f32>(n1)))";
         assert_eq!(
             emit(&Op::Smoothstep, &args(&[C3, F, F]), C3),
-            "select(select(smoothstep(vec3<f32>(n1), vec3<f32>(n2), n0), vec3<f32>(0.0), n0 <= vec3<f32>(n1)), vec3<f32>(1.0), n0 >= vec3<f32>(n2))"
+            format!("select(select(({t} * {t} * (3.0 - 2.0 * {t})), vec3<f32>(0.0), n0 <= vec3<f32>(n1)), vec3<f32>(1.0), n0 >= vec3<f32>(n2))")
         );
     }
 

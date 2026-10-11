@@ -21,11 +21,8 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
 #[cfg(test)]
 mod tests {
     use super::emit;
+    use crate::emit::test_support::args;
     use shadewire_ir::{Op, Type};
-
-    fn args(types: &[Type]) -> Vec<(String, Type)> {
-        types.iter().enumerate().map(|(i, t)| (format!("n{i}"), *t)).collect()
-    }
 
     #[test]
     fn builtins() {

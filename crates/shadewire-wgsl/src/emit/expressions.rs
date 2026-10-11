@@ -82,16 +82,8 @@ pub fn let_line(dag: &Dag, id: NodeId, expr: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::emit::test_support::{add, reflection};
     use shadewire_ir::*;
-
-    fn add(dag: &mut Dag, kind: NodeKind, ty: Type) -> NodeId {
-        dag.add(Node { kind, ty, origin: String::new() })
-    }
-
-    fn reflection(dag: &Dag) -> Reflection {
-        let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };
-        reflect(dag, &BindingOptions { group: 0, first_binding: 0 }, &info)
-    }
 
     #[test]
     fn uniforms_context_and_ops() {

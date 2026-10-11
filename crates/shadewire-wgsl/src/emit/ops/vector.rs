@@ -5,6 +5,9 @@ use super::{cast, finish, work_type, Arg};
 /// Mirrors `shadewire_ir::ops::vector`. Operands keep their own width (the first
 /// argument's); WGSL has no scalar `normalize` or `dot`, so those are written out.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
+    if args.len() == 2 && args[0].1.component_count() != args[1].1.component_count() {
+        panic!("{op:?} of different widths: {:?} and {:?}", args[0].1, args[1].1);
+    }
     let operand = work_type(args[0].1);
     let a: Vec<String> = args.iter().map(|(expr, from)| cast(expr, *from, operand)).collect();
     let scalar = operand.is_scalar();
@@ -28,11 +31,8 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
 #[cfg(test)]
 mod tests {
     use super::emit;
+    use crate::emit::test_support::args;
     use shadewire_ir::{Op, Type};
-
-    fn args(types: &[Type]) -> Vec<(String, Type)> {
-        types.iter().enumerate().map(|(i, t)| (format!("n{i}"), *t)).collect()
-    }
 
     const V3: Type = Type::Vector3;
 
@@ -43,5 +43,23 @@ mod tests {
         assert_eq!(emit(&Op::Distance, &args(&[V3, V3]), Type::Float), "distance(n0, n1)");
         assert_eq!(emit(&Op::DotProduct, &args(&[V3, Type::Color3]), Type::Float), "dot(n0, n1)");
         assert_eq!(emit(&Op::CrossProduct, &args(&[V3, V3]), V3), "cross(n0, n1)");
+    }
+
+    #[test]
+    #[should_panic(expected = "different widths")]
+    fn dot_of_different_widths_panics() {
+        emit(&Op::DotProduct, &args(&[V3, Type::Vector2]), Type::Float);
+    }
+
+    #[test]
+    #[should_panic(expected = "different widths")]
+    fn distance_of_different_widths_panics() {
+        emit(&Op::Distance, &args(&[Type::Vector4, Type::Float]), Type::Float);
+    }
+
+    #[test]
+    #[should_panic(expected = "different widths")]
+    fn cross_of_different_widths_panics() {
+        emit(&Op::CrossProduct, &args(&[V3, Type::Color4]), V3);
     }
 }

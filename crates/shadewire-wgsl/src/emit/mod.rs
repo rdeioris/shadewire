@@ -8,6 +8,8 @@ pub mod probe;
 mod reserved;
 pub mod sample;
 mod structs;
+#[cfg(test)]
+mod test_support;
 mod types;
 mod uniforms;
 
@@ -34,49 +36,9 @@ pub fn emit(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> String
 
 #[cfg(test)]
 mod tests {
+    use super::test_support::{add, naga_validates, reflection, validates};
     use super::*;
-    use shadewire_ir::reflection::live::live_nodes;
     use shadewire_ir::*;
-
-    /// Parses and validates `wgsl` after stub definitions of every host function it calls:
-    /// one per live context read (geomprops under their reflected names) and per transform.
-    pub fn validates(dag: &Dag, reflection: &Reflection, wgsl: &str) {
-        let mut stubs: Vec<String> = Vec::new();
-        let live = live_nodes(dag);
-        for (i, node) in dag.nodes.iter().enumerate() {
-            let NodeKind::Context(read) = &node.kind else { continue };
-            if !live[i] {
-                continue;
-            }
-            let name = match read {
-                ContextRead::GeomProp { name, .. } => {
-                    reflection.context.geomprops.iter().find(|g| g.name == *name).expect("reflected geomprop").function.clone()
-                }
-                other => other.function_name(),
-            };
-            let ty = types::wgsl_type(read.ty());
-            let stub = format!("fn {name}() -> {ty} {{ return {ty}(); }}\n");
-            if !stubs.contains(&stub) {
-                stubs.push(stub);
-            }
-        }
-        for t in &reflection.context.transforms {
-            stubs.push(format!("fn mx_{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
-        }
-        let text = format!("{}\n{wgsl}", stubs.concat());
-        let module = naga::front::wgsl::parse_str(&text).unwrap_or_else(|e| panic!("{text}\n{}", e.emit_to_string(&text)));
-        let mut validator = naga::valid::Validator::new(naga::valid::ValidationFlags::all(), naga::valid::Capabilities::all());
-        validator.validate(&module).unwrap_or_else(|e| panic!("{text}\n{e:?}"));
-    }
-
-    fn add(dag: &mut Dag, kind: NodeKind, ty: Type) -> NodeId {
-        dag.add(Node { kind, ty, origin: String::new() })
-    }
-
-    fn reflection(dag: &Dag) -> Reflection {
-        let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };
-        reflect(dag, &BindingOptions { group: 0, first_binding: 0 }, &info)
-    }
 
     #[test]
     fn mix_of_uniform_constant_and_texcoord() {
@@ -159,5 +121,27 @@ fn sw_eval_surface() -> OpenPbrSurface {
         assert!(text.contains("mx_geomprop_my_prop()"), "{text}");
         assert!(text.contains("return StandardSurface(n25, n10, n8);"), "{text}");
         validates(&dag, &r, &text);
+    }
+
+    /// The fragment entry `validates` appends makes naga check stage rules on everything
+    /// `sw_eval_surface` reaches: a compute-only builtin is refused.
+    #[test]
+    #[should_panic(expected = "Stage")]
+    fn validates_checks_the_fragment_stage() {
+        let mut dag = Dag::new("m");
+        let c = add(&mut dag, NodeKind::Const(Value::Float(1.0)), Type::Float);
+        dag.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Float, node: c });
+        let text = "struct M { x: f32 }
+fn sw_eval_surface() -> M {
+    workgroupBarrier();
+    return M(1.0);
+}
+";
+        validates(&dag, &reflection(&dag), text);
+    }
+
+    #[test]
+    fn naga_validates_accepts_a_plain_function() {
+        naga_validates("fn f() -> f32 { return 1.0; }");
     }
 }

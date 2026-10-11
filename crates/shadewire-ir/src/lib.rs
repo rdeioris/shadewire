@@ -24,7 +24,7 @@ pub use context::{ContextClass, ContextRead};
 pub use dag::Dag;
 pub use error::{Error, Location};
 pub use node::{Node, NodeId, NodeKind};
-pub use op::{Op, TransformKind};
+pub use op::{transform_name, Op, TransformKind};
 pub use ops::{eval_op, input_names, op_for_category};
 pub use reflection::{reflect, BindingOptions, Reflection, SourceInfo};
 pub use space::Space;

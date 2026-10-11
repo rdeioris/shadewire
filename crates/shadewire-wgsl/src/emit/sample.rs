@@ -5,7 +5,8 @@ use shadewire_ir::{AddressMode, Type};
 /// `constant` address mode as an explicit bounds test returning `default`.
 /// A `select` evaluates both sides, so the sample stays in uniform control flow.
 pub fn sample_expr(t: &TextureReflection, uv: &str, ty: Type, default: &str, flip_v: bool) -> String {
-    let st = if flip_v { format!("vec2<f32>({uv}.x, 1.0 - {uv}.y)") } else { uv.to_string() };
+    let v = if flip_v { format!("1.0 - {uv}.y") } else { format!("{uv}.y") };
+    let st = format!("vec2<f32>({uv}.x, {v})");
     let swizzle = match ty.component_count() {
         1 => ".r",
         2 => ".rg",
@@ -49,10 +50,10 @@ mod tests {
     #[test]
     fn plain_fetches_swizzle_to_the_node_width() {
         let t = texture(0, P, P);
-        assert_eq!(sample_expr(&t, "n3", Type::Color3, "x", false), "textureSample(sw_t0, sw_s0, n3).rgb");
-        assert_eq!(sample_expr(&t, "n3", Type::Float, "x", false), "textureSample(sw_t0, sw_s0, n3).r");
-        assert_eq!(sample_expr(&t, "n3", Type::Vector2, "x", false), "textureSample(sw_t0, sw_s0, n3).rg");
-        assert_eq!(sample_expr(&t, "n3", Type::Color4, "x", false), "textureSample(sw_t0, sw_s0, n3)");
+        assert_eq!(sample_expr(&t, "n3", Type::Color3, "x", false), "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).rgb");
+        assert_eq!(sample_expr(&t, "n3", Type::Float, "x", false), "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).r");
+        assert_eq!(sample_expr(&t, "n3", Type::Vector2, "x", false), "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).rg");
+        assert_eq!(sample_expr(&t, "n3", Type::Color4, "x", false), "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y))");
     }
 
     #[test]
@@ -69,7 +70,7 @@ mod tests {
         let t = texture(1, C, P);
         assert_eq!(
             sample_expr(&t, "n3", Type::Float, "0.5", false),
-            "select(textureSample(sw_t1, sw_s1, n3).r, 0.5, n3.x < 0.0 || n3.x > 1.0)"
+            "select(textureSample(sw_t1, sw_s1, vec2<f32>(n3.x, n3.y)).r, 0.5, n3.x < 0.0 || n3.x > 1.0)"
         );
         let t = texture(1, C, C);
         assert_eq!(

@@ -80,6 +80,7 @@ pub fn first_f32(arg: &Arg) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::emit::test_support::args;
 
     #[test]
     fn casts() {
@@ -92,13 +93,12 @@ mod tests {
 
     #[test]
     fn integer_math_runs_in_f32() {
-        let args = [("n0".to_string(), Type::Integer), ("n1".to_string(), Type::Integer)];
-        assert_eq!(emit_op(&Op::Add, &args, Type::Integer), "i32((f32(n0) + f32(n1)))");
+        assert_eq!(emit_op(&Op::Add, &args(&[Type::Integer, Type::Integer]), Type::Integer), "i32((f32(n0) + f32(n1)))");
     }
 
     #[test]
     fn first_component() {
-        assert_eq!(first_f32(&("n0".to_string(), Type::Vector2)), "n0.x");
-        assert_eq!(first_f32(&("n0".to_string(), Type::Boolean)), "f32(n0)");
+        assert_eq!(first_f32(&args(&[Type::Vector2])[0]), "n0.x");
+        assert_eq!(first_f32(&args(&[Type::Boolean])[0]), "f32(n0)");
     }
 }

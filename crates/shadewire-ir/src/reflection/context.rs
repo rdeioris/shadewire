@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{ContextClass, ContextRead, Dag, NodeKind, Op, TransformKind, Type};
+use crate::{transform_name, ContextClass, ContextRead, Dag, NodeKind, Op, Type};
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct GeomPropReflection {
@@ -17,14 +17,6 @@ pub struct ContextReflection {
     pub globals: Vec<String>,
     pub geomprops: Vec<GeomPropReflection>,
     pub transforms: Vec<String>,
-}
-
-fn kind_name(kind: TransformKind) -> &'static str {
-    match kind {
-        TransformKind::Point => "point",
-        TransformKind::Vector => "vector",
-        TransformKind::Normal => "normal",
-    }
 }
 
 fn sorted_unique(mut names: Vec<String>) -> Vec<String> {
@@ -75,7 +67,7 @@ pub fn context(dag: &Dag, live: &[bool]) -> ContextReflection {
                 }
             },
             NodeKind::Op { op: Op::Transform { kind, from, to }, .. } => {
-                transforms.push(format!("transform_{}_{}_to_{}", kind_name(*kind), from.name(), to.name()));
+                transforms.push(transform_name(*kind, *from, *to));
             }
             _ => {}
         }
