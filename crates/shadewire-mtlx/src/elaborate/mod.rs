@@ -24,6 +24,8 @@ mod convert_tests;
 #[cfg(test)]
 mod cycle_tests;
 #[cfg(test)]
+mod depth_tests;
+#[cfg(test)]
 mod image_tests;
 #[cfg(test)]
 mod param_tests;
@@ -57,6 +59,14 @@ impl Default for ElaborateOptions {
     }
 }
 
+/// How many node outputs elaboration follows inside one another before it
+/// gives up. Real graphs are under 100 deep; a debug build uses about 12 KB of
+/// stack per level, so `elaborate` runs on a thread with `STACK_BYTES` of stack.
+pub const MAX_GRAPH_DEPTH: u32 = 1024;
+
+/// The stack of the elaboration thread: room for `MAX_GRAPH_DEPTH` levels in a debug build.
+pub const STACK_BYTES: usize = 64 * 1024 * 1024;
+
 /// `(scope id, node name, output name)`; the output name is `""` when not given.
 pub type MemoKey = (u32, String, String);
 
@@ -66,6 +76,8 @@ pub struct Elaborator<'a> {
     pub dag: Dag,
     pub memo: HashMap<MemoKey, NodeId>,
     pub in_progress: HashSet<MemoKey>,
+    /// Node outputs being followed right now, inside one another.
+    pub depth: u32,
     pub uniform_names: HashSet<String>,
     pub file: Option<String>,
     pub next_scope_id: u32,
@@ -87,6 +99,7 @@ impl<'a> Elaborator<'a> {
             dag: Dag::new(model),
             memo: HashMap::new(),
             in_progress: HashSet::new(),
+            depth: 0,
             uniform_names: HashSet::new(),
             file: doc.file.clone(),
             next_scope_id: 0,
@@ -114,7 +127,28 @@ impl<'a> Elaborator<'a> {
 }
 
 /// Compiles the document's material into a DAG for one of `models`.
+/// Elaboration recurses along the graph, so it runs on a thread with a large
+/// stack; where no thread can be made it runs on the caller's.
 pub fn elaborate(
+    doc: &Document,
+    lib: &Library,
+    options: &ElaborateOptions,
+    material: Option<&str>,
+    models: &[&str],
+) -> Result<Dag, Error> {
+    std::thread::scope(|threads| {
+        let builder = std::thread::Builder::new().name("shadewire-elaborate".to_string()).stack_size(STACK_BYTES);
+        match builder.spawn_scoped(threads, || elaborate_here(doc, lib, options, material, models)) {
+            Ok(handle) => match handle.join() {
+                Ok(result) => result,
+                Err(panic) => std::panic::resume_unwind(panic),
+            },
+            Err(_) => elaborate_here(doc, lib, options, material, models),
+        }
+    })
+}
+
+fn elaborate_here(
     doc: &Document,
     lib: &Library,
     options: &ElaborateOptions,

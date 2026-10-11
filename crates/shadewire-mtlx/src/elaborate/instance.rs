@@ -7,7 +7,7 @@ use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind, Value, op_
 
 use super::ramp::is_ramp;
 use super::special::is_special;
-use super::{Binding, Elaborator, MemoKey, Scope};
+use super::{Binding, Elaborator, MAX_GRAPH_DEPTH, MemoKey, Scope};
 use crate::document::{Node, NodeDef, NodeGraph, Output, PortType};
 use crate::resolve_nodedef::resolve_nodedef;
 
@@ -29,10 +29,15 @@ impl<'a> Elaborator<'a> {
             return Ok(*id);
         }
         let at = self.at(scope, node.line, origin);
+        if self.depth >= MAX_GRAPH_DEPTH {
+            return Err(Error::BadValue { at, message: format!("graph deeper than {MAX_GRAPH_DEPTH} nodes") });
+        }
         if !self.in_progress.insert(key.clone()) {
             return Err(Error::Cycle { at, node: node_name.to_string() });
         }
+        self.depth += 1;
         let result = self.instance(scope, node, output, &at);
+        self.depth -= 1;
         self.in_progress.remove(&key);
         let id = result?;
         self.memo.insert(key, id);
