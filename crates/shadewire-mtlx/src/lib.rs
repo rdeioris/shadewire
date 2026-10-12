@@ -9,6 +9,7 @@ pub mod library;
 pub mod parse;
 pub mod resolve_nodedef;
 pub mod surface;
+pub mod to_ir;
 pub mod upgrade;
 pub mod version;
 
@@ -18,3 +19,4 @@ pub use element::Element;
 pub use index::Index;
 pub use library::Library;
 pub use resolve_nodedef::resolve_nodedef;
+pub use to_ir::{MaterialIr, MtlxOptions, to_ir};

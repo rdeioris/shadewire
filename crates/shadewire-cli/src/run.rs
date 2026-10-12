@@ -1,15 +1,16 @@
 use shadewire::{
-    CompileOptions, Compiled, Error, GlslVersion, HlslShaderModel, MslVersion, Output, Target, compile_mtlx, link,
-    model_struct_name, reference_host, translate,
+    CompileOptions, Compiled, Error, GlslVersion, HlslShaderModel, MslVersion, MtlxOptions, Output, Target,
+    compile_mtlx, link, model_struct_name, optimize, reference_host, to_ir, translate,
 };
 
 use clap::ValueEnum;
 
-use crate::args::{Args, Command, CompileArgs, Lang};
+use crate::args::{Args, Command, CompileArgs, IrArgs, Lang};
 
 pub fn run(args: Args) -> Result<(), Error> {
     match args.command {
         Command::Compile(compile) => compile_command(&compile),
+        Command::Ir(ir) => ir_command(&ir),
     }
 }
 
@@ -17,14 +18,26 @@ fn io(e: std::io::Error, what: &std::path::Path) -> Error {
     Error::Io(format!("{}: {e}", what.display()))
 }
 
-fn options(args: &CompileArgs) -> CompileOptions {
-    let mut options = CompileOptions::default();
-    if !args.models.is_empty() {
-        options.models = args.models.clone();
+fn mtlx_options(models: &[String], constants: bool) -> MtlxOptions {
+    let mut options = MtlxOptions::default();
+    if !models.is_empty() {
+        options.models = models.to_vec();
     }
-    options.optimize = !args.no_optimize;
-    options.values_as_uniforms = !args.constants;
+    options.values_as_uniforms = !constants;
     options
+}
+
+fn compile_options(args: &CompileArgs) -> CompileOptions {
+    CompileOptions { optimize: !args.no_optimize, ..CompileOptions::default() }
+}
+
+fn ir_command(args: &IrArgs) -> Result<(), Error> {
+    let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
+    let mtlx = mtlx_options(&args.models, args.constants);
+    let ir = to_ir(&text, Some(&args.file), args.material.as_deref(), &mtlx)?;
+    let dag = if args.no_optimize { ir.dag } else { optimize(&ir.dag) };
+    print!("{}", dag.dump());
+    Ok(())
 }
 
 fn target(lang: Lang) -> Target {
@@ -59,7 +72,13 @@ fn render(compiled: &Compiled, lang: Lang) -> Result<Vec<u8>, Error> {
 
 fn compile_command(args: &CompileArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
-    let compiled = compile_mtlx(&text, Some(&args.file), args.material.as_deref(), &options(args))?;
+    let compiled = compile_mtlx(
+        &text,
+        Some(&args.file),
+        args.material.as_deref(),
+        &mtlx_options(&args.models, args.constants),
+        &compile_options(args),
+    )?;
     let bytes = render(&compiled, args.lang)?;
     if args.output.is_none() && args.lang == Lang::Spirv {
         return Err(Error::Io("SPIR-V is binary: give -o".to_string()));

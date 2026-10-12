@@ -13,6 +13,8 @@ pub struct Args {
 pub enum Command {
     /// Compile a MaterialX document
     Compile(CompileArgs),
+    /// Print the IR of a MaterialX material (the DAG the shader is emitted from)
+    Ir(IrArgs),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, ValueEnum)]
@@ -23,6 +25,24 @@ pub enum Lang {
     GlslEs,
     Msl,
     Spirv,
+}
+
+#[derive(Parser, Debug)]
+pub struct IrArgs {
+    /// The .mtlx document
+    pub file: PathBuf,
+    /// Material name, when the document has several
+    #[arg(long)]
+    pub material: Option<String>,
+    /// Surface models the host accepts (repeatable); default: all four
+    #[arg(long = "model")]
+    pub models: Vec<String>,
+    /// Print the IR as elaborated, before the optimizer
+    #[arg(long)]
+    pub no_optimize: bool,
+    /// Bake authored values in as constants instead of uniforms
+    #[arg(long)]
+    pub constants: bool,
 }
 
 #[derive(Parser, Debug)]

@@ -65,3 +65,15 @@ fn no_reflection_file_when_the_shader_fails() {
     assert!(String::from_utf8_lossy(&out.stderr).contains("give -o"));
     assert!(!json.exists(), "the reflection was written for a failed compile");
 }
+
+#[test]
+fn ir_prints_the_dag_before_and_after_the_optimizer() {
+    let optimized = run(&["ir", EXAMPLE]);
+    assert!(optimized.status.success(), "{}", String::from_utf8_lossy(&optimized.stderr));
+    let optimized = String::from_utf8_lossy(&optimized.stdout).to_string();
+    assert!(optimized.starts_with("model standard_surface\n"), "{optimized}");
+    assert!(optimized.contains("base_color = %"), "{optimized}");
+    let raw = run(&["ir", EXAMPLE, "--no-optimize"]);
+    let raw = String::from_utf8_lossy(&raw.stdout).to_string();
+    assert!(raw.lines().count() > optimized.lines().count(), "the optimizer removed nothing");
+}

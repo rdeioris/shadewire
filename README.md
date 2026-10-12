@@ -11,6 +11,7 @@ Command line:
 ```
 shadewire compile material.mtlx --reflection material.json -o material.wgsl
 shadewire compile material.mtlx --lang hlsl -o material.hlsl
+shadewire ir material.mtlx               # print the IR (optimized; --no-optimize for the raw graph)
 ```
 
 Options:
@@ -28,14 +29,22 @@ In the uniform block a `boolean` uniform is a `u32` (0 or 1), since WGSL has no 
 
 Library:
 
+The MaterialX front end (`shadewire_mtlx::to_ir`) lowers a material to the IR; the back end
+(`shadewire::compile`) optimizes, reflects and emits WGSL for any front end's IR.
+
 ```rust
-use shadewire::{compile_mtlx, CompileOptions};
+use shadewire::{compile, optimize, to_ir, CompileOptions, MtlxOptions};
 
 let text = std::fs::read_to_string("material.mtlx")?;
-let out = compile_mtlx(&text, Some("material.mtlx".as_ref()), None, &CompileOptions::default())?;
+let ir = to_ir(&text, Some("material.mtlx".as_ref()), None, &MtlxOptions::default())?;
+print!("{}", optimize(&ir.dag).dump()); // the IR, one node per line
+
+let out = compile(&ir.dag, &ir.source, &CompileOptions::default())?;
 println!("{}", out.wgsl);
 println!("{}", out.reflection.model);
 ```
+
+`compile_mtlx(text, file, material, &MtlxOptions, &CompileOptions)` does both steps in one call.
 
 ## Reflection
 

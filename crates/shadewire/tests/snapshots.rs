@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use shadewire::{CompileOptions, Compiled, compile_mtlx};
+use shadewire::{CompileOptions, Compiled, MtlxOptions, compile_mtlx};
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -13,7 +13,8 @@ fn root() -> PathBuf {
 fn compile(relative: &str) -> Compiled {
     let path = root().join(relative);
     let text = std::fs::read_to_string(&path).unwrap();
-    compile_mtlx(&text, Some(&path), None, &CompileOptions::default()).unwrap_or_else(|e| panic!("{relative}: {e}"))
+    compile_mtlx(&text, Some(&path), None, &MtlxOptions::default(), &CompileOptions::default())
+        .unwrap_or_else(|e| panic!("{relative}: {e}"))
 }
 
 fn snapshot(name: &str, relative: &str) {

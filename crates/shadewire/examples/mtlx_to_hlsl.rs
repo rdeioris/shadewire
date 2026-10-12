@@ -5,7 +5,8 @@
 use std::path::Path;
 
 use shadewire::{
-    CompileOptions, HlslShaderModel, Output, Target, compile_mtlx, link, model_struct_name, reference_host, translate,
+    CompileOptions, HlslShaderModel, MtlxOptions, Output, Target, compile_mtlx, link, model_struct_name,
+    reference_host, translate,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -13,7 +14,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let text = std::fs::read_to_string(&path)?;
 
     // 1. MaterialX -> WGSL function filling the model's parameter struct, plus reflection.
-    let compiled = compile_mtlx(&text, Some(Path::new(&path)), None, &CompileOptions::default())?;
+    let compiled =
+        compile_mtlx(&text, Some(Path::new(&path)), None, &MtlxOptions::default(), &CompileOptions::default())?;
     println!("// model: {}", compiled.reflection.model);
 
     // 2. Add host functions (context reads, transforms) and an entry point.

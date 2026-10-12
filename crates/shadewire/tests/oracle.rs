@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-use shadewire::{CompileOptions, Dag, compile_mtlx};
+use shadewire::{CompileOptions, Dag, MtlxOptions, compile_mtlx};
 use shadewire_ir::interpret::{ContextSource, TextureSource, eval_surface};
 use shadewire_ir::optimize::optimize;
 use shadewire_ir::{AddressMode, ContextRead, FilterMode, NodeKind, Space, TextureDesc, TransformKind, Value};
@@ -142,8 +142,10 @@ impl TextureSource for PngTextures {
 fn compile(material: &str, fields: &[String]) -> Dag {
     let path = root().join("tools/oracle/materials").join(format!("{material}.mtlx"));
     let text = std::fs::read_to_string(&path).unwrap();
-    let options = CompileOptions { values_as_uniforms: false, ..CompileOptions::default() };
-    let mut dag = compile_mtlx(&text, Some(&path), None, &options).unwrap_or_else(|e| panic!("{material}: {e}")).dag;
+    let mtlx = MtlxOptions { values_as_uniforms: false, ..MtlxOptions::default() };
+    let mut dag = compile_mtlx(&text, Some(&path), None, &mtlx, &CompileOptions::default())
+        .unwrap_or_else(|e| panic!("{material}: {e}"))
+        .dag;
     dag.surface.fields.retain(|f| fields.contains(&f.name));
     assert_eq!(dag.surface.fields.len(), fields.len(), "{material}: every baked field is a surface field");
     let dag = optimize(&dag);
