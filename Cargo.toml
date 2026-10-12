@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/shadewire", "crates/shadewire-wgsl", "crates/shadewire-mtlx", "crates/shadewire-cli", "crates/shadewire-capi"]
+members = ["crates/shadewire", "crates/shadewire-wgsl", "crates/shadewire-mtlx", "crates/shadewire-cli", "crates/shadewire-capi", "crates/shadewire-capi-ctest"]
 
 [workspace.package]
 version = "0.1.0"

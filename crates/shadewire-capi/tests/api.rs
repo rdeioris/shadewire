@@ -374,3 +374,19 @@ fn unknown_target_kinds_and_null_arguments_are_invalid_arguments() {
     unsafe { shadewire_compiled_free(compiled) };
     unsafe { shadewire_blob_free(null_mut()) };
 }
+
+#[test]
+fn an_invalid_utf8_prelude_is_an_invalid_argument() {
+    let compiled = compiled_from("StandardSurface/standard_surface_default.mtlx");
+    let prelude = [0xffu8, 0xfe, 0];
+    let marker = sentinel::<shadewire_blob>();
+    let target = shadewire_target { kind: SHADEWIRE_TARGET_HLSL, version: 60 };
+    let mut out = marker;
+    let mut error = null_mut();
+    let status = unsafe { shadewire_translate(compiled, prelude.as_ptr().cast(), target, &mut out, &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
+    assert_eq!(out, marker);
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
+    unsafe { shadewire_error_free(error) };
+    unsafe { shadewire_compiled_free(compiled) };
+}

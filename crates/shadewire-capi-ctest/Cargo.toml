@@ -1,0 +1,16 @@
+[package]
+name = "shadewire-capi-ctest"
+description = "C smoke test of the Shadewire C API"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+shadewire-capi.workspace = true
+
+[build-dependencies]
+cc.workspace = true
