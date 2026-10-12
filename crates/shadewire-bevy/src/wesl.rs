@@ -5,8 +5,8 @@
 //! (src/render/pbr_fragment.wesl:71), `pbr_functions::{alpha_discard, apply_pbr_lighting,
 //! main_pass_post_lighting_processing, winding_corrected_front_facing}` (src/render/pbr_functions.wesl:98,
 //! 326, 978, 139), `pbr_types::{STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT, STANDARD_MATERIAL_FLAGS_UNLIT_BIT,
-//! STANDARD_MATERIAL_FLAGS_ALPHA_MODE_RESERVED_BITS, STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND}`
-//! (src/render/pbr_types.wesl:39, 40, 56, 59), `mesh_functions::{get_world_from_local, get_local_from_world}`
+//! STANDARD_MATERIAL_FLAGS_ALPHA_MODE_RESERVED_BITS, STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND,
+//! STANDARD_MATERIAL_FLAGS_ALPHA_MODE_PREMULTIPLIED}` (src/render/pbr_types.wesl:39, 40, 56, 59, 60), `mesh_functions::{get_world_from_local, get_local_from_world}`
 //! (src/render/mesh_functions.wesl:15, 25), `mesh_view_bindings::globals` (src/render/mesh_view_bindings.wesl:39),
 //! `forward_io::{VertexOutput, FragmentOutput}` (src/render/forward_io.wesl:98, 118); under
 //! `VISIBILITY_RANGE_DITHER`, `pbr_functions::visibility_range_dither` (pbr_functions.wesl:79), called first as `pbr.wesl:52-53` does.
@@ -49,6 +49,7 @@ const IMPORTS: &str = "import bevy_pbr::render::{
     pbr_types::{
         STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT, STANDARD_MATERIAL_FLAGS_UNLIT_BIT,
         STANDARD_MATERIAL_FLAGS_ALPHA_MODE_RESERVED_BITS, STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND,
+        STANDARD_MATERIAL_FLAGS_ALPHA_MODE_PREMULTIPLIED,
     },
     mesh_functions::{get_world_from_local, get_local_from_world},
     mesh_view_bindings::globals,
