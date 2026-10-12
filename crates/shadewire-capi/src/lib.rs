@@ -6,6 +6,10 @@
 //!
 //! Option structs carry `struct_size` and grow only by appending fields after their current end; their tail padding
 //! is reserved as explicit `reserved` bytes that callers set to zero and the library ignores on read.
+//!
+//! Threads: handles are immutable once returned, so any number of threads may call the accessors and
+//! `shadewire_wgsl_compile` / `shadewire_translate` on the same handle at once (lazily built texts such as the IR dump
+//! are built once, safely). Free a handle exactly once, after every reader is done with it.
 
 mod blob;
 mod compiled;
@@ -17,6 +21,7 @@ mod options;
 mod status;
 mod strings;
 mod target;
+mod threads;
 mod translate;
 mod version;
 
