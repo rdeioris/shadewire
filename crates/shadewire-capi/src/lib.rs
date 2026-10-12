@@ -47,4 +47,7 @@ pub use target::{
     SHADEWIRE_TARGET_SPIRV, SHADEWIRE_TARGET_WEBGL2, SHADEWIRE_TARGET_WGSL, shadewire_target, shadewire_target_kind,
 };
 pub use translate::shadewire_translate;
-pub use version::{shadewire_version, shadewire_version_string};
+pub use version::{
+    SHADEWIRE_VERSION_MAJOR, SHADEWIRE_VERSION_MINOR, SHADEWIRE_VERSION_PATCH, shadewire_version,
+    shadewire_version_string,
+};

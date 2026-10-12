@@ -6,6 +6,15 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// The major version of the header; compare with `shadewire_version() >> 16` to check the library.
+#define SHADEWIRE_VERSION_MAJOR 0
+
+// The minor version of the header.
+#define SHADEWIRE_VERSION_MINOR 1
+
+// The patch version of the header.
+#define SHADEWIRE_VERSION_PATCH 0
+
 // Result of a fallible call: `SHADEWIRE_OK` or `SHADEWIRE_ERROR` (details in the error out-parameter).
 //
 // The `error` out-parameter of a fallible function is written only on failure and left untouched on success, so

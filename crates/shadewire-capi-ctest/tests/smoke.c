@@ -98,6 +98,11 @@ static int parse_error(char *report, size_t report_len) {
     return step;
 }
 
+static uint32_t header_version(void) {
+    return ((uint32_t)SHADEWIRE_VERSION_MAJOR << 16) | ((uint32_t)SHADEWIRE_VERSION_MINOR << 8) |
+           (uint32_t)SHADEWIRE_VERSION_PATCH;
+}
+
 int shadewire_smoke(const char *mtlx_path, char *report, size_t report_len) {
     size_t len = 0;
     char *text = read_file(mtlx_path, &len);
@@ -111,8 +116,11 @@ int shadewire_smoke(const char *mtlx_path, char *report, size_t report_len) {
     }
     step = compile_and_translate(text, len, mtlx_path, report, report_len);
     free(text);
-    if (step != 0) {
-        return step;
+    if (step == 0) {
+        step = parse_error(report, report_len);
     }
-    return parse_error(report, report_len);
+    if (step == 0 && shadewire_version() != header_version()) {
+        step = fail(report, report_len, 9, "the header version macros differ from shadewire_version()", NULL);
+    }
+    return step;
 }
