@@ -1,6 +1,11 @@
 //! The material's textures: texture k of the reflection goes to extension slot k (bindings `101 + 2k`
 //! and `102 + 2k`), read from disk and uploaded raw. The generated shader converts each sample from the
 //! file's colorspace itself, so the image is never sRGB (a `*_srgb` view would decode it twice).
+//!
+//! Paths are read as the document gives them: an absolute path is opened as is, and a relative one
+//! (after the document's `fileprefix`) is joined to the `.mtlx` file's directory, `..` included. Nothing
+//! confines them to that directory, so an app loading `.mtlx` files it does not trust should vet the
+//! reflection's texture paths (or the document) before building the material.
 
 use std::path::{Path, PathBuf};
 
