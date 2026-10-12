@@ -8,10 +8,16 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[features]
+default = ["translate"]
+# `link` and `translate` (validation and HLSL/GLSL/MSL/SPIR-V output) through naga.
+translate = ["dep:naga"]
+
 [dependencies]
 shadewire-ir.workspace = true
-naga.workspace = true
+naga = { workspace = true, optional = true }
 
 [dev-dependencies]
+naga.workspace = true
 wgpu.workspace = true
 pollster.workspace = true

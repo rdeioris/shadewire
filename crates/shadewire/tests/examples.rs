@@ -5,8 +5,10 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use naga::back::{glsl, hlsl};
-use shadewire::{CompileOptions, Error, Target, compile_mtlx, link, reference_host, translate};
+use shadewire::{
+    CompileOptions, Error, GlslVersion, HlslShaderModel, MslVersion, Target, compile_mtlx, link, reference_host,
+    translate,
+};
 use shadewire_mtlx::include::resolve_includes;
 use shadewire_mtlx::parse::parse_str;
 
@@ -22,10 +24,10 @@ fn examples() -> PathBuf {
 
 fn targets() -> [Target; 5] {
     [
-        Target::Hlsl { shader_model: hlsl::ShaderModel::V6_0 },
-        Target::Glsl { version: glsl::Version::Desktop(450) },
-        Target::Glsl { version: glsl::Version::Embedded { version: 300, is_webgl: false } },
-        Target::Msl { version: (2, 1) },
+        Target::Hlsl(HlslShaderModel::Sm6_0),
+        Target::Glsl(GlslVersion::Desktop(450)),
+        Target::Glsl(GlslVersion::Es(300)),
+        Target::Msl(MslVersion { major: 2, minor: 1 }),
         Target::SpirV,
     ]
 }

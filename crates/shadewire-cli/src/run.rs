@@ -1,4 +1,7 @@
-use shadewire::{CompileOptions, Compiled, Error, Output, Target, compile_mtlx, link, reference_host, translate};
+use shadewire::{
+    CompileOptions, Compiled, Error, GlslVersion, HlslShaderModel, MslVersion, Output, Target, compile_mtlx, link,
+    model_struct_name, reference_host, translate,
+};
 
 use clap::ValueEnum;
 
@@ -27,10 +30,10 @@ fn options(args: &CompileArgs) -> CompileOptions {
 fn target(lang: Lang) -> Target {
     match lang {
         Lang::Wgsl => Target::Wgsl,
-        Lang::Hlsl => Target::Hlsl { shader_model: naga::back::hlsl::ShaderModel::V6_0 },
-        Lang::Glsl => Target::Glsl { version: naga::back::glsl::Version::Desktop(450) },
-        Lang::GlslEs => Target::Glsl { version: naga::back::glsl::Version::Embedded { version: 300, is_webgl: false } },
-        Lang::Msl => Target::Msl { version: (2, 1) },
+        Lang::Hlsl => Target::Hlsl(HlslShaderModel::Sm6_0),
+        Lang::Glsl => Target::Glsl(GlslVersion::Desktop(450)),
+        Lang::GlslEs => Target::Glsl(GlslVersion::Es(300)),
+        Lang::Msl => Target::Msl(MslVersion { major: 2, minor: 1 }),
         Lang::Spirv => Target::SpirV,
     }
 }
@@ -46,8 +49,7 @@ fn render(compiled: &Compiled, lang: Lang) -> Result<Vec<u8>, Error> {
         return Ok(compiled.wgsl.clone().into_bytes());
     }
     eprintln!("note: {} output links the reference host, which supplies the entry point", lang_name(lang));
-    let prelude =
-        reference_host::prelude(&compiled.reflection, &shadewire_ir::model_struct_name(&compiled.reflection.model));
+    let prelude = reference_host::prelude(&compiled.reflection, &model_struct_name(&compiled.reflection.model));
     let linked = link(&compiled.wgsl, &prelude)?;
     Ok(match translate(&linked, target(lang))? {
         Output::Text(text) => text.into_bytes(),

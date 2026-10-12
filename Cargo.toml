@@ -13,7 +13,7 @@ repository = "https://github.com/rdeioris/shadewire"
 [workspace.dependencies]
 shadewire-ir = { path = "crates/shadewire-ir" }
 shadewire-mtlx = { path = "crates/shadewire-mtlx" }
-shadewire-wgsl = { path = "crates/shadewire-wgsl" }
+shadewire-wgsl = { path = "crates/shadewire-wgsl", default-features = false }
 shadewire = { path = "crates/shadewire" }
 naga = { version = "30", features = ["wgsl-in", "wgsl-out", "hlsl-out", "glsl-out", "msl-out", "spv-out"] }
 quick-xml = "0.38"

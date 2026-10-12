@@ -50,7 +50,7 @@ Each entry of `textures` names its file and the `colorspace` it was authored in.
 
 ## Targets
 
-Other languages come from the linked WGSL module through naga. HLSL shader model 6 samplers go through naga's sampler heap (register `s0`, space 0). MSL uses `fake_missing_bindings`, so resource slots follow declaration order.
+Other languages come from the linked WGSL module through naga, behind the `translate` cargo feature (on by default). `default-features = false` gives a naga-free build with WGSL and reflection only. Targets are Shadewire's own types (`HlslShaderModel`, `GlslVersion`, `MslVersion`), so callers never depend on naga. HLSL shader model 6 samplers go through naga's sampler heap (register `s0`, space 0). MSL uses `fake_missing_bindings`, so resource slots follow declaration order.
 
 ## Development
 

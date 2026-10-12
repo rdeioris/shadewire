@@ -4,15 +4,7 @@ use naga::back::{glsl, hlsl, msl, spv, wgsl};
 use shadewire_ir::Error;
 
 use crate::link::parse_and_validate;
-
-#[derive(Clone, Debug)]
-pub enum Target {
-    Wgsl,
-    Hlsl { shader_model: naga::back::hlsl::ShaderModel },
-    Glsl { version: naga::back::glsl::Version },
-    Msl { version: (u8, u8) },
-    SpirV,
-}
+use crate::target::{GlslVersion, HlslShaderModel, Target};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Output {
@@ -33,7 +25,7 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
         Target::Wgsl => wgsl::write_string(&module, &info, wgsl::WriterFlags::empty())
             .map(Output::Text)
             .map_err(|e| Error::Naga(e.to_string())),
-        Target::Hlsl { shader_model } => {
+        Target::Hlsl(model) => {
             // Register and space follow the WGSL group and binding. HLSL spaces are u8 here.
             let mut binding_map = hlsl::BindingMap::default();
             for (_, global) in module.global_variables.iter() {
@@ -44,7 +36,7 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
                         .insert(*binding, hlsl::BindTarget { space, register: binding.binding, ..Default::default() });
                 }
             }
-            let options = hlsl::Options { shader_model, binding_map, ..Default::default() };
+            let options = hlsl::Options { shader_model: hlsl_model(model), binding_map, ..Default::default() };
             let pipeline = hlsl::PipelineOptions { entry_point: entry };
             let mut out = String::new();
             hlsl::Writer::new(&mut out, &options, &pipeline)
@@ -52,9 +44,9 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
                 .map_err(|e| Error::Naga(e.to_string()))?;
             Ok(Output::Text(out))
         }
-        Target::Glsl { version } => {
+        Target::Glsl(version) => {
             let (stage, name) = entry.ok_or_else(|| Error::Naga("GLSL needs an entry point".into()))?;
-            let options = glsl::Options { version, ..Default::default() };
+            let options = glsl::Options { version: glsl_version(version), ..Default::default() };
             let pipeline = glsl::PipelineOptions { shader_stage: stage, entry_point: name, multiview: None };
             let mut out = String::new();
             glsl::Writer::new(
@@ -69,9 +61,13 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
             .map_err(|e| Error::Naga(e.to_string()))?;
             Ok(Output::Text(out))
         }
-        Target::Msl { version } => {
+        Target::Msl(version) => {
             // Phase 1: resource slots follow declaration order.
-            let options = msl::Options { lang_version: version, fake_missing_bindings: true, ..Default::default() };
+            let options = msl::Options {
+                lang_version: (version.major, version.minor),
+                fake_missing_bindings: true,
+                ..Default::default()
+            };
             msl::write_string(&module, &info, &options, &msl::PipelineOptions::default())
                 .map(|(text, _)| Output::Text(text))
                 .map_err(|e| Error::Naga(e.to_string()))
@@ -85,12 +81,37 @@ pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
     }
 }
 
+fn hlsl_model(model: HlslShaderModel) -> hlsl::ShaderModel {
+    match model {
+        HlslShaderModel::Sm5_0 => hlsl::ShaderModel::V5_0,
+        HlslShaderModel::Sm5_1 => hlsl::ShaderModel::V5_1,
+        HlslShaderModel::Sm6_0 => hlsl::ShaderModel::V6_0,
+        HlslShaderModel::Sm6_1 => hlsl::ShaderModel::V6_1,
+        HlslShaderModel::Sm6_2 => hlsl::ShaderModel::V6_2,
+        HlslShaderModel::Sm6_3 => hlsl::ShaderModel::V6_3,
+        HlslShaderModel::Sm6_4 => hlsl::ShaderModel::V6_4,
+        HlslShaderModel::Sm6_5 => hlsl::ShaderModel::V6_5,
+        HlslShaderModel::Sm6_6 => hlsl::ShaderModel::V6_6,
+        HlslShaderModel::Sm6_7 => hlsl::ShaderModel::V6_7,
+        HlslShaderModel::Sm6_8 => hlsl::ShaderModel::V6_8,
+        HlslShaderModel::Sm6_9 => hlsl::ShaderModel::V6_9,
+    }
+}
+
+fn glsl_version(version: GlslVersion) -> glsl::Version {
+    match version {
+        GlslVersion::Desktop(v) => glsl::Version::Desktop(v),
+        GlslVersion::Es(v) => glsl::Version::Embedded { version: v, is_webgl: false },
+        GlslVersion::WebGl2 => glsl::Version::Embedded { version: 300, is_webgl: true },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::emit::test_support::add;
+    use crate::target::MslVersion;
     use crate::{EmitOptions, emit, link::link, reference_host};
-    use naga::back::{glsl, hlsl};
     use shadewire_ir::*;
 
     fn linked() -> String {
@@ -141,13 +162,17 @@ mod tests {
     fn every_target_translates() {
         let wgsl = text(Target::Wgsl);
         assert!(wgsl.contains("sw_eval_surface"));
-        let hlsl = text(Target::Hlsl { shader_model: hlsl::ShaderModel::V6_0 });
+        let hlsl = text(Target::Hlsl(HlslShaderModel::Sm6_0));
         assert!(hlsl.contains("register(b0, space2)"), "{hlsl}");
         assert!(hlsl.contains("register(t1, space2)"), "{hlsl}");
         assert!(hlsl.contains("register(s0, space0)"), "{hlsl}");
-        let glsl = text(Target::Glsl { version: glsl::Version::Embedded { version: 300, is_webgl: false } });
+        let glsl = text(Target::Glsl(GlslVersion::Es(300)));
         assert!(glsl.contains("#version 300 es"), "{glsl}");
-        assert!(!text(Target::Msl { version: (2, 1) }).is_empty());
+        let desktop = text(Target::Glsl(GlslVersion::Desktop(450)));
+        assert!(desktop.contains("#version 450"), "{desktop}");
+        let webgl = text(Target::Glsl(GlslVersion::WebGl2));
+        assert!(webgl.contains("#version 300 es"), "{webgl}");
+        assert!(!text(Target::Msl(MslVersion { major: 2, minor: 1 })).is_empty());
         match translate(&linked(), Target::SpirV).unwrap() {
             Output::Words(w) => assert_eq!(w[0], 0x0723_0203),
             Output::Text(_) => panic!("expected words"),
@@ -156,8 +181,8 @@ mod tests {
 
     #[test]
     fn a_group_past_255_has_no_hlsl_space() {
-        let hlsl = Target::Hlsl { shader_model: hlsl::ShaderModel::V6_0 };
-        assert!(translate(&linked_at(255), hlsl.clone()).is_ok());
+        let hlsl = Target::Hlsl(HlslShaderModel::Sm6_0);
+        assert!(translate(&linked_at(255), hlsl).is_ok());
         match translate(&linked_at(256), hlsl) {
             Err(Error::Naga(message)) => assert_eq!(message, "bind group too large for HLSL space: 256"),
             other => panic!("expected a naga error, got {other:?}"),

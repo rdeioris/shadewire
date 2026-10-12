@@ -11,8 +11,6 @@ repository.workspace = true
 [dependencies]
 shadewire.workspace = true
 clap.workspace = true
-naga.workspace = true
-shadewire-ir.workspace = true
 serde_json.workspace = true
 
 [[bin]]
