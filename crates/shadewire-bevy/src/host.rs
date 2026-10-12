@@ -12,7 +12,7 @@
 //! | `tangent_world`, `bitangent_world` | `in.world_tangent` (`VERTEX_TANGENTS`, forward_io.wesl:108-109), orthogonalised against N, bitangent `w * cross(N, T)` as in `calculate_tbn_mikktspace` (pbr_functions.wesl:148); without tangents a screen-space frame from position and MaterialX UV derivatives, `w` chosen so the bitangent runs along +V. T and B are negated with N on back faces |
 //! | `texcoord_0`, `texcoord_1` | `vec2(uv.x, 1.0 - uv.y)` from `in.uv` / `in.uv_b` (`VERTEX_UVS_A` / `VERTEX_UVS_B`, forward_io.wesl:104-107), else zero: glTF V points down, MaterialX V up |
 //! | `geomcolor_0` | `in.color` (`VERTEX_COLORS`, forward_io.wesl:110-111), else white |
-//! | `view_direction_world` | `-pbr_input.V` (pbr_types.wesl:111, from the camera toward the fragment) |
+//! | `view_direction_world` | `-pbr_input.V`: Bevy's `V` (pbr_types.wesl:111) points from the fragment to the camera, so `-V` runs from the camera to the surface, MaterialX's view direction |
 //! | `time`, `frame` | `globals.time`, `f32(globals.frame_count)` (render/mesh_view_bindings.wesl:39, bevy_render globals.wesl) |
 //! | `transform_*` | `get_world_from_local` / `get_local_from_world` (mesh_functions.wesl:15, 25); Bevy has no model space apart from object space |
 //! | `geomprop_*` | the reflection's authored default, else zero (no mesh attribute plumbing) |
