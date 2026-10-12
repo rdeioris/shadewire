@@ -1,5 +1,10 @@
 use shadewire::{Type, Value};
 
+/// The WGSL type of a Shadewire value type: `bool`, `i32`, `f32` or a `vecN<f32>` (colors are vectors).
+///
+/// # Panics
+/// On `Matrix33` and `Matrix44`: elaboration rejects matrix-typed values, so generated code never declares one,
+/// and hosts must spell their own matrices (`mat3x3<f32>`, `mat4x4<f32>`).
 pub fn wgsl_type(ty: Type) -> &'static str {
     match ty {
         Type::Boolean => "bool",
@@ -25,6 +30,11 @@ fn float(x: f32) -> String {
     }
 }
 
+/// A WGSL expression for `value`: `true`/`false`, an `i` integer literal (`i32::MIN` built by subtraction), an
+/// f32 literal (non-finite values through `bitcast`), or a `vecN<f32>(...)` constructor.
+///
+/// # Panics
+/// On `Matrix33` and `Matrix44` values, as [`wgsl_type`] does.
 pub fn literal(value: &Value) -> String {
     match value {
         Value::Boolean(b) => b.to_string(),
