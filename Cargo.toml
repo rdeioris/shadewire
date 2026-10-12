@@ -28,23 +28,13 @@ insta = "1"
 png = "0.17"
 cbindgen = "0.29"
 cc = "1"
+# The library's minimum; the example's window, glTF and tonemapping features are shadewire-bevy dev-dependencies.
 bevy = { version = "0.20", default-features = false, features = [
     "std",
-    "async_executor",
-    "multi_threaded",
     "bevy_asset",
-    "bevy_log",
-    "bevy_window",
-    "bevy_winit",
-    "x11",
     "bevy_render",
     "bevy_core_pipeline",
     "bevy_pbr",
-    "bevy_gltf",
-    "bevy_mikktspace",
     "png",
     "jpeg",
-    "tonemapping_luts",
-    "ktx2",
-    "zstd_rust",
 ] }

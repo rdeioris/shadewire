@@ -16,9 +16,22 @@ bevy.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-# The example spawns glTF scenes through reflection: without auto-registration Transform is unregistered and
-# spawning panics. The library itself does not need it.
-bevy = { workspace = true, features = ["reflect_auto_register"] }
+# The example's window, glTF scenes and tonemapping; the library needs none of them. It spawns glTF scenes
+# through reflection: without auto-registration Transform is unregistered and spawning panics.
+bevy = { workspace = true, features = [
+    "async_executor",
+    "multi_threaded",
+    "bevy_log",
+    "bevy_window",
+    "bevy_winit",
+    "x11",
+    "bevy_gltf",
+    "bevy_mikktspace",
+    "tonemapping_luts",
+    "ktx2",
+    "zstd_rust",
+    "reflect_auto_register",
+] }
 # The versions Bevy 0.20 compiles shaders with (bevy_shader: wesl 0.6 with naga-ext; wgpu 30: naga 30).
 wesl = { version = "0.6", features = ["naga-ext"] }
 naga.workspace = true
