@@ -3,6 +3,9 @@
 //!
 //! Every fallible function takes an `error` out-parameter: it is written only on failure and left untouched on
 //! success (callers initialise it to NULL), and may itself be NULL to ignore the error object.
+//!
+//! Option structs carry `struct_size` and grow only by appending fields after their current end; their tail padding
+//! is reserved as explicit `reserved` bytes that callers set to zero and the library ignores on read.
 
 mod blob;
 mod compiled;

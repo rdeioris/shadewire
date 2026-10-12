@@ -1,4 +1,8 @@
 //! Option structs passed from C, read as old callers may have built them.
+//!
+//! The structs only grow at the end: a new field starts at or after the current `sizeof`, so `struct_size` tells
+//! which fields a caller knows. Tail padding is spelled out as zero-filled `reserved` bytes, ignored on read, so no
+//! new field can land inside an old struct's size.
 
 use std::ffi::c_char;
 
@@ -12,6 +16,8 @@ use crate::strings::{ArgError, opt_cstr};
 /// `models` NULL with `model_count` 0 is the default list; NULL with a non-zero count is an error; non-NULL is exactly
 /// `model_count` NUL-terminated UTF-8 strings, and a count of 0 means no models (every material is then
 /// NoTranslation). `working_colorspace` is NULL for the default. `values_as_uniforms` must be 0 or 1.
+///
+/// `reserved` fills the tail padding and must be zero; new fields are only appended after it.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct shadewire_mtlx_options {
@@ -20,10 +26,13 @@ pub struct shadewire_mtlx_options {
     pub model_count: usize,
     pub working_colorspace: *const c_char,
     pub values_as_uniforms: bool,
+    pub reserved: [u8; 7],
 }
 
 /// Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
 /// The booleans must be 0 or 1.
+///
+/// `reserved` fills the tail padding and must be zero; new fields are only appended after it.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct shadewire_compile_options {
@@ -32,6 +41,7 @@ pub struct shadewire_compile_options {
     pub first_binding: u32,
     pub flip_v: bool,
     pub optimize: bool,
+    pub reserved: [u8; 2],
 }
 
 fn compile_defaults() -> shadewire_compile_options {
@@ -42,6 +52,7 @@ fn compile_defaults() -> shadewire_compile_options {
         first_binding: d.first_binding,
         flip_v: d.flip_v,
         optimize: d.optimize,
+        reserved: [0; 2],
     }
 }
 
@@ -52,6 +63,7 @@ fn mtlx_defaults() -> shadewire_mtlx_options {
         model_count: 0,
         working_colorspace: std::ptr::null(),
         values_as_uniforms: MtlxOptions::default().values_as_uniforms,
+        reserved: [0; 7],
     }
 }
 
@@ -167,6 +179,28 @@ mod tests {
         assert_eq!(read.models, d.models);
         assert_eq!(read.working_colorspace, d.working_colorspace);
         assert_eq!(read.values_as_uniforms, d.values_as_uniforms);
+    }
+
+    #[test]
+    fn the_reserved_bytes_end_each_struct() {
+        let compile_end = offset_of!(shadewire_compile_options, reserved) + 2;
+        assert_eq!(size_of::<shadewire_compile_options>(), compile_end);
+        let mtlx_end = offset_of!(shadewire_mtlx_options, reserved) + 7;
+        assert_eq!(size_of::<shadewire_mtlx_options>(), mtlx_end);
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!((size_of::<shadewire_compile_options>(), size_of::<shadewire_mtlx_options>()), (16, 40));
+    }
+
+    #[test]
+    fn defaults_zero_the_reserved_bytes() {
+        let mut c = MaybeUninit::<shadewire_compile_options>::uninit();
+        unsafe { c.as_mut_ptr().cast::<u8>().write_bytes(0xAA, size_of::<shadewire_compile_options>()) };
+        unsafe { shadewire_compile_options_default(c.as_mut_ptr()) };
+        assert_eq!(unsafe { c.assume_init() }.reserved, [0; 2]);
+        let mut m = MaybeUninit::<shadewire_mtlx_options>::uninit();
+        unsafe { m.as_mut_ptr().cast::<u8>().write_bytes(0xAA, size_of::<shadewire_mtlx_options>()) };
+        unsafe { shadewire_mtlx_options_default(m.as_mut_ptr()) };
+        assert_eq!(unsafe { m.assume_init() }.reserved, [0; 7]);
     }
 
     #[test]

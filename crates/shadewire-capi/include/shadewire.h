@@ -75,12 +75,15 @@ typedef struct shadewire_ir shadewire_ir;
 
 // Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
 // The booleans must be 0 or 1.
+//
+// `reserved` fills the tail padding and must be zero; new fields are only appended after it.
 typedef struct shadewire_compile_options {
   uint32_t struct_size;
   uint32_t group;
   uint32_t first_binding;
   bool flip_v;
   bool optimize;
+  uint8_t reserved[2];
 } shadewire_compile_options;
 
 // Options for MaterialX import. Set `struct_size` to `sizeof` the struct, or use `shadewire_mtlx_options_default`.
@@ -88,12 +91,15 @@ typedef struct shadewire_compile_options {
 // `models` NULL with `model_count` 0 is the default list; NULL with a non-zero count is an error; non-NULL is exactly
 // `model_count` NUL-terminated UTF-8 strings, and a count of 0 means no models (every material is then
 // NoTranslation). `working_colorspace` is NULL for the default. `values_as_uniforms` must be 0 or 1.
+//
+// `reserved` fills the tail padding and must be zero; new fields are only appended after it.
 typedef struct shadewire_mtlx_options {
   uint32_t struct_size;
   const char *const *models;
   size_t model_count;
   const char *working_colorspace;
   bool values_as_uniforms;
+  uint8_t reserved[7];
 } shadewire_mtlx_options;
 
 // Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
