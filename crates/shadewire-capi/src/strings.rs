@@ -7,10 +7,10 @@ use std::sync::OnceLock;
 
 /// An invalid argument passed by the caller.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ArgError(pub String);
+pub(crate) struct ArgError(pub(crate) String);
 
 /// Makes a C string, replacing NUL bytes with U+FFFD.
-pub fn c_string(s: String) -> CString {
+pub(crate) fn c_string(s: String) -> CString {
     let cleaned = if s.contains('\0') { s.replace('\0', "\u{FFFD}") } else { s };
     CString::new(cleaned).expect("NUL bytes were replaced")
 }
@@ -39,7 +39,7 @@ pub(crate) unsafe fn null_str(len: *mut usize) -> *const c_char {
 ///
 /// # Safety
 /// `len` must be NULL or valid for writing a `usize`.
-pub unsafe fn out_str(s: &CStr, len: *mut usize) -> *const c_char {
+pub(crate) unsafe fn out_str(s: &CStr, len: *mut usize) -> *const c_char {
     if !len.is_null() {
         unsafe { *len = s.to_bytes().len() };
     }
@@ -50,7 +50,7 @@ pub unsafe fn out_str(s: &CStr, len: *mut usize) -> *const c_char {
 ///
 /// # Safety
 /// `ptr` must be NULL or point to `len` readable bytes that outlive `'a`.
-pub unsafe fn text_arg<'a>(ptr: *const c_char, len: usize) -> Result<&'a str, ArgError> {
+pub(crate) unsafe fn text_arg<'a>(ptr: *const c_char, len: usize) -> Result<&'a str, ArgError> {
     if ptr.is_null() {
         return Err(ArgError("null text pointer".to_string()));
     }
@@ -62,7 +62,7 @@ pub unsafe fn text_arg<'a>(ptr: *const c_char, len: usize) -> Result<&'a str, Ar
 ///
 /// # Safety
 /// `ptr` must be NULL or a valid NUL-terminated string that outlives `'a`.
-pub unsafe fn opt_cstr<'a>(ptr: *const c_char) -> Result<Option<&'a str>, ArgError> {
+pub(crate) unsafe fn opt_cstr<'a>(ptr: *const c_char) -> Result<Option<&'a str>, ArgError> {
     if ptr.is_null() {
         return Ok(None);
     }

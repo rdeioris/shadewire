@@ -49,7 +49,7 @@ fn hlsl_model(version: u32) -> Result<HlslShaderModel, ArgError> {
 }
 
 /// Converts a C target to the Rust one, rejecting unknown kinds and versions.
-pub fn to_target(target: shadewire_target) -> Result<Target, ArgError> {
+pub(crate) fn to_target(target: shadewire_target) -> Result<Target, ArgError> {
     let version = target.version;
     match target.kind {
         SHADEWIRE_TARGET_WGSL => Ok(Target::Wgsl),

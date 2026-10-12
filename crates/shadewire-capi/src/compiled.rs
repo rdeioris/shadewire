@@ -46,7 +46,7 @@ fn build(
 ) -> Result<shadewire_compiled, CapiError> {
     let compiled = shadewire_wgsl::compile(dag, source, options)?;
     let json = serde_json::to_string_pretty(&compiled.reflection)
-        .map_err(|e| CapiError::Argument(format!("reflection could not be serialised: {e}")))?;
+        .map_err(|e| CapiError::Internal(format!("reflection could not be serialised: {e}")))?;
     Ok(shadewire_compiled {
         wgsl: c_string(compiled.wgsl.clone()),
         reflection_json: c_string(json),

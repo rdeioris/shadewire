@@ -27,8 +27,8 @@ pub use compiled::{
     shadewire_wgsl_compile,
 };
 pub use error::{
-    CapiError, shadewire_error, shadewire_error_file, shadewire_error_free, shadewire_error_get_kind,
-    shadewire_error_line, shadewire_error_message, shadewire_error_path,
+    shadewire_error, shadewire_error_file, shadewire_error_free, shadewire_error_get_kind, shadewire_error_line,
+    shadewire_error_message, shadewire_error_path,
 };
 pub use error_kind::shadewire_error_kind;
 pub use ir::{shadewire_ir, shadewire_ir_dump, shadewire_ir_free, shadewire_ir_model, shadewire_mtlx_to_ir};
@@ -37,11 +37,9 @@ pub use options::{
     shadewire_mtlx_options_default,
 };
 pub use status::shadewire_status;
-pub use strings::{ArgError, c_string, opt_cstr, out_str, text_arg};
 pub use target::{
     SHADEWIRE_TARGET_GLSL, SHADEWIRE_TARGET_GLSL_ES, SHADEWIRE_TARGET_HLSL, SHADEWIRE_TARGET_MSL,
     SHADEWIRE_TARGET_SPIRV, SHADEWIRE_TARGET_WEBGL2, SHADEWIRE_TARGET_WGSL, shadewire_target, shadewire_target_kind,
-    to_target,
 };
 pub use translate::shadewire_translate;
 pub use version::{shadewire_version, shadewire_version_string};

@@ -23,7 +23,7 @@ pub enum shadewire_error_kind {
 }
 
 /// The kind of a core error.
-pub fn kind_of(error: &shadewire::Error) -> shadewire_error_kind {
+pub(crate) fn kind_of(error: &shadewire::Error) -> shadewire_error_kind {
     use shadewire::Error;
     match error {
         Error::Parse { .. } => shadewire_error_kind::SHADEWIRE_ERROR_PARSE,

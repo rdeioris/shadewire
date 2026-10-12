@@ -18,11 +18,13 @@ pub struct shadewire_error {
 
 /// Everything a C API body can fail with.
 #[derive(Debug)]
-pub enum CapiError {
+pub(crate) enum CapiError {
     /// An error from the core library.
     Core(shadewire::Error),
     /// An invalid argument passed by the caller.
     Argument(String),
+    /// A fault inside the library that the caller cannot fix; reported as SHADEWIRE_ERROR_PANIC.
+    Internal(String),
 }
 
 impl From<shadewire::Error> for CapiError {
@@ -42,6 +44,7 @@ impl From<CapiError> for shadewire_error {
         match error {
             CapiError::Core(core) => from_core(&core),
             CapiError::Argument(message) => invalid_argument(message),
+            CapiError::Internal(message) => unlocated(shadewire_error_kind::SHADEWIRE_ERROR_PANIC, message),
         }
     }
 }
@@ -71,7 +74,7 @@ fn location_of(error: &shadewire::Error) -> Option<&shadewire::Location> {
 }
 
 /// Builds an error object from a core error.
-pub fn from_core(error: &shadewire::Error) -> shadewire_error {
+pub(crate) fn from_core(error: &shadewire::Error) -> shadewire_error {
     let at = location_of(error);
     shadewire_error {
         kind: kind_of(error),
@@ -87,12 +90,12 @@ fn unlocated(kind: shadewire_error_kind, message: String) -> shadewire_error {
 }
 
 /// Builds an invalid-argument error object.
-pub fn invalid_argument(message: String) -> shadewire_error {
+pub(crate) fn invalid_argument(message: String) -> shadewire_error {
     unlocated(shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT, message)
 }
 
 /// Builds a panic error object from a caught panic payload.
-pub fn panic(payload: Box<dyn Any + Send>) -> shadewire_error {
+pub(crate) fn panic(payload: Box<dyn Any + Send>) -> shadewire_error {
     let message = match payload.downcast::<&'static str>() {
         Ok(text) => text.to_string(),
         Err(payload) => match payload.downcast::<String>() {
@@ -104,7 +107,7 @@ pub fn panic(payload: Box<dyn Any + Send>) -> shadewire_error {
 }
 
 /// The fixed error written when building an error object itself panicked.
-pub fn reporting_panic() -> shadewire_error {
+pub(crate) fn reporting_panic() -> shadewire_error {
     unlocated(shadewire_error_kind::SHADEWIRE_ERROR_PANIC, "panic while reporting an error".to_string())
 }
 
@@ -249,6 +252,16 @@ mod tests {
         unsafe {
             assert_eq!(shadewire_error_get_kind(err), shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
             assert_eq!(text(shadewire_error_message(err, std::ptr::null_mut())), "bad arg");
+            shadewire_error_free(err);
+        }
+    }
+
+    #[test]
+    fn an_internal_fault_is_a_panic_error() {
+        let err = fail_with(CapiError::Internal("reflection could not be serialised".into()));
+        unsafe {
+            assert_eq!(shadewire_error_get_kind(err), shadewire_error_kind::SHADEWIRE_ERROR_PANIC);
+            assert_eq!(text(shadewire_error_message(err, std::ptr::null_mut())), "reflection could not be serialised");
             shadewire_error_free(err);
         }
     }
