@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use shadewire_ir::{Error, Location, NodeId};
+use shadewire::{Error, Location, NodeId};
 
 use super::Elaborator;
 use crate::document::{Node, NodeGraph, PortType};

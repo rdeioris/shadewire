@@ -1,6 +1,6 @@
 //! The shading models phase 1 compiles, and the fields of their surface structs.
 
-use shadewire_ir::Type;
+use shadewire::Type;
 
 use crate::document::{NodeDef, PortType};
 
@@ -8,7 +8,7 @@ use crate::document::{NodeDef, PortType};
 pub const PHASE_ONE_MODELS: [&str; 4] = ["open_pbr_surface", "standard_surface", "gltf_pbr", "surface_unlit"];
 
 /// The WGSL struct name of a model; the one rule lives in the IR crate.
-pub use shadewire_ir::model_struct_name as struct_name;
+pub use shadewire::model_struct_name as struct_name;
 
 /// Every value-typed input of the model's nodedef, in nodedef order.
 /// String and filename inputs are not fields.

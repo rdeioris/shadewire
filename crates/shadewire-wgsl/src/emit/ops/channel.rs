@@ -1,9 +1,9 @@
-use shadewire_ir::{Op, Type};
+use shadewire::{Op, Type};
 
 use super::super::types::wgsl_type;
 use super::{Arg, cast};
 
-/// Mirrors `shadewire_ir::ops::channel`.
+/// Mirrors `shadewire::ops::channel`.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     match op {
         Op::Extract(index) => {
@@ -50,7 +50,7 @@ fn convert(arg: &Arg, ty: Type) -> String {
 mod tests {
     use super::emit;
     use crate::emit::test_support::args;
-    use shadewire_ir::{Op, Type};
+    use shadewire::{Op, Type};
 
     #[test]
     fn extract_and_combine() {

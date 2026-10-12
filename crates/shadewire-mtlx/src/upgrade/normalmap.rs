@@ -2,7 +2,7 @@
 
 use super::scope::{copy_input, for_each_scope, new_node, node_input, unique_name};
 use crate::document::{Document, Node, PortType};
-use shadewire_ir::{Error, Location, Type};
+use shadewire::{Error, Location, Type};
 
 const VECTOR3: PortType = PortType::Value(Type::Vector3);
 
@@ -69,7 +69,7 @@ fn add_bitangent(node: &mut Node, result: &mut Vec<Node>) {
 #[cfg(test)]
 mod tests {
     use crate::upgrade::test_doc::doc_138;
-    use shadewire_ir::Error;
+    use shadewire::Error;
 
     #[test]
     fn tangent_space_input_is_removed() {

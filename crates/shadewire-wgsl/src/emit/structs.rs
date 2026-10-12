@@ -1,4 +1,4 @@
-use shadewire_ir::Dag;
+use shadewire::Dag;
 
 use super::names::{ident, struct_name};
 use super::types::wgsl_type;
@@ -16,7 +16,7 @@ pub fn model_struct(dag: &Dag) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadewire_ir::{NodeId, SurfaceField, Type};
+    use shadewire::{NodeId, SurfaceField, Type};
 
     #[test]
     fn two_fields() {

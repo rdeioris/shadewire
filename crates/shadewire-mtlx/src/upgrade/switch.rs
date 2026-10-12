@@ -3,7 +3,7 @@
 
 use super::scope::for_each_scope;
 use crate::document::{Document, PortType};
-use shadewire_ir::Type;
+use shadewire::Type;
 
 pub fn apply(doc: &mut Document) {
     for_each_scope(doc, |nodes| {

@@ -1,8 +1,8 @@
-use shadewire_ir::{Op, Type};
+use shadewire::{Op, Type};
 
 use super::{Arg, cast};
 
-/// Mirrors `shadewire_ir::ops::hextile`: calls into lib/hextile.wgsl, arguments in
+/// Mirrors `shadewire::ops::hextile`: calls into lib/hextile.wgsl, arguments in
 /// `catalog::input_names` order, each cast to the type the library function takes.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     const V2: Type = Type::Vector2;
@@ -27,7 +27,7 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
 mod tests {
     use super::emit;
     use crate::emit::test_support::args;
-    use shadewire_ir::{Op, Type};
+    use shadewire::{Op, Type};
 
     const V2: Type = Type::Vector2;
     const F: Type = Type::Float;

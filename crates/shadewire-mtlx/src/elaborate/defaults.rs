@@ -1,6 +1,6 @@
 //! Nodedef defaults: a geometric property read, the declared value, or zero.
 
-use shadewire_ir::{ContextRead, Error, Location, Node, NodeId, NodeKind, Space, Type, Value};
+use shadewire::{ContextRead, Error, Location, Node, NodeId, NodeKind, Space, Type, Value};
 
 use super::Elaborator;
 use crate::document::{GeomPropDef, PortDef, PortType};
@@ -66,7 +66,7 @@ mod tests {
     use crate::index::Index;
     use crate::library;
     use crate::parse::parse_str;
-    use shadewire_ir::{ContextRead, Space, Type};
+    use shadewire::{ContextRead, Space, Type};
 
     fn user() -> Document {
         let text = r#"<materialx version="1.39">

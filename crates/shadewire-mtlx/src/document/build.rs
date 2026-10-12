@@ -1,4 +1,4 @@
-use shadewire_ir::Error;
+use shadewire::Error;
 
 use super::Document;
 use super::geompropdef::build_geompropdef;

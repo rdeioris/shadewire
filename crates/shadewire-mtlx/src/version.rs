@@ -1,4 +1,4 @@
-use shadewire_ir::{Error, Location};
+use shadewire::{Error, Location};
 
 use crate::element::Element;
 
@@ -21,7 +21,7 @@ pub fn document_version(root: &Element) -> Result<(u32, u32), Error> {
 mod tests {
     use super::document_version;
     use crate::element::Element;
-    use shadewire_ir::Error;
+    use shadewire::Error;
 
     fn root(version: Option<&str>) -> Element {
         Element {

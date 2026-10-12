@@ -1,4 +1,4 @@
-use shadewire_ir::Reflection;
+use shadewire::Reflection;
 
 /// One texture and one sampler per live texture, numbered by the Dag texture index.
 pub fn texture_bindings(reflection: &Reflection) -> String {
@@ -19,7 +19,7 @@ pub fn texture_bindings(reflection: &Reflection) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadewire_ir::*;
+    use shadewire::*;
 
     #[test]
     fn uses_dag_index_and_reflection_bindings() {

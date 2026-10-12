@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use shadewire_ir::{Error, Location, NodeId, Type};
+use shadewire::{Error, Location, NodeId, Type};
 
 use super::{Binding, Elaborator};
 

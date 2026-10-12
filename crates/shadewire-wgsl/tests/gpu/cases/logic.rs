@@ -1,7 +1,7 @@
 //! Logic family: comparisons, both branches of every if-op, switch over `which`, boolean ops.
 
 use super::{Case, EXACT, binary, op_case, unary};
-use shadewire_ir::{Op, Type, Value};
+use shadewire::{Op, Type, Value};
 
 const B: Type = Type::Boolean;
 

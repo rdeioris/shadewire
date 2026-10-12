@@ -1,8 +1,8 @@
-use shadewire_ir::{Op, Type};
+use shadewire::{Op, Type};
 
 use super::{Arg, finish, wide};
 
-/// Mirrors `shadewire_ir::ops::derivative`: WGSL's fragment-stage `dpdx`/`dpdy`.
+/// Mirrors `shadewire::ops::derivative`: WGSL's fragment-stage `dpdx`/`dpdy`.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     let a = wide(args, ty);
     let expr = match op {
@@ -17,7 +17,7 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
 mod tests {
     use super::emit;
     use crate::emit::test_support::args;
-    use shadewire_ir::{Op, Type};
+    use shadewire::{Op, Type};
 
     #[test]
     fn builtins() {

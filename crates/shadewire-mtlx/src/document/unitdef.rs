@@ -1,4 +1,4 @@
-use shadewire_ir::{Error, Location};
+use shadewire::{Error, Location};
 
 use crate::element::Element;
 

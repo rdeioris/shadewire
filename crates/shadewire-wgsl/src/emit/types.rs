@@ -1,4 +1,4 @@
-use shadewire_ir::{Type, Value};
+use shadewire::{Type, Value};
 
 pub fn wgsl_type(ty: Type) -> &'static str {
     match ty {

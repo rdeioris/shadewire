@@ -13,7 +13,7 @@ pub mod swizzle;
 #[cfg(test)]
 pub mod test_doc;
 
-use shadewire_ir::{Error, Location};
+use shadewire::{Error, Location};
 
 use crate::document::Document;
 
@@ -41,7 +41,7 @@ pub fn upgrade(mut doc: Document) -> Result<Document, Error> {
 mod tests {
     use super::test_doc::doc_with_version;
     use super::upgrade;
-    use shadewire_ir::Error;
+    use shadewire::Error;
 
     #[test]
     fn current_version_passes_through() {

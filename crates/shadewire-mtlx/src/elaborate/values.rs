@@ -1,6 +1,6 @@
 //! Values authored in the document: constants, or uniforms when eligible.
 
-use shadewire_ir::{Error, Location, Node, NodeId, NodeKind, Type, Value};
+use shadewire::{Error, Location, Node, NodeId, NodeKind, Type, Value};
 
 use super::{Elaborator, Scope};
 

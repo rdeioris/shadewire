@@ -1,6 +1,6 @@
 //! Surface fields: a model's inputs, or a same-model mix of two surfaces.
 
-use shadewire_ir::{Error, Node, NodeId, NodeKind, Op, SurfaceField, Type, Value};
+use shadewire::{Error, Node, NodeId, NodeKind, Op, SurfaceField, Type, Value};
 
 use super::find::{MixInput, SurfaceSource};
 use super::models::fields;
@@ -91,7 +91,7 @@ pub fn sides_line_up(fg: &[SurfaceField], bg: &[SurfaceField]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::sides_line_up;
-    use shadewire_ir::{NodeId, SurfaceField, Type};
+    use shadewire::{NodeId, SurfaceField, Type};
 
     fn field(name: &str, ty: Type) -> SurfaceField {
         SurfaceField { name: name.to_string(), ty, node: NodeId(0) }

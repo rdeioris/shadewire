@@ -1,7 +1,7 @@
 //! Input resolution: connections, nodegraph references, interface bindings,
 //! authored values, then nodedef defaults.
 
-use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind, Type};
+use shadewire::{Error, Location, Node as IrNode, NodeId, NodeKind, Type};
 
 use super::{Binding, Elaborator, Scope, TextValue};
 use crate::document::{Input, Node, NodeDef, PortDef};

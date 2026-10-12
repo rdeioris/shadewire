@@ -4,7 +4,7 @@
 
 use std::path::Path;
 
-use shadewire_ir::model_struct_name;
+use shadewire::model_struct_name;
 use shadewire_mtlx::{MtlxOptions, to_ir};
 use shadewire_wgsl::{CompileOptions, HlslShaderModel, Output, Target, compile, link, reference_host, translate};
 

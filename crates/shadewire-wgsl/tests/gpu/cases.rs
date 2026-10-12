@@ -10,7 +10,7 @@ mod normal;
 mod trig;
 mod vector;
 
-use shadewire_ir::{Dag, Node, NodeId, NodeKind, Op, SurfaceField, Type, Value};
+use shadewire::{Dag, Node, NodeId, NodeKind, Op, SurfaceField, Type, Value};
 
 /// Tolerance for exact-arithmetic families: math, vector, logic, channel.
 pub const EXACT: f32 = 1e-5;

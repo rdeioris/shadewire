@@ -4,7 +4,7 @@ pub mod cases;
 
 use std::sync::mpsc;
 
-use shadewire_ir::{Dag, NodeId, NodeKind};
+use shadewire::{Dag, NodeId, NodeKind};
 
 /// The compute module around `wgsl_functions` (library files + `case_0 .. case_{count-1}`).
 /// `sw_zero` is a runtime 0.0 that `opaque_constants` adds to every constant.
@@ -174,7 +174,7 @@ async fn run(source: &str, count: usize) -> Option<Vec<[f32; 4]>> {
 #[cfg(test)]
 mod tests {
     use super::opaque_constants;
-    use shadewire_ir::{Dag, Node, NodeId, NodeKind, Op, Type, Value};
+    use shadewire::{Dag, Node, NodeId, NodeKind, Op, Type, Value};
 
     fn two_constants() -> (Dag, NodeId) {
         let mut dag = Dag::new("m");

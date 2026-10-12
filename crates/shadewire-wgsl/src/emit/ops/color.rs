@@ -1,8 +1,8 @@
-use shadewire_ir::{Op, Type};
+use shadewire::{Op, Type};
 
 use super::{Arg, cast, leading};
 
-/// Mirrors `shadewire_ir::ops::color`: the first three channels go through the function,
+/// Mirrors `shadewire::ops::color`: the first three channels go through the function,
 /// color4 keeps its alpha. Luminance is written out in the interpreter's order, not `dot`.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     let rgb = match op {
@@ -29,7 +29,7 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
 mod tests {
     use super::emit;
     use crate::emit::test_support::args;
-    use shadewire_ir::{Op, Type};
+    use shadewire::{Op, Type};
 
     const C3: Type = Type::Color3;
     const C4: Type = Type::Color4;

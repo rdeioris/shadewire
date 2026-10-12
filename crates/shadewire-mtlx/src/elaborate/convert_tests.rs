@@ -1,8 +1,8 @@
 //! Colorspace and unit conversion of authored values, and which values become uniforms.
 
-use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
-use shadewire_ir::optimize::optimize;
-use shadewire_ir::{ContextRead, Dag, Error, NodeKind, Op, Space, TransformKind, Value};
+use shadewire::interpret::{ContextSource, NoTextures, eval_surface};
+use shadewire::optimize::optimize;
+use shadewire::{ContextRead, Dag, Error, NodeKind, Op, Space, TransformKind, Value};
 
 use super::elaborate_output;
 use super::tests::doc;
@@ -210,5 +210,5 @@ fn op_params_never_become_uniforms() {
     assert_eq!(*op, Op::Extract(2));
     let dag = elaborate_output(&d, "g", "uv").unwrap();
     let read = &dag.node(dag.surface.fields[0].node).kind;
-    assert_eq!(*read, NodeKind::Context(ContextRead::TexCoord { index: 1, ty: shadewire_ir::Type::Vector2 }));
+    assert_eq!(*read, NodeKind::Context(ContextRead::TexCoord { index: 1, ty: shadewire::Type::Vector2 }));
 }

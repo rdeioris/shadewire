@@ -2,7 +2,7 @@
 //! graphs, so they are spelled out here as the ops they are:
 //! `mix(low, high, clamp(texcoord.<x|y>, 0, 1))`.
 
-use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind, Op, Type, Value};
+use shadewire::{Error, Location, Node as IrNode, NodeId, NodeKind, Op, Type, Value};
 
 use super::{Elaborator, Scope};
 use crate::document::{Node, NodeDef};
@@ -41,8 +41,8 @@ impl<'a> Elaborator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
-    use shadewire_ir::{ContextRead, Space, TransformKind, Value};
+    use shadewire::interpret::{ContextSource, NoTextures, eval_surface};
+    use shadewire::{ContextRead, Space, TransformKind, Value};
 
     use super::super::elaborate_output;
     use super::super::tests::doc;

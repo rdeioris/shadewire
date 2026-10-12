@@ -2,7 +2,7 @@
 //! rotate2d over amounts in degrees (negative, past a turn).
 
 use super::{Case, EXACT, TRANSCENDENTAL, binary, unary};
-use shadewire_ir::{Op, Type, Value};
+use shadewire::{Op, Type, Value};
 
 const V3: Type = Type::Vector3;
 

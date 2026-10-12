@@ -3,7 +3,7 @@
 //! its own gradients (`HextileGrad` of the coordinate's `Dpdx`/`Dpdy`, as `textureGrad`),
 //! blended by `HextileWeights` over the samples' luminance.
 
-use shadewire_ir::{
+use shadewire::{
     AddressMode, Error, FilterMode, Location, Node as IrNode, NodeId, NodeKind, Op, TextureDesc, Type, Value,
 };
 
@@ -96,8 +96,8 @@ impl<'a> Elaborator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use shadewire_ir::interpret::{ContextSource, TextureSource, eval_surface};
-    use shadewire_ir::{ContextRead, NodeKind, Op, Space, TextureDesc, TransformKind, Value};
+    use shadewire::interpret::{ContextSource, TextureSource, eval_surface};
+    use shadewire::{ContextRead, NodeKind, Op, Space, TextureDesc, TransformKind, Value};
 
     use super::super::elaborate_output;
     use super::super::tests::doc;

@@ -1,6 +1,6 @@
 //! Deep graphs: a chain past the depth limit is an error, never a stack overflow.
 
-use shadewire_ir::Error;
+use shadewire::Error;
 
 use super::tests::doc;
 use crate::library::standard;
@@ -23,7 +23,7 @@ fn add_chain(n: usize) -> String {
     text
 }
 
-fn compile_chain(n: usize) -> Result<shadewire_ir::Dag, Error> {
+fn compile_chain(n: usize) -> Result<shadewire::Dag, Error> {
     let d = doc(&add_chain(n));
     elaborate(&d, standard(), &ElaborateOptions::default(), None, &["standard_surface"])
 }

@@ -1,6 +1,6 @@
 //! A mix whose sides share a sub-mix elaborates that sub-mix once.
 
-use shadewire_ir::{Dag, NodeKind};
+use shadewire::{Dag, NodeKind};
 
 use crate::document::build::build;
 use crate::library::standard;

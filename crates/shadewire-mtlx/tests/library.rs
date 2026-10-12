@@ -1,4 +1,4 @@
-use shadewire_ir::{input_names, op_for_category};
+use shadewire::{input_names, op_for_category};
 use shadewire_mtlx::document::PortType;
 use shadewire_mtlx::{Document, Index, library};
 

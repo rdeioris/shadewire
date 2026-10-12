@@ -1,6 +1,6 @@
 //! Leaf nodedefs: one op over the inputs the catalog names, in catalog order.
 
-use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind, Op, Space, Type, Value, input_names};
+use shadewire::{Error, Location, Node as IrNode, NodeId, NodeKind, Op, Space, Type, Value, input_names};
 
 use super::{Elaborator, Scope};
 use crate::document::{Node, NodeDef, PortType};

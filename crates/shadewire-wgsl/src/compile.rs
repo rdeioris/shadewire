@@ -1,7 +1,7 @@
 //! The back end: any front end's IR to WGSL and reflection.
 
-use shadewire_ir::optimize::optimize;
-use shadewire_ir::{BindingOptions, Dag, Error, Reflection, SourceInfo, reflect};
+use shadewire::optimize::optimize;
+use shadewire::{BindingOptions, Dag, Error, Reflection, SourceInfo, reflect};
 
 use crate::compile_options::CompileOptions;
 use crate::emit::{EmitOptions, emit};

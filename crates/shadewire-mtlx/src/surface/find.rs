@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use shadewire_ir::{Error, Location};
+use shadewire::{Error, Location};
 
 use super::models::PHASE_ONE_MODELS;
 use crate::document::{Document, Input, Node, NodeDef, PortType};

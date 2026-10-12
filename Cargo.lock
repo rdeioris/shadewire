@@ -1028,23 +1028,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "shadewire-cli"
-version = "0.1.0"
-dependencies = [
- "clap",
- "serde_json",
- "shadewire-ir",
- "shadewire-mtlx",
- "shadewire-wgsl",
-]
-
-[[package]]
-name = "shadewire-ir"
+name = "shadewire"
 version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "shadewire-cli"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "serde_json",
+ "shadewire",
+ "shadewire-mtlx",
+ "shadewire-wgsl",
 ]
 
 [[package]]
@@ -1056,7 +1056,7 @@ dependencies = [
  "png",
  "quick-xml",
  "serde_json",
- "shadewire-ir",
+ "shadewire",
  "shadewire-wgsl",
  "thiserror",
 ]
@@ -1067,7 +1067,7 @@ version = "0.1.0"
 dependencies = [
  "naga",
  "pollster",
- "shadewire-ir",
+ "shadewire",
  "wgpu",
 ]
 

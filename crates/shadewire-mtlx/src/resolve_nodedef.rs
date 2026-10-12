@@ -1,6 +1,6 @@
 //! Picks the nodedef that implements a node.
 
-use shadewire_ir::{Error, Location};
+use shadewire::{Error, Location};
 
 use crate::document::{Node, NodeDef, PortType};
 use crate::index::Index;
@@ -91,7 +91,7 @@ mod tests {
     use crate::index::Index;
     use crate::library;
     use crate::parse::parse_str;
-    use shadewire_ir::{Error, Location, Type};
+    use shadewire::{Error, Location, Type};
 
     fn node(xml: &str) -> Node {
         let text = format!(r#"<materialx version="1.39">{xml}</materialx>"#);

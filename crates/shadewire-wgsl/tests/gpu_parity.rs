@@ -3,8 +3,8 @@
 mod gpu;
 
 use gpu::cases::{Case, all, family};
-use shadewire_ir::interpret::{ContextSource, NoTextures, eval_nodes};
-use shadewire_ir::{ContextRead, Space, TransformKind, Value};
+use shadewire::interpret::{ContextSource, NoTextures, eval_nodes};
+use shadewire::{ContextRead, Space, TransformKind, Value};
 use shadewire_wgsl::emit::probe_function;
 use shadewire_wgsl::leaf_library;
 

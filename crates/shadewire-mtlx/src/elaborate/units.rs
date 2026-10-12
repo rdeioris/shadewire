@@ -1,6 +1,6 @@
 //! Unit conversion of authored values. Only `distance` is converted.
 
-use shadewire_ir::{Error, Location, Node, NodeId, NodeKind, Op, Type, Value};
+use shadewire::{Error, Location, Node, NodeId, NodeKind, Op, Type, Value};
 
 use super::Elaborator;
 

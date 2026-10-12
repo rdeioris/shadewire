@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/shadewire-ir", "crates/shadewire-wgsl", "crates/shadewire-mtlx", "crates/shadewire-cli"]
+members = ["crates/shadewire", "crates/shadewire-wgsl", "crates/shadewire-mtlx", "crates/shadewire-cli"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,7 +11,7 @@ authors = ["Roberto De Ioris"]
 repository = "https://github.com/rdeioris/shadewire"
 
 [workspace.dependencies]
-shadewire-ir = { path = "crates/shadewire-ir" }
+shadewire = { path = "crates/shadewire" }
 shadewire-mtlx = { path = "crates/shadewire-mtlx" }
 shadewire-wgsl = { path = "crates/shadewire-wgsl", default-features = false }
 naga = { version = "30", features = ["wgsl-in", "wgsl-out", "hlsl-out", "glsl-out", "msl-out", "spv-out"] }

@@ -1,7 +1,7 @@
 //! Helpers shared by the emitter's test modules.
 
-use shadewire_ir::reflection::live::live_nodes;
-use shadewire_ir::{BindingOptions, ContextRead, Dag, Node, NodeId, NodeKind, Reflection, SourceInfo, Type, reflect};
+use shadewire::reflection::live::live_nodes;
+use shadewire::{BindingOptions, ContextRead, Dag, Node, NodeId, NodeKind, Reflection, SourceInfo, Type, reflect};
 
 use super::ops::Arg;
 use super::types::wgsl_type;

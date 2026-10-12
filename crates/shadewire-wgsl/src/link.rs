@@ -2,7 +2,7 @@
 
 use naga::Module;
 use naga::valid::{Capabilities, ModuleInfo, ValidationFlags, Validator};
-use shadewire_ir::Error;
+use shadewire::Error;
 
 /// Parses and validates WGSL; errors carry naga's line and caret rendering of `source`.
 pub(crate) fn parse_and_validate(source: &str) -> Result<(Module, ModuleInfo), Error> {

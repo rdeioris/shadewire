@@ -1,9 +1,9 @@
-use shadewire_ir::{Op, Type, Value};
+use shadewire::{Op, Type, Value};
 
 use super::super::types::literal;
 use super::{Arg, cast, first_f32};
 
-/// Mirrors `shadewire_ir::ops::logic`. Comparisons read `as_f32` (first component, as f32);
+/// Mirrors `shadewire::ops::logic`. Comparisons read `as_f32` (first component, as f32);
 /// equality compares every component.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     let pick = |cond: String| {
@@ -63,7 +63,7 @@ fn switch(args: &[Arg], ty: Type) -> String {
 mod tests {
     use super::emit;
     use crate::emit::test_support::args;
-    use shadewire_ir::{Op, Type};
+    use shadewire::{Op, Type};
 
     const F: Type = Type::Float;
     const B: Type = Type::Boolean;

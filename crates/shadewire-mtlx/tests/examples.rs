@@ -5,7 +5,7 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use shadewire_ir::Error;
+use shadewire::Error;
 use shadewire_mtlx::include::resolve_includes;
 use shadewire_mtlx::parse::parse_str;
 mod common;
@@ -53,7 +53,7 @@ fn variant(error: &Error) -> String {
 /// Compile, link and translate one material; the first failure wins.
 fn check(text: &str, path: &Path, material: &str) -> Result<(), Error> {
     let compiled = compile_mtlx(text, Some(path), Some(material), &MtlxOptions::default(), &CompileOptions::default())?;
-    let model = shadewire_ir::model_struct_name(&compiled.reflection.model);
+    let model = shadewire::model_struct_name(&compiled.reflection.model);
     let linked = link(&compiled.wgsl, &reference_host::prelude(&compiled.reflection, &model))?;
     for target in targets() {
         translate(&linked, target)?;

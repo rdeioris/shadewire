@@ -9,7 +9,7 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-shadewire-ir.workspace = true
+shadewire.workspace = true
 quick-xml.workspace = true
 include_dir.workspace = true
 thiserror.workspace = true

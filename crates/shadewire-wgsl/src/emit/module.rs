@@ -1,4 +1,4 @@
-use shadewire_ir::{Dag, Reflection};
+use shadewire::{Dag, Reflection};
 
 use super::EmitOptions;
 use super::bindings::texture_bindings;
@@ -38,7 +38,7 @@ pub fn entry(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> Strin
 mod tests {
     use super::*;
     use crate::emit::test_support::{add, reflection, validates};
-    use shadewire_ir::*;
+    use shadewire::*;
 
     #[test]
     fn entry_returns_fields_in_struct_order() {

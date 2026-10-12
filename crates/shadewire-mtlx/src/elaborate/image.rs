@@ -1,6 +1,6 @@
 //! The `image` node: a texture lookup through `Dag::textures`.
 
-use shadewire_ir::{AddressMode, Error, FilterMode, Location, Node as IrNode, NodeId, NodeKind, Op, TextureDesc, Type};
+use shadewire::{AddressMode, Error, FilterMode, Location, Node as IrNode, NodeId, NodeKind, Op, TextureDesc, Type};
 
 use super::{Elaborator, Scope};
 use crate::document::{Node, NodeDef};

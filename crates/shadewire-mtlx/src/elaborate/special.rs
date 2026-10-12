@@ -1,7 +1,7 @@
 //! Categories with no op and no implementation graph: pass-throughs,
 //! channel splits, host reads, `image` and `hextiledimage`.
 
-use shadewire_ir::{ContextRead, Error, Location, Node as IrNode, NodeId, NodeKind, Op, Space, Type, Value};
+use shadewire::{ContextRead, Error, Location, Node as IrNode, NodeId, NodeKind, Op, Space, Type, Value};
 
 use super::{Elaborator, Scope};
 use crate::document::{Node, NodeDef};

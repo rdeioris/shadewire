@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use shadewire_ir::{Dag, Error, Location, SourceInfo};
+use shadewire::{Dag, Error, Location, SourceInfo};
 
 use crate::document::build::build;
 use crate::elaborate::{ElaborateOptions, elaborate};

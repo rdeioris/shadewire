@@ -1,7 +1,7 @@
 //! Translates a linked WGSL module to the other shading languages through naga.
 
 use naga::back::{glsl, hlsl, msl, spv, wgsl};
-use shadewire_ir::Error;
+use shadewire::Error;
 
 use crate::link::parse_and_validate;
 use crate::target::{GlslVersion, HlslShaderModel, Target};
@@ -112,7 +112,7 @@ mod tests {
     use crate::emit::test_support::add;
     use crate::target::MslVersion;
     use crate::{EmitOptions, emit, link::link, reference_host};
-    use shadewire_ir::*;
+    use shadewire::*;
 
     fn linked() -> String {
         linked_at(2)

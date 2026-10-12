@@ -1,4 +1,4 @@
-//! One WGSL expression per IR op. Each family file mirrors `shadewire_ir::ops::<family>`
+//! One WGSL expression per IR op. Each family file mirrors `shadewire::ops::<family>`
 //! and must compute what the interpreter computes.
 
 mod channel;
@@ -13,7 +13,7 @@ mod space;
 mod trig;
 mod vector;
 
-use shadewire_ir::{Op, Type};
+use shadewire::{Op, Type};
 
 use super::coerce::coerce;
 use super::types::wgsl_type;

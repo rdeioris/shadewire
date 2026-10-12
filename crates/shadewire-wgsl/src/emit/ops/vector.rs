@@ -1,8 +1,8 @@
-use shadewire_ir::{Op, Type};
+use shadewire::{Op, Type};
 
 use super::{Arg, cast, finish, first_f32, leading, work_type};
 
-/// Mirrors `shadewire_ir::ops::vector`. Operands keep their own width (the first
+/// Mirrors `shadewire::ops::vector`. Operands keep their own width (the first
 /// argument's); WGSL has no scalar `normalize` or `dot`, so those are written out.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     if *op == Op::Rotate2d {
@@ -36,7 +36,7 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
 mod tests {
     use super::emit;
     use crate::emit::test_support::args;
-    use shadewire_ir::{Op, Type};
+    use shadewire::{Op, Type};
 
     const V3: Type = Type::Vector3;
 

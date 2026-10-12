@@ -29,14 +29,14 @@ In the uniform block a `boolean` uniform is a `u32` (0 or 1), since WGSL has no 
 
 Library — the crates:
 
-- `shadewire-ir`: the IR (a typed DAG), optimizer, CPU interpreter, reflection.
+- `shadewire`: the IR (a typed DAG), optimizer, CPU interpreter, reflection.
 - `shadewire-wgsl`: IR to WGSL and reflection (`compile`); with its `translate` feature (on by default), naga translation to HLSL, GLSL, MSL and SPIR-V.
-- `shadewire-mtlx`: the MaterialX front end, MaterialX to IR (`to_ir`). It depends only on `shadewire-ir`: front ends and back ends never depend on each other; the caller composes them, as below.
+- `shadewire-mtlx`: the MaterialX front end, MaterialX to IR (`to_ir`). It depends only on `shadewire`: front ends and back ends never depend on each other; the caller composes them, as below.
 - `shadewire-cli`: the `shadewire` command.
 
 ```rust
 use shadewire_wgsl::{CompileOptions, compile};
-use shadewire_ir::optimize::optimize;
+use shadewire::optimize::optimize;
 use shadewire_mtlx::{MtlxOptions, to_ir};
 
 let text = std::fs::read_to_string("material.mtlx")?;

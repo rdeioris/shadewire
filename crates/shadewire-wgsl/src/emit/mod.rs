@@ -13,7 +13,7 @@ pub(crate) mod test_support;
 pub(crate) mod types;
 mod uniforms;
 
-use shadewire_ir::{Dag, Reflection};
+use shadewire::{Dag, Reflection};
 
 pub use probe::probe_function;
 
@@ -38,7 +38,7 @@ pub fn emit(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> String
 mod tests {
     use super::test_support::{add, naga_validates, reflection, validates};
     use super::*;
-    use shadewire_ir::*;
+    use shadewire::*;
 
     #[test]
     fn mix_of_uniform_constant_and_texcoord() {

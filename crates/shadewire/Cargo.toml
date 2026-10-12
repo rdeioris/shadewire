@@ -1,6 +1,6 @@
 [package]
-name = "shadewire-ir"
-description = "Shadewire typed material DAG, optimizer and interpreter"
+name = "shadewire"
+description = "Shadewire core: the material IR (a typed DAG), optimizer, CPU interpreter and reflection"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

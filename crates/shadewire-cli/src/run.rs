@@ -1,5 +1,5 @@
-use shadewire_ir::optimize::optimize;
-use shadewire_ir::{Error, model_struct_name};
+use shadewire::optimize::optimize;
+use shadewire::{Error, model_struct_name};
 use shadewire_mtlx::{MtlxOptions, to_ir};
 use shadewire_wgsl::{
     CompileOptions, Compiled, GlslVersion, HlslShaderModel, MslVersion, Output, Target, compile, link, reference_host,

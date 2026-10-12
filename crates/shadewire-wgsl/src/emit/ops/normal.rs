@@ -1,8 +1,8 @@
-use shadewire_ir::{Op, Type};
+use shadewire::{Op, Type};
 
 use super::{Arg, cast, leading};
 
-/// Mirrors `shadewire_ir::ops::normal`: in, scale, normal, tangent, bitangent. A scalar
+/// Mirrors `shadewire::ops::normal`: in, scale, normal, tangent, bitangent. A scalar
 /// scale splats to vector2 (mx_normalmap_float).
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     assert_eq!(*op, Op::NormalMap, "{op:?} is not a normal op");
@@ -16,7 +16,7 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
 mod tests {
     use super::emit;
     use crate::emit::test_support::args;
-    use shadewire_ir::{Op, Type};
+    use shadewire::{Op, Type};
 
     const V3: Type = Type::Vector3;
 

@@ -5,20 +5,20 @@ This product includes files from MaterialX (https://github.com/AcademySoftwareFo
 Copyright Contributors to the MaterialX Project, licensed under the Apache License 2.0
 (vendor/materialx/LICENSE):
 - vendor/materialx/**: selected files from tag v1.39.5 (see vendor/materialx/UPSTREAM), line endings normalised
-- crates/shadewire-wgsl/lib/*.wgsl and crates/shadewire-ir/src/ops/noise/*.rs, color.rs:
+- crates/shadewire-wgsl/lib/*.wgsl and crates/shadewire/src/ops/noise/*.rs, color.rs:
   ports of libraries/stdlib/genglsl/lib/*.glsl (normal.wgsl: libraries/stdlib/genglsl/mx_normalmap.glsl,
   vector.wgsl: libraries/stdlib/genglsl/mx_rotate_vector2.glsl)
-- crates/shadewire-ir/src/ops/normal.rs: port of libraries/stdlib/genglsl/mx_normalmap.glsl
-- crates/shadewire-ir/src/ops/vector.rs (rotate2d): port of libraries/stdlib/genglsl/mx_rotate_vector2.glsl
-- crates/shadewire-ir/src/ops/hextile.rs: port of libraries/stdlib/genglsl/lib/mx_hextile.glsl
+- crates/shadewire/src/ops/normal.rs: port of libraries/stdlib/genglsl/mx_normalmap.glsl
+- crates/shadewire/src/ops/vector.rs (rotate2d): port of libraries/stdlib/genglsl/mx_rotate_vector2.glsl
+- crates/shadewire/src/ops/hextile.rs: port of libraries/stdlib/genglsl/lib/mx_hextile.glsl
 - crates/shadewire-mtlx/src/elaborate/hextile.rs: lowering of libraries/stdlib/genglsl/mx_hextiledimage.glsl
 - crates/shadewire-mtlx/src/elaborate/ramp.rs: lowering of libraries/stdlib/genglsl/mx_ramplr_*.glsl and
   mx_ramptb_*.glsl
 
-crates/shadewire-ir/src/ops/noise/*.rs and crates/shadewire-wgsl/lib/noise_*.wgsl derive from
+crates/shadewire/src/ops/noise/*.rs and crates/shadewire-wgsl/lib/noise_*.wgsl derive from
 the Open Shading Language noise library (github.com/imageworks/OpenShadingLanguage,
 src/include/OSL/oslnoise.h) by way of MaterialX genglsl/lib/mx_noise.glsl, and
-crates/shadewire-ir/src/ops/color.rs and crates/shadewire-wgsl/lib/color.wgsl derive from OSL
+crates/shadewire/src/ops/color.rs and crates/shadewire-wgsl/lib/color.wgsl derive from OSL
 src/liboslexec/opcolor.cpp by way of MaterialX genglsl/lib/mx_hsv.glsl. Both are also subject to
 the following BSD-3-Clause notice, reproduced as it appears in mx_noise.glsl and mx_hsv.glsl:
 

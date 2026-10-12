@@ -3,7 +3,7 @@
 //! so many hashes go through bits_to_01's u32 -> f32 rounding.
 
 use super::{Case, TRANSCENDENTAL, op_case};
-use shadewire_ir::{Op, Type, Value};
+use shadewire::{Op, Type, Value};
 
 const WIDTHS: [Type; 4] = [Type::Float, Type::Vector2, Type::Vector3, Type::Vector4];
 

@@ -1,4 +1,4 @@
-use shadewire_ir::Type;
+use shadewire::Type;
 
 use super::types::wgsl_type;
 

@@ -1,4 +1,4 @@
-use shadewire_ir::Reflection;
+use shadewire::Reflection;
 
 use super::reserved::RESERVED;
 
@@ -49,7 +49,7 @@ impl UniformNames {
 
 /// The WGSL struct name of a shading model.
 pub fn struct_name(model: &str) -> String {
-    shadewire_ir::model_struct_name(model)
+    shadewire::model_struct_name(model)
 }
 
 #[cfg(test)]

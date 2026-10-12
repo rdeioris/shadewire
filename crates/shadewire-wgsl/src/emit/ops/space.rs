@@ -1,4 +1,4 @@
-use shadewire_ir::{Op, TransformKind, Type, transform_name};
+use shadewire::{Op, TransformKind, Type, transform_name};
 
 use super::{Arg, cast};
 
@@ -18,7 +18,7 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
 mod tests {
     use super::emit;
     use crate::emit::test_support::args;
-    use shadewire_ir::{Op, Space, TransformKind, Type};
+    use shadewire::{Op, Space, TransformKind, Type};
 
     fn transform(kind: TransformKind, from: Space) -> Op {
         Op::Transform { kind, from, to: Space::World }

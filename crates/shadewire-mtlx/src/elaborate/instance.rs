@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind, Value, op_for_category};
+use shadewire::{Error, Location, Node as IrNode, NodeId, NodeKind, Value, op_for_category};
 
 use super::ramp::is_ramp;
 use super::special::is_special;
@@ -78,7 +78,7 @@ impl<'a> Elaborator<'a> {
     }
 
     /// The value type of nodedef output `output` (or its first output).
-    pub fn output_type(&self, nd: &NodeDef, output: Option<&str>, at: &Location) -> Result<shadewire_ir::Type, Error> {
+    pub fn output_type(&self, nd: &NodeDef, output: Option<&str>, at: &Location) -> Result<shadewire::Type, Error> {
         let port = match output {
             Some(name) => nd.outputs.iter().find(|o| o.name == name),
             None => nd.outputs.first(),

@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use shadewire_ir::Error;
+use shadewire::Error;
 use shadewire_mtlx::{MtlxOptions, to_ir};
 use shadewire_wgsl::{CompileOptions, Compiled, compile};
 

@@ -1,7 +1,7 @@
-//! Math family: every op of `shadewire_ir::ops::math`, float and color3 with a float second argument.
+//! Math family: every op of `shadewire::ops::math`, float and color3 with a float second argument.
 
 use super::{Case, EXACT, TRANSCENDENTAL, binary, op_case, ternary, triple, unary};
-use shadewire_ir::{Op, Type, Value};
+use shadewire::{Op, Type, Value};
 
 const INPUTS: [f32; 7] = [-2.5, -1.0, -0.3, 0.0, 0.3, 1.0, 2.5];
 const F: Type = Type::Float;

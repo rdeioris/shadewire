@@ -36,7 +36,7 @@ mod tests;
 
 use std::collections::{HashMap, HashSet};
 
-use shadewire_ir::{Dag, Error, Location, NodeId, SurfaceField, Type, Value};
+use shadewire::{Dag, Error, Location, NodeId, SurfaceField, Type, Value};
 
 use crate::document::{Document, PortType};
 use crate::index::Index;
@@ -186,6 +186,6 @@ pub(crate) fn elaborate_output(doc: &Document, graph: &str, output: &str) -> Res
     let scope = elaborator.user_graph_scope(graph, &at)?;
     let id = elaborator.graph_output(&scope, Some(output), &at)?;
     let ty = elaborator.dag.node(id).ty;
-    elaborator.dag.surface.fields.push(shadewire_ir::SurfaceField { name: "out".to_string(), ty, node: id });
+    elaborator.dag.surface.fields.push(shadewire::SurfaceField { name: "out".to_string(), ty, node: id });
     Ok(elaborator.dag)
 }

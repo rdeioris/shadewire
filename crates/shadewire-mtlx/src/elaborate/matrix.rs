@@ -2,7 +2,7 @@
 //! products. No matrix enters the IR: the matrix must be authored on the
 //! node or come from a sibling `constant`, as in the cmlib colorspace graphs.
 
-use shadewire_ir::{Error, Location, Node as IrNode, NodeId, NodeKind, Op, Type, Value};
+use shadewire::{Error, Location, Node as IrNode, NodeId, NodeKind, Op, Type, Value};
 
 use super::{Elaborator, Scope};
 use crate::document::{Node, NodeDef, PortType};

@@ -1,5 +1,5 @@
-use shadewire_ir::reflection::live::live_nodes;
-use shadewire_ir::{ContextRead, Dag, NodeId, NodeKind, Reflection, Type};
+use shadewire::reflection::live::live_nodes;
+use shadewire::{ContextRead, Dag, NodeId, NodeKind, Reflection, Type};
 
 use super::EmitOptions;
 use super::names::UniformNames;
@@ -85,7 +85,7 @@ pub fn let_line(dag: &Dag, id: NodeId, expr: &str) -> String {
 mod tests {
     use super::*;
     use crate::emit::test_support::{add, reflection};
-    use shadewire_ir::*;
+    use shadewire::*;
 
     #[test]
     fn uniforms_context_and_ops() {

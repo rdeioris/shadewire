@@ -4,7 +4,7 @@
 //! entry sets it); transforms are identities. Geomprops start at their authored default
 //! when reflection has one, else zero.
 
-use shadewire_ir::{ContextEntry, Reflection, Type, Value};
+use shadewire::{ContextEntry, Reflection, Type, Value};
 
 use crate::emit::names::ident;
 use crate::emit::types::{literal, wgsl_type};
@@ -104,7 +104,7 @@ mod tests {
     use super::*;
     use crate::emit::test_support::{add, reflection};
     use crate::{EmitOptions, emit, link::link};
-    use shadewire_ir::*;
+    use shadewire::*;
 
     #[test]
     fn no_varyings_takes_the_position_builtin() {

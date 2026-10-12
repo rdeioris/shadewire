@@ -1,8 +1,8 @@
 //! Converted values read as parameters fold to constants; converted
 //! uniforms keep their conversion; unit scaling of non-constant values.
 
-use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
-use shadewire_ir::{ContextRead, Dag, Location, Node, NodeKind, Op, Space, TransformKind, Type, Value};
+use shadewire::interpret::{ContextSource, NoTextures, eval_surface};
+use shadewire::{ContextRead, Dag, Location, Node, NodeKind, Op, Space, TransformKind, Type, Value};
 
 use super::{ElaborateOptions, Elaborator, elaborate_output};
 use crate::document::Document;

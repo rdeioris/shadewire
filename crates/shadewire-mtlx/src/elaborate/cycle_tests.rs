@@ -1,6 +1,6 @@
 //! Cycles, memo sharing and bad interfaces.
 
-use shadewire_ir::{Error, NodeKind};
+use shadewire::{Error, NodeKind};
 
 use super::elaborate_output;
 use super::tests::doc;
@@ -118,9 +118,9 @@ const DOUBLE: &str = r#"
       <output name="out" type="float" nodename="twice"/>
     </nodegraph>"#;
 
-fn eval_out(d: &Document) -> shadewire_ir::Value {
-    use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
-    use shadewire_ir::{ContextRead, Space, TransformKind, Value};
+fn eval_out(d: &Document) -> shadewire::Value {
+    use shadewire::interpret::{ContextSource, NoTextures, eval_surface};
+    use shadewire::{ContextRead, Space, TransformKind, Value};
     struct Zeros;
     impl ContextSource for Zeros {
         fn read(&mut self, read: &ContextRead) -> Value {
@@ -144,7 +144,7 @@ fn chained_instances_of_one_implementation_are_not_a_cycle() {
           <output name="out" type="float" nodename="b"/>
         </nodegraph>"#
     ));
-    assert_eq!(eval_out(&d), shadewire_ir::Value::Float(12.0));
+    assert_eq!(eval_out(&d), shadewire::Value::Float(12.0));
 }
 
 #[test]
@@ -160,5 +160,5 @@ fn an_instance_fed_through_a_user_nodegraph_is_not_a_cycle() {
           <output name="out" type="float" nodename="b"/>
         </nodegraph>"#
     ));
-    assert_eq!(eval_out(&d), shadewire_ir::Value::Float(20.0));
+    assert_eq!(eval_out(&d), shadewire::Value::Float(20.0));
 }

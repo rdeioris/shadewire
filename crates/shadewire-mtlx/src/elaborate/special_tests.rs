@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use shadewire_ir::{ContextRead, Dag, Error, NodeKind, Op, Space, Type, Value};
+use shadewire::{ContextRead, Dag, Error, NodeKind, Op, Space, Type, Value};
 
 use super::tests::doc;
 use super::{ElaborateOptions, Elaborator, elaborate_output};
@@ -132,7 +132,7 @@ fn with_defaults(d: &Document) -> (Dag, HashMap<String, Value>) {
     let scope = elaborator.user_graph_scope("g", &at).unwrap();
     let id = elaborator.graph_output(&scope, Some("out"), &at).unwrap();
     let ty = elaborator.dag.node(id).ty;
-    elaborator.dag.surface.fields.push(shadewire_ir::SurfaceField { name: "out".to_string(), ty, node: id });
+    elaborator.dag.surface.fields.push(shadewire::SurfaceField { name: "out".to_string(), ty, node: id });
     (elaborator.dag, elaborator.geomprop_defaults)
 }
 

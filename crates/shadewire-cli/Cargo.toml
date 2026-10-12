@@ -9,7 +9,7 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-shadewire-ir.workspace = true
+shadewire.workspace = true
 shadewire-mtlx.workspace = true
 shadewire-wgsl = { workspace = true, features = ["translate"] }
 clap.workspace = true
@@ -18,6 +18,8 @@ serde_json.workspace = true
 [[bin]]
 name = "shadewire"
 path = "src/main.rs"
+# The library crate is also named `shadewire`; documenting both would collide.
+doc = false
 
 [dev-dependencies]
 serde_json.workspace = true

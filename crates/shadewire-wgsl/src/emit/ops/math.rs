@@ -1,8 +1,8 @@
-use shadewire_ir::{Op, Type};
+use shadewire::{Op, Type};
 
 use super::{Arg, cast, finish, wide, work_type};
 
-/// Mirrors `shadewire_ir::ops::math`: every argument is broadcast to the node type
+/// Mirrors `shadewire::ops::math`: every argument is broadcast to the node type
 /// (the mix amount stays scalar, WGSL scales a vector by it) and integer results
 /// are computed in f32 then converted, like the interpreter.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
@@ -56,7 +56,7 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
 mod tests {
     use super::emit;
     use crate::emit::test_support::args;
-    use shadewire_ir::{Op, Type};
+    use shadewire::{Op, Type};
 
     const F: Type = Type::Float;
     const C3: Type = Type::Color3;

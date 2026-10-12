@@ -1,5 +1,5 @@
-use shadewire_ir::reflection::TextureReflection;
-use shadewire_ir::{AddressMode, Type};
+use shadewire::reflection::TextureReflection;
+use shadewire::{AddressMode, Type};
 
 /// `textureSample` with MaterialX conventions: V flipped for top-row-first uploads,
 /// `constant` address mode as an explicit bounds test returning `default`.
@@ -46,7 +46,7 @@ pub fn sample_expr(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadewire_ir::{AddressMode, FilterMode};
+    use shadewire::{AddressMode, FilterMode};
 
     fn texture(index: usize, u: AddressMode, v: AddressMode) -> TextureReflection {
         TextureReflection {

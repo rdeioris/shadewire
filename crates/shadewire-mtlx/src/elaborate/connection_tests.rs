@@ -1,13 +1,13 @@
 //! Connections must carry the type the input declares (or a same-width relabel).
 
-use shadewire_ir::{Error, Type};
+use shadewire::{Error, Type};
 
 use super::elaborate_output;
 use super::tests::doc;
 use crate::library::standard;
 use crate::{ElaborateOptions, elaborate};
 
-fn mismatch(result: Result<shadewire_ir::Dag, Error>) -> (String, String, String) {
+fn mismatch(result: Result<shadewire::Dag, Error>) -> (String, String, String) {
     match result {
         Err(Error::TypeMismatch { at, expected, found }) => (at.path, expected, found),
         other => panic!("expected a type mismatch, got {other:?}"),

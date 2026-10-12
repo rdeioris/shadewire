@@ -1,4 +1,4 @@
-use shadewire_ir::Type;
+use shadewire::Type;
 
 /// The declared type of a port: a value type or one of the non-value kinds.
 #[derive(Clone, Debug, PartialEq)]
@@ -55,7 +55,7 @@ impl PortType {
 #[cfg(test)]
 mod tests {
     use super::PortType;
-    use shadewire_ir::Type;
+    use shadewire::Type;
 
     #[test]
     fn parses_each_family() {

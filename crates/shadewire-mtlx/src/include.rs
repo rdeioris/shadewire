@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use shadewire_ir::{Error, Location};
+use shadewire::{Error, Location};
 
 use crate::element::Element;
 use crate::parse::parse_str;
@@ -45,7 +45,7 @@ fn resolve(mut root: Element, base_dir: Option<&Path>, file: Option<&str>, depth
 mod tests {
     use super::resolve_includes;
     use crate::parse::parse_str;
-    use shadewire_ir::Error;
+    use shadewire::Error;
 
     #[test]
     fn splices_included_children_and_reports_missing() {

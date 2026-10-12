@@ -5,10 +5,10 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-use shadewire_ir::Dag;
-use shadewire_ir::interpret::{ContextSource, TextureSource, eval_surface};
-use shadewire_ir::optimize::optimize;
-use shadewire_ir::{AddressMode, ContextRead, FilterMode, NodeKind, Space, TextureDesc, TransformKind, Value};
+use shadewire::Dag;
+use shadewire::interpret::{ContextSource, TextureSource, eval_surface};
+use shadewire::optimize::optimize;
+use shadewire::{AddressMode, ContextRead, FilterMode, NodeKind, Space, TextureDesc, TransformKind, Value};
 mod common;
 
 use common::compile_mtlx;

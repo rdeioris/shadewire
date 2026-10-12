@@ -1,8 +1,8 @@
 //! The WGSL leaf library: ports of the MaterialX genglsl helpers that the color, noise
 //! and normal ops call. A module includes only the files its live nodes need.
 
-use shadewire_ir::reflection::live::live_nodes;
-use shadewire_ir::{Dag, NodeKind, Op};
+use shadewire::reflection::live::live_nodes;
+use shadewire::{Dag, NodeKind, Op};
 
 /// Every library file, in dependency order.
 pub const FILES: [&str; 10] = [
@@ -130,7 +130,7 @@ const_assert i32(-3.0e9f) == -2147483647i - 1i;
 
     fn op_dag(ops: &[(Op, bool)]) -> Dag {
         use crate::emit::test_support::add;
-        use shadewire_ir::{SurfaceField, Type, Value};
+        use shadewire::{SurfaceField, Type, Value};
         let mut dag = Dag::new("m");
         let c = add(&mut dag, NodeKind::Const(Value::Float(0.5)), Type::Float);
         for (op, live) in ops {

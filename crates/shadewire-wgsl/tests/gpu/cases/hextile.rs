@@ -10,7 +10,7 @@
 //! no hash and keep `TRANSCENDENTAL`.
 
 use super::{Case, TRANSCENDENTAL, op_case};
-use shadewire_ir::{Op, Type, Value};
+use shadewire::{Op, Type, Value};
 
 /// Coordinates and gradients: the float hash drift, see the module docs. A gradient is also
 /// divided by the tile's random scale (down to 0.5), which doubles the drift: the measured

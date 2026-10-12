@@ -14,7 +14,7 @@ default = ["translate"]
 translate = ["dep:naga"]
 
 [dependencies]
-shadewire-ir.workspace = true
+shadewire.workspace = true
 naga = { workspace = true, optional = true }
 
 [dev-dependencies]

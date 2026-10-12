@@ -6,7 +6,7 @@
 
 use super::scope::{copy_input, for_each_scope, is_connected, new_node, node_input, unique_name, value_input};
 use crate::document::{Document, Input, Node, PortType};
-use shadewire_ir::Type;
+use shadewire::Type;
 
 /// Channel letters that read a component, by position.
 fn channel_index(letter: char) -> Option<usize> {
@@ -186,7 +186,7 @@ fn to_combine(node: &mut Node, dest: Type, letters: &[char], mut component: impl
 mod tests {
     use crate::document::PortType;
     use crate::upgrade::test_doc::doc_138;
-    use shadewire_ir::Type;
+    use shadewire::Type;
 
     const COLOR_SOURCE: &str =
         r#"<constant name="c" type="color3"><input name="value" type="color3" value="1,2,3"/></constant>"#;

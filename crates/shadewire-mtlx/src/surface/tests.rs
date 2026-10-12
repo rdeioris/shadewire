@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
-use shadewire_ir::{ContextRead, Dag, Error, NodeKind, Op, Space, TransformKind, Type, Value};
+use shadewire::interpret::{ContextSource, NoTextures, eval_surface};
+use shadewire::{ContextRead, Dag, Error, NodeKind, Op, Space, TransformKind, Type, Value};
 
 use super::models::{PHASE_ONE_MODELS, fields};
 use crate::document::Document;

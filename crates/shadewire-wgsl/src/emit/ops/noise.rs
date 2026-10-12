@@ -1,8 +1,8 @@
-use shadewire_ir::{Op, Type};
+use shadewire::{Op, Type};
 
 use super::{Arg, cast, first_f32, leading, work_type};
 
-/// Mirrors `shadewire_ir::ops::noise::eval`: the genglsl node formulas over the leaf library.
+/// Mirrors `shadewire::ops::noise::eval`: the genglsl node formulas over the leaf library.
 /// Arguments arrive in `catalog::input_names` order.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     match op {
@@ -86,7 +86,7 @@ fn int(arg: &Arg) -> String {
 mod tests {
     use super::emit;
     use crate::emit::test_support::args;
-    use shadewire_ir::{Op, Type};
+    use shadewire::{Op, Type};
 
     const F: Type = Type::Float;
     const I: Type = Type::Integer;

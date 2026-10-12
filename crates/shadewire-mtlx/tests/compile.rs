@@ -5,7 +5,7 @@ mod common;
 use std::path::Path;
 
 use common::compile_mtlx;
-use shadewire_ir::Error;
+use shadewire::Error;
 use shadewire_mtlx::{MtlxOptions, to_ir};
 use shadewire_wgsl::{CompileOptions, compile};
 

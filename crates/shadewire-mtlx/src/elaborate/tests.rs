@@ -1,6 +1,6 @@
-use shadewire_ir::interpret::{ContextSource, NoTextures, eval_surface};
-use shadewire_ir::optimize::optimize;
-use shadewire_ir::{ContextRead, Error, NodeKind, Op, Space, TransformKind, Type, Value};
+use shadewire::interpret::{ContextSource, NoTextures, eval_surface};
+use shadewire::optimize::optimize;
+use shadewire::{ContextRead, Error, NodeKind, Op, Space, TransformKind, Type, Value};
 
 use super::elaborate_output;
 use crate::document::Document;

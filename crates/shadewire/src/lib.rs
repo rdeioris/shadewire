@@ -1,4 +1,4 @@
-//! Shadewire typed material DAG, optimizer and interpreter
+//! Shadewire core: the material IR (a typed DAG), optimizer, CPU interpreter and reflection
 
 pub mod classify;
 mod context;

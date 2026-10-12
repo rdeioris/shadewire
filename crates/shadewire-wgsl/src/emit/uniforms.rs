@@ -1,4 +1,4 @@
-use shadewire_ir::{Reflection, Type};
+use shadewire::{Reflection, Type};
 
 use super::names::UniformNames;
 use super::types::wgsl_type;
@@ -29,7 +29,7 @@ pub fn uniform_block(reflection: &Reflection) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadewire_ir::{BindingOptions, Dag, Node, NodeKind, SourceInfo, SurfaceField, Value, reflect};
+    use shadewire::{BindingOptions, Dag, Node, NodeKind, SourceInfo, SurfaceField, Value, reflect};
 
     fn reflection_with(uniforms: &[(&str, Value)], group: u32, first: u32) -> Reflection {
         let mut dag = Dag::new("m");

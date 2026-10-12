@@ -1,4 +1,4 @@
-use shadewire_ir::{Dag, NodeId, NodeKind, Type};
+use shadewire::{Dag, NodeId, NodeKind, Type};
 
 use super::expressions::{let_line, node_name, pure_expr};
 use super::ops::cast;
@@ -43,7 +43,7 @@ fn widen(expr: &str, ty: Type) -> String {
 mod tests {
     use super::*;
     use crate::emit::test_support::{add, naga_validates};
-    use shadewire_ir::*;
+    use shadewire::*;
 
     #[test]
     fn ancestors_only_widened_to_vec4() {

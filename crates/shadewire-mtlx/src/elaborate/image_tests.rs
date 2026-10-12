@@ -1,6 +1,6 @@
 //! The `image` node and `tiledimage`, which reaches it through its interface.
 
-use shadewire_ir::{AddressMode, ContextRead, Dag, Error, FilterMode, NodeId, NodeKind, Op, TextureDesc, Type, Value};
+use shadewire::{AddressMode, ContextRead, Dag, Error, FilterMode, NodeId, NodeKind, Op, TextureDesc, Type, Value};
 
 use super::elaborate_output;
 use super::tests::doc;

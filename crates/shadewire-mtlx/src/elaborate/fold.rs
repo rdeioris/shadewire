@@ -3,9 +3,9 @@
 
 use std::collections::HashMap;
 
-use shadewire_ir::interpret::ContextSource;
-use shadewire_ir::ops::broadcast::broadcast;
-use shadewire_ir::{ContextRead, NodeId, NodeKind, Space, TransformKind, Value, eval_op};
+use shadewire::interpret::ContextSource;
+use shadewire::ops::broadcast::broadcast;
+use shadewire::{ContextRead, NodeId, NodeKind, Space, TransformKind, Value, eval_op};
 
 use super::Elaborator;
 
