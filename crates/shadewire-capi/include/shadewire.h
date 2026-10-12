@@ -62,6 +62,9 @@ typedef uint32_t shadewire_status;
 // An error returned by a failed call. Free it with `shadewire_error_free`.
 typedef struct shadewire_error shadewire_error;
 
+// A MaterialX material lowered to the IR. Free it with `shadewire_ir_free`.
+typedef struct shadewire_ir shadewire_ir;
+
 // Options for MaterialX import. Set `struct_size` to `sizeof` the struct, or use `shadewire_mtlx_options_default`.
 //
 // `models` NULL with `model_count` 0 is the default list; NULL with a non-zero count is an error; non-NULL is exactly
@@ -135,6 +138,43 @@ const char *shadewire_error_path(const struct shadewire_error *err);
 
 // Frees `err`; NULL is allowed.
 void shadewire_error_free(struct shadewire_error *err);
+
+// Lowers MaterialX `text` (`len` bytes of UTF-8) to the IR and writes the handle to `out`.
+//
+// `path` (NULL-terminated, may be NULL) names the document for messages and relative includes; `material` selects a
+// material by name (NULL for the first); `options` may be NULL for the defaults. `*out` is written only on success.
+//
+// # Safety
+// `text` must hold `len` readable bytes; `path` and `material` must be NULL or valid NUL-terminated strings;
+// `options` must be NULL or valid (see `shadewire_mtlx_options`); `out` must be valid for writing a pointer and
+// `error` NULL or valid for writing a pointer.
+shadewire_status shadewire_mtlx_to_ir(const char *text,
+                                      size_t len,
+                                      const char *path,
+                                      const char *material,
+                                      const struct shadewire_mtlx_options *options,
+                                      struct shadewire_ir **out,
+                                      struct shadewire_error **error);
+
+// The shading model name (for example "standard_surface"), valid until `ir` is freed; NULL when `ir` is NULL.
+//
+// # Safety
+// `ir` must be NULL or a live handle.
+const char *shadewire_ir_model(const struct shadewire_ir *ir);
+
+// A text dump of the IR, built on first call and valid until `ir` is freed; writes its byte length to `len` when
+// non-null. NULL when `ir` is NULL.
+//
+// # Safety
+// `ir` must be NULL or a live handle; `len` NULL or valid for writing a `size_t`.
+const char *shadewire_ir_dump(const struct shadewire_ir *ir,
+                              size_t *len);
+
+// Frees `ir`; NULL is allowed.
+//
+// # Safety
+// `ir` must be NULL or a handle from `shadewire_mtlx_to_ir` not yet freed.
+void shadewire_ir_free(struct shadewire_ir *ir);
 
 // Writes the default MaterialX options to `out` (no-op when NULL).
 //

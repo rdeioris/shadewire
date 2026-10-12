@@ -72,7 +72,6 @@ unsafe fn overlay<T: Copy>(ptr: *const T, base: T) -> Result<T, ArgError> {
 /// # Safety
 /// `ptr` must be NULL or point to `struct_size` readable bytes (at least 4); `models` must hold `model_count` valid
 /// NUL-terminated strings, and `working_colorspace` must be NULL or a valid NUL-terminated string.
-#[allow(dead_code)] // the entry points that call it arrive in the next tasks
 pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<MtlxOptions, ArgError> {
     let mut options = MtlxOptions::default();
     if ptr.is_null() {
@@ -102,7 +101,7 @@ pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<Mtl
 ///
 /// # Safety
 /// `ptr` must be NULL or point to `struct_size` readable bytes (at least 4).
-#[allow(dead_code)] // the entry points that call it arrive in the next tasks
+#[allow(dead_code)] // used by the compile entry points in the next task
 pub(crate) unsafe fn read_compile(ptr: *const shadewire_compile_options) -> Result<CompileOptions, ArgError> {
     if ptr.is_null() {
         return Ok(CompileOptions::default());

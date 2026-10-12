@@ -11,7 +11,6 @@ use crate::status::shadewire_status;
 ///
 /// # Safety
 /// `error` must be NULL, or valid and aligned for writing a `*mut shadewire_error`.
-#[allow(dead_code)] // the entry points that call it arrive in the next tasks
 pub(crate) unsafe fn guarded(
     error: *mut *mut shadewire_error,
     body: impl FnOnce() -> Result<(), CapiError> + UnwindSafe,

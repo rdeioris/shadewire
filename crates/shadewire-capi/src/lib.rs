@@ -7,14 +7,19 @@
 mod error;
 mod error_kind;
 mod guard;
+mod ir;
 mod options;
 mod status;
 mod strings;
 mod target;
 mod version;
 
-pub use error::{CapiError, shadewire_error};
+pub use error::{
+    CapiError, shadewire_error, shadewire_error_file, shadewire_error_free, shadewire_error_get_kind,
+    shadewire_error_line, shadewire_error_message, shadewire_error_path,
+};
 pub use error_kind::shadewire_error_kind;
+pub use ir::{shadewire_ir, shadewire_ir_dump, shadewire_ir_free, shadewire_ir_model, shadewire_mtlx_to_ir};
 pub use options::{
     shadewire_compile_options, shadewire_compile_options_default, shadewire_mtlx_options,
     shadewire_mtlx_options_default,
