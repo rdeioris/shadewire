@@ -151,6 +151,55 @@ fn compile_options_reach_the_reflection() {
     unsafe { shadewire_ir_free(ir) };
 }
 
+/// Without uniforms the texture takes the first binding, unless the uniform binding is reserved.
+#[test]
+fn reserve_uniform_binding_moves_the_textures_past_the_uniform_slot() {
+    let document = r#"<materialx version="1.39">
+  <image name="img" type="color3">
+    <input name="file" type="filename" value="a.png" />
+  </image>
+  <surface_unlit name="SU" type="surfaceshader">
+    <input name="emission_color" type="color3" nodename="img" />
+  </surface_unlit>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SU" />
+  </surfacematerial>
+</materialx>"#;
+    let mut mtlx = std::mem::MaybeUninit::<shadewire_mtlx_options>::uninit();
+    unsafe { shadewire_mtlx_options_default(mtlx.as_mut_ptr()) };
+    let mut mtlx = unsafe { mtlx.assume_init() };
+    mtlx.values_as_uniforms = false;
+    let texture_binding = |reserve: bool| {
+        let mut options = std::mem::MaybeUninit::<shadewire_compile_options>::uninit();
+        unsafe { shadewire_compile_options_default(options.as_mut_ptr()) };
+        let mut options = unsafe { options.assume_init() };
+        options.first_binding = 10;
+        options.reserve_uniform_binding = reserve;
+        let mut compiled = null_mut();
+        let mut error = null_mut();
+        let status = unsafe {
+            shadewire_compile_mtlx(
+                document.as_ptr().cast(),
+                document.len(),
+                null(),
+                null(),
+                &mtlx,
+                &options,
+                &mut compiled,
+                &mut error,
+            )
+        };
+        assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+        let json: serde_json::Value =
+            serde_json::from_str(&text(unsafe { shadewire_compiled_reflection_json(compiled, null_mut()) }))
+                .unwrap();
+        unsafe { shadewire_compiled_free(compiled) };
+        assert!(json["uniform_binding"].is_null(), "{json}");
+        json["textures"][0]["binding"].as_u64().unwrap()
+    };
+    assert_eq!((texture_binding(false), texture_binding(true)), (10, 11));
+}
+
 #[test]
 fn compiling_a_null_ir_is_an_invalid_argument() {
     let mut compiled = null_mut();

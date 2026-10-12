@@ -85,7 +85,11 @@ typedef struct shadewire_ir shadewire_ir;
 // Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
 // The booleans are true for any non-zero byte.
 //
-// `reserved` fills the tail padding and must be zero; new fields are only appended after it.
+// `reserve_uniform_binding` keeps `first_binding` for the uniform block even when the material has no uniforms, so
+// textures start at `first_binding + 1` (for hosts that bind their own buffer there); a caller whose `struct_size`
+// ends before it gets false.
+//
+// `reserved` and `reserved_tail` fill padding and must be zero; new fields are only appended after `reserved_tail`.
 typedef struct shadewire_compile_options {
   uint32_t struct_size;
   uint32_t group;
@@ -93,6 +97,8 @@ typedef struct shadewire_compile_options {
   bool flip_v;
   bool optimize;
   uint8_t reserved[2];
+  bool reserve_uniform_binding;
+  uint8_t reserved_tail[3];
 } shadewire_compile_options;
 
 // Options for MaterialX import. Set `struct_size` to `sizeof` the struct, or use `shadewire_mtlx_options_default`.

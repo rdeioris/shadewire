@@ -33,7 +33,11 @@ pub struct shadewire_mtlx_options {
 /// Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
 /// The booleans are true for any non-zero byte.
 ///
-/// `reserved` fills the tail padding and must be zero; new fields are only appended after it.
+/// `reserve_uniform_binding` keeps `first_binding` for the uniform block even when the material has no uniforms, so
+/// textures start at `first_binding + 1` (for hosts that bind their own buffer there); a caller whose `struct_size`
+/// ends before it gets false.
+///
+/// `reserved` and `reserved_tail` fill padding and must be zero; new fields are only appended after `reserved_tail`.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct shadewire_compile_options {
@@ -43,6 +47,8 @@ pub struct shadewire_compile_options {
     pub flip_v: bool,
     pub optimize: bool,
     pub reserved: [u8; 2],
+    pub reserve_uniform_binding: bool,
+    pub reserved_tail: [u8; 3],
 }
 
 fn compile_defaults() -> shadewire_compile_options {
@@ -54,6 +60,8 @@ fn compile_defaults() -> shadewire_compile_options {
         flip_v: d.flip_v,
         optimize: d.optimize,
         reserved: [0; 2],
+        reserve_uniform_binding: d.reserve_uniform_binding,
+        reserved_tail: [0; 3],
     }
 }
 
@@ -139,7 +147,7 @@ pub(crate) unsafe fn read_compile(ptr: *const shadewire_compile_options) -> Resu
         Ok(CompileOptions {
             group: (&raw const (*raw).group).read(),
             first_binding: (&raw const (*raw).first_binding).read(),
-            reserve_uniform_binding: false,
+            reserve_uniform_binding: flag(&raw const (*raw).reserve_uniform_binding),
             flip_v: flag(&raw const (*raw).flip_v),
             optimize: flag(&raw const (*raw).optimize),
         })
@@ -203,12 +211,15 @@ mod tests {
 
     #[test]
     fn the_reserved_bytes_end_each_struct() {
-        let compile_end = offset_of!(shadewire_compile_options, reserved) + 2;
+        let compile_end = offset_of!(shadewire_compile_options, reserved_tail) + 3;
         assert_eq!(size_of::<shadewire_compile_options>(), compile_end);
+        // The 16-byte struct of the first release ended with `reserved`; the new field starts after it.
+        assert_eq!(offset_of!(shadewire_compile_options, reserved) + 2, 16);
+        assert_eq!(offset_of!(shadewire_compile_options, reserve_uniform_binding), 16);
         let mtlx_end = offset_of!(shadewire_mtlx_options, reserved) + 7;
         assert_eq!(size_of::<shadewire_mtlx_options>(), mtlx_end);
         #[cfg(target_pointer_width = "64")]
-        assert_eq!((size_of::<shadewire_compile_options>(), size_of::<shadewire_mtlx_options>()), (16, 40));
+        assert_eq!((size_of::<shadewire_compile_options>(), size_of::<shadewire_mtlx_options>()), (20, 40));
     }
 
     #[test]
@@ -216,7 +227,8 @@ mod tests {
         let mut c = MaybeUninit::<shadewire_compile_options>::uninit();
         unsafe { c.as_mut_ptr().cast::<u8>().write_bytes(0xAA, size_of::<shadewire_compile_options>()) };
         unsafe { shadewire_compile_options_default(c.as_mut_ptr()) };
-        assert_eq!(unsafe { c.assume_init() }.reserved, [0; 2]);
+        let c = unsafe { c.assume_init() };
+        assert_eq!((c.reserved, c.reserved_tail), ([0; 2], [0; 3]));
         let mut m = MaybeUninit::<shadewire_mtlx_options>::uninit();
         unsafe { m.as_mut_ptr().cast::<u8>().write_bytes(0xAA, size_of::<shadewire_mtlx_options>()) };
         unsafe { shadewire_mtlx_options_default(m.as_mut_ptr()) };
@@ -233,8 +245,9 @@ mod tests {
         let mut c = MaybeUninit::new(compile_default_struct());
         set_bool_byte(&mut c, offset_of!(shadewire_compile_options, flip_v), 2);
         set_bool_byte(&mut c, offset_of!(shadewire_compile_options, optimize), 2);
+        set_bool_byte(&mut c, offset_of!(shadewire_compile_options, reserve_uniform_binding), 2);
         let read = unsafe { read_compile(c.as_ptr()) }.unwrap();
-        assert_eq!((u8::from(read.flip_v), u8::from(read.optimize)), (1, 1));
+        assert_eq!((u8::from(read.flip_v), u8::from(read.optimize), u8::from(read.reserve_uniform_binding)), (1, 1, 1));
         let mut m = MaybeUninit::new(mtlx_default_struct());
         set_bool_byte(&mut m, offset_of!(shadewire_mtlx_options, values_as_uniforms), 2);
         let read = unsafe { read_mtlx(m.as_ptr()) }.unwrap();
@@ -262,6 +275,16 @@ mod tests {
         c.optimize = false; // beyond struct_size: must not be read
         let read = unsafe { read_compile(&c) }.unwrap();
         assert_eq!((read.group, read.flip_v, read.optimize), (5, false, CompileOptions::default().optimize));
+    }
+
+    #[test]
+    fn an_old_16_byte_caller_does_not_reserve_the_uniform_binding() {
+        let mut c = compile_default_struct();
+        c.struct_size = 16;
+        c.reserve_uniform_binding = true; // beyond struct_size: must not be read
+        assert!(!unsafe { read_compile(&c) }.unwrap().reserve_uniform_binding);
+        c.struct_size = size_of::<shadewire_compile_options>() as u32;
+        assert!(unsafe { read_compile(&c) }.unwrap().reserve_uniform_binding);
     }
 
     #[test]

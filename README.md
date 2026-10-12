@@ -75,6 +75,7 @@ shadewire ir material.mtlx               # print the IR (optimized; --no-optimiz
 - `--reflection FILE` writes the reflection JSON; it is written only when the shader was produced.
 - `--no-optimize` skips constant folding, simplification and sharing.
 - `--constants` bakes authored values in instead of exposing them as uniforms.
+- `--reserve-uniform-binding` keeps binding 0 for the uniform block even when the material has no uniforms, so textures start at binding 1 (for hosts that bind their own buffer there).
 
 ## C API
 

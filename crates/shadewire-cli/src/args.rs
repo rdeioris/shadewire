@@ -69,4 +69,7 @@ pub struct CompileArgs {
     /// Bake authored values in as constants instead of uniforms
     #[arg(long)]
     pub constants: bool,
+    /// Keep binding 0 for the uniform block even without uniforms, so textures start at 1
+    #[arg(long)]
+    pub reserve_uniform_binding: bool,
 }

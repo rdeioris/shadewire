@@ -31,7 +31,11 @@ fn mtlx_options(models: &[String], constants: bool) -> MtlxOptions {
 }
 
 fn compile_options(args: &CompileArgs) -> CompileOptions {
-    CompileOptions { optimize: !args.no_optimize, ..CompileOptions::default() }
+    CompileOptions {
+        optimize: !args.no_optimize,
+        reserve_uniform_binding: args.reserve_uniform_binding,
+        ..CompileOptions::default()
+    }
 }
 
 fn ir_command(args: &IrArgs) -> Result<(), Error> {

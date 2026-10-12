@@ -39,6 +39,39 @@ fn wgsl_goes_to_the_output_file_as_generated() {
     assert!(out.stderr.is_empty());
 }
 
+/// Without uniforms the texture takes binding 0; `--reserve-uniform-binding` keeps 0 for the uniform block.
+#[test]
+fn reserve_uniform_binding_moves_the_textures_past_the_uniform_slot() {
+    let mtlx = scratch("textured.mtlx");
+    std::fs::write(
+        &mtlx,
+        r#"<materialx version="1.39">
+  <image name="img" type="color3">
+    <input name="file" type="filename" value="a.png" />
+  </image>
+  <surface_unlit name="SU" type="surfaceshader">
+    <input name="emission_color" type="color3" nodename="img" />
+  </surface_unlit>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SU" />
+  </surfacematerial>
+</materialx>"#,
+    )
+    .unwrap();
+    let texture_binding = |extra: &[&str], name: &str| {
+        let json = scratch(name);
+        let mut args = vec!["compile", mtlx.to_str().unwrap(), "--constants", "--reflection", json.to_str().unwrap()];
+        args.extend_from_slice(extra);
+        let out = run(&args);
+        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+        let value: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&json).unwrap()).unwrap();
+        assert!(value["uniform_binding"].is_null(), "{value}");
+        value["textures"][0]["binding"].as_u64().unwrap()
+    };
+    assert_eq!(texture_binding(&[], "plain.json"), 0);
+    assert_eq!(texture_binding(&["--reserve-uniform-binding"], "reserved.json"), 1);
+}
+
 #[test]
 fn an_error_is_one_message_and_exit_one() {
     let out = run(&["compile", EXAMPLE, "--model", "gltf_pbr"]);
