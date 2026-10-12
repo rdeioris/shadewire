@@ -13,7 +13,7 @@ use crate::guard::guarded;
 use crate::ir::{borrow as borrow_ir, lower, shadewire_ir};
 use crate::options::{read_compile, shadewire_compile_options, shadewire_mtlx_options};
 use crate::status::shadewire_status;
-use crate::strings::{ArgError, c_string, out_str};
+use crate::strings::{ArgError, c_string, cached_text, null_str, out_str};
 
 /// A compiled material: WGSL, reflection and the optimized IR. Free it with `shadewire_compiled_free`.
 pub struct shadewire_compiled {
@@ -25,8 +25,11 @@ pub struct shadewire_compiled {
 }
 
 /// Borrows the compiled material behind `ptr`.
+///
+/// # Safety
+/// `ptr` must be NULL or a live handle that outlives `'a`.
 #[allow(dead_code)] // used by the translate entry points in the next task
-pub fn borrow<'a>(ptr: *const shadewire_compiled) -> Result<&'a shadewire_compiled, ArgError> {
+pub(crate) unsafe fn borrow<'a>(ptr: *const shadewire_compiled) -> Result<&'a shadewire_compiled, ArgError> {
     unsafe { ptr.as_ref() }.ok_or_else(|| ArgError("compiled is NULL".to_string()))
 }
 
@@ -129,13 +132,19 @@ pub unsafe extern "C" fn shadewire_compiled_reflection_json(
 }
 
 /// A text dump of the optimized IR, built on first call and valid until `c` is freed; see
-/// `shadewire_compiled_wgsl` for `len`.
+/// `shadewire_compiled_wgsl` for `len`. NULL when `c` is NULL or building the dump failed.
 ///
 /// # Safety
 /// As `shadewire_compiled_wgsl`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_compiled_ir_dump(c: *const shadewire_compiled, len: *mut usize) -> *const c_char {
-    unsafe { text_of(c, len, |c| c.dump.get_or_init(|| c_string(c.compiled.dag.dump()))) }
+    match unsafe { c.as_ref() } {
+        Some(handle) => match cached_text(&handle.dump, || handle.compiled.dag.dump()) {
+            Some(dump) => unsafe { out_str(dump, len) },
+            None => unsafe { null_str(len) },
+        },
+        None => unsafe { null_str(len) },
+    }
 }
 
 /// The WGSL struct name of the shading model (for example "StandardSurface"), valid until `c` is freed; NULL when `c`
@@ -166,11 +175,6 @@ unsafe fn text_of(
 ) -> *const c_char {
     match unsafe { c.as_ref() } {
         Some(handle) => unsafe { out_str(pick(handle), len) },
-        None => {
-            if !len.is_null() {
-                unsafe { *len = 0 };
-            }
-            std::ptr::null()
-        }
+        None => unsafe { null_str(len) },
     }
 }

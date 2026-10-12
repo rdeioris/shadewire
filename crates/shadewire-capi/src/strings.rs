@@ -2,6 +2,8 @@
 
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::OnceLock;
 
 /// An invalid argument passed by the caller.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -11,6 +13,23 @@ pub struct ArgError(pub String);
 pub fn c_string(s: String) -> CString {
     let cleaned = if s.contains('\0') { s.replace('\0', "\u{FFFD}") } else { s };
     CString::new(cleaned).expect("NUL bytes were replaced")
+}
+
+/// The text cached in `cell`, built by `build` on first use; `None` when `build` panicked (nothing is cached then).
+pub(crate) fn cached_text(cell: &OnceLock<CString>, build: impl FnOnce() -> String) -> Option<&CString> {
+    if let Some(done) = cell.get() {
+        return Some(done);
+    }
+    let built = catch_unwind(AssertUnwindSafe(|| c_string(build()))).ok()?;
+    Some(cell.get_or_init(|| built))
+}
+
+/// Writes 0 to `len` when non-null and returns NULL.
+pub(crate) unsafe fn null_str(len: *mut usize) -> *const c_char {
+    if !len.is_null() {
+        unsafe { *len = 0 };
+    }
+    std::ptr::null()
 }
 
 /// Returns the pointer of `s`, writing its byte length to `len` when non-null.

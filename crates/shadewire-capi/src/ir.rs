@@ -12,7 +12,7 @@ use crate::error::{CapiError, shadewire_error};
 use crate::guard::guarded;
 use crate::options::{read_mtlx, shadewire_mtlx_options};
 use crate::status::shadewire_status;
-use crate::strings::{ArgError, c_string, opt_cstr, out_str, text_arg};
+use crate::strings::{ArgError, c_string, cached_text, null_str, opt_cstr, out_str, text_arg};
 
 /// A MaterialX material lowered to the IR. Free it with `shadewire_ir_free`.
 pub struct shadewire_ir {
@@ -22,7 +22,10 @@ pub struct shadewire_ir {
 }
 
 /// Borrows the IR behind `ptr`.
-pub fn borrow<'a>(ptr: *const shadewire_ir) -> Result<&'a MaterialIr, ArgError> {
+///
+/// # Safety
+/// `ptr` must be NULL or a live handle that outlives `'a`.
+pub(crate) unsafe fn borrow<'a>(ptr: *const shadewire_ir) -> Result<&'a MaterialIr, ArgError> {
     match unsafe { ptr.as_ref() } {
         Some(handle) => Ok(&handle.ir),
         None => Err(ArgError("ir is NULL".to_string())),
@@ -93,23 +96,18 @@ pub unsafe extern "C" fn shadewire_ir_model(ir: *const shadewire_ir) -> *const c
 }
 
 /// A text dump of the IR, built on first call and valid until `ir` is freed; writes its byte length to `len` when
-/// non-null. NULL when `ir` is NULL.
+/// non-null. NULL when `ir` is NULL or building the dump failed (len is then 0).
 ///
 /// # Safety
 /// `ir` must be NULL or a live handle; `len` NULL or valid for writing a `size_t`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_ir_dump(ir: *const shadewire_ir, len: *mut usize) -> *const c_char {
     match unsafe { ir.as_ref() } {
-        Some(handle) => {
-            let dump = handle.dump.get_or_init(|| c_string(handle.ir.dag.dump()));
-            unsafe { out_str(dump, len) }
-        }
-        None => {
-            if !len.is_null() {
-                unsafe { *len = 0 };
-            }
-            std::ptr::null()
-        }
+        Some(handle) => match cached_text(&handle.dump, || handle.ir.dag.dump()) {
+            Some(dump) => unsafe { out_str(dump, len) },
+            None => unsafe { null_str(len) },
+        },
+        None => unsafe { null_str(len) },
     }
 }
 

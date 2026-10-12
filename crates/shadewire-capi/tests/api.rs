@@ -162,3 +162,77 @@ fn compiling_a_null_ir_is_an_invalid_argument() {
     unsafe { shadewire_error_free(error) };
     unsafe { shadewire_compiled_free(null_mut()) };
 }
+
+fn sentinel<T>() -> *mut T {
+    std::ptr::NonNull::<T>::dangling().as_ptr()
+}
+
+#[test]
+fn error_is_untouched_on_success() {
+    let example = default_example();
+    let mut error: *mut shadewire_error = null_mut();
+    let mut ir = null_mut();
+    let status = unsafe {
+        shadewire_mtlx_to_ir(example.as_ptr().cast(), example.len(), null(), null(), null(), &mut ir, &mut error)
+    };
+    assert_eq!((status, error.is_null()), (shadewire_status::SHADEWIRE_OK, true));
+    let mut compiled = null_mut();
+    assert_eq!(
+        unsafe { shadewire_wgsl_compile(ir, null(), &mut compiled, &mut error) },
+        shadewire_status::SHADEWIRE_OK
+    );
+    assert!(error.is_null());
+    let mut one = null_mut();
+    let status = unsafe {
+        shadewire_compile_mtlx(
+            example.as_ptr().cast(),
+            example.len(),
+            null(),
+            null(),
+            null(),
+            null(),
+            &mut one,
+            &mut error,
+        )
+    };
+    assert_eq!((status, error.is_null()), (shadewire_status::SHADEWIRE_OK, true));
+    unsafe { shadewire_compiled_free(one) };
+    unsafe { shadewire_compiled_free(compiled) };
+    unsafe { shadewire_ir_free(ir) };
+}
+
+#[test]
+fn compile_mtlx_failures_leave_out_untouched() {
+    let marker = sentinel::<shadewire_compiled>();
+    let bad_utf8 = [0xffu8, 0xfe];
+    let parse = "<materialx><nodegraph></materialx>";
+    for (ptr, len) in [(bad_utf8.as_ptr().cast(), 2usize), (parse.as_ptr().cast(), parse.len())] {
+        let mut out = marker;
+        let mut error = null_mut();
+        let status = unsafe { shadewire_compile_mtlx(ptr, len, null(), null(), null(), null(), &mut out, &mut error) };
+        assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
+        assert_eq!(out, marker);
+        assert!(!error.is_null());
+        unsafe { shadewire_error_free(error) };
+    }
+}
+
+#[test]
+fn getters_on_null_return_null_with_zero_len() {
+    let mut len = 99usize;
+    unsafe {
+        assert!(shadewire_ir_model(null()).is_null());
+        assert!(shadewire_ir_dump(null(), &mut len).is_null());
+        assert_eq!(len, 0);
+        len = 99;
+        assert!(shadewire_compiled_wgsl(null(), &mut len).is_null());
+        assert_eq!(len, 0);
+        len = 99;
+        assert!(shadewire_compiled_reflection_json(null(), &mut len).is_null());
+        assert_eq!(len, 0);
+        len = 99;
+        assert!(shadewire_compiled_ir_dump(null(), &mut len).is_null());
+        assert_eq!(len, 0);
+        assert!(shadewire_compiled_struct_name(null()).is_null());
+    }
+}

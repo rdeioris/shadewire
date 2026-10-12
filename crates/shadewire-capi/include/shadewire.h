@@ -161,7 +161,7 @@ const char *shadewire_compiled_reflection_json(const struct shadewire_compiled *
                                                size_t *len);
 
 // A text dump of the optimized IR, built on first call and valid until `c` is freed; see
-// `shadewire_compiled_wgsl` for `len`.
+// `shadewire_compiled_wgsl` for `len`. NULL when `c` is NULL or building the dump failed.
 //
 // # Safety
 // As `shadewire_compiled_wgsl`.
@@ -224,7 +224,7 @@ shadewire_status shadewire_mtlx_to_ir(const char *text,
 const char *shadewire_ir_model(const struct shadewire_ir *ir);
 
 // A text dump of the IR, built on first call and valid until `ir` is freed; writes its byte length to `len` when
-// non-null. NULL when `ir` is NULL.
+// non-null. NULL when `ir` is NULL or building the dump failed (len is then 0).
 //
 // # Safety
 // `ir` must be NULL or a live handle; `len` NULL or valid for writing a `size_t`.
