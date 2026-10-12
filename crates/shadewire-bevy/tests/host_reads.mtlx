@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!-- Reads every host function the Bevy host provides; the shading is meaningless. -->
+<materialx version="1.39">
+  <!-- Not in the vendored 1.39 stdlib. -->
+  <nodedef name="ND_viewdirection_vector3" node="viewdirection">
+    <input name="space" type="string" />
+    <output name="out" type="vector3" />
+  </nodedef>
+  <nodegraph name="NG">
+    <position name="p_object" type="vector3"><input name="space" type="string" value="object" /></position>
+    <position name="p_world" type="vector3"><input name="space" type="string" value="world" /></position>
+    <normal name="n_object" type="vector3"><input name="space" type="string" value="object" /></normal>
+    <normal name="n_world" type="vector3"><input name="space" type="string" value="world" /></normal>
+    <tangent name="t_model" type="vector3"><input name="space" type="string" value="model" /></tangent>
+    <bitangent name="b_world" type="vector3"><input name="space" type="string" value="world" /></bitangent>
+    <viewdirection name="v" type="vector3" />
+    <transformpoint name="tp" type="vector3">
+      <input name="in" type="vector3" nodename="p_object" />
+      <input name="fromspace" type="string" value="object" />
+      <input name="tospace" type="string" value="world" />
+    </transformpoint>
+    <transformnormal name="tn" type="vector3">
+      <input name="in" type="vector3" nodename="n_world" />
+      <input name="fromspace" type="string" value="world" />
+      <input name="tospace" type="string" value="object" />
+    </transformnormal>
+    <transformvector name="tv" type="vector3">
+      <input name="in" type="vector3" nodename="p_world" />
+      <input name="fromspace" type="string" value="model" />
+      <input name="tospace" type="string" value="world" />
+    </transformvector>
+    <add name="s1" type="vector3"><input name="in1" type="vector3" nodename="n_object" /><input name="in2" type="vector3" nodename="t_model" /></add>
+    <add name="s2" type="vector3"><input name="in1" type="vector3" nodename="s1" /><input name="in2" type="vector3" nodename="b_world" /></add>
+    <add name="s3" type="vector3"><input name="in1" type="vector3" nodename="s2" /><input name="in2" type="vector3" nodename="v" /></add>
+    <add name="s4" type="vector3"><input name="in1" type="vector3" nodename="s3" /><input name="in2" type="vector3" nodename="tp" /></add>
+    <add name="s5" type="vector3"><input name="in1" type="vector3" nodename="s4" /><input name="in2" type="vector3" nodename="tn" /></add>
+    <add name="s6" type="vector3"><input name="in1" type="vector3" nodename="s5" /><input name="in2" type="vector3" nodename="tv" /></add>
+    <convert name="c" type="color3"><input name="in" type="vector3" nodename="s6" /></convert>
+    <geomcolor name="gc" type="color3" />
+    <geompropvalue name="tint" type="color3">
+      <input name="geomprop" type="string" value="tint" />
+      <input name="default" type="color3" value="0.5, 0.5, 0.5" />
+    </geompropvalue>
+    <multiply name="m1" type="color3"><input name="in1" type="color3" nodename="c" /><input name="in2" type="color3" nodename="gc" /></multiply>
+    <multiply name="m2" type="color3"><input name="in1" type="color3" nodename="m1" /><input name="in2" type="color3" nodename="tint" /></multiply>
+    <time name="time" type="float" />
+    <frame name="frame" type="float" />
+    <texcoord name="uv1" type="vector2"><input name="index" type="integer" value="1" /></texcoord>
+    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv1" /><input name="index" type="integer" value="0" /></extract>
+    <add name="r1" type="float"><input name="in1" type="float" nodename="time" /><input name="in2" type="float" nodename="frame" /></add>
+    <add name="r2" type="float"><input name="in1" type="float" nodename="r1" /><input name="in2" type="float" nodename="u" /></add>
+    <output name="color" type="color3" nodename="m2" />
+    <output name="rough" type="float" nodename="r2" />
+  </nodegraph>
+  <gltf_pbr name="S" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="color" />
+    <input name="roughness" type="float" nodegraph="NG" output="rough" />
+  </gltf_pbr>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="S" />
+  </surfacematerial>
+</materialx>

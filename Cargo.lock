@@ -3739,10 +3739,12 @@ name = "shadewire-bevy"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "naga",
  "shadewire",
  "shadewire-mtlx",
  "shadewire-wgsl",
  "thiserror 2.0.21",
+ "wesl",
 ]
 
 [[package]]

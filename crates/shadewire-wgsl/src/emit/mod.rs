@@ -10,7 +10,7 @@ pub mod sample;
 mod structs;
 #[cfg(test)]
 pub(crate) mod test_support;
-pub(crate) mod types;
+pub mod types;
 mod uniforms;
 
 use shadewire::{Dag, Reflection};
