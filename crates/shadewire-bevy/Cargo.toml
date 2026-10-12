@@ -19,3 +19,4 @@ thiserror.workspace = true
 # The versions Bevy 0.20 compiles shaders with (bevy_shader: wesl 0.6 with naga-ext; wgpu 30: naga 30).
 wesl = { version = "0.6", features = ["naga-ext"] }
 naga.workspace = true
+png.workspace = true
