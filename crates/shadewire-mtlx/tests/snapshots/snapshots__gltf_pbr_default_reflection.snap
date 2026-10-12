@@ -1,5 +1,5 @@
 ---
-source: crates/shadewire/tests/snapshots.rs
+source: crates/shadewire-mtlx/tests/snapshots.rs
 expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
 ---
 {
@@ -7,7 +7,7 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
   "source": "mtlx",
   "mtlx_version": "1.39",
   "model": "gltf_pbr",
-  "structure_hash": "7a0dd4394946de7c",
+  "structure_hash": "1b3ea068a1af85fe",
   "params": {
     "alpha": {
       "type": "float",
@@ -65,9 +65,9 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
     },
     "clearcoat_normal": {
       "type": "vector3",
-      "kind": "uniform",
+      "kind": "varying",
       "value": null,
-      "uniform": "clearcoat_normal"
+      "uniform": null
     },
     "clearcoat_roughness": {
       "type": "float",
@@ -125,9 +125,9 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
     },
     "normal": {
       "type": "vector3",
-      "kind": "uniform",
+      "kind": "varying",
       "value": null,
-      "uniform": "normal"
+      "uniform": null
     },
     "occlusion": {
       "type": "float",
@@ -211,41 +211,30 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
       "default": 1.0
     },
     {
-      "name": "normal",
-      "type": "vector3",
-      "offset": 32,
-      "size": 12,
-      "default": [
-        0.0,
-        0.0,
-        1.0
-      ]
-    },
-    {
       "name": "occlusion",
       "type": "float",
-      "offset": 44,
+      "offset": 20,
       "size": 4,
       "default": 0.0
     },
     {
       "name": "transmission",
       "type": "float",
-      "offset": 48,
+      "offset": 24,
       "size": 4,
       "default": 0.0
     },
     {
       "name": "specular",
       "type": "float",
-      "offset": 52,
+      "offset": 28,
       "size": 4,
       "default": 1.0
     },
     {
       "name": "specular_color",
       "type": "color3",
-      "offset": 64,
+      "offset": 32,
       "size": 12,
       "default": [
         1.0,
@@ -256,56 +245,56 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
     {
       "name": "ior",
       "type": "float",
-      "offset": 76,
+      "offset": 44,
       "size": 4,
       "default": 1.5
     },
     {
       "name": "alpha",
       "type": "float",
-      "offset": 80,
+      "offset": 48,
       "size": 4,
       "default": 1.0
     },
     {
       "name": "alpha_mode",
       "type": "integer",
-      "offset": 84,
+      "offset": 52,
       "size": 4,
       "default": 0
     },
     {
       "name": "alpha_cutoff",
       "type": "float",
-      "offset": 88,
+      "offset": 56,
       "size": 4,
       "default": 0.5
     },
     {
       "name": "iridescence",
       "type": "float",
-      "offset": 92,
+      "offset": 60,
       "size": 4,
       "default": 0.0
     },
     {
       "name": "iridescence_ior",
       "type": "float",
-      "offset": 96,
+      "offset": 64,
       "size": 4,
       "default": 1.3
     },
     {
       "name": "iridescence_thickness",
       "type": "float",
-      "offset": 100,
+      "offset": 68,
       "size": 4,
       "default": 300.0
     },
     {
       "name": "sheen_color",
       "type": "color3",
-      "offset": 112,
+      "offset": 80,
       "size": 12,
       "default": [
         0.0,
@@ -316,39 +305,28 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
     {
       "name": "sheen_roughness",
       "type": "float",
-      "offset": 124,
+      "offset": 92,
       "size": 4,
       "default": 0.0
     },
     {
       "name": "clearcoat",
       "type": "float",
-      "offset": 128,
+      "offset": 96,
       "size": 4,
       "default": 0.0
     },
     {
       "name": "clearcoat_roughness",
       "type": "float",
-      "offset": 132,
+      "offset": 100,
       "size": 4,
       "default": 0.0
     },
     {
-      "name": "clearcoat_normal",
-      "type": "vector3",
-      "offset": 144,
-      "size": 12,
-      "default": [
-        0.0,
-        0.0,
-        1.0
-      ]
-    },
-    {
       "name": "emissive",
       "type": "color3",
-      "offset": 160,
+      "offset": 112,
       "size": 12,
       "default": [
         0.0,
@@ -359,28 +337,28 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
     {
       "name": "emissive_strength",
       "type": "float",
-      "offset": 172,
+      "offset": 124,
       "size": 4,
       "default": 1.0
     },
     {
       "name": "thickness",
       "type": "float",
-      "offset": 176,
+      "offset": 128,
       "size": 4,
       "default": 0.0
     },
     {
       "name": "attenuation_distance",
       "type": "float",
-      "offset": 180,
+      "offset": 132,
       "size": 4,
       "default": 100000.0
     },
     {
       "name": "attenuation_color",
       "type": "color3",
-      "offset": 192,
+      "offset": 144,
       "size": 12,
       "default": [
         0.0,
@@ -389,12 +367,16 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
       ]
     }
   ],
-  "uniform_block_size": 208,
+  "uniform_block_size": 160,
   "uniform_binding": 0,
   "group": 2,
   "textures": [],
   "context": {
     "varyings": [
+      {
+        "name": "normal_world",
+        "type": "vector3"
+      },
       {
         "name": "tangent_world",
         "type": "vector3"

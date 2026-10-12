@@ -57,9 +57,13 @@ mod tests {
         }
     }
 
-    fn ramp(node: &str) -> Value {
-        let d =
-            doc(&format!(r#"<nodegraph name="g">{node}<output name="out" type="color3" nodename="n"/></nodegraph>"#));
+    /// Evaluates ramp `node` at texture coordinate `uv`, fed through a connected constant: an authored
+    /// `texcoord` value is ignored in favour of its `defaultgeomprop`, as in MaterialX.
+    fn ramp(node: &str, uv: &str) -> Value {
+        let d = doc(&format!(
+            r#"<nodegraph name="g"><constant name="uv" type="vector2"><input name="value" type="vector2" value="{uv}"/></constant>
+               {node}<output name="out" type="color3" nodename="n"/></nodegraph>"#
+        ));
         let dag = elaborate_output(&d, "g", "out").unwrap();
         eval_surface(&dag, &mut NoContext, &NoTextures).remove(0).1
     }
@@ -68,7 +72,8 @@ mod tests {
     fn ramplr_mixes_left_to_right_along_u() {
         let v = ramp(
             r#"<ramplr name="n" type="color3"><input name="valuel" type="color3" value="1,0,0"/>
-               <input name="valuer" type="color3" value="0,1,0"/><input name="texcoord" type="vector2" value="0.25,0.8"/></ramplr>"#,
+               <input name="valuer" type="color3" value="0,1,0"/><input name="texcoord" type="vector2" nodename="uv"/></ramplr>"#,
+            "0.25,0.8",
         );
         assert_eq!(v, Value::Color3([0.75, 0.25, 0.0]));
     }
@@ -77,7 +82,8 @@ mod tests {
     fn ramptb_mixes_bottom_to_top_along_v() {
         let v = ramp(
             r#"<ramptb name="n" type="color3"><input name="valuet" type="color3" value="1,0,0"/>
-               <input name="valueb" type="color3" value="0,0,1"/><input name="texcoord" type="vector2" value="0.25,0.75"/></ramptb>"#,
+               <input name="valueb" type="color3" value="0,0,1"/><input name="texcoord" type="vector2" nodename="uv"/></ramptb>"#,
+            "0.25,0.75",
         );
         assert_eq!(v, Value::Color3([0.75, 0.0, 0.25]));
     }
@@ -86,7 +92,8 @@ mod tests {
     fn ramps_clamp_the_coordinate() {
         let v = ramp(
             r#"<ramplr name="n" type="color3"><input name="valuel" type="color3" value="1,0,0"/>
-               <input name="valuer" type="color3" value="0,1,0"/><input name="texcoord" type="vector2" value="1.5,0"/></ramplr>"#,
+               <input name="valuer" type="color3" value="0,1,0"/><input name="texcoord" type="vector2" nodename="uv"/></ramplr>"#,
+            "1.5,0",
         );
         assert_eq!(v, Value::Color3([0.0, 1.0, 0.0]));
     }

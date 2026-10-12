@@ -61,7 +61,7 @@ impl<'a> Elaborator<'a> {
         })?;
         let ty = self.value_type(&port.port_type, &at)?;
         let raw = match given {
-            Some(input) => self.given_input(scope, input, ty, param, uniform_eligible, &at)?,
+            Some(input) => self.given_input(scope, input, port, ty, param, uniform_eligible, &at)?,
             None => None,
         };
         let id = match raw {
@@ -72,10 +72,14 @@ impl<'a> Elaborator<'a> {
     }
 
     /// Steps 1-4: what the node itself says. `None` means use the nodedef default.
+    /// As in MaterialX ShaderGen (`ShaderGraph::createNode`), an unconnected input whose nodedef port has a
+    /// `defaultgeomprop` reads the geometric property even when the node authors a value.
+    #[allow(clippy::too_many_arguments)]
     fn given_input(
         &mut self,
         scope: &Scope<'a>,
         input: &Input,
+        port: &PortDef,
         ty: Type,
         param: bool,
         uniform_eligible: bool,
@@ -104,6 +108,9 @@ impl<'a> Elaborator<'a> {
                 }
                 Some(Binding::Unbound) | None => return Ok(None),
             }
+        }
+        if port.default_geomprop.is_some() {
+            return Ok(None);
         }
         if let Some(text) = &input.value {
             return self.authored_value(scope, &input.name, ty, text, uniform_eligible, at).map(Some);

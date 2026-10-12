@@ -26,6 +26,8 @@ mod cycle_tests;
 #[cfg(test)]
 mod depth_tests;
 #[cfg(test)]
+mod geomprop_tests;
+#[cfg(test)]
 mod image_tests;
 #[cfg(test)]
 mod param_tests;
