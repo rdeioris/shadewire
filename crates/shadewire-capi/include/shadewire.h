@@ -38,6 +38,9 @@ typedef uint32_t shadewire_error_kind;
 #endif // __cplusplus
 
 // Result of a fallible call: `SHADEWIRE_OK` or `SHADEWIRE_ERROR` (details in the error out-parameter).
+//
+// The `error` out-parameter of a fallible function is written only on failure and left untouched on success, so
+// initialise it to NULL; it may be NULL to ignore the error.
 enum shadewire_status
 #if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
   : uint32_t
@@ -71,13 +74,13 @@ shadewire_error_kind shadewire_error_get_kind(const struct shadewire_error *err)
 const char *shadewire_error_message(const struct shadewire_error *err,
                                     size_t *len);
 
-// The document file name of `err`, or NULL when it has none (or `err` is NULL).
+// The document file name of `err`, or NULL when it has none (or `err` is NULL); valid until `err` is freed.
 const char *shadewire_error_file(const struct shadewire_error *err);
 
 // The 1-based document line of `err`, or 0 when it has none (or `err` is NULL).
 uint32_t shadewire_error_line(const struct shadewire_error *err);
 
-// The node path of `err`, "" when it has none; NULL when `err` is NULL.
+// The node path of `err`, "" when it has none; NULL when `err` is NULL; valid until `err` is freed.
 const char *shadewire_error_path(const struct shadewire_error *err);
 
 // Frees `err`; NULL is allowed.

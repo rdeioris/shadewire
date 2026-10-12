@@ -103,6 +103,11 @@ pub fn panic(payload: Box<dyn Any + Send>) -> shadewire_error {
     unlocated(shadewire_error_kind::SHADEWIRE_ERROR_PANIC, message)
 }
 
+/// The fixed error written when building an error object itself panicked.
+pub fn reporting_panic() -> shadewire_error {
+    unlocated(shadewire_error_kind::SHADEWIRE_ERROR_PANIC, "panic while reporting an error".to_string())
+}
+
 /// The kind of `err`; `SHADEWIRE_ERROR_INVALID_ARGUMENT` when `err` is NULL.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_error_get_kind(err: *const shadewire_error) -> shadewire_error_kind {
@@ -127,7 +132,7 @@ pub unsafe extern "C" fn shadewire_error_message(err: *const shadewire_error, le
     }
 }
 
-/// The document file name of `err`, or NULL when it has none (or `err` is NULL).
+/// The document file name of `err`, or NULL when it has none (or `err` is NULL); valid until `err` is freed.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_error_file(err: *const shadewire_error) -> *const c_char {
     match unsafe { err.as_ref() }.and_then(|e| e.file.as_ref()) {
@@ -142,7 +147,7 @@ pub unsafe extern "C" fn shadewire_error_line(err: *const shadewire_error) -> u3
     unsafe { err.as_ref() }.map_or(0, |e| e.line)
 }
 
-/// The node path of `err`, "" when it has none; NULL when `err` is NULL.
+/// The node path of `err`, "" when it has none; NULL when `err` is NULL; valid until `err` is freed.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_error_path(err: *const shadewire_error) -> *const c_char {
     match unsafe { err.as_ref() } {
@@ -162,7 +167,8 @@ pub unsafe extern "C" fn shadewire_error_free(err: *mut shadewire_error) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{guarded, shadewire_status};
+    use crate::guard::guarded;
+    use crate::shadewire_status;
     use shadewire::{Error, Location};
     use std::ffi::CStr;
 
@@ -172,7 +178,7 @@ mod tests {
 
     fn fail_with(error: CapiError) -> *mut shadewire_error {
         let mut out: *mut shadewire_error = std::ptr::null_mut();
-        let status = guarded(&mut out, || Err(error));
+        let status = unsafe { guarded(&mut out, || Err(error)) };
         assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
         assert!(!out.is_null());
         out
@@ -231,13 +237,45 @@ mod tests {
     #[test]
     fn a_panic_becomes_a_panic_error_with_its_message() {
         let mut out: *mut shadewire_error = std::ptr::null_mut();
-        let status = guarded(&mut out, || panic!("boom"));
+        let status = unsafe { guarded(&mut out, || panic!("boom")) };
         assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
         unsafe {
             assert_eq!(shadewire_error_get_kind(out), shadewire_error_kind::SHADEWIRE_ERROR_PANIC);
             assert!(text(shadewire_error_message(out, std::ptr::null_mut())).contains("boom"));
             shadewire_error_free(out);
         }
+    }
+
+    #[test]
+    fn location_of_returns_the_at_of_every_located_variant() {
+        let at = || Location { file: Some("f.mtlx".into()), line: 4, path: "a/b".into() };
+        let located = [
+            Error::Parse { at: at(), message: "m".into() },
+            Error::UnsupportedVersion { at: at(), version: "v".into() },
+            Error::UnknownNode { at: at(), category: "c".into() },
+            Error::NoMatchingNodeDef { at: at(), category: "c".into(), output: "o".into(), inputs: "i".into() },
+            Error::TypeMismatch { at: at(), expected: "e".into(), found: "f".into() },
+            Error::UnsupportedType { at: at(), ty: "t".into() },
+            Error::BadValue { at: at(), message: "m".into() },
+            Error::Cycle { at: at(), node: "n".into() },
+            Error::MissingLeafImpl { at: at(), nodedef: "d".into() },
+            Error::UnsupportedSurface { at: at(), node: "n".into(), reason: "r".into() },
+            Error::UnsupportedColorspace { at: at(), colorspace: "c".into() },
+        ];
+        for e in &located {
+            assert_eq!(location_of(e), Some(&at()), "{e}");
+        }
+        let unlocated = [Error::NoMaterial, Error::Io("x".into()), Error::Naga("x".into())];
+        for e in &unlocated {
+            assert_eq!(location_of(e), None, "{e}");
+        }
+    }
+
+    #[test]
+    fn the_reporting_fallback_is_a_panic_error() {
+        let err = reporting_panic();
+        assert_eq!(err.kind, shadewire_error_kind::SHADEWIRE_ERROR_PANIC);
+        assert_eq!(err.message.to_str().unwrap(), "panic while reporting an error");
     }
 
     #[test]
@@ -248,9 +286,9 @@ mod tests {
 
     #[test]
     fn a_null_error_out_parameter_drops_the_error() {
-        let status = guarded(std::ptr::null_mut(), || Err(CapiError::Argument("x".into())));
+        let status = unsafe { guarded(std::ptr::null_mut(), || Err(CapiError::Argument("x".into()))) };
         assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
-        let status = guarded(std::ptr::null_mut(), || panic!("quiet"));
+        let status = unsafe { guarded(std::ptr::null_mut(), || panic!("quiet")) };
         assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
     }
 
