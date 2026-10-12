@@ -51,10 +51,14 @@ impl Fnv {
     }
 }
 
-/// A hash of the DAG's shape. Uniform values are left out, so changing one does not change it.
-/// The generated WGSL also depends on the bind group, the first binding, `flip_v` and
-/// `reserve_uniform_binding`, which are not part of the DAG: a shader cache must key on
+/// A hash of everything in the DAG that ends up in generated code: its shape, constants, textures and
+/// the geomprop defaults (hosts return them as literals). Uniform values are left out, so changing one
+/// does not change it. The generated WGSL also depends on the bind group, the first binding, `flip_v`
+/// and `reserve_uniform_binding`, which are not part of the DAG: a shader cache must key on
 /// `(structure_hash, group, first_binding, flip_v, reserve_uniform_binding)`.
+///
+/// A DAG without geomprop defaults hashes exactly as before they were hashed; the defaults, when there
+/// are any, are a tagged section after the surface fields, in name order (a `BTreeMap`).
 pub fn structure_hash(dag: &Dag) -> String {
     let mut h = Fnv::new();
     h.text(&dag.surface.model);
@@ -107,6 +111,14 @@ pub fn structure_hash(dag: &Dag) -> String {
         h.text(&field.name);
         h.number(field.node.0 as u64);
     }
+    if !dag.geomprop_defaults.is_empty() {
+        h.byte(5);
+        h.number(dag.geomprop_defaults.len() as u64);
+        for (name, value) in &dag.geomprop_defaults {
+            h.text(name);
+            h.value(value);
+        }
+    }
     format!("{:016x}", h.0)
 }
 
@@ -151,6 +163,36 @@ mod tests {
         a.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Float, node: ca });
         b.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Float, node: cb });
         assert_ne!(structure_hash(&a), structure_hash(&b));
+    }
+
+    /// A geomprop default is written into the host's code (the reference host and Bevy return it), so it
+    /// is structure: its name, type and value all change the hash.
+    #[test]
+    fn geomprop_defaults_change_the_hash() {
+        let dag = |default: Option<(&str, Value)>| {
+            let mut dag = Dag::new("m");
+            let read = ContextRead::GeomProp { name: "tint".into(), ty: Type::Color3 };
+            let g = dag.add(Node { kind: NodeKind::Context(read), ty: Type::Color3, origin: String::new() });
+            dag.surface.fields.push(SurfaceField { name: "c".into(), ty: Type::Color3, node: g });
+            if let Some((name, value)) = default {
+                dag.geomprop_defaults.insert(name.into(), value);
+            }
+            dag
+        };
+        let hashes = [
+            structure_hash(&dag(None)),
+            structure_hash(&dag(Some(("tint", Value::Color3([1.0, 1.0, 1.0]))))),
+            structure_hash(&dag(Some(("tint", Value::Color3([1.0, 0.5, 1.0]))))),
+            structure_hash(&dag(Some(("tint", Value::Vector3([1.0, 1.0, 1.0]))))),
+            structure_hash(&dag(Some(("tant", Value::Color3([1.0, 1.0, 1.0]))))),
+        ];
+        for i in 0..hashes.len() {
+            for j in i + 1..hashes.len() {
+                assert_ne!(hashes[i], hashes[j], "{i} vs {j}");
+            }
+        }
+        let again = structure_hash(&dag(Some(("tint", Value::Color3([1.0, 0.5, 1.0])))));
+        assert_eq!(hashes[2], again);
     }
 
     fn sample_dag(grad: Option<[usize; 2]>) -> Dag {

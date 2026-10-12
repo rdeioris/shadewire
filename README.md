@@ -159,7 +159,7 @@ Each entry of `textures` names its file and the `colorspace` it was authored in.
 
 In the uniform block a `boolean` uniform is a `u32` (0 or 1), since WGSL has no host-shareable `bool`; `integer` is `i32`. Offsets and sizes are in the reflection's `uniforms`.
 
-`structure_hash` covers the material's graph only (uniform values left out). The WGSL also depends on the bind `group`, the first binding and the V flip, so a shader cache keys on `(structure_hash, group, first_binding, flip_v)`.
+`structure_hash` covers the material's graph only: its shape, constants, textures and geomprop defaults, with uniform values left out. The WGSL also depends on the bind `group`, the first binding, the V flip and whether the uniform binding is reserved, so a shader cache keys on `(structure_hash, group, first_binding, flip_v, reserve_uniform_binding)`.
 
 ## Targets
 
