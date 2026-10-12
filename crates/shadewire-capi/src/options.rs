@@ -5,6 +5,7 @@
 //! new field can land inside an old struct's size.
 
 use std::ffi::c_char;
+use std::mem::MaybeUninit;
 
 use shadewire_mtlx::MtlxOptions;
 use shadewire_wgsl::CompileOptions;
@@ -15,7 +16,7 @@ use crate::strings::{ArgError, opt_cstr};
 ///
 /// `models` NULL with `model_count` 0 is the default list; NULL with a non-zero count is an error; non-NULL is exactly
 /// `model_count` NUL-terminated UTF-8 strings, and a count of 0 means no models (every material is then
-/// NoTranslation). `working_colorspace` is NULL for the default. `values_as_uniforms` must be 0 or 1.
+/// NoTranslation). `working_colorspace` is NULL for the default. `values_as_uniforms` is true for any non-zero byte.
 ///
 /// `reserved` fills the tail padding and must be zero; new fields are only appended after it.
 #[repr(C)]
@@ -30,7 +31,7 @@ pub struct shadewire_mtlx_options {
 }
 
 /// Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
-/// The booleans must be 0 or 1.
+/// The booleans are true for any non-zero byte.
 ///
 /// `reserved` fills the tail padding and must be zero; new fields are only appended after it.
 #[repr(C)]
@@ -68,15 +69,26 @@ fn mtlx_defaults() -> shadewire_mtlx_options {
 }
 
 /// Copies the first `min(struct_size, size_of::<T>())` bytes at `ptr` over `base`.
-unsafe fn overlay<T: Copy>(ptr: *const T, base: T) -> Result<T, ArgError> {
+///
+/// The result stays behind `MaybeUninit`: a caller may store any byte in a `bool` field, so fields are read one by one
+/// through raw pointers, and `bool` fields with `flag`.
+unsafe fn overlay<T: Copy>(ptr: *const T, base: T) -> Result<MaybeUninit<T>, ArgError> {
     let declared = unsafe { std::ptr::read_unaligned(ptr.cast::<u32>()) } as usize;
     if declared < 4 {
         return Err(ArgError(format!("options struct_size {declared} is too small")));
     }
-    let mut value = base;
+    let mut value = MaybeUninit::new(base);
     let len = declared.min(std::mem::size_of::<T>());
-    unsafe { std::ptr::copy_nonoverlapping(ptr.cast::<u8>(), (&raw mut value).cast::<u8>(), len) };
+    unsafe { std::ptr::copy_nonoverlapping(ptr.cast::<u8>(), value.as_mut_ptr().cast::<u8>(), len) };
     Ok(value)
+}
+
+/// Reads a C `bool` field as its byte: any non-zero byte is true.
+///
+/// # Safety
+/// `field` must point to a readable byte.
+unsafe fn flag(field: *const bool) -> bool {
+    unsafe { field.cast::<u8>().read() != 0 }
 }
 
 /// Reads MaterialX options; NULL gives the defaults.
@@ -90,22 +102,26 @@ pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<Mtl
         return Ok(options);
     }
     let raw = unsafe { overlay(ptr, mtlx_defaults()) }?;
-    if raw.models.is_null() && raw.model_count > 0 {
-        return Err(ArgError(format!("models is NULL but model_count is {}", raw.model_count)));
+    let raw = raw.as_ptr();
+    let models = unsafe { (&raw const (*raw).models).read() };
+    let model_count = unsafe { (&raw const (*raw).model_count).read() };
+    let working_colorspace = unsafe { (&raw const (*raw).working_colorspace).read() };
+    if models.is_null() && model_count > 0 {
+        return Err(ArgError(format!("models is NULL but model_count is {model_count}")));
     }
-    if !raw.models.is_null() {
-        let mut models = Vec::new();
-        for i in 0..raw.model_count {
-            let entry = unsafe { *raw.models.add(i) };
+    if !models.is_null() {
+        let mut list = Vec::new();
+        for i in 0..model_count {
+            let entry = unsafe { *models.add(i) };
             let text = unsafe { opt_cstr(entry) }?.ok_or_else(|| ArgError(format!("model {i} is NULL")))?;
-            models.push(text.to_string());
+            list.push(text.to_string());
         }
-        options.models = models;
+        options.models = list;
     }
-    if let Some(space) = unsafe { opt_cstr(raw.working_colorspace) }? {
+    if let Some(space) = unsafe { opt_cstr(working_colorspace) }? {
         options.working_colorspace = space.to_string();
     }
-    options.values_as_uniforms = raw.values_as_uniforms;
+    options.values_as_uniforms = unsafe { flag(&raw const (*raw).values_as_uniforms) };
     Ok(options)
 }
 
@@ -118,12 +134,15 @@ pub(crate) unsafe fn read_compile(ptr: *const shadewire_compile_options) -> Resu
         return Ok(CompileOptions::default());
     }
     let raw = unsafe { overlay(ptr, compile_defaults()) }?;
-    Ok(CompileOptions {
-        group: raw.group,
-        first_binding: raw.first_binding,
-        flip_v: raw.flip_v,
-        optimize: raw.optimize,
-    })
+    let raw = raw.as_ptr();
+    unsafe {
+        Ok(CompileOptions {
+            group: (&raw const (*raw).group).read(),
+            first_binding: (&raw const (*raw).first_binding).read(),
+            flip_v: flag(&raw const (*raw).flip_v),
+            optimize: flag(&raw const (*raw).optimize),
+        })
+    }
 }
 
 /// Writes the default MaterialX options to `out` (no-op when NULL).
@@ -201,6 +220,24 @@ mod tests {
         unsafe { m.as_mut_ptr().cast::<u8>().write_bytes(0xAA, size_of::<shadewire_mtlx_options>()) };
         unsafe { shadewire_mtlx_options_default(m.as_mut_ptr()) };
         assert_eq!(unsafe { m.assume_init() }.reserved, [0; 7]);
+    }
+
+    /// Stores byte `value` in the bool at `offset`; the struct stays behind `MaybeUninit`, so no invalid `bool` exists.
+    fn set_bool_byte<T>(raw: &mut MaybeUninit<T>, offset: usize, value: u8) {
+        unsafe { raw.as_mut_ptr().cast::<u8>().add(offset).write(value) };
+    }
+
+    #[test]
+    fn a_bool_byte_of_two_reads_as_true() {
+        let mut c = MaybeUninit::new(compile_default_struct());
+        set_bool_byte(&mut c, offset_of!(shadewire_compile_options, flip_v), 2);
+        set_bool_byte(&mut c, offset_of!(shadewire_compile_options, optimize), 2);
+        let read = unsafe { read_compile(c.as_ptr()) }.unwrap();
+        assert_eq!((u8::from(read.flip_v), u8::from(read.optimize)), (1, 1));
+        let mut m = MaybeUninit::new(mtlx_default_struct());
+        set_bool_byte(&mut m, offset_of!(shadewire_mtlx_options, values_as_uniforms), 2);
+        let read = unsafe { read_mtlx(m.as_ptr()) }.unwrap();
+        assert_eq!(u8::from(read.values_as_uniforms), 1);
     }
 
     #[test]

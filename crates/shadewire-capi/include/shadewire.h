@@ -74,7 +74,7 @@ typedef struct shadewire_error shadewire_error;
 typedef struct shadewire_ir shadewire_ir;
 
 // Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
-// The booleans must be 0 or 1.
+// The booleans are true for any non-zero byte.
 //
 // `reserved` fills the tail padding and must be zero; new fields are only appended after it.
 typedef struct shadewire_compile_options {
@@ -90,7 +90,7 @@ typedef struct shadewire_compile_options {
 //
 // `models` NULL with `model_count` 0 is the default list; NULL with a non-zero count is an error; non-NULL is exactly
 // `model_count` NUL-terminated UTF-8 strings, and a count of 0 means no models (every material is then
-// NoTranslation). `working_colorspace` is NULL for the default. `values_as_uniforms` must be 0 or 1.
+// NoTranslation). `working_colorspace` is NULL for the default. `values_as_uniforms` is true for any non-zero byte.
 //
 // `reserved` fills the tail padding and must be zero; new fields are only appended after it.
 typedef struct shadewire_mtlx_options {
