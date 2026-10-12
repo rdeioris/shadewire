@@ -1,17 +1,19 @@
 //! The runtime WESL module of one material: Bevy's PBR imports, the host functions, the generated WGSL
-//! and a `fragment` entry in the shape of Bevy's own (bevy_pbr 0.20.0 src/render/pbr.wesl).
+//! and a `fragment` entry in the shape of Bevy's own forward path (bevy_pbr 0.20.0 src/render/pbr.wesl).
 //!
 //! Imports, confirmed in bevy_pbr 0.20.0: `pbr_fragment::pbr_input_from_standard_material(in, is_front)`
 //! (src/render/pbr_fragment.wesl:71), `pbr_functions::{alpha_discard, apply_pbr_lighting,
-//! main_pass_post_lighting_processing}` (src/render/pbr_functions.wesl:98, 326, 978),
-//! `pbr_types::STANDARD_MATERIAL_FLAGS_UNLIT_BIT` (src/render/pbr_types.wesl:40),
-//! `mesh_functions::{get_world_from_local, get_local_from_world}` (src/render/mesh_functions.wesl:15, 25),
-//! `mesh_view_bindings::globals` (src/render/mesh_view_bindings.wesl:39), `forward_io::{VertexOutput,
-//! FragmentOutput}` (src/render/forward_io.wesl:98, 118); under `PREPASS_PIPELINE`, `prepass::io` and
-//! `deferred::functions::deferred_output` as `pbr.wesl` imports them.
+//! main_pass_post_lighting_processing, winding_corrected_front_facing}` (src/render/pbr_functions.wesl:98,
+//! 326, 978, 139), `pbr_types::{STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT, STANDARD_MATERIAL_FLAGS_UNLIT_BIT}`
+//! (src/render/pbr_types.wesl:39, 40), `mesh_functions::{get_world_from_local, get_local_from_world}`
+//! (src/render/mesh_functions.wesl:15, 25), `mesh_view_bindings::globals` (src/render/mesh_view_bindings.wesl:39),
+//! `forward_io::{VertexOutput, FragmentOutput}` (src/render/forward_io.wesl:98, 118); under
+//! `VISIBILITY_RANGE_DITHER`, `pbr_functions::visibility_range_dither` (pbr_functions.wesl:79), called first as `pbr.wesl:52-53` does.
 //!
-//! The extension swaps in this shader for the forward main pass only, so the prepass branch is there for
-//! parity with Bevy's fragment; visibility-range dithering, clustered decals and OIT are not applied.
+//! Forward only: `ShadewireExtension::specialize` swaps in this shader for the main pass and leaves the
+//! prepass, shadow and deferred pipelines on Bevy's standard shaders, so there is no `PREPASS_PIPELINE`
+//! branch. Not applied: clustered decals (`apply_decals`), forward decals and order-independent
+//! transparency (`MATERIAL_OIT_ENABLED`), which Bevy's fragment handles after lighting.
 //! The host reads `in.instance_index`, so the pipeline needs `VERTEX_OUTPUT_INSTANCE_INDEX`, which
 //! `ShadewireExtension::specialize` adds. `tests/wesl_compiles.rs` compiles the module through wesl 0.6
 //! against Bevy's own WESL sources and validates the result with naga.
@@ -40,27 +42,22 @@ pub fn compile_options() -> CompileOptions {
 }
 
 const IMPORTS: &str = "import bevy_pbr::render::{
+    forward_io::{VertexOutput, FragmentOutput},
     pbr_fragment::pbr_input_from_standard_material,
-    pbr_functions::alpha_discard,
-    pbr_types::STANDARD_MATERIAL_FLAGS_UNLIT_BIT,
+    pbr_functions::{alpha_discard, apply_pbr_lighting, main_pass_post_lighting_processing, winding_corrected_front_facing},
+    pbr_types::{STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT, STANDARD_MATERIAL_FLAGS_UNLIT_BIT},
     mesh_functions::{get_world_from_local, get_local_from_world},
     mesh_view_bindings::globals,
 };
 
-@if(PREPASS_PIPELINE)
-import bevy_pbr::{
-    prepass::io::{VertexOutput, FragmentOutput},
-    deferred::functions::deferred_output,
-};
-@else
-import bevy_pbr::render::{
-    forward_io::{VertexOutput, FragmentOutput},
-    pbr_functions::{apply_pbr_lighting, main_pass_post_lighting_processing},
-};
+@if(VISIBILITY_RANGE_DITHER)
+import bevy_pbr::render::pbr_functions::visibility_range_dither;
 ";
 
 const ENTRY_HEAD: &str = "@fragment
 fn fragment(in: VertexOutput, @builtin(front_facing) is_front: bool) -> FragmentOutput {
+@if(VISIBILITY_RANGE_DITHER)
+    visibility_range_dither(in.position, in.visibility_range_dither);
     var pbr_input = pbr_input_from_standard_material(in, is_front);
 ";
 
@@ -69,17 +66,12 @@ const ENTRY_TAIL: &str = "    pbr_input.material.base_color = alpha_discard(
         pbr_input.material.alpha_cutoff,
         pbr_input.material.base_color,
     );
-@if(PREPASS_PIPELINE)
-    let out = deferred_output(in, pbr_input);
-@if(!PREPASS_PIPELINE)
     var out: FragmentOutput;
-@if(!PREPASS_PIPELINE)
     if (pbr_input.material.flags & STANDARD_MATERIAL_FLAGS_UNLIT_BIT) == 0u {
         out.color = apply_pbr_lighting(pbr_input);
     } else {
         out.color = pbr_input.material.base_color;
     }
-@if(!PREPASS_PIPELINE)
     out.color = main_pass_post_lighting_processing(pbr_input, out.color);
     return out;
 }
@@ -165,12 +157,24 @@ mod tests {
         let c = compiled(UNLIT, &compile_options());
         let m = module(&c).unwrap();
         assert!(m.starts_with("import bevy_pbr::render::{"), "{m}");
-        assert!(m.contains("@if(PREPASS_PIPELINE)\nimport bevy_pbr::{"), "{m}");
         assert!(m.contains("fn shadewire_eval_surface() -> SurfaceUnlit {"), "{m}");
         assert!(m.contains("var pbr_input = pbr_input_from_standard_material(in, is_front);"), "{m}");
         assert!(m.contains("    let s: SurfaceUnlit = shadewire_eval_surface();\n"), "{m}");
         assert!(m.contains("pbr_input.material.flags |= STANDARD_MATERIAL_FLAGS_UNLIT_BIT;"), "{m}");
         assert!(m.contains("@group(3) @binding(100) var<uniform> shadewire_u"), "{m}");
+    }
+
+    #[test]
+    fn forward_only_with_visibility_range_dither() {
+        let m = module(&compiled(UNLIT, &compile_options())).unwrap();
+        assert!(!m.contains("PREPASS_PIPELINE"), "{m}");
+        assert!(m.contains(
+            "@if(VISIBILITY_RANGE_DITHER)\nimport bevy_pbr::render::pbr_functions::visibility_range_dither;"
+        ));
+        assert!(m.contains(
+            "@if(VISIBILITY_RANGE_DITHER)\n    visibility_range_dither(in.position, in.visibility_range_dither);"
+        ));
+        assert!(m.contains("winding_corrected_front_facing"), "{m}");
     }
 
     #[test]

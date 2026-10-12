@@ -7,9 +7,9 @@
 //! |---|---|
 //! | `position_world` | `in.world_position.xyz` (`VertexOutput.world_position`, render/forward_io.wesl:102) |
 //! | `position_object`, `position_model` | world position through `get_local_from_world(in.instance_index)` (render/mesh_functions.wesl:25; `instance_index` needs `VERTEX_OUTPUT_INSTANCE_INDEX`, forward_io.wesl:112-113) |
-//! | `normal_world` | `normalize(pbr_input.world_normal)` (render/pbr_types.wesl:106): `in.world_normal` turned for the back face of a double-sided material by `prepare_world_normal` (render/pbr_functions.wesl:126) |
+//! | `normal_world` | `normalize(in.world_normal)` (forward_io.wesl:103), negated on the back face of a double-sided material: back = `!winding_corrected_front_facing(pbr_input.flags, is_front)` (render/pbr_functions.wesl:139), double-sided = `STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT` (pbr_types.wesl:39) in `pbr_input.material.flags`. Bevy's own `prepare_world_normal` (pbr_functions.wesl:126-136) flips only without `VERTEX_TANGENTS` and `STANDARD_MATERIAL_NORMAL_MAP`, so the flip is done here, the same in every pipeline |
 //! | `normal_object`, `normal_model` | the world normal through the inverse transpose of local-from-world, `n * mat3(world_from_local)` |
-//! | `tangent_world`, `bitangent_world` | `in.world_tangent` (`VERTEX_TANGENTS`, forward_io.wesl:108-109), orthogonalised against N, bitangent `w * cross(N, T)` as in `calculate_tbn_mikktspace` (pbr_functions.wesl:148); without tangents a screen-space frame from position and UV derivatives |
+//! | `tangent_world`, `bitangent_world` | `in.world_tangent` (`VERTEX_TANGENTS`, forward_io.wesl:108-109), orthogonalised against N, bitangent `w * cross(N, T)` as in `calculate_tbn_mikktspace` (pbr_functions.wesl:148); without tangents a screen-space frame from position and MaterialX UV derivatives, `w` chosen so the bitangent runs along +V. T and B are negated with N on back faces |
 //! | `texcoord_0`, `texcoord_1` | `vec2(uv.x, 1.0 - uv.y)` from `in.uv` / `in.uv_b` (`VERTEX_UVS_A` / `VERTEX_UVS_B`, forward_io.wesl:104-107), else zero: glTF V points down, MaterialX V up |
 //! | `geomcolor_0` | `in.color` (`VERTEX_COLORS`, forward_io.wesl:110-111), else white |
 //! | `view_direction_world` | `-pbr_input.V` (pbr_types.wesl:111, from the camera toward the fragment) |
@@ -53,21 +53,28 @@ fn shadewire_perpendicular(n: vec3<f32>) -> vec3<f32> {
     return normalize(cross(axis, n));
 }
 
-/// A tangent along +U from screen-space derivatives of position and UV, for meshes without tangents.
+/// A tangent along +U from screen-space derivatives of position and (MaterialX, V-up) UV, for meshes
+/// without tangents; `w` is the handedness that makes `w * cross(n, t)` run along +V.
 fn shadewire_screen_tangent(n: vec3<f32>, p: vec3<f32>, uv: vec2<f32>) -> vec4<f32> {
     let dp1 = dpdx(p);
     let dp2 = dpdy(p);
     let duv1 = dpdx(uv);
     let duv2 = dpdy(uv);
-    let t = cross(dp2, n) * duv1.x + cross(n, dp1) * duv2.x;
+    let a = cross(dp2, n);
+    let c = cross(n, dp1);
+    let t = a * duv1.x + c * duv2.x;
+    let b = a * duv1.y + c * duv2.y;
     if dot(t, t) > 1e-20 {
-        return vec4<f32>(normalize(t), 1.0);
+        let w = select(1.0, -1.0, dot(cross(n, t), b) < 0.0);
+        return vec4<f32>(normalize(t), w);
     }
     return vec4<f32>(shadewire_perpendicular(n), 1.0);
 }
 ";
 
-/// The frame statements: matrices, UVs, color, then N, T, B.
+/// The frame statements: matrices, UVs, color, then N, T, B. The frame is built from the vertex normal
+/// and negated as a whole on the back face of a double-sided material: Bevy's `prepare_world_normal`
+/// flips `pbr_input.world_normal` only without tangents and normal maps, so it is not used here.
 const FRAME: &str = "    shadewire_world_from_local = get_world_from_local(in.instance_index);
     shadewire_local_from_world = get_local_from_world(in.instance_index);
 @if(VERTEX_UVS_A)
@@ -82,13 +89,18 @@ const FRAME: &str = "    shadewire_world_from_local = get_world_from_local(in.in
     let shadewire_color0 = in.color;
 @else
     let shadewire_color0 = vec4<f32>(1.0);
-    let shadewire_n = normalize(pbr_input.world_normal);
+    let shadewire_front = winding_corrected_front_facing(pbr_input.flags, is_front);
+    let shadewire_double_sided = (pbr_input.material.flags & STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT) != 0u;
+    let shadewire_side = select(1.0, -1.0, shadewire_double_sided && !shadewire_front);
+    let shadewire_n0 = normalize(in.world_normal);
 @if(VERTEX_TANGENTS)
     let shadewire_t4 = in.world_tangent;
 @else
-    let shadewire_t4 = shadewire_screen_tangent(shadewire_n, in.world_position.xyz, shadewire_uv0);
-    let shadewire_t = shadewire_safe_normalize(shadewire_t4.xyz - shadewire_n * dot(shadewire_n, shadewire_t4.xyz));
-    let shadewire_b = select(1.0, -1.0, shadewire_t4.w < 0.0) * cross(shadewire_n, shadewire_t);
+    let shadewire_t4 = shadewire_screen_tangent(shadewire_n0, in.world_position.xyz, vec2<f32>(shadewire_uv0.x, 1.0 - shadewire_uv0.y));
+    let shadewire_t0 = shadewire_safe_normalize(shadewire_t4.xyz - shadewire_n0 * dot(shadewire_n0, shadewire_t4.xyz));
+    let shadewire_n = shadewire_side * shadewire_n0;
+    let shadewire_t = shadewire_side * shadewire_t0;
+    let shadewire_b = shadewire_side * select(1.0, -1.0, shadewire_t4.w < 0.0) * cross(shadewire_n0, shadewire_t0);
 ";
 
 const TO_OBJECT: &str = "shadewire_mat3(shadewire_local_from_world)";
@@ -307,6 +319,28 @@ mod tests {
         assert!(d.contains("fn shadewire_host_transform_point_model_to_world(v: vec3<f32>) -> vec3<f32> { return (shadewire_world_from_local * vec4<f32>(v, 1.0)).xyz; }"), "{d}");
         assert!(d.contains("transform_normal_world_to_object(v: vec3<f32>) -> vec3<f32> { return v * shadewire_mat3(shadewire_world_from_local); }"), "{d}");
         assert!(d.contains("transform_vector_object_to_model(v: vec3<f32>) -> vec3<f32> { return v; }"), "{d}");
+    }
+
+    #[test]
+    fn back_faces_of_double_sided_materials_flip_the_whole_frame() {
+        let h = host(&reflection(empty())).unwrap();
+        let s = &h.statements;
+        assert!(s.contains("winding_corrected_front_facing(pbr_input.flags, is_front)"), "{s}");
+        assert!(s.contains("(pbr_input.material.flags & STANDARD_MATERIAL_FLAGS_DOUBLE_SIDED_BIT) != 0u"), "{s}");
+        assert!(s.contains("let shadewire_n0 = normalize(in.world_normal);"), "{s}");
+        assert!(s.contains("let shadewire_n = shadewire_side * shadewire_n0;"), "{s}");
+        assert!(s.contains("let shadewire_t = shadewire_side * shadewire_t0;"), "{s}");
+        assert!(s.contains("let shadewire_b = shadewire_side * "), "{s}");
+        assert!(!s.contains("pbr_input.world_normal"), "{s}");
+    }
+
+    #[test]
+    fn screen_space_tangent_takes_its_handedness_from_the_uvs() {
+        let h = host(&reflection(empty())).unwrap();
+        assert!(h.declarations.contains("let w = select(1.0, -1.0, dot(cross(n, t), b) < 0.0);"));
+        assert!(h.statements.contains(
+            "shadewire_screen_tangent(shadewire_n0, in.world_position.xyz, vec2<f32>(shadewire_uv0.x, 1.0 - shadewire_uv0.y))"
+        ));
     }
 
     #[test]
