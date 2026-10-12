@@ -67,12 +67,12 @@ struct MaterialUniforms {
     tint: vec3<f32>,
 }
 
-@group(0) @binding(0) var<uniform> sw_u: MaterialUniforms;
+@group(0) @binding(0) var<uniform> shadewire_u: MaterialUniforms;
 
-fn sw_eval_surface() -> OpenPbrSurface {
-    let n0: vec3<f32> = sw_u.tint;
+fn shadewire_eval_surface() -> OpenPbrSurface {
+    let n0: vec3<f32> = shadewire_u.tint;
     let n1: vec3<f32> = vec3<f32>(0.0, 0.0, 1.0);
-    let n3: vec2<f32> = mx_texcoord_0();
+    let n3: vec2<f32> = shadewire_texcoord_0();
     let n4: f32 = n3[0];
     let n5: vec3<f32> = (n1 + (n0 - n1) * n4);
     return OpenPbrSurface(n5, n4);
@@ -137,7 +137,7 @@ fn sw_eval_surface() -> OpenPbrSurface {
         dag.surface.fields.push(SurfaceField { name: "normal".into(), ty: Type::Vector3, node: wn });
         let r = reflection(&dag);
         let text = emit(&dag, &r, &EmitOptions::default());
-        assert!(text.contains("mx_geomprop_my_prop()"), "{text}");
+        assert!(text.contains("shadewire_geomprop_my_prop()"), "{text}");
         assert!(text.contains("return StandardSurface(n25, n10, n8);"), "{text}");
         validates(&dag, &r, &text);
     }
@@ -161,7 +161,7 @@ fn sw_eval_surface() -> OpenPbrSurface {
         dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: c });
         let r = reflection(&dag);
         let text = emit(&dag, &r, &EmitOptions::default());
-        assert!(text.contains("textureSampleGrad(sw_t0, sw_s0, vec2<f32>(n0.x, 1.0 - n0.y), vec2<f32>(n1.x, -n1.y), vec2<f32>(n2.x, -n2.y))"), "{text}");
+        assert!(text.contains("textureSampleGrad(shadewire_t0, shadewire_s0, vec2<f32>(n0.x, 1.0 - n0.y), vec2<f32>(n1.x, -n1.y), vec2<f32>(n2.x, -n2.y))"), "{text}");
         validates(&dag, &r, &text);
     }
 
@@ -214,13 +214,13 @@ fn sw_eval_surface() -> OpenPbrSurface {
         for name in crate::leaf_library::names_for(&dag) {
             assert_eq!(text.matches(crate::leaf_library::source(name).trim_end()).count(), 1, "{name}");
         }
-        let entry = text.find("fn sw_eval_surface").expect("entry");
-        assert!(text.find("fn mx_worley_noise_vec3_3d").expect("worley") < entry, "{text}");
+        let entry = text.find("fn shadewire_eval_surface").expect("entry");
+        assert!(text.find("fn shadewire_worley_noise_vec3_3d").expect("worley") < entry, "{text}");
         validates(&dag, &r, &text);
     }
 
     /// The fragment entry `validates` appends makes naga check stage rules on everything
-    /// `sw_eval_surface` reaches: a compute-only builtin is refused.
+    /// `shadewire_eval_surface` reaches: a compute-only builtin is refused.
     #[test]
     #[should_panic(expected = "Stage")]
     fn validates_checks_the_fragment_stage() {
@@ -228,7 +228,7 @@ fn sw_eval_surface() -> OpenPbrSurface {
         let c = add(&mut dag, NodeKind::Const(Value::Float(1.0)), Type::Float);
         dag.surface.fields.push(SurfaceField { name: "x".into(), ty: Type::Float, node: c });
         let text = "struct M { x: f32 }
-fn sw_eval_surface() -> M {
+fn shadewire_eval_surface() -> M {
     workgroupBarrier();
     return M(1.0);
 }

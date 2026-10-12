@@ -5,11 +5,11 @@ pub fn texture_bindings(reflection: &Reflection) -> String {
     let mut out = String::new();
     for t in &reflection.textures {
         out.push_str(&format!(
-            "@group({}) @binding({}) var sw_t{}: texture_2d<f32>;\n",
+            "@group({}) @binding({}) var shadewire_t{}: texture_2d<f32>;\n",
             reflection.group, t.binding, t.index
         ));
         out.push_str(&format!(
-            "@group({}) @binding({}) var sw_s{}: sampler;\n",
+            "@group({}) @binding({}) var shadewire_s{}: sampler;\n",
             reflection.group, t.sampler_binding, t.index
         ));
     }
@@ -42,7 +42,7 @@ mod tests {
         let r = reflect(&dag, &BindingOptions { group: 1, first_binding: 4 }, &info).unwrap();
         assert_eq!(
             texture_bindings(&r),
-            "@group(1) @binding(4) var sw_t1: texture_2d<f32>;\n@group(1) @binding(5) var sw_s1: sampler;\n"
+            "@group(1) @binding(4) var shadewire_t1: texture_2d<f32>;\n@group(1) @binding(5) var shadewire_s1: sampler;\n"
         );
     }
 }

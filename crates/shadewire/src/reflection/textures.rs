@@ -50,7 +50,7 @@ pub fn textures(dag: &Dag, live: &[bool], first: u32) -> Vec<TextureReflection> 
 }
 
 /// The note a DAG with screen-space derivatives (the gradients of hextile samples) carries:
-/// `sw_eval_surface` then runs only in a fragment shader, not in compute.
+/// `shadewire_eval_surface` then runs only in a fragment shader, not in compute.
 pub const FRAGMENT_ONLY: &str = "fragment stage only (derivatives)";
 
 /// Approximations and limits the used textures and their gradients force on the generated code.

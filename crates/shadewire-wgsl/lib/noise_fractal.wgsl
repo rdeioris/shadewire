@@ -4,12 +4,12 @@
 // Needs noise_perlin.
 
 // mx_fractal2d_noise_float (Rust fractal_noise_float_2d)
-fn mx_fractal_noise_float_2d(p_in: vec2<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> f32 {
+fn shadewire_fractal_noise_float_2d(p_in: vec2<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> f32 {
     var p = p_in;
     var result = 0.0;
     var amplitude = 1.0;
     for (var i = 0; i < octaves; i++) {
-        result += amplitude * mx_perlin_noise_float_2d(p);
+        result += amplitude * shadewire_perlin_noise_float_2d(p);
         amplitude *= diminish;
         p *= lacunarity;
     }
@@ -17,12 +17,12 @@ fn mx_fractal_noise_float_2d(p_in: vec2<f32>, octaves: i32, lacunarity: f32, dim
 }
 
 // mx_fractal2d_noise_vec3 (Rust fractal_noise_vec3_2d)
-fn mx_fractal_noise_vec3_2d(p_in: vec2<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec3<f32> {
+fn shadewire_fractal_noise_vec3_2d(p_in: vec2<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec3<f32> {
     var p = p_in;
     var result = vec3<f32>(0.0);
     var amplitude = 1.0;
     for (var i = 0; i < octaves; i++) {
-        result += amplitude * mx_perlin_noise_vec3_2d(p);
+        result += amplitude * shadewire_perlin_noise_vec3_2d(p);
         amplitude *= diminish;
         p *= lacunarity;
     }
@@ -30,27 +30,27 @@ fn mx_fractal_noise_vec3_2d(p_in: vec2<f32>, octaves: i32, lacunarity: f32, dimi
 }
 
 // mx_fractal2d_noise_vec2 (Rust fractal_noise_vec2_2d)
-fn mx_fractal_noise_vec2_2d(p: vec2<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec2<f32> {
+fn shadewire_fractal_noise_vec2_2d(p: vec2<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec2<f32> {
     return vec2<f32>(
-        mx_fractal_noise_float_2d(p, octaves, lacunarity, diminish),
-        mx_fractal_noise_float_2d(p + vec2<f32>(19.0, 193.0), octaves, lacunarity, diminish),
+        shadewire_fractal_noise_float_2d(p, octaves, lacunarity, diminish),
+        shadewire_fractal_noise_float_2d(p + vec2<f32>(19.0, 193.0), octaves, lacunarity, diminish),
     );
 }
 
 // mx_fractal2d_noise_vec4 (Rust fractal_noise_vec4_2d)
-fn mx_fractal_noise_vec4_2d(p: vec2<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec4<f32> {
-    let c = mx_fractal_noise_vec3_2d(p, octaves, lacunarity, diminish);
-    let f = mx_fractal_noise_float_2d(p + vec2<f32>(19.0, 193.0), octaves, lacunarity, diminish);
+fn shadewire_fractal_noise_vec4_2d(p: vec2<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec4<f32> {
+    let c = shadewire_fractal_noise_vec3_2d(p, octaves, lacunarity, diminish);
+    let f = shadewire_fractal_noise_float_2d(p + vec2<f32>(19.0, 193.0), octaves, lacunarity, diminish);
     return vec4<f32>(c, f);
 }
 
 // mx_fractal3d_noise_float (Rust fractal_noise_float_3d)
-fn mx_fractal_noise_float_3d(p_in: vec3<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> f32 {
+fn shadewire_fractal_noise_float_3d(p_in: vec3<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> f32 {
     var p = p_in;
     var result = 0.0;
     var amplitude = 1.0;
     for (var i = 0; i < octaves; i++) {
-        result += amplitude * mx_perlin_noise_float_3d(p);
+        result += amplitude * shadewire_perlin_noise_float_3d(p);
         amplitude *= diminish;
         p *= lacunarity;
     }
@@ -58,12 +58,12 @@ fn mx_fractal_noise_float_3d(p_in: vec3<f32>, octaves: i32, lacunarity: f32, dim
 }
 
 // mx_fractal3d_noise_vec3 (Rust fractal_noise_vec3_3d)
-fn mx_fractal_noise_vec3_3d(p_in: vec3<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec3<f32> {
+fn shadewire_fractal_noise_vec3_3d(p_in: vec3<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec3<f32> {
     var p = p_in;
     var result = vec3<f32>(0.0);
     var amplitude = 1.0;
     for (var i = 0; i < octaves; i++) {
-        result += amplitude * mx_perlin_noise_vec3_3d(p);
+        result += amplitude * shadewire_perlin_noise_vec3_3d(p);
         amplitude *= diminish;
         p *= lacunarity;
     }
@@ -71,16 +71,16 @@ fn mx_fractal_noise_vec3_3d(p_in: vec3<f32>, octaves: i32, lacunarity: f32, dimi
 }
 
 // mx_fractal3d_noise_vec2 (Rust fractal_noise_vec2_3d)
-fn mx_fractal_noise_vec2_3d(p: vec3<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec2<f32> {
+fn shadewire_fractal_noise_vec2_3d(p: vec3<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec2<f32> {
     return vec2<f32>(
-        mx_fractal_noise_float_3d(p, octaves, lacunarity, diminish),
-        mx_fractal_noise_float_3d(p + vec3<f32>(19.0, 193.0, 17.0), octaves, lacunarity, diminish),
+        shadewire_fractal_noise_float_3d(p, octaves, lacunarity, diminish),
+        shadewire_fractal_noise_float_3d(p + vec3<f32>(19.0, 193.0, 17.0), octaves, lacunarity, diminish),
     );
 }
 
 // mx_fractal3d_noise_vec4 (Rust fractal_noise_vec4_3d)
-fn mx_fractal_noise_vec4_3d(p: vec3<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec4<f32> {
-    let c = mx_fractal_noise_vec3_3d(p, octaves, lacunarity, diminish);
-    let f = mx_fractal_noise_float_3d(p + vec3<f32>(19.0, 193.0, 17.0), octaves, lacunarity, diminish);
+fn shadewire_fractal_noise_vec4_3d(p: vec3<f32>, octaves: i32, lacunarity: f32, diminish: f32) -> vec4<f32> {
+    let c = shadewire_fractal_noise_vec3_3d(p, octaves, lacunarity, diminish);
+    let f = shadewire_fractal_noise_float_3d(p + vec3<f32>(19.0, 193.0, 17.0), octaves, lacunarity, diminish);
     return vec4<f32>(c, f);
 }

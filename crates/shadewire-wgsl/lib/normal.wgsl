@@ -3,7 +3,7 @@
 // written out in the interpreter's order.
 
 // mx_normalmap_vector2 (the float variant splats its scale); a zero input means flat.
-fn mx_normalmap(v: vec3<f32>, scale: vec2<f32>, n: vec3<f32>, t: vec3<f32>, b: vec3<f32>) -> vec3<f32> {
+fn shadewire_normalmap(v: vec3<f32>, scale: vec2<f32>, n: vec3<f32>, t: vec3<f32>, b: vec3<f32>) -> vec3<f32> {
     var value = v * 2.0 - 1.0;
     if v.x * v.x + v.y * v.y + v.z * v.z == 0.0 {
         value = vec3<f32>(0.0, 0.0, 1.0);

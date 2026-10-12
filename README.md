@@ -48,11 +48,11 @@ let ir = to_ir(&text, Some("material.mtlx".as_ref()), None, &MtlxOptions::defaul
 print!("{}", optimize(&ir.dag).dump()); // the IR, one node per line
 
 let out = compile(&ir.dag, &ir.source, &CompileOptions::default())?;
-println!("{}", out.wgsl);             // fn sw_eval_surface() -> <ModelStruct>
+println!("{}", out.wgsl);             // fn shadewire_eval_surface() -> <ModelStruct>
 println!("{}", out.reflection.model);
 ```
 
-The generated code calls host functions (`mx_texcoord_0()`, `mx_normal_world()`, ...) that the
+The generated code calls host functions (`shadewire_texcoord_0()`, `shadewire_normal_world()`, ...) that the
 host defines in its own WGSL prelude, next to its BRDF and entry point; `link` joins and validates
 the two, `translate` writes the other languages. Examples:
 `cargo run -p shadewire-mtlx --example mtlx_to_wgsl -- material.mtlx` and `--example mtlx_to_hlsl`.

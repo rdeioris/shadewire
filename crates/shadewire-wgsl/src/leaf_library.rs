@@ -111,7 +111,7 @@ mod tests {
     /// The hash files use `bitcast<u32>` for Rust's `as u32` on an i32; WGSL's `u32(i32)`
     /// is the same bit reinterpretation (naga 30 cannot const-evaluate `bitcast`, so that half
     /// rests on the WGSL spec). `i32(f32)` truncates like `as i32`, but saturates high at
-    /// 2147483520 (the largest f32 below 2^31) where Rust gives i32::MAX: mx_floor agrees only
+    /// 2147483520 (the largest f32 below 2^31) where Rust gives i32::MAX: shadewire_floor agrees only
     /// below 2^31 in magnitude, where every f32 is already an integer.
     #[test]
     fn wgsl_integer_conversions_against_rust_as() {

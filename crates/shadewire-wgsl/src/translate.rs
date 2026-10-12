@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn every_target_translates() {
         let wgsl = text(Target::Wgsl);
-        assert!(wgsl.contains("sw_eval_surface"));
+        assert!(wgsl.contains("shadewire_eval_surface"));
         let hlsl = text(Target::Hlsl(HlslShaderModel::Sm6_0));
         assert!(hlsl.contains("register(b0, space2)"), "{hlsl}");
         assert!(hlsl.contains("register(t1, space2)"), "{hlsl}");

@@ -31,7 +31,7 @@ pub fn naga_validates(text: &str) {
 
 /// Validates an emitted module: stub definitions of every host function it calls
 /// (one per live context read, geomprops under their reflected names, one per transform),
-/// then the module, then a fragment entry calling `sw_eval_surface`, so naga also checks
+/// then the module, then a fragment entry calling `shadewire_eval_surface`, so naga also checks
 /// the stage and uniformity rules of `textureSample`.
 /// (naga 30 hard-disables the fragment uniformity requirement,
 /// `DISABLE_UNIFORMITY_REQ_FOR_FRAGMENT_STAGE`, so only the stage rules bite.)
@@ -63,8 +63,8 @@ pub fn validates(dag: &Dag, reflection: &Reflection, wgsl: &str) {
         }
     }
     for t in &reflection.context.transforms {
-        stubs.push(format!("fn mx_{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
+        stubs.push(format!("fn shadewire_{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
     }
-    let entry = "@fragment\nfn sw_test_fragment() -> @location(0) vec4<f32> {\n    _ = sw_eval_surface();\n    return vec4<f32>(0.0);\n}\n";
+    let entry = "@fragment\nfn shadewire_test_fragment() -> @location(0) vec4<f32> {\n    _ = shadewire_eval_surface();\n    return vec4<f32>(0.0);\n}\n";
     naga_validates(&format!("{}\n{wgsl}\n{entry}", stubs.concat()));
 }

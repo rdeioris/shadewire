@@ -15,7 +15,7 @@ pub struct GeomPropReflection {
 }
 
 /// One varying, derived or global read: its reflection name (the host function
-/// is `mx_` + name) and the type the function returns.
+/// is `shadewire_` + name) and the type the function returns.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ContextEntry {
     pub name: String,
@@ -51,7 +51,7 @@ fn unique_functions(geomprops: &mut [GeomPropReflection]) {
     for g in geomprops.iter_mut() {
         let clean: String =
             g.name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' { c } else { '_' }).collect();
-        let base = format!("mx_geomprop_{clean}");
+        let base = format!("shadewire_geomprop_{clean}");
         let mut candidate = base.clone();
         let mut n = 2;
         while taken.contains(&candidate) {

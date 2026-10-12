@@ -29,8 +29,8 @@ pub fn node_lets(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> V
                 let member = members.member(uniform_index);
                 uniform_index += 1;
                 match node.ty {
-                    Type::Boolean => format!("(sw_u.{member} != 0u)"),
-                    _ => format!("sw_u.{member}"),
+                    Type::Boolean => format!("(shadewire_u.{member} != 0u)"),
+                    _ => format!("shadewire_u.{member}"),
                 }
             }
             NodeKind::Context(read) => cast(&format!("{}()", context_function(read, reflection)), read.ty(), node.ty),
@@ -103,9 +103,9 @@ mod tests {
         assert_eq!(
             node_lets(&dag, &r, &EmitOptions::default()),
             vec![
-                "let n0: bool = (sw_u.flag != 0u);",
-                "let n2: f32 = mx_geomprop_my_prop();",
-                "let n3: f32 = sw_u.my_prop;",
+                "let n0: bool = (shadewire_u.flag != 0u);",
+                "let n2: f32 = shadewire_geomprop_my_prop();",
+                "let n3: f32 = shadewire_u.my_prop;",
                 "let n4: f32 = select(n3, n2, (n2 > n3));",
                 "let n5: bool = (!n0);",
             ]
@@ -120,7 +120,7 @@ mod tests {
         let s = add(&mut dag, NodeKind::Op { op: Op::Add, args: vec![a, b] }, Type::Float);
         dag.surface.fields.push(SurfaceField { name: "a".into(), ty: Type::Float, node: s });
         let lines = node_lets(&dag, &reflection(&dag), &EmitOptions::default());
-        assert_eq!(lines[..2], ["let n0: f32 = sw_u.w;", "let n1: f32 = sw_u.w_2;"]);
+        assert_eq!(lines[..2], ["let n0: f32 = shadewire_u.w;", "let n1: f32 = shadewire_u.w_2;"]);
     }
 
     #[test]
@@ -142,7 +142,7 @@ mod tests {
         let lines = node_lets(&dag, &reflection(&dag), &EmitOptions::default());
         assert_eq!(
             lines[1],
-            "let n1: vec3<f32> = select(textureSample(sw_t1, sw_s1, vec2<f32>(n0.x, 1.0 - n0.y)).rgb, vec3<f32>(0.5), n0.x < 0.0 || n0.x > 1.0);"
+            "let n1: vec3<f32> = select(textureSample(shadewire_t1, shadewire_s1, vec2<f32>(n0.x, 1.0 - n0.y)).rgb, vec3<f32>(0.5), n0.x < 0.0 || n0.x > 1.0);"
         );
     }
 
@@ -158,8 +158,8 @@ mod tests {
         assert_eq!(
             node_lets(&dag, &r, &EmitOptions::default()),
             [
-                "let n0: vec3<f32> = mx_normal_object();",
-                "let n1: vec3<f32> = normalize(mx_transform_normal_object_to_world(n0));"
+                "let n0: vec3<f32> = shadewire_normal_object();",
+                "let n1: vec3<f32> = normalize(shadewire_transform_normal_object_to_world(n0));"
             ]
         );
     }

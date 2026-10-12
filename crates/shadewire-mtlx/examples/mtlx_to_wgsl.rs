@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &MtlxOptions::default(),
     )?;
 
-    // 2. Back end: IR -> WGSL `fn sw_eval_surface() -> <ModelStruct>` plus reflection.
+    // 2. Back end: IR -> WGSL `fn shadewire_eval_surface() -> <ModelStruct>` plus reflection.
     let compiled = compile(&ir.dag, &ir.source, &CompileOptions::default())?;
 
     println!("// model: {}", compiled.reflection.model);

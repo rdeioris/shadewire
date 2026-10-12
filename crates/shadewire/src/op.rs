@@ -17,7 +17,7 @@ impl TransformKind {
     }
 }
 
-/// `transform_<kind>_<from>_to_<to>`: the name reflection lists; the WGSL host function is `mx_` + this.
+/// `transform_<kind>_<from>_to_<to>`: the name reflection lists; the WGSL host function is `shadewire_` + this.
 pub fn transform_name(kind: TransformKind, from: Space, to: Space) -> String {
     format!("transform_{}_{}_to_{}", kind.name(), from.name(), to.name())
 }

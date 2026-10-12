@@ -22,7 +22,10 @@ pub fn uniform_block(reflection: &Reflection) -> String {
         out.push_str(&format!("    {}: {},\n", names.member(i), member_type(u.ty)));
     }
     out.push_str("}\n\n");
-    out.push_str(&format!("@group({}) @binding({}) var<uniform> sw_u: MaterialUniforms;\n", reflection.group, binding));
+    out.push_str(&format!(
+        "@group({}) @binding({}) var<uniform> shadewire_u: MaterialUniforms;\n",
+        reflection.group, binding
+    ));
     out
 }
 
@@ -48,7 +51,7 @@ mod tests {
         let r = reflection_with(&[("tint", Value::Color3([1.0; 3])), ("coat_weight", Value::Float(0.25))], 2, 0);
         assert_eq!(
             uniform_block(&r),
-            "struct MaterialUniforms {\n    tint: vec3<f32>,\n    coat_weight: f32,\n}\n\n@group(2) @binding(0) var<uniform> sw_u: MaterialUniforms;\n"
+            "struct MaterialUniforms {\n    tint: vec3<f32>,\n    coat_weight: f32,\n}\n\n@group(2) @binding(0) var<uniform> shadewire_u: MaterialUniforms;\n"
         );
     }
 

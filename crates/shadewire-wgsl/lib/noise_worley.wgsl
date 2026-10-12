@@ -4,8 +4,8 @@
 // Needs noise_basics, noise_hash and noise_cell. WGSL i32 `+` wraps like Rust's wrapping_add.
 
 // mx_worley_cell_position(int, int, int, int, float) (Rust worley_cell_position_2d)
-fn mx_worley_cell_position_2d(x: i32, y: i32, xoff: i32, yoff: i32, jitter: f32) -> vec2<f32> {
-    let tmp = mx_cell_noise_vec3_2d(vec2<f32>(f32(x + xoff), f32(y + yoff)));
+fn shadewire_worley_cell_position_2d(x: i32, y: i32, xoff: i32, yoff: i32, jitter: f32) -> vec2<f32> {
+    let tmp = shadewire_cell_noise_vec3_2d(vec2<f32>(f32(x + xoff), f32(y + yoff)));
     var off = vec2<f32>(tmp.x, tmp.y);
     off -= 0.5;
     off *= jitter;
@@ -14,8 +14,8 @@ fn mx_worley_cell_position_2d(x: i32, y: i32, xoff: i32, yoff: i32, jitter: f32)
 }
 
 // mx_worley_cell_position(int, int, int, int, int, int, float) (Rust worley_cell_position_3d)
-fn mx_worley_cell_position_3d(x: i32, y: i32, z: i32, xoff: i32, yoff: i32, zoff: i32, jitter: f32) -> vec3<f32> {
-    var off = mx_cell_noise_vec3_3d(vec3<f32>(f32(x + xoff), f32(y + yoff), f32(z + zoff)));
+fn shadewire_worley_cell_position_3d(x: i32, y: i32, z: i32, xoff: i32, yoff: i32, zoff: i32, jitter: f32) -> vec3<f32> {
+    var off = shadewire_cell_noise_vec3_3d(vec3<f32>(f32(x + xoff), f32(y + yoff), f32(z + zoff)));
     off -= 0.5;
     off *= jitter;
     off += 0.5;
@@ -23,8 +23,8 @@ fn mx_worley_cell_position_3d(x: i32, y: i32, z: i32, xoff: i32, yoff: i32, zoff
 }
 
 // mx_worley_distance(vec2, int, int, int, int, float, int) (Rust worley_distance_2d)
-fn mx_worley_distance_2d(p: vec2<f32>, x: i32, y: i32, xoff: i32, yoff: i32, jitter: f32, metric: i32) -> f32 {
-    let cellpos = mx_worley_cell_position_2d(x, y, xoff, yoff, jitter);
+fn shadewire_worley_distance_2d(p: vec2<f32>, x: i32, y: i32, xoff: i32, yoff: i32, jitter: f32, metric: i32) -> f32 {
+    let cellpos = shadewire_worley_cell_position_2d(x, y, xoff, yoff, jitter);
     let diff = cellpos - p;
     if metric == 2 {
         return abs(diff.x) + abs(diff.y); // Manhattan distance
@@ -37,8 +37,8 @@ fn mx_worley_distance_2d(p: vec2<f32>, x: i32, y: i32, xoff: i32, yoff: i32, jit
 }
 
 // mx_worley_distance(vec3, int, int, int, int, int, int, float, int) (Rust worley_distance_3d)
-fn mx_worley_distance_3d(p: vec3<f32>, x: i32, y: i32, z: i32, xoff: i32, yoff: i32, zoff: i32, jitter: f32, metric: i32) -> f32 {
-    let cellpos = mx_worley_cell_position_3d(x, y, z, xoff, yoff, zoff, jitter);
+fn shadewire_worley_distance_3d(p: vec3<f32>, x: i32, y: i32, z: i32, xoff: i32, yoff: i32, zoff: i32, jitter: f32, metric: i32) -> f32 {
+    let cellpos = shadewire_worley_cell_position_3d(x, y, z, xoff, yoff, zoff, jitter);
     let diff = cellpos - p;
     if metric == 2 {
         return abs(diff.x) + abs(diff.y) + abs(diff.z); // Manhattan distance
@@ -51,16 +51,16 @@ fn mx_worley_distance_3d(p: vec3<f32>, x: i32, y: i32, z: i32, xoff: i32, yoff: 
 }
 
 // mx_worley_noise_float(vec2, float, int, int) (Rust worley_noise_float_2d)
-fn mx_worley_noise_float_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -> f32 {
+fn shadewire_worley_noise_float_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -> f32 {
     var xi: i32;
     var yi: i32;
-    let localpos = vec2<f32>(mx_floorfrac(p.x, &xi), mx_floorfrac(p.y, &yi));
+    let localpos = vec2<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi));
     var sqdist = 1e6; // Some big number for jitter > 1 (not all GPUs may be IEEE)
     var minpos = vec2<f32>(0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
         for (var y = -1; y <= 1; y++) {
-            let dist = mx_worley_distance_2d(localpos, x, y, xi, yi, jitter, metric);
-            let cellpos = mx_worley_cell_position_2d(x, y, xi, yi, jitter) - localpos;
+            let dist = shadewire_worley_distance_2d(localpos, x, y, xi, yi, jitter, metric);
+            let cellpos = shadewire_worley_cell_position_2d(x, y, xi, yi, jitter) - localpos;
             if dist < sqdist {
                 sqdist = dist;
                 minpos = cellpos;
@@ -68,7 +68,7 @@ fn mx_worley_noise_float_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) 
         }
     }
     if style == 1 {
-        return mx_cell_noise_float_2d(minpos + p);
+        return shadewire_cell_noise_float_2d(minpos + p);
     }
     if metric == 0 {
         sqdist = sqrt(sqdist);
@@ -77,16 +77,16 @@ fn mx_worley_noise_float_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) 
 }
 
 // mx_worley_noise_vec2(vec2, float, int, int) (Rust worley_noise_vec2_2d)
-fn mx_worley_noise_vec2_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -> vec2<f32> {
+fn shadewire_worley_noise_vec2_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -> vec2<f32> {
     var xi: i32;
     var yi: i32;
-    let localpos = vec2<f32>(mx_floorfrac(p.x, &xi), mx_floorfrac(p.y, &yi));
+    let localpos = vec2<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi));
     var sqdist = vec2<f32>(1e6, 1e6);
     var minpos = vec2<f32>(0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
         for (var y = -1; y <= 1; y++) {
-            let dist = mx_worley_distance_2d(localpos, x, y, xi, yi, jitter, metric);
-            let cellpos = mx_worley_cell_position_2d(x, y, xi, yi, jitter) - localpos;
+            let dist = shadewire_worley_distance_2d(localpos, x, y, xi, yi, jitter, metric);
+            let cellpos = shadewire_worley_cell_position_2d(x, y, xi, yi, jitter) - localpos;
             if dist < sqdist.x {
                 sqdist.y = sqdist.x;
                 sqdist.x = dist;
@@ -97,7 +97,7 @@ fn mx_worley_noise_vec2_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -
         }
     }
     if style == 1 {
-        let tmp = mx_cell_noise_vec3_2d(minpos + p);
+        let tmp = shadewire_cell_noise_vec3_2d(minpos + p);
         return vec2<f32>(tmp.x, tmp.y);
     }
     if metric == 0 {
@@ -107,16 +107,16 @@ fn mx_worley_noise_vec2_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -
 }
 
 // mx_worley_noise_vec3(vec2, float, int, int) (Rust worley_noise_vec3_2d)
-fn mx_worley_noise_vec3_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -> vec3<f32> {
+fn shadewire_worley_noise_vec3_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -> vec3<f32> {
     var xi: i32;
     var yi: i32;
-    let localpos = vec2<f32>(mx_floorfrac(p.x, &xi), mx_floorfrac(p.y, &yi));
+    let localpos = vec2<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi));
     var sqdist = vec3<f32>(1e6, 1e6, 1e6);
     var minpos = vec2<f32>(0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
         for (var y = -1; y <= 1; y++) {
-            let dist = mx_worley_distance_2d(localpos, x, y, xi, yi, jitter, metric);
-            let cellpos = mx_worley_cell_position_2d(x, y, xi, yi, jitter) - localpos;
+            let dist = shadewire_worley_distance_2d(localpos, x, y, xi, yi, jitter, metric);
+            let cellpos = shadewire_worley_cell_position_2d(x, y, xi, yi, jitter) - localpos;
             if dist < sqdist.x {
                 sqdist.z = sqdist.y;
                 sqdist.y = sqdist.x;
@@ -131,7 +131,7 @@ fn mx_worley_noise_vec3_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -
         }
     }
     if style == 1 {
-        return mx_cell_noise_vec3_2d(minpos + p);
+        return shadewire_cell_noise_vec3_2d(minpos + p);
     }
     if metric == 0 {
         sqdist = sqrt(sqdist);
@@ -140,18 +140,18 @@ fn mx_worley_noise_vec3_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -
 }
 
 // mx_worley_noise_float(vec3, float, int, int) (Rust worley_noise_float_3d)
-fn mx_worley_noise_float_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -> f32 {
+fn shadewire_worley_noise_float_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -> f32 {
     var xi: i32;
     var yi: i32;
     var zi: i32;
-    let localpos = vec3<f32>(mx_floorfrac(p.x, &xi), mx_floorfrac(p.y, &yi), mx_floorfrac(p.z, &zi));
+    let localpos = vec3<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi), shadewire_floorfrac(p.z, &zi));
     var sqdist = 1e6;
     var minpos = vec3<f32>(0.0, 0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
         for (var y = -1; y <= 1; y++) {
             for (var z = -1; z <= 1; z++) {
-                let dist = mx_worley_distance_3d(localpos, x, y, z, xi, yi, zi, jitter, metric);
-                let cellpos = mx_worley_cell_position_3d(x, y, z, xi, yi, zi, jitter) - localpos;
+                let dist = shadewire_worley_distance_3d(localpos, x, y, z, xi, yi, zi, jitter, metric);
+                let cellpos = shadewire_worley_cell_position_3d(x, y, z, xi, yi, zi, jitter) - localpos;
                 if dist < sqdist {
                     sqdist = dist;
                     minpos = cellpos;
@@ -160,7 +160,7 @@ fn mx_worley_noise_float_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) 
         }
     }
     if style == 1 {
-        return mx_cell_noise_float_3d(minpos + p);
+        return shadewire_cell_noise_float_3d(minpos + p);
     }
     if metric == 0 {
         sqdist = sqrt(sqdist);
@@ -169,18 +169,18 @@ fn mx_worley_noise_float_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) 
 }
 
 // mx_worley_noise_vec2(vec3, float, int, int) (Rust worley_noise_vec2_3d)
-fn mx_worley_noise_vec2_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -> vec2<f32> {
+fn shadewire_worley_noise_vec2_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -> vec2<f32> {
     var xi: i32;
     var yi: i32;
     var zi: i32;
-    let localpos = vec3<f32>(mx_floorfrac(p.x, &xi), mx_floorfrac(p.y, &yi), mx_floorfrac(p.z, &zi));
+    let localpos = vec3<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi), shadewire_floorfrac(p.z, &zi));
     var sqdist = vec2<f32>(1e6, 1e6);
     var minpos = vec3<f32>(0.0, 0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
         for (var y = -1; y <= 1; y++) {
             for (var z = -1; z <= 1; z++) {
-                let dist = mx_worley_distance_3d(localpos, x, y, z, xi, yi, zi, jitter, metric);
-                let cellpos = mx_worley_cell_position_3d(x, y, z, xi, yi, zi, jitter) - localpos;
+                let dist = shadewire_worley_distance_3d(localpos, x, y, z, xi, yi, zi, jitter, metric);
+                let cellpos = shadewire_worley_cell_position_3d(x, y, z, xi, yi, zi, jitter) - localpos;
                 if dist < sqdist.x {
                     sqdist.y = sqdist.x;
                     sqdist.x = dist;
@@ -192,7 +192,7 @@ fn mx_worley_noise_vec2_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -
         }
     }
     if style == 1 {
-        let tmp = mx_cell_noise_vec3_3d(minpos + p);
+        let tmp = shadewire_cell_noise_vec3_3d(minpos + p);
         return vec2<f32>(tmp.x, tmp.y);
     }
     if metric == 0 {
@@ -202,18 +202,18 @@ fn mx_worley_noise_vec2_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -
 }
 
 // mx_worley_noise_vec3(vec3, float, int, int) (Rust worley_noise_vec3_3d)
-fn mx_worley_noise_vec3_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -> vec3<f32> {
+fn shadewire_worley_noise_vec3_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -> vec3<f32> {
     var xi: i32;
     var yi: i32;
     var zi: i32;
-    let localpos = vec3<f32>(mx_floorfrac(p.x, &xi), mx_floorfrac(p.y, &yi), mx_floorfrac(p.z, &zi));
+    let localpos = vec3<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi), shadewire_floorfrac(p.z, &zi));
     var sqdist = vec3<f32>(1e6, 1e6, 1e6);
     var minpos = vec3<f32>(0.0, 0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
         for (var y = -1; y <= 1; y++) {
             for (var z = -1; z <= 1; z++) {
-                let dist = mx_worley_distance_3d(localpos, x, y, z, xi, yi, zi, jitter, metric);
-                let cellpos = mx_worley_cell_position_3d(x, y, z, xi, yi, zi, jitter) - localpos;
+                let dist = shadewire_worley_distance_3d(localpos, x, y, z, xi, yi, zi, jitter, metric);
+                let cellpos = shadewire_worley_cell_position_3d(x, y, z, xi, yi, zi, jitter) - localpos;
                 if dist < sqdist.x {
                     sqdist.z = sqdist.y;
                     sqdist.y = sqdist.x;
@@ -229,7 +229,7 @@ fn mx_worley_noise_vec3_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -
         }
     }
     if style == 1 {
-        return mx_cell_noise_vec3_3d(minpos + p);
+        return shadewire_cell_noise_vec3_3d(minpos + p);
     }
     if metric == 0 {
         sqdist = sqrt(sqdist);

@@ -21,10 +21,10 @@ pub fn assemble(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> St
     out
 }
 
-/// `fn sw_eval_surface() -> {Model}`: the live node lets, then the struct in field order.
+/// `fn shadewire_eval_surface() -> {Model}`: the live node lets, then the struct in field order.
 pub fn entry(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> String {
     let name = struct_name(&dag.surface.model);
-    let mut out = format!("fn sw_eval_surface() -> {name} {{\n");
+    let mut out = format!("fn shadewire_eval_surface() -> {name} {{\n");
     for line in node_lets(dag, reflection, options) {
         out.push_str(&format!("    {line}\n"));
     }
@@ -51,7 +51,7 @@ mod tests {
         let r = reflection(&dag);
         assert_eq!(
             entry(&dag, &r, &EmitOptions::default()),
-            "fn sw_eval_surface() -> GltfPbr {
+            "fn shadewire_eval_surface() -> GltfPbr {
     let n0: f32 = 0.5;
     let n1: vec3<f32> = vec3<f32>(1.0, 0.0, 0.0);
     return GltfPbr(n1, n0, vec3<f32>(n0));
@@ -68,7 +68,7 @@ mod tests {
         let r = reflection(&dag);
         let text = crate::emit(&dag, &r, &EmitOptions::default());
         assert!(text.starts_with("struct OpenPbrSurface {"), "{text}");
-        assert!(text.contains("var<uniform> sw_u"), "{text}");
+        assert!(text.contains("var<uniform> shadewire_u"), "{text}");
         validates(&dag, &r, &text);
     }
 }

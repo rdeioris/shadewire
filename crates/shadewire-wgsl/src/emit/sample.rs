@@ -25,9 +25,14 @@ pub fn sample_expr(
         _ => "",
     };
     let fetch = match grad {
-        None => format!("textureSample(sw_t{i}, sw_s{i}, {st}){swizzle}", i = t.index),
+        None => format!("textureSample(shadewire_t{i}, shadewire_s{i}, {st}){swizzle}", i = t.index),
         Some((dx, dy)) => {
-            format!("textureSampleGrad(sw_t{i}, sw_s{i}, {st}, {}, {}){swizzle}", flip(dx), flip(dy), i = t.index)
+            format!(
+                "textureSampleGrad(shadewire_t{i}, shadewire_s{i}, {st}, {}, {}){swizzle}",
+                flip(dx),
+                flip(dy),
+                i = t.index
+            )
         }
     };
     let mut tests = Vec::new();
@@ -68,19 +73,19 @@ mod tests {
         let t = texture(0, P, P);
         assert_eq!(
             sample_expr(&t, "n3", Type::Color3, "x", None, false),
-            "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).rgb"
+            "textureSample(shadewire_t0, shadewire_s0, vec2<f32>(n3.x, n3.y)).rgb"
         );
         assert_eq!(
             sample_expr(&t, "n3", Type::Float, "x", None, false),
-            "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).r"
+            "textureSample(shadewire_t0, shadewire_s0, vec2<f32>(n3.x, n3.y)).r"
         );
         assert_eq!(
             sample_expr(&t, "n3", Type::Vector2, "x", None, false),
-            "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y)).rg"
+            "textureSample(shadewire_t0, shadewire_s0, vec2<f32>(n3.x, n3.y)).rg"
         );
         assert_eq!(
             sample_expr(&t, "n3", Type::Color4, "x", None, false),
-            "textureSample(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y))"
+            "textureSample(shadewire_t0, shadewire_s0, vec2<f32>(n3.x, n3.y))"
         );
     }
 
@@ -89,7 +94,7 @@ mod tests {
         let t = texture(2, P, AddressMode::Clamp);
         assert_eq!(
             sample_expr(&t, "n3", Type::Color3, "x", None, true),
-            "textureSample(sw_t2, sw_s2, vec2<f32>(n3.x, 1.0 - n3.y)).rgb"
+            "textureSample(shadewire_t2, shadewire_s2, vec2<f32>(n3.x, 1.0 - n3.y)).rgb"
         );
     }
 
@@ -98,11 +103,11 @@ mod tests {
         let t = texture(0, P, P);
         assert_eq!(
             sample_expr(&t, "n3", Type::Color3, "x", Some(("n4", "n5")), true),
-            "textureSampleGrad(sw_t0, sw_s0, vec2<f32>(n3.x, 1.0 - n3.y), vec2<f32>(n4.x, -n4.y), vec2<f32>(n5.x, -n5.y)).rgb"
+            "textureSampleGrad(shadewire_t0, shadewire_s0, vec2<f32>(n3.x, 1.0 - n3.y), vec2<f32>(n4.x, -n4.y), vec2<f32>(n5.x, -n5.y)).rgb"
         );
         assert_eq!(
             sample_expr(&t, "n3", Type::Color4, "x", Some(("n4", "n5")), false),
-            "textureSampleGrad(sw_t0, sw_s0, vec2<f32>(n3.x, n3.y), n4, n5)"
+            "textureSampleGrad(shadewire_t0, shadewire_s0, vec2<f32>(n3.x, n3.y), n4, n5)"
         );
     }
 
@@ -111,12 +116,12 @@ mod tests {
         let t = texture(1, C, P);
         assert_eq!(
             sample_expr(&t, "n3", Type::Float, "0.5", None, false),
-            "select(textureSample(sw_t1, sw_s1, vec2<f32>(n3.x, n3.y)).r, 0.5, n3.x < 0.0 || n3.x > 1.0)"
+            "select(textureSample(shadewire_t1, shadewire_s1, vec2<f32>(n3.x, n3.y)).r, 0.5, n3.x < 0.0 || n3.x > 1.0)"
         );
         let t = texture(1, C, C);
         assert_eq!(
             sample_expr(&t, "n3", Type::Float, "0.5", None, true),
-            "select(textureSample(sw_t1, sw_s1, vec2<f32>(n3.x, 1.0 - n3.y)).r, 0.5, n3.x < 0.0 || n3.x > 1.0 || n3.y < 0.0 || n3.y > 1.0)"
+            "select(textureSample(shadewire_t1, shadewire_s1, vec2<f32>(n3.x, 1.0 - n3.y)).r, 0.5, n3.x < 0.0 || n3.x > 1.0 || n3.y < 0.0 || n3.y > 1.0)"
         );
     }
 }

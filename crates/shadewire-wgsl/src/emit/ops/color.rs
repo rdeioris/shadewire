@@ -12,8 +12,8 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
             assert!(args[0].1.component_count() >= 3, "luminance of type {:?}", args[0].1);
             format!("vec3<f32>(({c}[0] * {k}[0] + {c}[1] * {k}[1] + {c}[2] * {k}[2]))")
         }
-        Op::RgbToHsv => format!("mx_rgbtohsv({})", leading(&args[0], 3)),
-        Op::HsvToRgb => format!("mx_hsvtorgb({})", leading(&args[0], 3)),
+        Op::RgbToHsv => format!("shadewire_rgbtohsv({})", leading(&args[0], 3)),
+        Op::HsvToRgb => format!("shadewire_hsvtorgb({})", leading(&args[0], 3)),
         other => panic!("{other:?} is not a color op"),
     };
     if ty == Type::Color4 {
@@ -36,8 +36,8 @@ mod tests {
 
     #[test]
     fn hsv_keeps_alpha() {
-        assert_eq!(emit(&Op::RgbToHsv, &args(&[C3]), C3), "mx_rgbtohsv(n0)");
-        assert_eq!(emit(&Op::HsvToRgb, &args(&[C4]), C4), "vec4<f32>(mx_hsvtorgb(n0.xyz), n0[3])");
+        assert_eq!(emit(&Op::RgbToHsv, &args(&[C3]), C3), "shadewire_rgbtohsv(n0)");
+        assert_eq!(emit(&Op::HsvToRgb, &args(&[C4]), C4), "vec4<f32>(shadewire_hsvtorgb(n0.xyz), n0[3])");
     }
 
     #[test]

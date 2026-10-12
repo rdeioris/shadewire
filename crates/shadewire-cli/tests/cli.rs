@@ -25,7 +25,7 @@ fn hlsl_with_a_reflection_file() {
     assert_eq!(value["model"], "standard_surface");
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(stderr.contains("reference host"), "{stderr}");
-    assert!(String::from_utf8_lossy(&out.stdout).contains("sw_reference_main"));
+    assert!(String::from_utf8_lossy(&out.stdout).contains("shadewire_reference_main"));
 }
 
 #[test]
@@ -34,8 +34,8 @@ fn wgsl_goes_to_the_output_file_as_generated() {
     let out = run(&["compile", EXAMPLE, "-o", wgsl.to_str().unwrap(), "--constants"]);
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     let text = std::fs::read_to_string(&wgsl).unwrap();
-    assert!(text.contains("fn sw_eval_surface() -> StandardSurface"));
-    assert!(!text.contains("sw_reference_main"));
+    assert!(text.contains("fn shadewire_eval_surface() -> StandardSurface"));
+    assert!(!text.contains("shadewire_reference_main"));
     assert!(out.stderr.is_empty());
 }
 

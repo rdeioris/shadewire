@@ -8,9 +8,9 @@ pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     const V2: Type = Type::Vector2;
     const F: Type = Type::Float;
     let (function, tile, types): (&str, Option<u8>, &[Type]) = match op {
-        Op::HextileCoord(tile) => ("mx_hextile_coord", Some(*tile), &[V2, F, V2, F, V2, F, V2]),
-        Op::HextileGrad(tile) => ("mx_hextile_grad", Some(*tile), &[V2, V2, F, V2, F, V2]),
-        Op::HextileWeights => ("mx_hextile_weights", None, &[V2, Type::Vector3, F]),
+        Op::HextileCoord(tile) => ("shadewire_hextile_coord", Some(*tile), &[V2, F, V2, F, V2, F, V2]),
+        Op::HextileGrad(tile) => ("shadewire_hextile_grad", Some(*tile), &[V2, V2, F, V2, F, V2]),
+        Op::HextileWeights => ("shadewire_hextile_weights", None, &[V2, Type::Vector3, F]),
         other => panic!("{other:?} is not a hextile op"),
     };
     let mut a: Vec<String> = args.iter().zip(types).map(|((expr, from), to)| cast(expr, *from, *to)).collect();
@@ -36,11 +36,11 @@ mod tests {
     fn tile_index_follows_the_coordinate() {
         assert_eq!(
             emit(&Op::HextileCoord(2), &args(&[V2, F, V2, F, V2, F, V2]), V2),
-            "mx_hextile_coord(n0, 2i, n1, n2, n3, n4, n5, n6)"
+            "shadewire_hextile_coord(n0, 2i, n1, n2, n3, n4, n5, n6)"
         );
         assert_eq!(
             emit(&Op::HextileGrad(0), &args(&[V2, V2, F, V2, F, V2]), V2),
-            "mx_hextile_grad(n0, n1, 0i, n2, n3, n4, n5)"
+            "shadewire_hextile_grad(n0, n1, 0i, n2, n3, n4, n5)"
         );
     }
 
@@ -48,7 +48,7 @@ mod tests {
     fn weights_take_a_vector3() {
         assert_eq!(
             emit(&Op::HextileWeights, &args(&[V2, Type::Color3, Type::Integer]), Type::Vector3),
-            "mx_hextile_weights(n0, n1, f32(n2))"
+            "shadewire_hextile_weights(n0, n1, f32(n2))"
         );
     }
 }

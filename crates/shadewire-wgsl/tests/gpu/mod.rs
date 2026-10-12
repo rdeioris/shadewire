@@ -7,20 +7,20 @@ use std::sync::mpsc;
 use shadewire::{Dag, NodeId, NodeKind};
 
 /// The compute module around `wgsl_functions` (library files + `case_0 .. case_{count-1}`).
-/// `sw_zero` is a runtime 0.0 that `opaque_constants` adds to every constant.
+/// `shadewire_zero` is a runtime 0.0 that `opaque_constants` adds to every constant.
 pub fn shader(wgsl_functions: &str, count: usize) -> String {
-    let mut text = String::from("@group(0) @binding(0) var<storage, read_write> sw_out: array<vec4<f32>>;\n");
-    text.push_str("@group(0) @binding(1) var<storage, read> sw_zero: f32;\n\n");
+    let mut text = String::from("@group(0) @binding(0) var<storage, read_write> shadewire_out: array<vec4<f32>>;\n");
+    text.push_str("@group(0) @binding(1) var<storage, read> shadewire_zero: f32;\n\n");
     text.push_str(wgsl_functions);
     text.push_str("\n@compute @workgroup_size(1)\nfn main() {\n");
     for i in 0..count {
-        text.push_str(&format!("    sw_out[{i}] = case_{i}();\n"));
+        text.push_str(&format!("    shadewire_out[{i}] = case_{i}();\n"));
     }
     text.push_str("}\n");
     text
 }
 
-/// Rewrites a probe function so each `Const` node reads `value + sw_zero`: with literal
+/// Rewrites a probe function so each `Const` node reads `value + shadewire_zero`: with literal
 /// arguments naga (and the driver) would fold the op at compile time on the CPU and the
 /// GPU would never compute it. `node` is the probed node: every `Const` it reads must have
 /// been rewritten, or the probe format changed and this panics naming the probe.
@@ -71,10 +71,10 @@ fn opaque_line(dag: &Dag, line: &str) -> Option<String> {
         return None;
     }
     let opaque = match ty {
-        "f32" => format!("({expr} + sw_zero)"),
-        "i32" => format!("({expr} + i32(sw_zero))"),
-        "bool" => format!("(({expr}) == (sw_zero == 0.0))"),
-        vector => format!("({expr} + {vector}(sw_zero))"),
+        "f32" => format!("({expr} + shadewire_zero)"),
+        "i32" => format!("({expr} + i32(shadewire_zero))"),
+        "bool" => format!("(({expr}) == (shadewire_zero == 0.0))"),
+        vector => format!("({expr} + {vector}(shadewire_zero))"),
     };
     Some(format!("    let n{index}: {ty} = {opaque};"))
 }
@@ -107,13 +107,13 @@ async fn run(source: &str, count: usize) -> Option<Vec<[f32; 4]>> {
     let size = (count * 16) as u64;
     // Zero-initialised by wgpu.
     let zero = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("sw_zero"),
+        label: Some("shadewire_zero"),
         size: 16,
         usage: wgpu::BufferUsages::STORAGE,
         mapped_at_creation: false,
     });
     let out = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some("sw_out"),
+        label: Some("shadewire_out"),
         size,
         usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
@@ -196,8 +196,11 @@ mod tests {
 }
 ";
         let out = opaque_constants(&dag, m, probe);
-        assert!(out.contains("    let n0: f32 = (2.0 + sw_zero);\n"), "{out}");
-        assert!(out.contains("    let n1: vec3<f32> = (vec3<f32>(0.1, 0.2, 0.3) + vec3<f32>(sw_zero));\n"), "{out}");
+        assert!(out.contains("    let n0: f32 = (2.0 + shadewire_zero);\n"), "{out}");
+        assert!(
+            out.contains("    let n1: vec3<f32> = (vec3<f32>(0.1, 0.2, 0.3) + vec3<f32>(shadewire_zero));\n"),
+            "{out}"
+        );
         assert!(out.contains("    let n2: vec3<f32> = (n1 * vec3<f32>(n0));\n"), "{out}");
     }
 

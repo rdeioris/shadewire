@@ -18,7 +18,7 @@ struct HostRead {
 }
 
 fn named_read(entry: &ContextEntry) -> HostRead {
-    HostRead { function: format!("mx_{}", entry.name), ty: entry.ty, init: None }
+    HostRead { function: format!("shadewire_{}", entry.name), ty: entry.ty, init: None }
 }
 
 fn varyings(reflection: &Reflection) -> Vec<HostRead> {
@@ -47,10 +47,10 @@ fn color_field(reflection: &Reflection) -> Option<String> {
     colors.iter().find(|n| n.as_str() == "base_color").or(colors.first()).map(|n| ident(n))
 }
 
-/// `position_world` for `mx_position_world`: the fragment input member; the private
-/// variable is `sw_in_` + this.
+/// `position_world` for `shadewire_position_world`: the fragment input member; the private
+/// variable is `shadewire_in_` + this.
 fn member_name(function: &str) -> &str {
-    function.strip_prefix("mx_").unwrap_or(function)
+    function.strip_prefix("shadewire_").unwrap_or(function)
 }
 
 fn fragment_entry(reflection: &Reflection, model_struct: &str) -> String {
@@ -59,24 +59,24 @@ fn fragment_entry(reflection: &Reflection, model_struct: &str) -> String {
     let parameter = if inputs.is_empty() {
         "@builtin(position) position: vec4<f32>"
     } else {
-        out.push_str("struct SwFragmentIn {\n");
+        out.push_str("struct ShadewireFragmentIn {\n");
         for (i, v) in inputs.iter().enumerate() {
             out.push_str(&format!("    @location({i}) {}: {},\n", member_name(&v.function), wgsl_type(v.ty)));
         }
         out.push_str("}\n\n");
-        "input: SwFragmentIn"
+        "input: ShadewireFragmentIn"
     };
-    out.push_str(&format!("@fragment\nfn sw_reference_main({parameter}) -> @location(0) vec4<f32> {{\n"));
+    out.push_str(&format!("@fragment\nfn shadewire_reference_main({parameter}) -> @location(0) vec4<f32> {{\n"));
     for v in &inputs {
         let member = member_name(&v.function);
-        out.push_str(&format!("    sw_in_{member} = input.{member};\n"));
+        out.push_str(&format!("    shadewire_in_{member} = input.{member};\n"));
     }
     for entry in &reflection.context.derived {
         if entry.name.starts_with("view_direction_") {
-            out.push_str(&format!("    sw_in_{} = vec3<f32>(0.0, 0.0, -1.0);\n", entry.name));
+            out.push_str(&format!("    shadewire_in_{} = vec3<f32>(0.0, 0.0, -1.0);\n", entry.name));
         }
     }
-    out.push_str(&format!("    let s: {model_struct} = sw_eval_surface();\n"));
+    out.push_str(&format!("    let s: {model_struct} = shadewire_eval_surface();\n"));
     let color = color_field(reflection).map_or("vec3<f32>(0.0)".to_string(), |f| format!("s.{f}"));
     out.push_str(&format!("    return vec4<f32>({color}, 1.0);\n}}\n"));
     out
@@ -87,12 +87,12 @@ pub fn prelude(reflection: &Reflection, model_struct: &str) -> String {
     let mut out = String::new();
     for r in all_reads(reflection) {
         let ty = wgsl_type(r.ty);
-        let var = format!("sw_in_{}", member_name(&r.function));
+        let var = format!("shadewire_in_{}", member_name(&r.function));
         let start = r.init.as_ref().map_or(String::new(), |v| format!(" = {}", literal(v)));
         out.push_str(&format!("var<private> {var}: {ty}{start};\nfn {}() -> {ty} {{ return {var}; }}\n", r.function));
     }
     for t in &reflection.context.transforms {
-        out.push_str(&format!("fn mx_{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
+        out.push_str(&format!("fn shadewire_{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
     }
     out.push('\n');
     out.push_str(&fragment_entry(reflection, model_struct));
@@ -133,9 +133,9 @@ mod tests {
         dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: t });
         let r = reflection(&dag);
         let generated = emit(&dag, &r, &EmitOptions::default());
-        assert!(generated.contains("mx_transform_normal_object_to_world("), "{generated}");
+        assert!(generated.contains("shadewire_transform_normal_object_to_world("), "{generated}");
         let prelude = prelude(&r, "GltfPbr");
-        assert!(prelude.contains("fn mx_transform_normal_object_to_world(v: vec3<f32>) -> vec3<f32>"));
+        assert!(prelude.contains("fn shadewire_transform_normal_object_to_world(v: vec3<f32>) -> vec3<f32>"));
         link(&generated, &prelude).unwrap();
     }
 
@@ -158,10 +158,10 @@ mod tests {
         let r = reflection(&dag);
         let prelude = prelude(&r, "GltfPbr");
         assert!(
-            prelude.contains("var<private> sw_in_geomprop_tint: vec3<f32> = vec3<f32>(1.0, 0.5, 0.25);"),
+            prelude.contains("var<private> shadewire_in_geomprop_tint: vec3<f32> = vec3<f32>(1.0, 0.5, 0.25);"),
             "{prelude}"
         );
-        assert!(prelude.contains("var<private> sw_in_geomprop_bare: f32;"), "{prelude}");
+        assert!(prelude.contains("var<private> shadewire_in_geomprop_bare: f32;"), "{prelude}");
         link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
     }
 
@@ -180,8 +180,8 @@ mod tests {
         dag.surface.fields.push(SurfaceField { name: "emissive".into(), ty: Type::Color3, node: n });
         let r = reflection(&dag);
         let prelude = prelude(&r, "GltfPbr");
-        assert!(prelude.contains("fn mx_geomprop_my_prop() -> f32"));
-        assert!(prelude.contains("sw_in_view_direction_world = vec3<f32>(0.0, 0.0, -1.0);"));
+        assert!(prelude.contains("fn shadewire_geomprop_my_prop() -> f32"));
+        assert!(prelude.contains("shadewire_in_view_direction_world = vec3<f32>(0.0, 0.0, -1.0);"));
         assert!(prelude.contains("@location(0) normal_world: vec3<f32>"));
         link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
     }

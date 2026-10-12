@@ -6,7 +6,7 @@ use super::{Arg, cast, finish, first_f32, leading, work_type};
 /// argument's); WGSL has no scalar `normalize` or `dot`, so those are written out.
 pub fn emit(op: &Op, args: &[Arg], ty: Type) -> String {
     if *op == Op::Rotate2d {
-        let call = format!("mx_rotate_vector2({}, {})", leading(&args[0], 2), first_f32(&args[1]));
+        let call = format!("shadewire_rotate_vector2({}, {})", leading(&args[0], 2), first_f32(&args[1]));
         return cast(&call, Type::Vector2, ty);
     }
     if args.len() == 2 && args[0].1.component_count() != args[1].1.component_count() {
@@ -53,11 +53,11 @@ mod tests {
     fn rotate2d_calls_the_library() {
         assert_eq!(
             emit(&Op::Rotate2d, &args(&[Type::Vector2, Type::Float]), Type::Vector2),
-            "mx_rotate_vector2(n0, n1)"
+            "shadewire_rotate_vector2(n0, n1)"
         );
         assert_eq!(
             emit(&Op::Rotate2d, &args(&[Type::Vector2, Type::Integer]), Type::Vector2),
-            "mx_rotate_vector2(n0, f32(n1))"
+            "shadewire_rotate_vector2(n0, f32(n1))"
         );
     }
 

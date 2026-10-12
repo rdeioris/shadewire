@@ -3,7 +3,7 @@
 // et al., BSD-3-Clause (see NOTICE). Mirrors crates/shadewire-ir/src/ops/color.rs.
 
 // mx_hsvtorgb (Rust hsv_to_rgb)
-fn mx_hsvtorgb(hsv: vec3<f32>) -> vec3<f32> {
+fn shadewire_hsvtorgb(hsv: vec3<f32>) -> vec3<f32> {
     var h = hsv.x;
     let s = hsv.y;
     let v = hsv.z;
@@ -27,7 +27,7 @@ fn mx_hsvtorgb(hsv: vec3<f32>) -> vec3<f32> {
 }
 
 // mx_rgbtohsv (Rust rgb_to_hsv)
-fn mx_rgbtohsv(c: vec3<f32>) -> vec3<f32> {
+fn shadewire_rgbtohsv(c: vec3<f32>) -> vec3<f32> {
     let r = c.x;
     let g = c.y;
     let b = c.z;
