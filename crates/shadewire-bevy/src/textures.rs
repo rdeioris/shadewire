@@ -12,7 +12,7 @@ use shadewire::reflection::TextureReflection;
 use shadewire::{AddressMode, FilterMode, Reflection};
 
 use crate::error::ShadewireError;
-use crate::extension::TEXTURE_SLOTS;
+use crate::extension::{FIRST_BINDING, TEXTURE_SLOTS};
 
 /// The handles for the extension's slots `t0..t7`; slots past the material's textures stay `None`.
 pub type Slots = [Option<Handle<Image>>; TEXTURE_SLOTS];
@@ -25,7 +25,7 @@ pub fn slots(reflection: &Reflection) -> Result<&[TextureReflection], ShadewireE
         return Err(ShadewireError::TooManyTextures { count, limit: TEXTURE_SLOTS });
     }
     for (k, texture) in reflection.textures.iter().enumerate() {
-        let binding = 101 + 2 * k as u32;
+        let binding = FIRST_BINDING + 1 + 2 * k as u32;
         if texture.binding != binding || texture.sampler_binding != binding + 1 {
             return Err(ShadewireError::Bindings(format!(
                 "texture {k} ({}) is at bindings {} and {}, the extension's slot {k} at {} and {}",
@@ -137,8 +137,8 @@ mod tests {
             .map(|(k, f)| {
                 let mut t = texture(f, [AddressMode::Periodic, AddressMode::Periodic], FilterMode::Linear);
                 t.index = k;
-                t.binding = 101 + 2 * k as u32;
-                t.sampler_binding = 102 + 2 * k as u32;
+                t.binding = FIRST_BINDING + 1 + 2 * k as u32;
+                t.sampler_binding = FIRST_BINDING + 2 + 2 * k as u32;
                 t
             })
             .collect();

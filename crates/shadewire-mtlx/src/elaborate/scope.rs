@@ -67,7 +67,8 @@ impl<'a> Elaborator<'a> {
 
     /// A user nodegraph referenced by name (`nodegraph=`). Entered once: every
     /// reference shares the scope, so its nodes and uniforms are made once.
-    /// Interface inputs bind to the graph's declared values.
+    /// Interface inputs bind to the graph's declared values, or to their `defaultgeomprop` when they
+    /// have one, whatever their value.
     pub fn user_graph_scope(&mut self, name: &str, at: &Location) -> Result<Scope<'a>, Error> {
         if let Some(scope) = self.user_scopes.get(name) {
             return Ok(scope.clone());
@@ -90,6 +91,11 @@ impl<'a> Elaborator<'a> {
                 (PortType::String | PortType::Filename, Some(text), _) => {
                     Binding::Text(TextValue { text: text.clone(), colorspace: port.colorspace.clone() })
                 }
+                // A geomprop wins over an authored value, as in MaterialX (ShaderGraph::createConnectedNodes).
+                (PortType::Value(ty), _, Some(geomprop)) => {
+                    let ty = self.value_type(&PortType::Value(*ty), &port_at)?;
+                    Binding::Node(self.geomprop_node(geomprop, ty, &port_at)?)
+                }
                 (PortType::Value(ty), Some(text), _) if !text.is_empty() => {
                     let ty = self.value_type(&PortType::Value(*ty), &port_at)?;
                     let scope = Scope {
@@ -103,10 +109,6 @@ impl<'a> Elaborator<'a> {
                     };
                     let id = self.authored_value(&scope, &port.name, ty, text, true, &port_at)?;
                     Binding::Node(self.convert_colorspace(id, ty, port.colorspace.as_deref(), &port_at)?)
-                }
-                (PortType::Value(ty), _, Some(geomprop)) => {
-                    let ty = self.value_type(&PortType::Value(*ty), &port_at)?;
-                    Binding::Node(self.geomprop_node(geomprop, ty, &port_at)?)
                 }
                 (PortType::Value(ty), None, None) => {
                     self.value_type(&PortType::Value(*ty), &port_at)?;

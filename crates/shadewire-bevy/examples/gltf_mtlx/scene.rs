@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use bevy::world_serialization::WorldInstanceReady;
 
 use crate::orbit::FramePending;
-use crate::shot::Ready;
+use crate::shot::{Ready, ShotPath};
 use crate::swap::Builder;
 
 /// The glTF scene being loaded, watched for a failed load.
@@ -70,7 +70,7 @@ pub fn replace(
     standard: Res<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut builder: Builder,
-    mut exit: MessageWriter<AppExit>,
+    (mut exit, shot): (MessageWriter<AppExit>, Option<Res<ShotPath>>),
 ) {
     let mut replaced = 0;
     for entity in children.iter_descendants(ready_event.entity) {
@@ -87,6 +87,11 @@ pub fn replace(
         replaced += 1;
     }
     println!("replaced the material of {replaced} glTF meshes");
+    if replaced == 0 && shot.is_some() {
+        eprintln!("error: the scene has no mesh with a StandardMaterial to replace; no screenshot");
+        exit.write(AppExit::error());
+        return;
+    }
     commands.insert_resource(FramePending);
 }
 
