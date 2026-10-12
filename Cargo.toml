@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/shadewire", "crates/shadewire-wgsl", "crates/shadewire-mtlx", "crates/shadewire-cli", "crates/shadewire-capi", "crates/shadewire-capi-ctest"]
+members = ["crates/shadewire", "crates/shadewire-wgsl", "crates/shadewire-mtlx", "crates/shadewire-cli", "crates/shadewire-capi", "crates/shadewire-capi-ctest", "crates/shadewire-bevy"]
 
 [workspace.package]
 version = "0.1.0"
@@ -28,3 +28,23 @@ insta = "1"
 png = "0.17"
 cbindgen = "0.29"
 cc = "1"
+bevy = { version = "0.20", default-features = false, features = [
+    "std",
+    "async_executor",
+    "multi_threaded",
+    "bevy_asset",
+    "bevy_log",
+    "bevy_window",
+    "bevy_winit",
+    "x11",
+    "bevy_render",
+    "bevy_core_pipeline",
+    "bevy_pbr",
+    "bevy_gltf",
+    "bevy_mikktspace",
+    "png",
+    "jpeg",
+    "tonemapping_luts",
+    "ktx2",
+    "zstd_rust",
+] }
