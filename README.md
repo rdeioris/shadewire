@@ -83,28 +83,35 @@ libraries listed by `cargo rustc -p shadewire-capi --release --crate-type static
 The header is `crates/shadewire-capi/include/shadewire.h`. Every handle and error has its own `_free`.
 
 ```c
+#include <stdio.h>
+
 #include "shadewire.h"
 
-shadewire_compiled *compiled = NULL;
-shadewire_blob *hlsl = NULL;
-shadewire_error *err = NULL;
-shadewire_target target = { SHADEWIRE_TARGET_HLSL, 60 };   /* shader model 6.0 */
+/* Compiles `len` bytes of MaterialX `text` and prints it as HLSL shader model 6.0; returns 0 on success. */
+int print_hlsl(const char *text, size_t len) {
+    shadewire_compiled *compiled = NULL;
+    shadewire_blob *hlsl = NULL;
+    shadewire_error *err = NULL;
+    shadewire_target target = {SHADEWIRE_TARGET_HLSL, 60};
+    int result = 1;
 
-if (shadewire_compile_mtlx(text, len, "material.mtlx", NULL, NULL, NULL, &compiled, &err) == SHADEWIRE_OK &&
-    shadewire_translate(compiled, NULL, target, &hlsl, &err) == SHADEWIRE_OK) {
-    const char *code = (const char *)shadewire_blob_data(hlsl, NULL); /* NUL-terminated text */
-    puts(code);
-} else {
-    fprintf(stderr, "error: %s\n", shadewire_error_message(err, NULL));
+    if (shadewire_compile_mtlx(text, len, "material.mtlx", NULL, NULL, NULL, &compiled, &err) == SHADEWIRE_OK &&
+        shadewire_translate(compiled, NULL, target, &hlsl, &err) == SHADEWIRE_OK) {
+        puts((const char *)shadewire_blob_data(hlsl, NULL)); /* text blobs are NUL-terminated */
+        result = 0;
+    } else {
+        fprintf(stderr, "error: %s\n", shadewire_error_message(err, NULL));
+    }
+    shadewire_blob_free(hlsl);
+    shadewire_compiled_free(compiled);
+    shadewire_error_free(err);
+    return result;
 }
-shadewire_blob_free(hlsl);
-shadewire_compiled_free(compiled);
-shadewire_error_free(err);
 ```
 
 `shadewire_compiled_wgsl` and `shadewire_compiled_reflection_json` read the WGSL and the reflection; a NULL host
-prelude in `shadewire_translate` links the reference host. `crates/shadewire-capi-ctest` builds a C99 version of this
-as a test.
+prelude in `shadewire_translate` links the reference host. `crates/shadewire-capi-ctest` builds the same calls as a
+C99 (C11 on MSVC) test.
 
 ## Reflection
 
