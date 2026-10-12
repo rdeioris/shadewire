@@ -12,6 +12,7 @@ repository.workspace = true
 shadewire.workspace = true
 shadewire-mtlx.workspace = true
 shadewire-wgsl = { workspace = true, features = ["translate"] }
+shadewire-gdshader.workspace = true
 clap.workspace = true
 serde_json.workspace = true
 

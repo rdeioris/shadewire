@@ -77,3 +77,29 @@ fn ir_prints_the_dag_before_and_after_the_optimizer() {
     let raw = String::from_utf8_lossy(&raw.stdout).to_string();
     assert!(raw.lines().count() > optimized.lines().count(), "the optimizer removed nothing");
 }
+
+#[test]
+fn gdshader_with_a_reflection_file() {
+    let shader = scratch("out.gdshader");
+    let json = scratch("gdshader.json");
+    let out = run(&[
+        "compile",
+        EXAMPLE,
+        "--lang",
+        "gdshader",
+        "--transparency",
+        "hash",
+        "-o",
+        shader.to_str().unwrap(),
+        "--reflection",
+        json.to_str().unwrap(),
+    ]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(out.stderr.is_empty(), "{}", String::from_utf8_lossy(&out.stderr));
+    let text = std::fs::read_to_string(&shader).unwrap();
+    assert!(text.starts_with("shader_type spatial;\n"), "{text}");
+    assert!(text.contains("StandardSurface shadewire_eval_surface(ShadewireContext ctx)"), "{text}");
+    assert!(text.contains("ALPHA_HASH_SCALE = 1.0;"), "{text}");
+    let value: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&json).unwrap()).unwrap();
+    assert_eq!(value["model"], "standard_surface");
+}

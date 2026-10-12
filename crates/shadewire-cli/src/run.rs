@@ -1,5 +1,6 @@
 use shadewire::optimize::optimize;
 use shadewire::{Error, model_struct_name};
+use shadewire_gdshader::{GdshaderOptions, Transparency};
 use shadewire_mtlx::{MtlxOptions, to_ir};
 use shadewire_wgsl::{
     CompileOptions, Compiled, GlslVersion, HlslShaderModel, MslVersion, Output, Target, compile, link, reference_host,
@@ -8,7 +9,7 @@ use shadewire_wgsl::{
 
 use clap::ValueEnum;
 
-use crate::args::{Args, Command, CompileArgs, IrArgs, Lang};
+use crate::args::{Args, Command, CompileArgs, IrArgs, Lang, Transparency as CliTransparency};
 
 pub fn run(args: Args) -> Result<(), Error> {
     match args.command {
@@ -51,6 +52,7 @@ fn target(lang: Lang) -> Target {
         Lang::GlslEs => Target::Glsl(GlslVersion::Es(300)),
         Lang::Msl => Target::Msl(MslVersion { major: 2, minor: 1 }),
         Lang::Spirv => Target::SpirV,
+        Lang::Gdshader => unreachable!("gdshader has its own back end, not a naga translation"),
     }
 }
 
@@ -73,18 +75,34 @@ fn render(compiled: &Compiled, lang: Lang) -> Result<Vec<u8>, Error> {
     })
 }
 
+fn gdshader_options(args: &CompileArgs) -> GdshaderOptions {
+    let transparency = match args.transparency {
+        CliTransparency::Auto => Transparency::Auto,
+        CliTransparency::Opaque => Transparency::Opaque,
+        CliTransparency::Scissor => Transparency::Scissor,
+        CliTransparency::Hash => Transparency::Hash,
+        CliTransparency::Blend => Transparency::Blend,
+    };
+    GdshaderOptions { optimize: !args.no_optimize, transparency, emission_scale: args.emission_scale }
+}
+
 fn compile_command(args: &CompileArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
     let mtlx = mtlx_options(&args.models, args.constants);
     let ir = to_ir(&text, Some(&args.file), args.material.as_deref(), &mtlx)?;
-    let compiled = compile(&ir.dag, &ir.source, &compile_options(args))?;
-    let bytes = render(&compiled, args.lang)?;
+    let (bytes, reflection) = if args.lang == Lang::Gdshader {
+        let out = shadewire_gdshader::compile(&ir.dag, &ir.source, &gdshader_options(args))?;
+        (out.code.into_bytes(), out.reflection)
+    } else {
+        let compiled = compile(&ir.dag, &ir.source, &compile_options(args))?;
+        (render(&compiled, args.lang)?, compiled.reflection)
+    };
     if args.output.is_none() && args.lang == Lang::Spirv {
         return Err(Error::Io("SPIR-V is binary: give -o".to_string()));
     }
     // Only a shader that rendered gets a reflection file, so the two always match.
     if let Some(path) = &args.reflection {
-        let json = serde_json::to_string_pretty(&compiled.reflection).map_err(|e| Error::Io(e.to_string()))?;
+        let json = serde_json::to_string_pretty(&reflection).map_err(|e| Error::Io(e.to_string()))?;
         std::fs::write(path, json).map_err(|e| io(e, path))?;
     }
     match &args.output {

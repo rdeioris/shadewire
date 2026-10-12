@@ -1,0 +1,17 @@
+[package]
+name = "shadewire-gdshader"
+description = "Shadewire Godot back end: material IR to a Godot 4 spatial shader (.gdshader) and reflection"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+shadewire.workspace = true
+
+[dev-dependencies]
+# Only to check that the leaf library selection matches the WGSL back end's.
+shadewire-wgsl.workspace = true
+shadewire-mtlx.workspace = true

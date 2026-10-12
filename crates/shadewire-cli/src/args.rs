@@ -25,6 +25,18 @@ pub enum Lang {
     GlslEs,
     Msl,
     Spirv,
+    /// Godot 4 spatial shader
+    Gdshader,
+}
+
+/// How opacity reaches Godot (`--lang gdshader`).
+#[derive(Copy, Clone, Debug, PartialEq, ValueEnum)]
+pub enum Transparency {
+    Auto,
+    Opaque,
+    Scissor,
+    Hash,
+    Blend,
 }
 
 #[derive(Parser, Debug)]
@@ -69,4 +81,10 @@ pub struct CompileArgs {
     /// Bake authored values in as constants instead of uniforms
     #[arg(long)]
     pub constants: bool,
+    /// gdshader only: how opacity reaches Godot
+    #[arg(long, value_enum, default_value = "auto")]
+    pub transparency: Transparency,
+    /// gdshader only: multiplies EMISSION
+    #[arg(long, default_value_t = 1.0)]
+    pub emission_scale: f32,
 }

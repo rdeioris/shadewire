@@ -18,6 +18,7 @@ Front ends and back ends never depend on each other; they share only the core, a
 | `shadewire` | core: the IR, optimizer, CPU interpreter, reflection, errors | — |
 | `shadewire-mtlx` | front end: MaterialX 1.38/1.39 → IR (`to_ir`) | `shadewire` |
 | `shadewire-wgsl` | back end: IR → WGSL + reflection (`compile`); feature `translate` (default): naga translation of the linked module to HLSL, GLSL, MSL, SPIR-V | `shadewire` (+ naga) |
+| `shadewire-gdshader` | back end: IR → Godot 4 spatial shader (`.gdshader`) + reflection (`compile`): a context struct filled in `fragment()`, the surface model mapped onto Godot's outputs, uniform and sampler hints | `shadewire` |
 | `shadewire-cli` | the `shadewire` command | all of the above |
 | `shadewire-capi` | C API (`shadewire.h`): MaterialX → WGSL + reflection, translation to the other languages | `shadewire`, `shadewire-mtlx`, `shadewire-wgsl` |
 
@@ -33,6 +34,7 @@ Planned: a glTF front end, more back ends.
 | MaterialX → HLSL, GLSL, GLSL ES, MSL or SPIR-V | `shadewire-mtlx`, `shadewire-wgsl` | `shadewire-wgsl`: `translate` (default) |
 | Your own IR (any source) → WGSL | `shadewire`, `shadewire-wgsl` | `default-features = false` |
 | Your own IR → HLSL/GLSL/MSL/SPIR-V | `shadewire`, `shadewire-wgsl` | `translate` (default) |
+| MaterialX → Godot 4 shader (for a `ShaderMaterial`) | `shadewire-mtlx`, `shadewire-gdshader` | — |
 | A command-line tool | `shadewire-cli` (the `shadewire` binary) | — |
 | A C/C++ host | `shadewire-capi` (shared or static library + `shadewire.h`) | — |
 
@@ -64,12 +66,14 @@ Command line:
 ```
 shadewire compile material.mtlx --reflection material.json -o material.wgsl
 shadewire compile material.mtlx --lang hlsl -o material.hlsl
+shadewire compile material.mtlx --lang gdshader -o material.gdshader
 shadewire ir material.mtlx               # print the IR (optimized; --no-optimize for the raw graph)
 ```
 
 - `--material NAME` picks the material when the document has several.
 - `--model MODEL` (repeatable) names the surface models the host accepts; by default all four. A material of another model is an error, not a translation.
 - `--lang wgsl|hlsl|glsl|glsl-es|msl|spirv`: anything but `wgsl` links the reference host (which supplies an entry point) before translating; SPIR-V needs `-o`.
+- `--lang gdshader` writes a complete Godot 4 `shader_type spatial;` file through its own back end (no reference host). Godot binds by name: uniforms keep their authored names, made valid identifiers clear of reserved and generated ones (`GdshaderOutput::uniform_names`); textures are `shadewire_t<index>`, bound raw since the shader converts colorspaces. What Godot's lighting cannot represent (transmission, thin film, specular color, ...) is listed in the reflection's `approximations`. `--transparency auto|opaque|scissor|hash|blend` (default `auto`: opaque for a constant opacity of 1, scissor for a constant glTF MASK, blend otherwise) and `--emission-scale` (default 1) apply to it only.
 - `--reflection FILE` writes the reflection JSON; it is written only when the shader was produced.
 - `--no-optimize` skips constant folding, simplification and sharing.
 - `--constants` bakes authored values in instead of exposing them as uniforms.
