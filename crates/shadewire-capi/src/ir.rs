@@ -32,15 +32,16 @@ pub(crate) unsafe fn borrow<'a>(ptr: *const shadewire_ir) -> Result<&'a Material
     }
 }
 
-/// Lowers MaterialX `text` (`len` bytes of UTF-8) to the IR and writes the handle to `out`.
+/// Lowers MaterialX `text` (`len` bytes of UTF-8, not NUL-terminated; NULL is SHADEWIRE_ERROR_INVALID_ARGUMENT) to the
+/// IR and writes the handle to `out`.
 ///
-/// `path` (NULL-terminated, may be NULL) names the document for messages and relative includes; `material` selects a
+/// `path` (NUL-terminated, may be NULL) names the document for messages and relative includes; `material` selects a
 /// material by name (NULL for the first); `options` may be NULL for the defaults. `*out` is written only on success.
 ///
 /// # Safety
-/// `text` must hold `len` readable bytes; `path` and `material` must be NULL or valid NUL-terminated strings;
-/// `options` must be NULL or valid (see `shadewire_mtlx_options`); `out` must be valid for writing a pointer and
-/// `error` NULL or valid for writing a pointer.
+/// `text` must hold `len` readable bytes (NULL is reported, not dereferenced); `path` and `material` must be NULL or
+/// valid NUL-terminated strings; `options` must be NULL or valid (see `shadewire_mtlx_options`); `out` must be valid
+/// for writing a pointer and `error` NULL or valid for writing a pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_mtlx_to_ir(
     text: *const c_char,
@@ -67,6 +68,9 @@ pub unsafe extern "C" fn shadewire_mtlx_to_ir(
 }
 
 /// The shared body of `shadewire_mtlx_to_ir` and `shadewire_compile_mtlx`.
+///
+/// # Safety
+/// As `shadewire_mtlx_to_ir`, except that NULL `text` is reported as an error.
 pub(crate) unsafe fn lower(
     text: *const c_char,
     len: usize,

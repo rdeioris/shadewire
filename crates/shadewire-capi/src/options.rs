@@ -311,7 +311,7 @@ mod tests {
     }
 
     #[test]
-    fn a_huge_count_fails_on_the_first_bad_entry_without_allocating() {
+    fn a_huge_count_stops_at_the_first_null_entry() {
         let list = [std::ptr::null::<c_char>()];
         let mut m = mtlx_default_struct();
         m.models = list.as_ptr();

@@ -224,6 +224,25 @@ fn compile_mtlx_failures_leave_out_untouched() {
 }
 
 #[test]
+fn null_text_is_an_invalid_argument() {
+    let mut ir = null_mut();
+    let mut compiled = null_mut();
+    let mut errors = [null_mut(), null_mut()];
+    let statuses = unsafe {
+        [
+            shadewire_mtlx_to_ir(null(), 5, null(), null(), null(), &mut ir, &mut errors[0]),
+            shadewire_compile_mtlx(null(), 5, null(), null(), null(), null(), &mut compiled, &mut errors[1]),
+        ]
+    };
+    assert_eq!(statuses, [shadewire_status::SHADEWIRE_ERROR; 2]);
+    assert!(ir.is_null() && compiled.is_null());
+    for error in errors {
+        assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
+        unsafe { shadewire_error_free(error) };
+    }
+}
+
+#[test]
 fn getters_on_null_return_null_with_zero_len() {
     let mut len = 99usize;
     unsafe {
@@ -349,6 +368,7 @@ fn a_prelude_with_a_wrong_signature_is_a_shader_error_naming_a_line() {
     assert!(message.contains("expected to be `vec2<f32>`, but got `f32`"), "{message}");
     let at = message.find("wgsl:").expect(&message) + "wgsl:".len();
     assert!(message[at..].starts_with(|c: char| c.is_ascii_digit()), "{message}");
+    assert_eq!(unsafe { shadewire_error_line(error) }, 0, "the line is in the message, not shadewire_error_line");
     unsafe { shadewire_error_free(error) };
     unsafe { shadewire_compiled_free(compiled) };
 }

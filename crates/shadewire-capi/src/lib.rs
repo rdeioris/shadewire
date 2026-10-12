@@ -1,4 +1,4 @@
-#![allow(non_camel_case_types, clippy::missing_safety_doc)]
+#![allow(non_camel_case_types)]
 //! C API for Shadewire: opaque handles, `shadewire_*` functions, no panic crosses the boundary.
 //!
 //! Every fallible function takes an `error` out-parameter: it is written only on failure and left untouched on

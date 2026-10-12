@@ -164,7 +164,9 @@ shadewire_status shadewire_wgsl_compile(const struct shadewire_ir *ir,
                                         struct shadewire_compiled **out,
                                         struct shadewire_error **error);
 
-// `shadewire_mtlx_to_ir` then `shadewire_wgsl_compile` in one call, with one handle out.
+// `shadewire_mtlx_to_ir` then `shadewire_wgsl_compile` in one call, with one handle out. `text` is `len` bytes of
+// UTF-8 and must be non-NULL (NULL is SHADEWIRE_ERROR_INVALID_ARGUMENT); `mtlx` and `options` may be NULL for the
+// defaults. `*out` is written only on success.
 //
 // # Safety
 // The union of the safety requirements of `shadewire_mtlx_to_ir` and `shadewire_wgsl_compile`.
@@ -213,34 +215,54 @@ const char *shadewire_compiled_struct_name(const struct shadewire_compiled *c);
 void shadewire_compiled_free(struct shadewire_compiled *c);
 
 // The kind of `err`; `SHADEWIRE_ERROR_INVALID_ARGUMENT` when `err` is NULL.
+//
+// # Safety
+// `err` must be NULL or a live error handle.
 shadewire_error_kind shadewire_error_get_kind(const struct shadewire_error *err);
 
 // The message of `err` as a NUL-terminated string valid until `err` is freed; writes its byte length to `len` when
-// non-null. NULL when `err` is NULL.
+// non-null. NULL when `err` is NULL (`len` is then 0).
+//
+// # Safety
+// `err` must be NULL or a live error handle; `len` NULL or valid for writing a `size_t`.
 const char *shadewire_error_message(const struct shadewire_error *err,
                                     size_t *len);
 
 // The document file name of `err`, or NULL when it has none (or `err` is NULL); valid until `err` is freed.
+//
+// # Safety
+// `err` must be NULL or a live error handle.
 const char *shadewire_error_file(const struct shadewire_error *err);
 
-// The 1-based document line of `err`, or 0 when it has none (or `err` is NULL).
+// The 1-based document line of `err`, or 0 when it has none (or `err` is NULL). SHADEWIRE_ERROR_SHADER errors
+// (from naga) carry their line inside the message text, and this is 0 for them.
+//
+// # Safety
+// `err` must be NULL or a live error handle.
 uint32_t shadewire_error_line(const struct shadewire_error *err);
 
 // The node path of `err`, "" when it has none; NULL when `err` is NULL; valid until `err` is freed.
+//
+// # Safety
+// `err` must be NULL or a live error handle.
 const char *shadewire_error_path(const struct shadewire_error *err);
 
 // Frees `err`; NULL is allowed.
+//
+// # Safety
+// `err` must be NULL or an error handle from this library not yet freed.
 void shadewire_error_free(struct shadewire_error *err);
 
-// Lowers MaterialX `text` (`len` bytes of UTF-8) to the IR and writes the handle to `out`.
+// Lowers MaterialX `text` (`len` bytes of UTF-8, not NUL-terminated; NULL is SHADEWIRE_ERROR_INVALID_ARGUMENT) to the
+// IR and writes the handle to `out`.
 //
-// `path` (NULL-terminated, may be NULL) names the document for messages and relative includes; `material` selects a
+// `path` (NUL-terminated, may be NULL) names the document for messages and relative includes; `material` selects a
 // material by name (NULL for the first); `options` may be NULL for the defaults. `*out` is written only on success.
 //
 // # Safety
-// `text` must hold `len` readable bytes; `path` and `material` must be NULL or valid NUL-terminated strings;
-// `options` must be NULL or valid (see `shadewire_mtlx_options`); `out` must be valid for writing a pointer and
-// `error` NULL or valid for writing a pointer.
+// `text` must hold `len` readable bytes (NULL is reported, not dereferenced); `path` and `material` must be NULL or
+// valid NUL-terminated strings; `options` must be NULL or valid (see `shadewire_mtlx_options`); `out` must be valid
+// for writing a pointer and `error` NULL or valid for writing a pointer.
 shadewire_status shadewire_mtlx_to_ir(const char *text,
                                       size_t len,
                                       const char *path,

@@ -25,6 +25,9 @@ pub(crate) fn cached_text(cell: &OnceLock<CString>, build: impl FnOnce() -> Stri
 }
 
 /// Writes 0 to `len` when non-null and returns NULL.
+///
+/// # Safety
+/// `len` must be NULL or valid for writing a `usize`.
 pub(crate) unsafe fn null_str(len: *mut usize) -> *const c_char {
     if !len.is_null() {
         unsafe { *len = 0 };
@@ -33,6 +36,9 @@ pub(crate) unsafe fn null_str(len: *mut usize) -> *const c_char {
 }
 
 /// Returns the pointer of `s`, writing its byte length to `len` when non-null.
+///
+/// # Safety
+/// `len` must be NULL or valid for writing a `usize`.
 pub unsafe fn out_str(s: &CStr, len: *mut usize) -> *const c_char {
     if !len.is_null() {
         unsafe { *len = s.to_bytes().len() };
@@ -40,7 +46,10 @@ pub unsafe fn out_str(s: &CStr, len: *mut usize) -> *const c_char {
     s.as_ptr()
 }
 
-/// Reads a UTF-8 argument of `len` bytes at `ptr`.
+/// Reads a UTF-8 argument of `len` bytes at `ptr`; NULL is an error.
+///
+/// # Safety
+/// `ptr` must be NULL or point to `len` readable bytes that outlive `'a`.
 pub unsafe fn text_arg<'a>(ptr: *const c_char, len: usize) -> Result<&'a str, ArgError> {
     if ptr.is_null() {
         return Err(ArgError("null text pointer".to_string()));
@@ -50,6 +59,9 @@ pub unsafe fn text_arg<'a>(ptr: *const c_char, len: usize) -> Result<&'a str, Ar
 }
 
 /// Reads an optional NUL-terminated UTF-8 argument.
+///
+/// # Safety
+/// `ptr` must be NULL or a valid NUL-terminated string that outlives `'a`.
 pub unsafe fn opt_cstr<'a>(ptr: *const c_char) -> Result<Option<&'a str>, ArgError> {
     if ptr.is_null() {
         return Ok(None);

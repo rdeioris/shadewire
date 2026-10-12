@@ -109,6 +109,9 @@ pub fn reporting_panic() -> shadewire_error {
 }
 
 /// The kind of `err`; `SHADEWIRE_ERROR_INVALID_ARGUMENT` when `err` is NULL.
+///
+/// # Safety
+/// `err` must be NULL or a live error handle.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_error_get_kind(err: *const shadewire_error) -> shadewire_error_kind {
     match unsafe { err.as_ref() } {
@@ -118,7 +121,10 @@ pub unsafe extern "C" fn shadewire_error_get_kind(err: *const shadewire_error) -
 }
 
 /// The message of `err` as a NUL-terminated string valid until `err` is freed; writes its byte length to `len` when
-/// non-null. NULL when `err` is NULL.
+/// non-null. NULL when `err` is NULL (`len` is then 0).
+///
+/// # Safety
+/// `err` must be NULL or a live error handle; `len` NULL or valid for writing a `size_t`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_error_message(err: *const shadewire_error, len: *mut usize) -> *const c_char {
     match unsafe { err.as_ref() } {
@@ -133,6 +139,9 @@ pub unsafe extern "C" fn shadewire_error_message(err: *const shadewire_error, le
 }
 
 /// The document file name of `err`, or NULL when it has none (or `err` is NULL); valid until `err` is freed.
+///
+/// # Safety
+/// `err` must be NULL or a live error handle.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_error_file(err: *const shadewire_error) -> *const c_char {
     match unsafe { err.as_ref() }.and_then(|e| e.file.as_ref()) {
@@ -141,13 +150,20 @@ pub unsafe extern "C" fn shadewire_error_file(err: *const shadewire_error) -> *c
     }
 }
 
-/// The 1-based document line of `err`, or 0 when it has none (or `err` is NULL).
+/// The 1-based document line of `err`, or 0 when it has none (or `err` is NULL). SHADEWIRE_ERROR_SHADER errors
+/// (from naga) carry their line inside the message text, and this is 0 for them.
+///
+/// # Safety
+/// `err` must be NULL or a live error handle.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_error_line(err: *const shadewire_error) -> u32 {
     unsafe { err.as_ref() }.map_or(0, |e| e.line)
 }
 
 /// The node path of `err`, "" when it has none; NULL when `err` is NULL; valid until `err` is freed.
+///
+/// # Safety
+/// `err` must be NULL or a live error handle.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_error_path(err: *const shadewire_error) -> *const c_char {
     match unsafe { err.as_ref() } {
@@ -157,6 +173,9 @@ pub unsafe extern "C" fn shadewire_error_path(err: *const shadewire_error) -> *c
 }
 
 /// Frees `err`; NULL is allowed.
+///
+/// # Safety
+/// `err` must be NULL or an error handle from this library not yet freed.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_error_free(err: *mut shadewire_error) {
     if !err.is_null() {

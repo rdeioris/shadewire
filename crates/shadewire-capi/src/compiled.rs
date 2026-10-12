@@ -85,7 +85,9 @@ pub unsafe extern "C" fn shadewire_wgsl_compile(
     }
 }
 
-/// `shadewire_mtlx_to_ir` then `shadewire_wgsl_compile` in one call, with one handle out.
+/// `shadewire_mtlx_to_ir` then `shadewire_wgsl_compile` in one call, with one handle out. `text` is `len` bytes of
+/// UTF-8 and must be non-NULL (NULL is SHADEWIRE_ERROR_INVALID_ARGUMENT); `mtlx` and `options` may be NULL for the
+/// defaults. `*out` is written only on success.
 ///
 /// # Safety
 /// The union of the safety requirements of `shadewire_mtlx_to_ir` and `shadewire_wgsl_compile`.
@@ -174,6 +176,10 @@ pub unsafe extern "C" fn shadewire_compiled_free(c: *mut shadewire_compiled) {
     }
 }
 
+/// The text `pick` selects from `c`, with its length written to `len`; NULL (and `len` 0) when `c` is NULL.
+///
+/// # Safety
+/// `c` must be NULL or a live handle; `len` NULL or valid for writing a `size_t`.
 unsafe fn text_of(
     c: *const shadewire_compiled,
     len: *mut usize,
