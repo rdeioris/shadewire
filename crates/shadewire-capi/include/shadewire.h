@@ -62,6 +62,55 @@ typedef uint32_t shadewire_status;
 // An error returned by a failed call. Free it with `shadewire_error_free`.
 typedef struct shadewire_error shadewire_error;
 
+// Options for MaterialX import. Set `struct_size` to `sizeof` the struct, or use `shadewire_mtlx_options_default`.
+//
+// `models` is NULL for the default list, else `model_count` NUL-terminated UTF-8 strings. `working_colorspace` is
+// NULL for the default. `values_as_uniforms` must be 0 or 1.
+typedef struct shadewire_mtlx_options {
+  uint32_t struct_size;
+  const char *const *models;
+  size_t model_count;
+  const char *working_colorspace;
+  bool values_as_uniforms;
+} shadewire_mtlx_options;
+
+// Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
+// The booleans must be 0 or 1.
+typedef struct shadewire_compile_options {
+  uint32_t struct_size;
+  uint32_t group;
+  uint32_t first_binding;
+  bool flip_v;
+  bool optimize;
+} shadewire_compile_options;
+
+// Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
+typedef uint32_t shadewire_target_kind;
+
+// A target language and its version.
+//
+// `version` is the shader model times ten for HLSL (50, 51, 60..69), the `#version` number for GLSL (330, 400, 410,
+// 420, 430, 450) and GLSL ES (300, 310), `major * 100 + minor` for MSL (e.g. 203 for 2.3), and ignored for WGSL,
+// WEBGL2 and SPIRV.
+typedef struct shadewire_target {
+  shadewire_target_kind kind;
+  uint32_t version;
+} shadewire_target;
+
+#define SHADEWIRE_TARGET_WGSL 0
+
+#define SHADEWIRE_TARGET_HLSL 1
+
+#define SHADEWIRE_TARGET_GLSL 2
+
+#define SHADEWIRE_TARGET_GLSL_ES 3
+
+#define SHADEWIRE_TARGET_WEBGL2 4
+
+#define SHADEWIRE_TARGET_MSL 5
+
+#define SHADEWIRE_TARGET_SPIRV 6
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
@@ -85,6 +134,18 @@ const char *shadewire_error_path(const struct shadewire_error *err);
 
 // Frees `err`; NULL is allowed.
 void shadewire_error_free(struct shadewire_error *err);
+
+// Writes the default MaterialX options to `out` (no-op when NULL).
+//
+// # Safety
+// `out` must be NULL or valid for writing a `shadewire_mtlx_options`.
+void shadewire_mtlx_options_default(struct shadewire_mtlx_options *out);
+
+// Writes the default compile options to `out` (no-op when NULL).
+//
+// # Safety
+// `out` must be NULL or valid for writing a `shadewire_compile_options`.
+void shadewire_compile_options_default(struct shadewire_compile_options *out);
 
 // The version as `(major << 16) | (minor << 8) | patch`.
 uint32_t shadewire_version(void);
