@@ -75,6 +75,7 @@ pub fn structure_hash(dag: &Dag) -> String {
             }
             NodeKind::Sample { texture, uv, default, grad } => {
                 h.byte(3);
+                h.number(*texture as u64);
                 let desc = &dag.textures[*texture];
                 h.text(&desc.file);
                 h.text(desc.colorspace.as_deref().unwrap_or(""));
@@ -188,5 +189,34 @@ mod tests {
                 assert_ne!(hashes[i], hashes[j], "{i} vs {j}");
             }
         }
+    }
+
+    /// Two DAGs sampling the same files, registered in opposite orders: the shaders bind them to
+    /// different slots, so the hashes must differ.
+    #[test]
+    fn texture_registration_order_changes_the_hash() {
+        let dag = |files: [&str; 2]| {
+            let mut dag = Dag::new("m");
+            let ids = files.map(|file| {
+                dag.add_texture(TextureDesc {
+                    file: file.into(),
+                    colorspace: None,
+                    address_u: AddressMode::Periodic,
+                    address_v: AddressMode::Periodic,
+                    filter: FilterMode::Linear,
+                })
+            });
+            let read = ContextRead::TexCoord { index: 0, ty: Type::Vector2 };
+            let uv = dag.add(Node { kind: NodeKind::Context(read), ty: Type::Vector2, origin: String::new() });
+            // Sample "a.png" first, then "b.png", whatever their indices.
+            let order = if files[0] == "a.png" { [ids[0], ids[1]] } else { [ids[1], ids[0]] };
+            for (i, texture) in order.into_iter().enumerate() {
+                let kind = NodeKind::Sample { texture, uv, default: Value::Float(0.0), grad: None };
+                let s = dag.add(Node { kind, ty: Type::Float, origin: String::new() });
+                dag.surface.fields.push(SurfaceField { name: format!("f{i}"), ty: Type::Float, node: s });
+            }
+            dag
+        };
+        assert_ne!(structure_hash(&dag(["a.png", "b.png"])), structure_hash(&dag(["b.png", "a.png"])));
     }
 }

@@ -1,5 +1,5 @@
 ---
-source: crates/shadewire/tests/snapshots.rs
+source: crates/shadewire-mtlx/tests/snapshots.rs
 expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
 ---
 {
@@ -7,7 +7,7 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
   "source": "mtlx",
   "mtlx_version": "1.39",
   "model": "standard_surface",
-  "structure_hash": "371ac154dbcf83a0",
+  "structure_hash": "67c514c2bf8cf3c9",
   "params": {
     "base": {
       "type": "float",

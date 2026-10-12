@@ -17,11 +17,25 @@ use crate::extension::TEXTURE_SLOTS;
 /// The handles for the extension's slots `t0..t7`; slots past the material's textures stay `None`.
 pub type Slots = [Option<Handle<Image>>; TEXTURE_SLOTS];
 
-/// The reflection's textures in slot order, refused when there are more than the extension holds.
+/// The reflection's textures in slot order, refused when there are more than the extension holds or
+/// when texture k is not at the extension's bindings `101 + 2k` and `102 + 2k`.
 pub fn slots(reflection: &Reflection) -> Result<&[TextureReflection], ShadewireError> {
     let count = reflection.textures.len();
     if count > TEXTURE_SLOTS {
         return Err(ShadewireError::TooManyTextures { count, limit: TEXTURE_SLOTS });
+    }
+    for (k, texture) in reflection.textures.iter().enumerate() {
+        let binding = 101 + 2 * k as u32;
+        if texture.binding != binding || texture.sampler_binding != binding + 1 {
+            return Err(ShadewireError::Bindings(format!(
+                "texture {k} ({}) is at bindings {} and {}, the extension's slot {k} at {} and {}",
+                texture.file,
+                texture.binding,
+                texture.sampler_binding,
+                binding,
+                binding + 1
+            )));
+        }
     }
     Ok(&reflection.textures)
 }
@@ -119,7 +133,14 @@ mod tests {
         let mut r: Reflection = empty_reflection();
         r.textures = files
             .iter()
-            .map(|f| texture(f, [AddressMode::Periodic, AddressMode::Periodic], FilterMode::Linear))
+            .enumerate()
+            .map(|(k, f)| {
+                let mut t = texture(f, [AddressMode::Periodic, AddressMode::Periodic], FilterMode::Linear);
+                t.index = k;
+                t.binding = 101 + 2 * k as u32;
+                t.sampler_binding = 102 + 2 * k as u32;
+                t
+            })
             .collect();
         r
     }
@@ -163,6 +184,18 @@ mod tests {
         assert!(matches!(err, ShadewireError::TooManyTextures { count: 9, limit: 8 }), "{err}");
         let eight = reflection(&refs[..8]);
         assert_eq!(slots(&eight).unwrap().len(), 8);
+    }
+
+    #[test]
+    fn textures_off_their_slot_bindings_are_refused() {
+        let mut r = reflection(&["a.png", "b.png"]);
+        r.textures[1].binding = 105;
+        let err = slots(&r).unwrap_err();
+        assert!(matches!(err, ShadewireError::Bindings(_)), "{err}");
+        assert!(err.to_string().contains("b.png"), "{err}");
+        let mut r = reflection(&["a.png"]);
+        r.textures[0].sampler_binding = 101;
+        assert!(matches!(slots(&r).unwrap_err(), ShadewireError::Bindings(_)));
     }
 
     #[test]
