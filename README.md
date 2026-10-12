@@ -31,7 +31,7 @@ Library — the crates:
 
 - `shadewire-ir`: the IR (a typed DAG), optimizer, CPU interpreter, reflection.
 - `shadewire-wgsl`: IR to WGSL and reflection (`compile`); with its `translate` feature (on by default), naga translation to HLSL, GLSL, MSL and SPIR-V.
-- `shadewire-mtlx`: the MaterialX front end, MaterialX to IR (`to_ir`) and MaterialX to WGSL in one call (`compile_mtlx`). It never pulls in naga.
+- `shadewire-mtlx`: the MaterialX front end, MaterialX to IR (`to_ir`). It depends only on `shadewire-ir`: front ends and back ends never depend on each other; the caller composes them, as below.
 - `shadewire-cli`: the `shadewire` command.
 
 ```rust
@@ -48,7 +48,7 @@ println!("{}", out.wgsl);
 println!("{}", out.reflection.model);
 ```
 
-`shadewire_mtlx::compile_mtlx(text, file, material, &MtlxOptions, &CompileOptions)` does both steps in one call. Examples: `cargo run -p shadewire-mtlx --example mtlx_to_wgsl -- material.mtlx` and `--example mtlx_to_hlsl`.
+Examples: `cargo run -p shadewire-mtlx --example mtlx_to_wgsl -- material.mtlx` and `--example mtlx_to_hlsl`.
 
 ## Reflection
 

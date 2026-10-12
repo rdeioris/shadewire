@@ -1,8 +1,9 @@
 use shadewire_ir::optimize::optimize;
 use shadewire_ir::{Error, model_struct_name};
-use shadewire_mtlx::{MtlxOptions, compile_mtlx, to_ir};
+use shadewire_mtlx::{MtlxOptions, to_ir};
 use shadewire_wgsl::{
-    CompileOptions, Compiled, GlslVersion, HlslShaderModel, MslVersion, Output, Target, link, reference_host, translate,
+    CompileOptions, Compiled, GlslVersion, HlslShaderModel, MslVersion, Output, Target, compile, link, reference_host,
+    translate,
 };
 
 use clap::ValueEnum;
@@ -74,13 +75,9 @@ fn render(compiled: &Compiled, lang: Lang) -> Result<Vec<u8>, Error> {
 
 fn compile_command(args: &CompileArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
-    let compiled = compile_mtlx(
-        &text,
-        Some(&args.file),
-        args.material.as_deref(),
-        &mtlx_options(&args.models, args.constants),
-        &compile_options(args),
-    )?;
+    let mtlx = mtlx_options(&args.models, args.constants);
+    let ir = to_ir(&text, Some(&args.file), args.material.as_deref(), &mtlx)?;
+    let compiled = compile(&ir.dag, &ir.source, &compile_options(args))?;
     let bytes = render(&compiled, args.lang)?;
     if args.output.is_none() && args.lang == Lang::Spirv {
         return Err(Error::Io("SPIR-V is binary: give -o".to_string()));

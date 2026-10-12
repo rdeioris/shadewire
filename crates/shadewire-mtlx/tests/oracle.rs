@@ -9,7 +9,10 @@ use shadewire_ir::Dag;
 use shadewire_ir::interpret::{ContextSource, TextureSource, eval_surface};
 use shadewire_ir::optimize::optimize;
 use shadewire_ir::{AddressMode, ContextRead, FilterMode, NodeKind, Space, TextureDesc, TransformKind, Value};
-use shadewire_mtlx::{MtlxOptions, compile_mtlx};
+mod common;
+
+use common::compile_mtlx;
+use shadewire_mtlx::MtlxOptions;
 use shadewire_wgsl::CompileOptions;
 
 const TOLERANCE: f32 = 2e-3;

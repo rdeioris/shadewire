@@ -5,16 +5,16 @@
 use std::path::Path;
 
 use shadewire_ir::model_struct_name;
-use shadewire_mtlx::{MtlxOptions, compile_mtlx};
-use shadewire_wgsl::{CompileOptions, HlslShaderModel, Output, Target, link, reference_host, translate};
+use shadewire_mtlx::{MtlxOptions, to_ir};
+use shadewire_wgsl::{CompileOptions, HlslShaderModel, Output, Target, compile, link, reference_host, translate};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = std::env::args().nth(1).ok_or("usage: mtlx_to_hlsl <file.mtlx>")?;
     let text = std::fs::read_to_string(&path)?;
 
-    // 1. MaterialX -> WGSL function filling the model's parameter struct, plus reflection.
-    let compiled =
-        compile_mtlx(&text, Some(Path::new(&path)), None, &MtlxOptions::default(), &CompileOptions::default())?;
+    // 1. MaterialX -> IR -> WGSL function filling the model's parameter struct, plus reflection.
+    let ir = to_ir(&text, Some(Path::new(&path)), None, &MtlxOptions::default())?;
+    let compiled = compile(&ir.dag, &ir.source, &CompileOptions::default())?;
     println!("// model: {}", compiled.reflection.model);
 
     // 2. Add host functions (context reads, transforms) and an entry point.

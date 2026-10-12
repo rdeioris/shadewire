@@ -10,7 +10,6 @@ repository.workspace = true
 
 [dependencies]
 shadewire-ir.workspace = true
-shadewire-wgsl.workspace = true
 quick-xml.workspace = true
 include_dir.workspace = true
 thiserror.workspace = true

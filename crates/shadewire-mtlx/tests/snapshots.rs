@@ -3,7 +3,10 @@
 
 use std::path::{Path, PathBuf};
 
-use shadewire_mtlx::{MtlxOptions, compile_mtlx};
+mod common;
+
+use common::compile_mtlx;
+use shadewire_mtlx::MtlxOptions;
 use shadewire_wgsl::{CompileOptions, Compiled};
 
 fn root() -> PathBuf {
