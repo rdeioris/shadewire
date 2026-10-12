@@ -43,16 +43,16 @@ mod tests {
 
     #[test]
     fn color_is_divided_by_the_alpha_under_blend() {
-        assert!(MAPPING.starts_with("    var shadewire_unlit_color = s.emission * s.emission_color;
-"));
+        assert!(MAPPING.starts_with(
+            "    var shadewire_unlit_color = s.emission * s.emission_color;
+"
+        ));
         assert!(MAPPING.contains(
             "    if shadewire_alpha_mode == STANDARD_MATERIAL_FLAGS_ALPHA_MODE_BLEND {
         shadewire_unlit_color /= max(1.0 - s.transmission, 1e-4);
     }"
         ));
-        assert!(MAPPING.contains(
-            "vec4<f32>(shadewire_unlit_color, s.opacity * (1.0 - s.transmission))"
-        ));
+        assert!(MAPPING.contains("vec4<f32>(shadewire_unlit_color, s.opacity * (1.0 - s.transmission))"));
     }
 
     /// Premultiplied blending adds the color as is: it must already be MaterialX's `E * opacity`.

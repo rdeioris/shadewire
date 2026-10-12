@@ -191,8 +191,7 @@ fn reserve_uniform_binding_moves_the_textures_past_the_uniform_slot() {
         };
         assert_eq!(status, shadewire_status::SHADEWIRE_OK);
         let json: serde_json::Value =
-            serde_json::from_str(&text(unsafe { shadewire_compiled_reflection_json(compiled, null_mut()) }))
-                .unwrap();
+            serde_json::from_str(&text(unsafe { shadewire_compiled_reflection_json(compiled, null_mut()) })).unwrap();
         unsafe { shadewire_compiled_free(compiled) };
         assert!(json["uniform_binding"].is_null(), "{json}");
         json["textures"][0]["binding"].as_u64().unwrap()

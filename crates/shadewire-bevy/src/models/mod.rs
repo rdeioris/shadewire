@@ -47,13 +47,20 @@ mod tests {
     fn lit_models_clear_the_unlit_flag_and_unlit_sets_it() {
         for model in ["standard_surface", "open_pbr_surface", "gltf_pbr"] {
             let m = mapping(model).unwrap();
-            assert!(m.contains("    pbr_input.material.flags &= ~STANDARD_MATERIAL_FLAGS_UNLIT_BIT;
-"), "{model}");
+            assert!(
+                m.contains(
+                    "    pbr_input.material.flags &= ~STANDARD_MATERIAL_FLAGS_UNLIT_BIT;
+"
+                ),
+                "{model}"
+            );
             assert!(!m.contains("flags |= STANDARD_MATERIAL_FLAGS_UNLIT_BIT"), "{model}");
         }
         let unlit = mapping("surface_unlit").unwrap();
-        assert!(unlit.contains("    pbr_input.material.flags |= STANDARD_MATERIAL_FLAGS_UNLIT_BIT;
-"));
+        assert!(unlit.contains(
+            "    pbr_input.material.flags |= STANDARD_MATERIAL_FLAGS_UNLIT_BIT;
+"
+        ));
     }
 
     #[test]

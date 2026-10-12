@@ -31,7 +31,7 @@ pub struct ShadewireExtension {
     /// The reflection's uniform block, packed by `uniforms::pack`.
     #[uniform(100)]
     pub params: [Vec4; 64],
-/// Texture slot 0 (bindings 101, 102): the reflection's texture 0, or `None` when the material has fewer
+    /// Texture slot 0 (bindings 101, 102): the reflection's texture 0, or `None` when the material has fewer
     /// textures (Bevy binds its white fallback image). Slots 1 to 7 follow at `101 + 2k` and `102 + 2k`.
     #[texture(101)]
     #[sampler(102)]

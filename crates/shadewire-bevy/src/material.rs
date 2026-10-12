@@ -28,9 +28,9 @@ use crate::error::ShadewireError;
 use crate::extension::ShadewireExtension;
 use crate::layers;
 use crate::plugin::ShadewireMaterial;
+use crate::shader::{compile_options, module};
 use crate::textures;
 use crate::uniforms;
-use crate::shader::{compile_options, module};
 
 /// Builds a [`ShadewireMaterial`] from MaterialX. In scope through `use shadewire_bevy::FromMtlx;`.
 pub trait FromMtlx: Sized {
