@@ -153,6 +153,18 @@ Coat and transmission: Bevy compiles clearcoat and specular transmission into a 
 shader replaces it with the graph's). Specular transmission also moves the mesh into Bevy's transmissive pass. A
 uniform built at 0 and raised later through the extension's `params` needs the base factor set by the app.
 
+Limits:
+
+- Uniform values: at most 1 KiB per material (the extension's uniform binding is `[Vec4; 64]`).
+- Textures: at most 8 per material, uploaded without mipmaps. PNG and JPEG decode out of the box; EXR and HDR files
+  need the app to enable Bevy's `exr` / `hdr` features.
+- Coat and transmission: Bevy's clearcoat and specular transmission only, turned on in the base as above.
+- Opacity: blends only over a base whose alpha mode is not `AlphaMode::Opaque` (`Blend`, `Premultiplied`, `Mask`...).
+- Forward rendering only: a camera with a deferred prepass draws Shadewire meshes with Bevy's standard deferred
+  shader.
+- The library enables only Bevy's rendering features (`std`, `bevy_asset`, `bevy_render`, `bevy_core_pipeline`,
+  `bevy_pbr`, `png`, `jpeg`); windowing, glTF and tonemapping LUTs are the app's choice.
+
 ## Reflection
 
 Each surface field in `params` has a `kind`:
