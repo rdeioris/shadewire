@@ -26,6 +26,7 @@ use shadewire_wgsl::{CompileOptions, Compiled, compile};
 
 use crate::error::ShadewireError;
 use crate::extension::ShadewireExtension;
+use crate::layers;
 use crate::plugin::ShadewireMaterial;
 use crate::textures;
 use crate::uniforms;
@@ -36,7 +37,9 @@ pub trait FromMtlx: Sized {
     /// Builds the material `material` (the document's first one when `None`) of the MaterialX `text`.
     /// `path` is the document's file: includes resolve against it and texture files against its
     /// directory (the current directory without a path). Textures go to `images`, the generated shader
-    /// to `shaders` unless an identical graph put it there already.
+    /// to `shaders` unless an identical graph put it there already. `base` gets a small clearcoat and
+    /// specular transmission when the graph drives them and it has them at 0 (see the README's Bevy
+    /// section): Bevy compiles those layers in only for a base that turns them on.
     fn from_mtlx(
         text: &str,
         path: Option<&Path>,
@@ -74,7 +77,7 @@ impl FromMtlx for ShadewireMaterial {
         let [t0, t1, t2, t3, t4, t5, t6, t7] = textures::load(&compiled.reflection, dir, images)?;
         let shader = insert_shader(&compiled, &options, source, shaders);
         let extension = ShadewireExtension { params, t0, t1, t2, t3, t4, t5, t6, t7, shader };
-        Ok(ExtendedMaterial { base, extension })
+        Ok(ExtendedMaterial { base: layers::enable(base, &compiled.reflection), extension })
     }
 
     fn from_mtlx_file(
@@ -213,6 +216,23 @@ mod tests {
         let err = ShadewireMaterial::from_mtlx_file(dir.join("missing.mtlx"), None, base, &mut images, &mut shaders)
             .unwrap_err();
         assert!(err.to_string().contains("nowhere.png"), "{err}");
+    }
+
+    #[test]
+    fn a_coated_graph_turns_clearcoat_on_in_the_base() {
+        let text = r#"<materialx version="1.39">
+  <standard_surface name="S" type="surfaceshader">
+    <input name="coat" type="float" value="1" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="S" />
+  </surfacematerial>
+</materialx>"#;
+        let mut images = Assets::<Image>::default();
+        let mut shaders = Assets::<Shader>::default();
+        let m = build(text, &mut images, &mut shaders);
+        assert!(m.base.clearcoat > 0.0);
+        assert_eq!(m.base.specular_transmission, 0.0);
     }
 
     #[test]

@@ -11,7 +11,8 @@
 //! The emissive alpha is kept: Bevy scales emissive light by `mix(1.0, view.exposure, emissive.a)`
 //! (src/render/pbr_functions.wesl:832). Clearcoat and specular transmission are lit only when the
 //! base `StandardMaterial` turns them on: Bevy compiles them in through the `STANDARD_MATERIAL_CLEARCOAT`
-//! and `STANDARD_MATERIAL_SPECULAR_TRANSMISSION` shader defs it derives from the base material.
+//! and `STANDARD_MATERIAL_SPECULAR_TRANSMISSION` shader defs it derives from the base material, which
+//! the builder turns on when the graph drives them (`crate::layers`).
 
 mod gltf_pbr;
 mod open_pbr;

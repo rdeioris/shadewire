@@ -146,6 +146,12 @@ over it) or, without a scene, on a sphere and a cube; drag to orbit, scroll to z
 cargo run -p shadewire-bevy --example gltf_mtlx -- [scene.glb|gltf] material.mtlx [--material NAME] [--screenshot out.png]
 ```
 
+Coat and transmission: Bevy compiles clearcoat and specular transmission into a material only when the base
+`StandardMaterial` has them above 0. When the graph's coat (`coat`, `coat_weight`, `clearcoat`) or transmission
+(`transmission`, `transmission_weight`) is not 0, the builder gives a base that has them at 0 a small value (the
+shader replaces it with the graph's). Specular transmission also moves the mesh into Bevy's transmissive pass. A
+uniform built at 0 and raised later through the extension's `params` needs the base factor set by the app.
+
 ## Reflection
 
 Each surface field in `params` has a `kind`:

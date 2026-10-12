@@ -6,6 +6,7 @@ mod error;
 pub mod extension;
 pub mod host;
 mod key;
+mod layers;
 mod material;
 pub mod models;
 mod plugin;
