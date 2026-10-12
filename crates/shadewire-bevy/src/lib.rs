@@ -3,20 +3,20 @@
 //! prepass draw Shadewire meshes with Bevy's standard deferred shader.
 
 mod error;
-pub mod extension;
-pub mod host;
+mod extension;
+mod host;
 mod key;
 mod layers;
 mod material;
-pub mod models;
+mod models;
 mod plugin;
-pub mod textures;
-pub mod uniforms;
-pub mod wesl;
+pub mod shader;
+mod textures;
+mod uniforms;
 
 pub use error::ShadewireError;
 pub use extension::ShadewireExtension;
 pub use key::ShadewireKey;
-pub use material::{FromMtlx, shader_id};
+pub use material::FromMtlx;
 pub use plugin::{ShadewireMaterial, ShadewirePlugin};
-pub use wesl::compile_options;
+pub use shader::compile_options;

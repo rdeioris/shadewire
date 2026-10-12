@@ -30,7 +30,7 @@ use crate::layers;
 use crate::plugin::ShadewireMaterial;
 use crate::textures;
 use crate::uniforms;
-use crate::wesl::{compile_options, module};
+use crate::shader::{compile_options, module};
 
 /// Builds a [`ShadewireMaterial`] from MaterialX. In scope through `use shadewire_bevy::FromMtlx;`.
 pub trait FromMtlx: Sized {
@@ -116,7 +116,7 @@ fn fnv(bytes: &[u8]) -> u64 {
 
 /// The shader id of a structure hash under `options`: the high half is the structure hash (hex, as
 /// the reflection writes it), the low half a hash of the options that change the generated WGSL.
-pub fn shader_id(structure_hash: &str, options: &CompileOptions) -> Uuid {
+pub(crate) fn shader_id(structure_hash: &str, options: &CompileOptions) -> Uuid {
     let high = u64::from_str_radix(structure_hash, 16).unwrap_or_else(|_| fnv(structure_hash.as_bytes()));
     let mut key = b"shadewire-bevy shader".to_vec();
     key.extend_from_slice(&options.group.to_le_bytes());

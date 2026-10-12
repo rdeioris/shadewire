@@ -23,33 +23,44 @@ pub const TEXTURE_SLOTS: usize = 8;
 const PREPASS_PIPELINE: &str = "PREPASS_PIPELINE";
 const VERTEX_OUTPUT_INSTANCE_INDEX: &str = "VERTEX_OUTPUT_INSTANCE_INDEX";
 
+/// The extension half of a [`ShadewireMaterial`](crate::ShadewireMaterial): the packed uniform block, up to eight
+/// textures and the id of the generated shader. Built by [`FromMtlx`](crate::FromMtlx).
 #[derive(Asset, AsBindGroup, Reflect, Clone, Debug)]
 #[bind_group_data(ShadewireKey)]
 pub struct ShadewireExtension {
     /// The reflection's uniform block, packed by `uniforms::pack`.
     #[uniform(100)]
     pub params: [Vec4; 64],
+/// Texture slot 0 (bindings 101, 102): the reflection's texture 0, or `None` when the material has fewer
+    /// textures (Bevy binds its white fallback image). Slots 1 to 7 follow at `101 + 2k` and `102 + 2k`.
     #[texture(101)]
     #[sampler(102)]
     pub t0: Option<Handle<Image>>,
+    /// Texture slot 1 (bindings 103, 104): the reflection's texture 1, else `None`.
     #[texture(103)]
     #[sampler(104)]
     pub t1: Option<Handle<Image>>,
+    /// Texture slot 2 (bindings 105, 106): the reflection's texture 2, else `None`.
     #[texture(105)]
     #[sampler(106)]
     pub t2: Option<Handle<Image>>,
+    /// Texture slot 3 (bindings 107, 108): the reflection's texture 3, else `None`.
     #[texture(107)]
     #[sampler(108)]
     pub t3: Option<Handle<Image>>,
+    /// Texture slot 4 (bindings 109, 110): the reflection's texture 4, else `None`.
     #[texture(109)]
     #[sampler(110)]
     pub t4: Option<Handle<Image>>,
+    /// Texture slot 5 (bindings 111, 112): the reflection's texture 5, else `None`.
     #[texture(111)]
     #[sampler(112)]
     pub t5: Option<Handle<Image>>,
+    /// Texture slot 6 (bindings 113, 114): the reflection's texture 6, else `None`.
     #[texture(113)]
     #[sampler(114)]
     pub t6: Option<Handle<Image>>,
+    /// Texture slot 7 (bindings 115, 116): the reflection's texture 7, else `None`.
     #[texture(115)]
     #[sampler(116)]
     pub t7: Option<Handle<Image>>,

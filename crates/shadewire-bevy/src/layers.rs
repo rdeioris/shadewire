@@ -59,7 +59,7 @@ mod tests {
     use shadewire_mtlx::{MtlxOptions, to_ir};
     use shadewire_wgsl::compile;
 
-    use crate::wesl::compile_options;
+    use crate::shader::compile_options;
 
     fn reflection(model: &str, inputs: &str) -> Reflection {
         let text = format!(

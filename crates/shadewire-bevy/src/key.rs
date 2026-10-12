@@ -7,6 +7,8 @@ use crate::extension::ShadewireExtension;
 /// derives through `Copy`, so the key holds the `Uuid` the shader was inserted under, not a handle.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ShadewireKey {
+    /// The `Uuid` the material's generated fragment shader was inserted under in `Assets<Shader>`; the
+    /// extension's `specialize` swaps that shader in for the main pass.
     pub shader: Uuid,
 }
 

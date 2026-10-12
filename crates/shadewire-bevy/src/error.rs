@@ -2,8 +2,9 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
-/// Errors from building a Shadewire material for Bevy.
+/// Errors from building a Shadewire material for Bevy. New variants may be added.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ShadewireError {
     #[error(transparent)]
     Shadewire(#[from] shadewire::Error),
