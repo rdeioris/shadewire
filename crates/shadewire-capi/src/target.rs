@@ -17,8 +17,9 @@ pub const SHADEWIRE_TARGET_SPIRV: shadewire_target_kind = 6;
 /// A target language and its version.
 ///
 /// `version` is the shader model times ten for HLSL (50, 51, 60..69), the `#version` number for GLSL (330, 400, 410,
-/// 420, 430, 450) and GLSL ES (300, 310), `major * 100 + minor` for MSL (e.g. 203 for 2.3; passed on as is, so 230 means 2.30), and ignored for WGSL,
-/// WEBGL2 and SPIRV.
+/// 420, 430, 450) and GLSL ES (300, 310), `major * 100 + minor` for MSL (100..102, 200..204, 300..302 or 400, the
+/// Metal versions naga knows; 203 is 2.3), and ignored for WGSL, WEBGL2 and SPIRV. Any other version is
+/// SHADEWIRE_ERROR_INVALID_ARGUMENT.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct shadewire_target {
@@ -48,6 +49,26 @@ fn hlsl_model(version: u32) -> Result<HlslShaderModel, ArgError> {
     }
 }
 
+/// The Metal Shading Language versions naga 30 writes: 1.0-1.2, 2.0-2.4, 3.0-3.2 and 4.0.
+fn msl_version(version: u32) -> Result<MslVersion, ArgError> {
+    let (major, minor) = match version {
+        100 => (1, 0),
+        101 => (1, 1),
+        102 => (1, 2),
+        200 => (2, 0),
+        201 => (2, 1),
+        202 => (2, 2),
+        203 => (2, 3),
+        204 => (2, 4),
+        300 => (3, 0),
+        301 => (3, 1),
+        302 => (3, 2),
+        400 => (4, 0),
+        _ => return Err(bad_version("MSL", version)),
+    };
+    Ok(MslVersion { major, minor })
+}
+
 /// Converts a C target to the Rust one, rejecting unknown kinds and versions.
 pub(crate) fn to_target(target: shadewire_target) -> Result<Target, ArgError> {
     let version = target.version;
@@ -63,11 +84,7 @@ pub(crate) fn to_target(target: shadewire_target) -> Result<Target, ArgError> {
             _ => Err(bad_version("GLSL ES", version)),
         },
         SHADEWIRE_TARGET_WEBGL2 => Ok(Target::Glsl(GlslVersion::WebGl2)),
-        SHADEWIRE_TARGET_MSL => {
-            let major = u8::try_from(version / 100).map_err(|_| bad_version("MSL", version))?;
-            let minor = (version % 100) as u8;
-            Ok(Target::Msl(MslVersion { major, minor }))
-        }
+        SHADEWIRE_TARGET_MSL => msl_version(version).map(Target::Msl),
         SHADEWIRE_TARGET_SPIRV => Ok(Target::SpirV),
         other => Err(ArgError(format!("unknown target kind {other}"))),
     }
@@ -119,10 +136,15 @@ mod tests {
     }
 
     #[test]
-    fn msl_splits_major_and_minor() {
-        assert_eq!(t(SHADEWIRE_TARGET_MSL, 203), Ok(Target::Msl(MslVersion { major: 2, minor: 3 })));
-        assert_eq!(t(SHADEWIRE_TARGET_MSL, 310), Ok(Target::Msl(MslVersion { major: 3, minor: 10 })));
-        assert!(t(SHADEWIRE_TARGET_MSL, 100_000).is_err());
+    fn msl_accepts_the_metal_versions_naga_knows() {
+        let known = [(1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (3, 0), (3, 1), (3, 2), (4, 0)];
+        for (major, minor) in known {
+            let version = u32::from(major) * 100 + u32::from(minor);
+            assert_eq!(t(SHADEWIRE_TARGET_MSL, version), Ok(Target::Msl(MslVersion { major, minor })), "MSL {version}");
+        }
+        for bad in [0, 99, 103, 110, 205, 230, 303, 310, 401, 500, 100_000] {
+            assert!(t(SHADEWIRE_TARGET_MSL, bad).is_err(), "MSL {bad}");
+        }
     }
 
     #[test]

@@ -108,8 +108,9 @@ typedef uint32_t shadewire_target_kind;
 // A target language and its version.
 //
 // `version` is the shader model times ten for HLSL (50, 51, 60..69), the `#version` number for GLSL (330, 400, 410,
-// 420, 430, 450) and GLSL ES (300, 310), `major * 100 + minor` for MSL (e.g. 203 for 2.3; passed on as is, so 230 means 2.30), and ignored for WGSL,
-// WEBGL2 and SPIRV.
+// 420, 430, 450) and GLSL ES (300, 310), `major * 100 + minor` for MSL (100..102, 200..204, 300..302 or 400, the
+// Metal versions naga knows; 203 is 2.3), and ignored for WGSL, WEBGL2 and SPIRV. Any other version is
+// SHADEWIRE_ERROR_INVALID_ARGUMENT.
 typedef struct shadewire_target {
   shadewire_target_kind kind;
   uint32_t version;
