@@ -10,6 +10,7 @@
 //! | `N` | `normal` |
 //! | `material.clearcoat`, `material.clearcoat_perceptual_roughness`, `clearcoat_N` | `clearcoat`, `clearcoat_roughness`, `clearcoat_normal` |
 //! | `material.specular_transmission`, `material.ior`, `material.thickness` | `transmission`, `ior`, `thickness` |
+//! | `material.flags` | `STANDARD_MATERIAL_FLAGS_UNLIT_BIT` cleared (lit even over an unlit base) |
 //!
 //! Ignored: `occlusion` (MaterialX's own gltf_pbr ignores it; the base `StandardMaterial` keeps the glTF's
 //! occlusion map), `tangent`, `specular`, `specular_color`, `iridescence*`, `sheen_*`, `anisotropy_*`,
@@ -28,6 +29,7 @@ pub const MAPPING: &str = "    pbr_input.material.base_color = vec4<f32>(s.base_
     pbr_input.material.specular_transmission = s.transmission;
     pbr_input.material.ior = s.ior;
     pbr_input.material.thickness = s.thickness;
+    pbr_input.material.flags &= ~STANDARD_MATERIAL_FLAGS_UNLIT_BIT;
 ";
 
 #[cfg(test)]

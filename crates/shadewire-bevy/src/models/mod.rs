@@ -13,6 +13,12 @@
 //! base `StandardMaterial` turns them on: Bevy compiles them in through the `STANDARD_MATERIAL_CLEARCOAT`
 //! and `STANDARD_MATERIAL_SPECULAR_TRANSMISSION` shader defs it derives from the base material, which
 //! the builder turns on when the graph drives them (`crate::layers`).
+//!
+//! The lit models clear `STANDARD_MATERIAL_FLAGS_UNLIT_BIT`, so a base that sets it (a glTF material with
+//! `KHR_materials_unlit`) is still lit; `surface_unlit` sets it. Under such a base,
+//! `pbr_input_from_standard_material` skips its lit-only block (pbr_fragment.wesl:235), so what the models
+//! do not write (reflectance, SSAO occlusion, attenuation, lightmap) keeps `pbr_input_new`'s defaults
+//! (pbr_types.wesl:127).
 
 mod gltf_pbr;
 mod open_pbr;
@@ -35,6 +41,20 @@ pub fn mapping(model: &str) -> Result<&'static str, ShadewireError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A `KHR_materials_unlit` glTF base sets Bevy's unlit flag; a lit model clears it, so lighting runs.
+    #[test]
+    fn lit_models_clear_the_unlit_flag_and_unlit_sets_it() {
+        for model in ["standard_surface", "open_pbr_surface", "gltf_pbr"] {
+            let m = mapping(model).unwrap();
+            assert!(m.contains("    pbr_input.material.flags &= ~STANDARD_MATERIAL_FLAGS_UNLIT_BIT;
+"), "{model}");
+            assert!(!m.contains("flags |= STANDARD_MATERIAL_FLAGS_UNLIT_BIT"), "{model}");
+        }
+        let unlit = mapping("surface_unlit").unwrap();
+        assert!(unlit.contains("    pbr_input.material.flags |= STANDARD_MATERIAL_FLAGS_UNLIT_BIT;
+"));
+    }
 
     #[test]
     fn every_phase_one_model_has_a_mapping() {

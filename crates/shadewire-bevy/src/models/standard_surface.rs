@@ -10,6 +10,7 @@
 //! | `N` | `normal` |
 //! | `material.clearcoat`, `material.clearcoat_perceptual_roughness`, `clearcoat_N` | `coat`, `coat_roughness`, `coat_normal` |
 //! | `material.specular_transmission`, `material.ior` | `transmission`, `specular_IOR` |
+//! | `material.flags` | `STANDARD_MATERIAL_FLAGS_UNLIT_BIT` cleared (lit even over an unlit base) |
 //!
 //! Without a Bevy counterpart, ignored: `diffuse_roughness`, `specular`, `specular_color`,
 //! `specular_anisotropy`, `specular_rotation`, `transmission_color`, `transmission_depth`,
@@ -28,4 +29,5 @@ pub const MAPPING: &str = "    pbr_input.material.base_color = vec4<f32>(s.base 
     pbr_input.clearcoat_N = normalize(s.coat_normal);
     pbr_input.material.specular_transmission = s.transmission;
     pbr_input.material.ior = s.specular_IOR;
+    pbr_input.material.flags &= ~STANDARD_MATERIAL_FLAGS_UNLIT_BIT;
 ";
