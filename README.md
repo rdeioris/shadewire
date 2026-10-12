@@ -20,6 +20,7 @@ Front ends and back ends never depend on each other; they share only the core, a
 | `shadewire-wgsl` | back end: IR → WGSL + reflection (`compile`); feature `translate` (default): naga translation of the linked module to HLSL, GLSL, MSL, SPIR-V | `shadewire` (+ naga) |
 | `shadewire-cli` | the `shadewire` command | all of the above |
 | `shadewire-capi` | C API (`shadewire.h`): MaterialX → WGSL + reflection, translation to the other languages | `shadewire`, `shadewire-mtlx`, `shadewire-wgsl` |
+| `shadewire-bevy` | Bevy 0.20: MaterialX → a `StandardMaterial` extension with a generated fragment shader (`ShadewirePlugin`, `FromMtlx`) | `shadewire`, `shadewire-mtlx`, `shadewire-wgsl` (no naga), `bevy` |
 
 Planned: a glTF front end, more back ends.
 
@@ -35,6 +36,7 @@ Planned: a glTF front end, more back ends.
 | Your own IR → HLSL/GLSL/MSL/SPIR-V | `shadewire`, `shadewire-wgsl` | `translate` (default) |
 | A command-line tool | `shadewire-cli` (the `shadewire` binary) | — |
 | A C/C++ host | `shadewire-capi` (shared or static library + `shadewire.h`) | — |
+| A Bevy app | `shadewire-bevy` | — |
 
 ## Usage
 
@@ -112,6 +114,37 @@ int print_hlsl(const char *text, size_t len) {
 `shadewire_compiled_wgsl` and `shadewire_compiled_reflection_json` read the WGSL and the reflection; a NULL host
 prelude in `shadewire_translate` links the reference host. `crates/shadewire-capi-ctest` builds the same calls as a
 C99 (C11 on MSVC) test.
+
+## Bevy
+
+`shadewire-bevy` (Bevy 0.20) turns a MaterialX material into a `ShadewireMaterial`: a `StandardMaterial` (the base,
+which keeps its alpha mode, lighting and shadows) extended with a fragment shader generated for the graph. Identical
+graphs share one shader and pipeline whatever their values. Forward rendering only; up to 8 textures per material;
+meshes without tangents get a screen-space tangent frame.
+
+```rust
+use bevy::prelude::*;
+use shadewire_bevy::{FromMtlx, ShadewireMaterial, ShadewirePlugin};
+
+fn main() {
+    App::new().add_plugins((DefaultPlugins, ShadewirePlugin)).add_systems(Startup, spawn).run();
+}
+
+fn spawn(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut shaders: ResMut<Assets<Shader>>,
+         mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ShadewireMaterial>>) -> Result {
+    let marble = ShadewireMaterial::from_mtlx_file("marble.mtlx", None, default(), &mut images, &mut shaders)?;
+    let sphere = Sphere::new(1.0).mesh().uv(64, 32).with_generated_tangents()?;
+    commands.spawn((Mesh3d(meshes.add(sphere)), MeshMaterial3d(materials.add(marble))));
+    Ok(())
+}
+```
+
+The example puts a material on a glTF scene (every `StandardMaterial` is replaced by the MaterialX material built
+over it) or, without a scene, on a sphere and a cube; drag to orbit, scroll to zoom, `R` to recompile the `.mtlx`:
+
+```
+cargo run -p shadewire-bevy --example gltf_mtlx -- [scene.glb|gltf] material.mtlx [--material NAME] [--screenshot out.png]
+```
 
 ## Reflection
 
