@@ -6,6 +6,37 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// The category of a failed call.
+enum shadewire_error_kind
+#if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
+  : uint32_t
+#endif // defined(__cplusplus) || __STDC_VERSION__ >= 202311L
+ {
+  // An argument passed by the caller is invalid.
+  SHADEWIRE_ERROR_INVALID_ARGUMENT = 1,
+  // The document could not be parsed.
+  SHADEWIRE_ERROR_PARSE = 2,
+  // The document uses something Shadewire does not support.
+  SHADEWIRE_ERROR_UNSUPPORTED = 3,
+  // The document has no usable material, or the named one does not exist.
+  SHADEWIRE_ERROR_MATERIAL = 4,
+  // The node graph is invalid.
+  SHADEWIRE_ERROR_GRAPH = 5,
+  // The generated shader failed validation.
+  SHADEWIRE_ERROR_SHADER = 6,
+  // Reading or writing failed.
+  SHADEWIRE_ERROR_IO = 7,
+  // An internal panic was caught at the boundary.
+  SHADEWIRE_ERROR_PANIC = 8,
+};
+#ifndef __cplusplus
+#if __STDC_VERSION__ >= 202311L
+typedef enum shadewire_error_kind shadewire_error_kind;
+#else
+typedef uint32_t shadewire_error_kind;
+#endif // __STDC_VERSION__ >= 202311L
+#endif // __cplusplus
+
 // Result of a fallible call: `SHADEWIRE_OK` or `SHADEWIRE_ERROR` (details in the error out-parameter).
 enum shadewire_status
 #if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
@@ -25,9 +56,32 @@ typedef uint32_t shadewire_status;
 #endif // __STDC_VERSION__ >= 202311L
 #endif // __cplusplus
 
+// An error returned by a failed call. Free it with `shadewire_error_free`.
+typedef struct shadewire_error shadewire_error;
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+
+// The kind of `err`; `SHADEWIRE_ERROR_INVALID_ARGUMENT` when `err` is NULL.
+shadewire_error_kind shadewire_error_get_kind(const struct shadewire_error *err);
+
+// The message of `err` as a NUL-terminated string valid until `err` is freed; writes its byte length to `len` when
+// non-null. NULL when `err` is NULL.
+const char *shadewire_error_message(const struct shadewire_error *err,
+                                    size_t *len);
+
+// The document file name of `err`, or NULL when it has none (or `err` is NULL).
+const char *shadewire_error_file(const struct shadewire_error *err);
+
+// The 1-based document line of `err`, or 0 when it has none (or `err` is NULL).
+uint32_t shadewire_error_line(const struct shadewire_error *err);
+
+// The node path of `err`, "" when it has none; NULL when `err` is NULL.
+const char *shadewire_error_path(const struct shadewire_error *err);
+
+// Frees `err`; NULL is allowed.
+void shadewire_error_free(struct shadewire_error *err);
 
 // The version as `(major << 16) | (minor << 8) | patch`.
 uint32_t shadewire_version(void);

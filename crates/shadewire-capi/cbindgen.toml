@@ -1,4 +1,5 @@
 language = "C"
+usize_is_size_t = true
 pragma_once = true
 cpp_compat = true
 style = "both"
@@ -13,4 +14,4 @@ rename_variants = "None"
 prefix_with_name = false
 
 [export]
-include = ["shadewire_status"]
+include = ["shadewire_status", "shadewire_error_kind"]
