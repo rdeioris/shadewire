@@ -1,4 +1,4 @@
-//! Shadewire back end: IR to WGSL and reflection; optional naga translation to HLSL, GLSL, MSL, SPIR-V
+//! Shadewire WGSL back end: IR to WGSL and reflection; optional naga translation to HLSL, GLSL, MSL, SPIR-V
 
 pub mod compile;
 pub mod compile_options;

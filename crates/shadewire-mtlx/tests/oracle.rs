@@ -5,12 +5,12 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
-use shadewire_backend::CompileOptions;
 use shadewire_ir::Dag;
 use shadewire_ir::interpret::{ContextSource, TextureSource, eval_surface};
 use shadewire_ir::optimize::optimize;
 use shadewire_ir::{AddressMode, ContextRead, FilterMode, NodeKind, Space, TextureDesc, TransformKind, Value};
 use shadewire_mtlx::{MtlxOptions, compile_mtlx};
+use shadewire_wgsl::CompileOptions;
 
 const TOLERANCE: f32 = 2e-3;
 const IMAGE_TOLERANCE: f32 = 1e-2;

@@ -2,8 +2,8 @@
 
 use std::path::Path;
 
-use shadewire_backend::{CompileOptions, Compiled, compile};
 use shadewire_ir::Error;
+use shadewire_wgsl::{CompileOptions, Compiled, compile};
 
 use crate::to_ir::{MtlxOptions, to_ir};
 
@@ -23,8 +23,8 @@ pub fn compile_mtlx(
 mod tests {
     use super::*;
     use crate::to_ir::{MtlxOptions, to_ir};
-    use shadewire_backend::{CompileOptions, compile};
     use shadewire_ir::Error;
+    use shadewire_wgsl::{CompileOptions, compile};
 
     const EXAMPLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/resources/Materials/Examples");
 

@@ -4,9 +4,9 @@
 
 use std::path::Path;
 
-use shadewire_backend::{CompileOptions, HlslShaderModel, Output, Target, link, reference_host, translate};
 use shadewire_ir::model_struct_name;
 use shadewire_mtlx::{MtlxOptions, compile_mtlx};
+use shadewire_wgsl::{CompileOptions, HlslShaderModel, Output, Target, link, reference_host, translate};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = std::env::args().nth(1).ok_or("usage: mtlx_to_hlsl <file.mtlx>")?;

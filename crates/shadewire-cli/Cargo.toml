@@ -11,7 +11,7 @@ repository.workspace = true
 [dependencies]
 shadewire-ir.workspace = true
 shadewire-mtlx.workspace = true
-shadewire-backend = { workspace = true, features = ["translate"] }
+shadewire-wgsl = { workspace = true, features = ["translate"] }
 clap.workspace = true
 serde_json.workspace = true
 

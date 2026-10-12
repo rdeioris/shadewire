@@ -3,10 +3,10 @@
 mod gpu;
 
 use gpu::cases::{Case, all, family};
-use shadewire_backend::emit::probe_function;
-use shadewire_backend::leaf_library;
 use shadewire_ir::interpret::{ContextSource, NoTextures, eval_nodes};
 use shadewire_ir::{ContextRead, Space, TransformKind, Value};
+use shadewire_wgsl::emit::probe_function;
+use shadewire_wgsl::leaf_library;
 
 /// Parity cases read no host data.
 struct NoContext;

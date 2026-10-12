@@ -5,13 +5,13 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use shadewire_backend::{
-    CompileOptions, GlslVersion, HlslShaderModel, MslVersion, Target, link, reference_host, translate,
-};
 use shadewire_ir::Error;
 use shadewire_mtlx::include::resolve_includes;
 use shadewire_mtlx::parse::parse_str;
 use shadewire_mtlx::{MtlxOptions, compile_mtlx};
+use shadewire_wgsl::{
+    CompileOptions, GlslVersion, HlslShaderModel, MslVersion, Target, link, reference_host, translate,
+};
 
 const FOLDERS: [&str; 3] = ["StandardSurface", "OpenPbr", "GltfPbr"];
 const ALLOWLIST: &str = include_str!("examples_allowlist.txt");

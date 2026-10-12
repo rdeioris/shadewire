@@ -3,8 +3,8 @@
 
 use std::path::{Path, PathBuf};
 
-use shadewire_backend::{CompileOptions, Compiled};
 use shadewire_mtlx::{MtlxOptions, compile_mtlx};
+use shadewire_wgsl::{CompileOptions, Compiled};
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
