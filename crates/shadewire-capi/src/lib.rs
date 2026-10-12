@@ -4,6 +4,7 @@
 //! Every fallible function takes an `error` out-parameter: it is written only on failure and left untouched on
 //! success (callers initialise it to NULL), and may itself be NULL to ignore the error object.
 
+mod compiled;
 mod error;
 mod error_kind;
 mod guard;
@@ -14,6 +15,11 @@ mod strings;
 mod target;
 mod version;
 
+pub use compiled::{
+    shadewire_compile_mtlx, shadewire_compiled, shadewire_compiled_free, shadewire_compiled_ir_dump,
+    shadewire_compiled_reflection_json, shadewire_compiled_struct_name, shadewire_compiled_wgsl,
+    shadewire_wgsl_compile,
+};
 pub use error::{
     CapiError, shadewire_error, shadewire_error_file, shadewire_error_free, shadewire_error_get_kind,
     shadewire_error_line, shadewire_error_message, shadewire_error_path,

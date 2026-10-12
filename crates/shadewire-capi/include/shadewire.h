@@ -6,6 +6,28 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// Result of a fallible call: `SHADEWIRE_OK` or `SHADEWIRE_ERROR` (details in the error out-parameter).
+//
+// The `error` out-parameter of a fallible function is written only on failure and left untouched on success, so
+// initialise it to NULL; it may be NULL to ignore the error.
+enum shadewire_status
+#if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
+  : uint32_t
+#endif // defined(__cplusplus) || __STDC_VERSION__ >= 202311L
+ {
+  // The call succeeded.
+  SHADEWIRE_OK = 0,
+  // The call failed; see the error out-parameter.
+  SHADEWIRE_ERROR = 1,
+};
+#ifndef __cplusplus
+#if __STDC_VERSION__ >= 202311L
+typedef enum shadewire_status shadewire_status;
+#else
+typedef uint32_t shadewire_status;
+#endif // __STDC_VERSION__ >= 202311L
+#endif // __cplusplus
+
 // The category of a failed call.
 enum shadewire_error_kind
 #if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
@@ -37,33 +59,24 @@ typedef uint32_t shadewire_error_kind;
 #endif // __STDC_VERSION__ >= 202311L
 #endif // __cplusplus
 
-// Result of a fallible call: `SHADEWIRE_OK` or `SHADEWIRE_ERROR` (details in the error out-parameter).
-//
-// The `error` out-parameter of a fallible function is written only on failure and left untouched on success, so
-// initialise it to NULL; it may be NULL to ignore the error.
-enum shadewire_status
-#if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
-  : uint32_t
-#endif // defined(__cplusplus) || __STDC_VERSION__ >= 202311L
- {
-  // The call succeeded.
-  SHADEWIRE_OK = 0,
-  // The call failed; see the error out-parameter.
-  SHADEWIRE_ERROR = 1,
-};
-#ifndef __cplusplus
-#if __STDC_VERSION__ >= 202311L
-typedef enum shadewire_status shadewire_status;
-#else
-typedef uint32_t shadewire_status;
-#endif // __STDC_VERSION__ >= 202311L
-#endif // __cplusplus
+// A compiled material: WGSL, reflection and the optimized IR. Free it with `shadewire_compiled_free`.
+typedef struct shadewire_compiled shadewire_compiled;
 
 // An error returned by a failed call. Free it with `shadewire_error_free`.
 typedef struct shadewire_error shadewire_error;
 
 // A MaterialX material lowered to the IR. Free it with `shadewire_ir_free`.
 typedef struct shadewire_ir shadewire_ir;
+
+// Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
+// The booleans must be 0 or 1.
+typedef struct shadewire_compile_options {
+  uint32_t struct_size;
+  uint32_t group;
+  uint32_t first_binding;
+  bool flip_v;
+  bool optimize;
+} shadewire_compile_options;
 
 // Options for MaterialX import. Set `struct_size` to `sizeof` the struct, or use `shadewire_mtlx_options_default`.
 //
@@ -77,16 +90,6 @@ typedef struct shadewire_mtlx_options {
   const char *working_colorspace;
   bool values_as_uniforms;
 } shadewire_mtlx_options;
-
-// Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
-// The booleans must be 0 or 1.
-typedef struct shadewire_compile_options {
-  uint32_t struct_size;
-  uint32_t group;
-  uint32_t first_binding;
-  bool flip_v;
-  bool optimize;
-} shadewire_compile_options;
 
 // Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
 typedef uint32_t shadewire_target_kind;
@@ -118,6 +121,64 @@ typedef struct shadewire_target {
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+
+// Compiles `ir` to WGSL and reflection and writes the handle to `out`. `options` may be NULL for the defaults.
+// `*out` is written only on success.
+//
+// # Safety
+// `ir` must be a live handle (NULL is an error); `options` NULL or valid (see `shadewire_compile_options`); `out`
+// valid for writing a pointer; `error` NULL or valid for writing a pointer.
+shadewire_status shadewire_wgsl_compile(const struct shadewire_ir *ir,
+                                        const struct shadewire_compile_options *options,
+                                        struct shadewire_compiled **out,
+                                        struct shadewire_error **error);
+
+// `shadewire_mtlx_to_ir` then `shadewire_wgsl_compile` in one call, with one handle out.
+//
+// # Safety
+// The union of the safety requirements of `shadewire_mtlx_to_ir` and `shadewire_wgsl_compile`.
+shadewire_status shadewire_compile_mtlx(const char *text,
+                                        size_t len,
+                                        const char *path,
+                                        const char *material,
+                                        const struct shadewire_mtlx_options *mtlx,
+                                        const struct shadewire_compile_options *options,
+                                        struct shadewire_compiled **out,
+                                        struct shadewire_error **error);
+
+// The WGSL source, valid until `c` is freed; writes its byte length to `len` when non-null. NULL when `c` is NULL.
+//
+// # Safety
+// `c` must be NULL or a live handle; `len` NULL or valid for writing a `size_t`.
+const char *shadewire_compiled_wgsl(const struct shadewire_compiled *c,
+                                    size_t *len);
+
+// The reflection as pretty-printed JSON, valid until `c` is freed; see `shadewire_compiled_wgsl` for `len`.
+//
+// # Safety
+// As `shadewire_compiled_wgsl`.
+const char *shadewire_compiled_reflection_json(const struct shadewire_compiled *c,
+                                               size_t *len);
+
+// A text dump of the optimized IR, built on first call and valid until `c` is freed; see
+// `shadewire_compiled_wgsl` for `len`.
+//
+// # Safety
+// As `shadewire_compiled_wgsl`.
+const char *shadewire_compiled_ir_dump(const struct shadewire_compiled *c, size_t *len);
+
+// The WGSL struct name of the shading model (for example "StandardSurface"), valid until `c` is freed; NULL when `c`
+// is NULL.
+//
+// # Safety
+// `c` must be NULL or a live handle.
+const char *shadewire_compiled_struct_name(const struct shadewire_compiled *c);
+
+// Frees `c`; NULL is allowed.
+//
+// # Safety
+// `c` must be NULL or a handle from this library not yet freed.
+void shadewire_compiled_free(struct shadewire_compiled *c);
 
 // The kind of `err`; `SHADEWIRE_ERROR_INVALID_ARGUMENT` when `err` is NULL.
 shadewire_error_kind shadewire_error_get_kind(const struct shadewire_error *err);

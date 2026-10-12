@@ -16,13 +16,12 @@ use crate::strings::{ArgError, c_string, opt_cstr, out_str, text_arg};
 
 /// A MaterialX material lowered to the IR. Free it with `shadewire_ir_free`.
 pub struct shadewire_ir {
-    ir: MaterialIr,
+    pub(crate) ir: MaterialIr,
     model: CString,
     dump: OnceLock<CString>,
 }
 
 /// Borrows the IR behind `ptr`.
-#[allow(dead_code)] // used by the compile entry points in the next task
 pub fn borrow<'a>(ptr: *const shadewire_ir) -> Result<&'a MaterialIr, ArgError> {
     match unsafe { ptr.as_ref() } {
         Some(handle) => Ok(&handle.ir),

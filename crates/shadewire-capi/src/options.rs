@@ -101,7 +101,6 @@ pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<Mtl
 ///
 /// # Safety
 /// `ptr` must be NULL or point to `struct_size` readable bytes (at least 4).
-#[allow(dead_code)] // used by the compile entry points in the next task
 pub(crate) unsafe fn read_compile(ptr: *const shadewire_compile_options) -> Result<CompileOptions, ArgError> {
     if ptr.is_null() {
         return Ok(CompileOptions::default());
