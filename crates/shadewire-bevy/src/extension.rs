@@ -11,7 +11,12 @@ use bevy::prelude::*;
 use bevy::render::render_resource::{AsBindGroup, RenderPipelineDescriptor, SpecializedMeshPipelineError};
 use bevy::shader::{Shader, ShaderDefVal};
 
+use shadewire::{Reflection, Value};
+
+use crate::cache::ShaderHold;
+use crate::error::ShadewireError;
 use crate::key::ShadewireKey;
+use crate::uniforms;
 
 /// Bevy's material bind group starts extension bindings at 100: the uniform block, then texture k at
 /// `101 + 2k` with its sampler at `102 + 2k`.
@@ -67,6 +72,17 @@ pub struct ShadewireExtension {
     /// The generated main-pass fragment shader, inserted with `Assets::<Shader>::insert(uuid, shader)`;
     /// carried to `specialize` through `ShadewireKey`.
     pub shader: Uuid,
+    /// This material's hold on `shader`: the shader is freed once no material holds it.
+    #[reflect(ignore)]
+    pub hold: ShaderHold,
+}
+
+impl ShadewireExtension {
+    /// Writes `value` over the uniform `name`. `reflection` is the one this material was built with
+    /// ([`Built::reflection`](crate::Built)). Through `Assets::get_mut`, Bevy uploads the block again.
+    pub fn set_uniform(&mut self, reflection: &Reflection, name: &str, value: &Value) -> Result<(), ShadewireError> {
+        uniforms::write(&mut self.params, reflection, name, value)
+    }
 }
 
 impl MaterialExtension for ShadewireExtension {

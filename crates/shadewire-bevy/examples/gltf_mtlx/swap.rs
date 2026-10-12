@@ -3,16 +3,16 @@
 
 use std::path::PathBuf;
 
-use bevy::ecs::system::SystemParam;
+use bevy::ecs::system::{SystemParam, SystemState};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use shadewire_bevy::{FromMtlx, ShadewireError, ShadewireMaterial};
+use shadewire_bevy::{BuildOptions, FromMtlx, ShaderCache, ShadewireAssets, ShadewireError, ShadewireMaterial};
 
-/// The `.mtlx` file and the material to build from it.
+/// The `.mtlx` file and how to build from it.
 #[derive(Resource, Clone)]
 pub struct Source {
     pub mtlx: PathBuf,
-    pub material: Option<String>,
+    pub options: BuildOptions,
 }
 
 impl Source {
@@ -20,10 +20,23 @@ impl Source {
     pub fn build(
         &self,
         base: StandardMaterial,
-        images: &mut Assets<Image>,
-        shaders: &mut Assets<Shader>,
+        assets: &mut ShadewireAssets,
     ) -> Result<ShadewireMaterial, ShadewireError> {
-        ShadewireMaterial::from_mtlx_file(&self.mtlx, self.material.as_deref(), base, images, shaders)
+        Ok(ShadewireMaterial::from_mtlx_file(&self.mtlx, &self.options, base, assets)?.material)
+    }
+
+    /// Builds the material once into a throwaway world, before there is an app.
+    pub fn check(&self) -> Result<(), ShadewireError> {
+        let mut world = World::new();
+        world.init_resource::<Assets<Image>>();
+        world.init_resource::<Assets<Shader>>();
+        world.init_resource::<ShaderCache>();
+        let mut state = SystemState::<ShadewireAssets>::new(&mut world);
+        self.build(
+            StandardMaterial::default(),
+            &mut state.get_mut(&mut world).expect("the three resources are in the world"),
+        )
+        .map(drop)
     }
 }
 
@@ -39,8 +52,7 @@ pub struct Swaps {
 #[derive(SystemParam)]
 pub struct Builder<'w> {
     source: Res<'w, Source>,
-    images: ResMut<'w, Assets<Image>>,
-    shaders: ResMut<'w, Assets<Shader>>,
+    assets: ShadewireAssets<'w>,
     materials: ResMut<'w, Assets<ShadewireMaterial>>,
     swaps: ResMut<'w, Swaps>,
 }
@@ -56,7 +68,7 @@ impl Builder<'_> {
         if let Some(handle) = id.and_then(|id| self.swaps.by_base.get(&id)) {
             return Some(handle.clone());
         }
-        let material = match self.source.build(base.clone(), &mut self.images, &mut self.shaders) {
+        let material = match self.source.build(base.clone(), &mut self.assets) {
             Ok(material) => material,
             Err(err) => {
                 eprintln!("error: {}: {err}", self.source.mtlx.display());
@@ -76,7 +88,7 @@ impl Builder<'_> {
     pub fn reload(&mut self) {
         let mut rebuilt = Vec::new();
         for (base, _) in &self.swaps.entries {
-            match self.source.build(base.clone(), &mut self.images, &mut self.shaders) {
+            match self.source.build(base.clone(), &mut self.assets) {
                 Ok(material) => rebuilt.push(material),
                 Err(err) => {
                     eprintln!("error: {}: {err}", self.source.mtlx.display());

@@ -11,7 +11,7 @@ pub struct Args {
     /// The glTF scene; `None` shows a sphere and a cube.
     pub scene: Option<PathBuf>,
     pub mtlx: PathBuf,
-    /// The MaterialX material to build; the document's first one when `None`.
+    /// The MaterialX material to build; required when the document has several.
     pub material: Option<String>,
     /// Save a screenshot here after a few frames, then exit.
     pub screenshot: Option<PathBuf>,

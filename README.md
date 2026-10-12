@@ -120,20 +120,25 @@ C99 (C11 on MSVC) test.
 
 `shadewire-bevy` (Bevy 0.20) turns a MaterialX material into a `ShadewireMaterial`: a `StandardMaterial` (the base,
 which keeps its alpha mode, lighting and shadows) extended with a fragment shader generated for the graph. Identical
-graphs share one shader and pipeline whatever their values. Forward rendering only; up to 8 textures per material;
-meshes without tangents get a screen-space tangent frame.
+graphs share one shader and pipeline whatever their values; a shader is freed once no material holds it.
+`BuildOptions` picks the material and passes `MtlxOptions` (models, working colour space, `values_as_uniforms`)
+through. The builder returns the material with its reflection, so uniforms can be set by name later
+(`ShadewireExtension::set_uniform`). Forward rendering only; up to 8 textures per material; meshes without tangents
+get a screen-space tangent frame.
 
 ```rust
 use bevy::prelude::*;
-use shadewire_bevy::{FromMtlx, ShadewireMaterial, ShadewirePlugin};
+use shadewire_bevy::{BuildOptions, FromMtlx, ShadewireAssets, ShadewireMaterial, ShadewirePlugin};
 
 fn main() {
     App::new().add_plugins((DefaultPlugins, ShadewirePlugin)).add_systems(Startup, spawn).run();
 }
 
-fn spawn(mut commands: Commands, mut images: ResMut<Assets<Image>>, mut shaders: ResMut<Assets<Shader>>,
-         mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ShadewireMaterial>>) -> Result {
-    let marble = ShadewireMaterial::from_mtlx_file("marble.mtlx", None, default(), &mut images, &mut shaders)?;
+fn spawn(mut commands: Commands, mut assets: ShadewireAssets, mut meshes: ResMut<Assets<Mesh>>,
+         mut materials: ResMut<Assets<ShadewireMaterial>>) -> Result {
+    let marble = ShadewireMaterial::from_mtlx_file("marble.mtlx", &BuildOptions::default(), default(), &mut assets)?;
+    // marble.reflection names the uniforms: marble.material.extension.set_uniform(&marble.reflection, name, &value)
+    let marble = marble.material;
     let sphere = Sphere::new(1.0).mesh().uv(64, 32).with_generated_tangents()?;
     commands.spawn((Mesh3d(meshes.add(sphere)), MeshMaterial3d(materials.add(marble))));
     Ok(())
@@ -151,7 +156,7 @@ Coat and transmission: Bevy compiles clearcoat and specular transmission into a 
 `StandardMaterial` has them above 0. When the graph's coat (`coat`, `coat_weight`, `clearcoat`) or transmission
 (`transmission`, `transmission_weight`) is not 0, the builder gives a base that has them at 0 a small value (the
 shader replaces it with the graph's). Specular transmission also moves the mesh into Bevy's transmissive pass. A
-uniform built at 0 and raised later through the extension's `params` needs the base factor set by the app.
+uniform built at 0 and raised later through `set_uniform` or the extension's `params` needs the base factor set by the app.
 
 Limits:
 

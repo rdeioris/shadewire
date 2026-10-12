@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use bevy::prelude::*;
 use bevy::render::RenderPlugin;
 use bevy::window::WindowResolution;
-use shadewire_bevy::ShadewirePlugin;
+use shadewire_bevy::{BuildOptions, ShadewirePlugin};
 
 use orbit::Orbit;
 use scene::SceneFile;
@@ -31,9 +31,9 @@ fn main() -> AppExit {
             return AppExit::error();
         }
     };
-    let source = Source { mtlx: args.mtlx, material: args.material };
+    let source = Source { mtlx: args.mtlx, options: BuildOptions { material: args.material, ..default() } };
     // Compile once before opening a window, so a bad file is reported without one.
-    if let Err(err) = source.build(StandardMaterial::default(), &mut Assets::default(), &mut Assets::default()) {
+    if let Err(err) = source.check() {
         eprintln!("error: {}: {err}", source.mtlx.display());
         return AppExit::error();
     }

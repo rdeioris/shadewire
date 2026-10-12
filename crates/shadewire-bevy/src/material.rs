@@ -1,18 +1,20 @@
-//! The public builder: a MaterialX document to a `ShadewireMaterial` over a base `StandardMaterial`.
+//! The public builder: a MaterialX document to a `ShadewireMaterial` over a base `StandardMaterial`, with
+//! the reflection that names its uniforms.
 //!
-//! The builder takes the two asset stores it writes to, `Assets<Image>` (the textures) and
-//! `Assets<Shader>` (the generated fragment shader), so it runs wherever a system can borrow them:
+//! The builder writes textures to `Assets<Image>` and the generated fragment shader to `Assets<Shader>`,
+//! both borrowed through the [`ShadewireAssets`] system parameter:
 //!
 //! ```ignore
-//! fn spawn(mut images: ResMut<Assets<Image>>, mut shaders: ResMut<Assets<Shader>>, ...) {
-//!     let material = ShadewireMaterial::from_mtlx_file("marble.mtlx", None, base, &mut images, &mut shaders)?;
+//! fn spawn(mut assets: ShadewireAssets, ...) {
+//!     let built = ShadewireMaterial::from_mtlx_file("marble.mtlx", &BuildOptions::default(), base, &mut assets)?;
 //! }
 //! ```
 //!
 //! Shader cache: the shader is inserted under a `Uuid` derived from the reflection's structure hash and
 //! the compile options it does not cover (group, first binding, `flip_v`, `reserve_uniform_binding`),
 //! and only when that id is not in `Assets<Shader>` yet. Identical graphs, whatever their uniform
-//! values, share one shader and so one pipeline. Shaders inserted by id are never freed.
+//! values, share one shader and so one pipeline. The shader is freed once no material holds it
+//! (see `cache`).
 
 use std::path::Path;
 
@@ -21,87 +23,111 @@ use bevy::asset::uuid::Uuid;
 use bevy::image::Image;
 use bevy::pbr::{ExtendedMaterial, StandardMaterial};
 use bevy::shader::Shader;
-use shadewire_mtlx::{MtlxOptions, to_ir};
-use shadewire_wgsl::{CompileOptions, Compiled, compile};
+use shadewire_mtlx::to_ir;
+use shadewire_wgsl::{CompileOptions, compile};
 
+use crate::assets::ShadewireAssets;
+use crate::built::Built;
+use crate::cache::ShaderCache;
 use crate::error::ShadewireError;
 use crate::extension::ShadewireExtension;
 use crate::layers;
+use crate::options::BuildOptions;
 use crate::plugin::ShadewireMaterial;
-use crate::shader::{compile_options, module};
+use crate::shader::module;
 use crate::textures;
 use crate::uniforms;
 
 /// Builds a [`ShadewireMaterial`] from MaterialX. In scope through `use shadewire_bevy::FromMtlx;`.
 pub trait FromMtlx: Sized {
-    /// Builds the material `material` (the document's first one when `None`) of the MaterialX `text`.
-    /// `path` is the document's file: includes resolve against it and texture files against its
-    /// directory (the current directory without a path). Textures go to `images`, the generated shader
-    /// to `shaders` unless an identical graph put it there already. `base` gets a small clearcoat and
+    /// Builds `options.material` (needed only when the document has several) of the MaterialX `text`, with
+    /// its reflection. `path` is the document's file: includes resolve against it and texture files
+    /// against its directory (the current directory without a path). `base` gets a small clearcoat and
     /// specular transmission when the graph drives them and it has them at 0 (see the README's Bevy
     /// section): Bevy compiles those layers in only for a base that turns them on.
     fn from_mtlx(
         text: &str,
         path: Option<&Path>,
-        material: Option<&str>,
+        options: &BuildOptions,
         base: StandardMaterial,
-        images: &mut Assets<Image>,
-        shaders: &mut Assets<Shader>,
-    ) -> Result<Self, ShadewireError>;
+        assets: &mut ShadewireAssets,
+    ) -> Result<Built<Self>, ShadewireError>;
 
     /// [`FromMtlx::from_mtlx`] on the contents of the file at `path`.
     fn from_mtlx_file(
         path: impl AsRef<Path>,
-        material: Option<&str>,
+        options: &BuildOptions,
         base: StandardMaterial,
-        images: &mut Assets<Image>,
-        shaders: &mut Assets<Shader>,
-    ) -> Result<Self, ShadewireError>;
+        assets: &mut ShadewireAssets,
+    ) -> Result<Built<Self>, ShadewireError>;
 }
 
 impl FromMtlx for ShadewireMaterial {
     fn from_mtlx(
         text: &str,
         path: Option<&Path>,
-        material: Option<&str>,
+        options: &BuildOptions,
         base: StandardMaterial,
-        images: &mut Assets<Image>,
-        shaders: &mut Assets<Shader>,
-    ) -> Result<Self, ShadewireError> {
-        let ir = to_ir(text, path, material, &MtlxOptions::default())?;
-        let options = compile_options();
-        let compiled = compile(&ir.dag, &ir.source, &options)?;
-        let source = module(&compiled)?;
-        let params = uniforms::pack(&compiled.reflection)?;
-        let dir = path.and_then(Path::parent).unwrap_or(Path::new(""));
-        let [t0, t1, t2, t3, t4, t5, t6, t7] = textures::load(&compiled.reflection, dir, images)?;
-        let shader = insert_shader(&compiled, &options, source, shaders);
-        let extension = ShadewireExtension { params, t0, t1, t2, t3, t4, t5, t6, t7, shader };
-        Ok(ExtendedMaterial { base: layers::enable(base, &compiled.reflection), extension })
+        assets: &mut ShadewireAssets,
+    ) -> Result<Built<Self>, ShadewireError> {
+        build(text, path, options, base, &mut Stores::of(assets))
     }
 
     fn from_mtlx_file(
         path: impl AsRef<Path>,
-        material: Option<&str>,
+        options: &BuildOptions,
         base: StandardMaterial,
-        images: &mut Assets<Image>,
-        shaders: &mut Assets<Shader>,
-    ) -> Result<Self, ShadewireError> {
-        let path = path.as_ref();
-        let text = std::fs::read_to_string(path)
-            .map_err(|source| ShadewireError::Read { path: path.to_path_buf(), source })?;
-        Self::from_mtlx(&text, Some(path), material, base, images, shaders)
+        assets: &mut ShadewireAssets,
+    ) -> Result<Built<Self>, ShadewireError> {
+        build_file(path.as_ref(), options, base, &mut Stores::of(assets))
     }
 }
 
-/// The shader's id, inserting `source` under it unless a material with the same id did already.
-fn insert_shader(compiled: &Compiled, options: &CompileOptions, source: String, shaders: &mut Assets<Shader>) -> Uuid {
-    let id = shader_id(&compiled.reflection.structure_hash, options);
-    if !shaders.contains(id) {
-        let shader = Shader::from_wesl(source, format!("shadewire/material_{}.wesl", id.simple()));
-        shaders.insert(id, shader).expect("a Uuid asset id has no generation to be invalid");
+/// The builder's stores as plain borrows, so tests can build without an app.
+pub(crate) struct Stores<'a> {
+    pub images: &'a mut Assets<Image>,
+    pub shaders: &'a mut Assets<Shader>,
+    pub cache: &'a mut ShaderCache,
+}
+
+impl<'a> Stores<'a> {
+    fn of(assets: &'a mut ShadewireAssets) -> Stores<'a> {
+        Stores { images: &mut assets.images, shaders: &mut assets.shaders, cache: &mut assets.cache }
     }
-    id
+}
+
+pub(crate) fn build(
+    text: &str,
+    path: Option<&Path>,
+    options: &BuildOptions,
+    base: StandardMaterial,
+    stores: &mut Stores,
+) -> Result<Built<ShadewireMaterial>, ShadewireError> {
+    let ir = to_ir(text, path, options.material.as_deref(), &options.mtlx)?;
+    let compile_options = options.compile_options();
+    let compiled = compile(&ir.dag, &ir.source, &compile_options)?;
+    let source = module(&compiled)?;
+    let params = uniforms::pack(&compiled.reflection)?;
+    let dir = path.and_then(Path::parent).unwrap_or(Path::new(""));
+    let [t0, t1, t2, t3, t4, t5, t6, t7] = textures::load(&compiled.reflection, dir, stores.images)?;
+    let shader = shader_id(&compiled.reflection.structure_hash, &compile_options);
+    let hold = stores.cache.hold(shader, stores.shaders, || {
+        Shader::from_wesl(source, format!("shadewire/material_{}.wesl", shader.simple()))
+    });
+    let extension = ShadewireExtension { params, t0, t1, t2, t3, t4, t5, t6, t7, shader, hold };
+    let material = ExtendedMaterial { base: layers::enable(base, &compiled.reflection), extension };
+    Ok(Built { material, reflection: compiled.reflection })
+}
+
+pub(crate) fn build_file(
+    path: &Path,
+    options: &BuildOptions,
+    base: StandardMaterial,
+    stores: &mut Stores,
+) -> Result<Built<ShadewireMaterial>, ShadewireError> {
+    let text =
+        std::fs::read_to_string(path).map_err(|source| ShadewireError::Read { path: path.to_path_buf(), source })?;
+    build(&text, Some(path), options, base, stores)
 }
 
 /// 64-bit FNV-1a.
@@ -133,6 +159,11 @@ mod tests {
     use bevy::ecs::system::RunSystemOnce;
     use bevy::image::ImagePlugin;
     use bevy::prelude::*;
+    use shadewire::Value;
+    use shadewire_mtlx::MtlxOptions;
+
+    use crate::ShadewirePlugin;
+    use crate::shader::compile_options;
 
     const EXAMPLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/resources/Materials/Examples");
 
@@ -157,12 +188,49 @@ mod tests {
   </surfacematerial>
 </materialx>"#;
 
+    const TWO: &str = r#"<materialx version="1.39">
+  <surface_unlit name="A" type="surfaceshader">
+    <input name="emission_color" type="color3" value="1, 0, 0" />
+  </surface_unlit>
+  <surface_unlit name="B" type="surfaceshader">
+    <input name="emission_color" type="color3" value="0, 0, 1" />
+    <input name="emission" type="float" value="0.5" />
+  </surface_unlit>
+  <surfacematerial name="MA" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="A" />
+  </surfacematerial>
+  <surfacematerial name="MB" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="B" />
+  </surfacematerial>
+</materialx>"#;
+
     fn unlit(value: &str) -> String {
         UNLIT.replace("VALUE", value)
     }
 
-    fn build(text: &str, images: &mut Assets<Image>, shaders: &mut Assets<Shader>) -> ShadewireMaterial {
-        ShadewireMaterial::from_mtlx(text, None, None, StandardMaterial::default(), images, shaders).unwrap()
+    #[derive(Default)]
+    struct Fixture {
+        images: Assets<Image>,
+        shaders: Assets<Shader>,
+        cache: ShaderCache,
+    }
+
+    impl Fixture {
+        fn stores(&mut self) -> Stores<'_> {
+            Stores { images: &mut self.images, shaders: &mut self.shaders, cache: &mut self.cache }
+        }
+
+        fn build_with(&mut self, text: &str, options: &BuildOptions) -> Built<ShadewireMaterial> {
+            build(text, None, options, StandardMaterial::default(), &mut self.stores()).unwrap()
+        }
+
+        fn build(&mut self, text: &str) -> ShadewireMaterial {
+            self.build_with(text, &BuildOptions::default()).material
+        }
+
+        fn build_file(&mut self, path: impl AsRef<Path>) -> Result<Built<ShadewireMaterial>, ShadewireError> {
+            build_file(path.as_ref(), &BuildOptions::default(), StandardMaterial::default(), &mut self.stores())
+        }
     }
 
     #[test]
@@ -180,17 +248,90 @@ mod tests {
 
     #[test]
     fn identical_graphs_share_one_shader() {
-        let mut images = Assets::<Image>::default();
-        let mut shaders = Assets::<Shader>::default();
-        let a = build(&unlit("1, 0.5, 0.25"), &mut images, &mut shaders);
-        let b = build(&unlit("1, 0.5, 0.25"), &mut images, &mut shaders);
-        let c = build(&unlit("0, 1, 0"), &mut images, &mut shaders);
+        let mut f = Fixture::default();
+        let a = f.build(&unlit("1, 0.5, 0.25"));
+        let b = f.build(&unlit("1, 0.5, 0.25"));
+        let c = f.build(&unlit("0, 1, 0"));
         assert_eq!(a.extension.shader, b.extension.shader);
         assert_eq!(a.extension.shader, c.extension.shader);
+        assert_eq!(a.extension.hold.id(), Some(a.extension.shader));
         assert_ne!(a.extension.params, c.extension.params);
-        assert_eq!(shaders.len(), 1);
-        let shader = shaders.get(a.extension.shader).unwrap();
+        assert_eq!(f.shaders.len(), 1);
+        let shader = f.shaders.get(a.extension.shader).unwrap();
         assert!(shader.path.starts_with("shadewire/material_"), "{}", shader.path);
+    }
+
+    #[test]
+    fn the_shader_is_freed_with_its_last_material() {
+        let mut f = Fixture::default();
+        let a = f.build(&unlit("1, 0.5, 0.25"));
+        let b = a.clone();
+        let c = f.build(&unlit("0, 1, 0"));
+        let id = a.extension.shader;
+        drop(a);
+        drop(c);
+        assert_eq!(f.cache.free_unused(&mut f.shaders), 0);
+        assert!(f.shaders.contains(id));
+        drop(b);
+        assert_eq!(f.cache.free_unused(&mut f.shaders), 1);
+        assert!(f.shaders.is_empty() && f.cache.is_empty());
+        let again = f.build(&unlit("1, 1, 1"));
+        assert_eq!(again.extension.shader, id);
+        assert!(f.shaders.contains(id));
+    }
+
+    #[test]
+    fn mtlx_options_pass_through() {
+        let mut f = Fixture::default();
+        let uniforms = f.build_with(&unlit("1, 0.5, 0.25"), &BuildOptions::default());
+        let options = BuildOptions {
+            mtlx: MtlxOptions { values_as_uniforms: false, ..MtlxOptions::default() },
+            ..BuildOptions::default()
+        };
+        let constants = f.build_with(&unlit("1, 0.5, 0.25"), &options);
+        assert!(!uniforms.reflection.uniforms.is_empty());
+        assert!(constants.reflection.uniforms.is_empty());
+        assert_eq!(constants.reflection.params["emission_color"].kind, "constant");
+        assert_ne!(uniforms.material.extension.shader, constants.material.extension.shader);
+        assert_eq!(f.shaders.len(), 2);
+
+        let refused = BuildOptions {
+            mtlx: MtlxOptions { models: vec!["standard_surface".into()], ..MtlxOptions::default() },
+            ..BuildOptions::default()
+        };
+        assert!(build(&unlit("1, 1, 1"), None, &refused, default(), &mut f.stores()).is_err());
+    }
+
+    #[test]
+    fn flip_v_is_a_different_shader() {
+        let mut f = Fixture::default();
+        let flipped = f.build_with(&unlit("1, 1, 1"), &BuildOptions::default());
+        let unflipped = f.build_with(&unlit("1, 1, 1"), &BuildOptions { flip_v: false, ..BuildOptions::default() });
+        assert_ne!(flipped.material.extension.shader, unflipped.material.extension.shader);
+    }
+
+    #[test]
+    fn the_named_material_is_built() {
+        let mut f = Fixture::default();
+        let a = f.build_with(TWO, &BuildOptions::material("MA"));
+        let b = f.build_with(TWO, &BuildOptions::material("MB"));
+        assert_ne!(a.material.extension.params, b.material.extension.params);
+        assert_ne!(a.reflection.uniforms.len(), b.reflection.uniforms.len());
+        let err = build(TWO, None, &BuildOptions::default(), default(), &mut f.stores()).unwrap_err();
+        assert!(err.to_string().contains("MA"), "{err}");
+    }
+
+    #[test]
+    fn uniforms_are_set_by_name_through_the_reflection() {
+        let mut f = Fixture::default();
+        let Built { mut material, reflection } = f.build_with(&unlit("1, 0.5, 0.25"), &BuildOptions::default());
+        let name = reflection.params["emission_color"].uniform.clone().expect("a uniform field");
+        let expected = f.build(&unlit("0, 1, 0")).extension.params;
+        assert_ne!(material.extension.params, expected);
+        material.extension.set_uniform(&reflection, &name, &Value::Color3([0.0, 1.0, 0.0])).unwrap();
+        assert_eq!(material.extension.params, expected);
+        let err = material.extension.set_uniform(&reflection, "nope", &Value::Float(1.0)).unwrap_err();
+        assert!(matches!(err, ShadewireError::UnknownUniform(_)), "{err}");
     }
 
     #[test]
@@ -205,16 +346,12 @@ mod tests {
         std::fs::write(dir.join("m.mtlx"), TEXTURED.replace("FILE", "grid.png")).unwrap();
         std::fs::write(dir.join("missing.mtlx"), TEXTURED.replace("FILE", "nowhere.png")).unwrap();
 
-        let mut images = Assets::<Image>::default();
-        let mut shaders = Assets::<Shader>::default();
-        let base = StandardMaterial::default();
-        let m = ShadewireMaterial::from_mtlx_file(dir.join("m.mtlx"), None, base.clone(), &mut images, &mut shaders)
-            .unwrap();
+        let mut f = Fixture::default();
+        let m = f.build_file(dir.join("m.mtlx")).unwrap().material;
         assert!(m.extension.t0.is_some() && m.extension.t1.is_none());
-        assert_eq!(images.len(), 1);
+        assert_eq!(f.images.len(), 1);
 
-        let err = ShadewireMaterial::from_mtlx_file(dir.join("missing.mtlx"), None, base, &mut images, &mut shaders)
-            .unwrap_err();
+        let err = f.build_file(dir.join("missing.mtlx")).unwrap_err();
         assert!(err.to_string().contains("nowhere.png"), "{err}");
     }
 
@@ -228,43 +365,67 @@ mod tests {
     <input name="surfaceshader" type="surfaceshader" nodename="S" />
   </surfacematerial>
 </materialx>"#;
-        let mut images = Assets::<Image>::default();
-        let mut shaders = Assets::<Shader>::default();
-        let m = build(text, &mut images, &mut shaders);
+        let m = Fixture::default().build(text);
         assert!(m.base.clearcoat > 0.0);
         assert_eq!(m.base.specular_transmission, 0.0);
     }
 
     #[test]
     fn a_missing_mtlx_file_is_named() {
-        let mut images = Assets::<Image>::default();
-        let mut shaders = Assets::<Shader>::default();
-        let err =
-            ShadewireMaterial::from_mtlx_file("no/such.mtlx", None, default(), &mut images, &mut shaders).unwrap_err();
+        let err = Fixture::default().build_file("no/such.mtlx").unwrap_err();
         assert!(err.to_string().contains("such.mtlx"), "{err}");
+    }
+
+    fn headless() -> App {
+        let mut app = App::new();
+        app.add_plugins((MinimalPlugins, AssetPlugin::default(), ImagePlugin::default()));
+        app.init_asset::<Shader>();
+        app.add_plugins(ShadewirePlugin);
+        app
     }
 
     #[test]
     fn vendored_examples_build_in_a_headless_app() {
-        let mut app = App::new();
-        app.add_plugins((MinimalPlugins, AssetPlugin::default(), ImagePlugin::default()));
-        app.init_asset::<Shader>();
+        let mut app = headless();
         let built = app
             .world_mut()
-            .run_system_once(|mut images: ResMut<Assets<Image>>, mut shaders: ResMut<Assets<Shader>>| {
+            .run_system_once(|mut assets: ShadewireAssets| {
                 let mut ids = Vec::new();
                 for name in ["standard_surface_default", "standard_surface_marble_solid", "standard_surface_default"] {
                     let file = format!("{EXAMPLES}/StandardSurface/{name}.mtlx");
-                    let base = StandardMaterial::default();
-                    let m = ShadewireMaterial::from_mtlx_file(&file, None, base, &mut images, &mut shaders).unwrap();
-                    ids.push(m.extension.shader);
+                    let options = BuildOptions::default();
+                    let m = ShadewireMaterial::from_mtlx_file(&file, &options, default(), &mut assets).unwrap();
+                    ids.push(m.material.extension.shader);
                 }
-                (ids, shaders.len())
+                (ids, assets.shaders.len())
             })
             .unwrap();
         let (ids, count) = built;
         assert_eq!(ids[0], ids[2]);
         assert_ne!(ids[0], ids[1]);
         assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn the_plugin_frees_a_removed_materials_shader() {
+        let mut app = headless();
+        let text = unlit("1, 0.5, 0.25");
+        let (handle, id) = app
+            .world_mut()
+            .run_system_once(move |mut assets: ShadewireAssets, mut materials: ResMut<Assets<ShadewireMaterial>>| {
+                let options = BuildOptions::default();
+                let built = ShadewireMaterial::from_mtlx(&text, None, &options, default(), &mut assets).unwrap();
+                let id = built.material.extension.shader;
+                (materials.add(built.material), id)
+            })
+            .unwrap();
+        app.update();
+        app.update();
+        assert!(app.world().resource::<Assets<Shader>>().contains(id));
+        drop(handle);
+        app.update();
+        app.update();
+        assert!(!app.world().resource::<Assets<Shader>>().contains(id));
+        assert!(app.world().resource::<ShaderCache>().is_empty());
     }
 }
