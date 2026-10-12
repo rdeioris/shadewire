@@ -5,6 +5,9 @@ pub struct CompileOptions {
     pub group: u32,
     /// Binding of the first generated resource.
     pub first_binding: u32,
+    /// Keep `first_binding` for the uniform block even when the material has no uniforms: textures then start at
+    /// `first_binding + 1` and `uniform_binding` stays `None`. For hosts that bind their own buffer there.
+    pub reserve_uniform_binding: bool,
     /// Flip V when sampling: hosts upload images top row first.
     pub flip_v: bool,
     /// Run the optimizer before reflection and emission.
@@ -13,6 +16,6 @@ pub struct CompileOptions {
 
 impl Default for CompileOptions {
     fn default() -> CompileOptions {
-        CompileOptions { group: 2, first_binding: 0, flip_v: true, optimize: true }
+        CompileOptions { group: 2, first_binding: 0, reserve_uniform_binding: false, flip_v: true, optimize: true }
     }
 }

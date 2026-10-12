@@ -139,6 +139,7 @@ pub(crate) unsafe fn read_compile(ptr: *const shadewire_compile_options) -> Resu
         Ok(CompileOptions {
             group: (&raw const (*raw).group).read(),
             first_binding: (&raw const (*raw).first_binding).read(),
+            reserve_uniform_binding: false,
             flip_v: flag(&raw const (*raw).flip_v),
             optimize: flag(&raw const (*raw).optimize),
         })

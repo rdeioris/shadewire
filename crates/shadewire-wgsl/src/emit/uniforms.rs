@@ -43,7 +43,7 @@ mod tests {
             dag.surface.fields.push(SurfaceField { name: name.to_string(), ty, node: id });
         }
         let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };
-        reflect(&dag, &BindingOptions { group, first_binding: first }, &info).unwrap()
+        reflect(&dag, &BindingOptions { group, first_binding: first, reserve_uniform_binding: false }, &info).unwrap()
     }
 
     #[test]

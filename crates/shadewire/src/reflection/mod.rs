@@ -18,6 +18,9 @@ pub use textures::TextureReflection;
 pub struct BindingOptions {
     pub group: u32,
     pub first_binding: u32,
+    /// Keep `first_binding` for the uniform block even when there are no uniforms, so textures start at
+    /// `first_binding + 1`. `uniform_binding` stays `None` without uniforms. For hosts that own that slot.
+    pub reserve_uniform_binding: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -83,7 +86,7 @@ pub fn reflect(dag: &Dag, bindings: &BindingOptions, source: &SourceInfo) -> Res
         })
         .collect();
     let has_uniforms = !uniform_list.is_empty();
-    let first_texture = bindings.first_binding + has_uniforms as u32;
+    let first_texture = bindings.first_binding + (has_uniforms || bindings.reserve_uniform_binding) as u32;
 
     let mut approximations = dag.approximations.clone();
     for note in textures::approximations(dag, &live) {
@@ -149,7 +152,8 @@ mod tests {
     #[test]
     fn reflects_kinds_and_bindings() {
         let dag = sample_dag(true);
-        let r = reflect(&dag, &BindingOptions { group: 1, first_binding: 4 }, &info()).unwrap();
+        let r = reflect(&dag, &BindingOptions { group: 1, first_binding: 4, reserve_uniform_binding: false }, &info())
+            .unwrap();
         assert_eq!(r.params["base_weight"].kind, "constant");
         assert_eq!(r.params["base_weight"].value, Some(Value::Float(0.5)));
         assert_eq!(r.params["coat_weight"].kind, "uniform");
@@ -183,7 +187,8 @@ mod tests {
         dag.add(node(NodeKind::Context(ContextRead::Time), Type::Float));
         let uv = dag.add(node(NodeKind::Const(Value::Vector2([0.0; 2])), Type::Vector2));
         dag.add(node(NodeKind::Sample { texture: tex, uv, default: Value::Float(0.0), grad: None }, Type::Float));
-        let r = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).unwrap();
+        let r = reflect(&dag, &BindingOptions { group: 0, first_binding: 0, reserve_uniform_binding: false }, &info())
+            .unwrap();
         assert!(r.uniforms.is_empty());
         assert_eq!(r.uniform_binding, None);
         assert!(r.context.globals.is_empty());
@@ -193,8 +198,29 @@ mod tests {
     }
 
     #[test]
+    fn reserved_uniform_binding_shifts_textures_without_uniforms() {
+        let options = BindingOptions { group: 0, first_binding: 4, reserve_uniform_binding: true };
+        let r = reflect(&sample_dag(false), &options, &info()).unwrap();
+        assert_eq!(r.uniform_binding, None);
+        assert_eq!((r.textures[0].binding, r.textures[0].sampler_binding), (5, 6));
+    }
+
+    #[test]
+    fn reserved_uniform_binding_leaves_uniform_dags_unchanged() {
+        let options = BindingOptions { group: 0, first_binding: 4, reserve_uniform_binding: true };
+        let r = reflect(&sample_dag(true), &options, &info()).unwrap();
+        assert_eq!(r.uniform_binding, Some(4));
+        assert_eq!(r.textures[0].binding, 5);
+    }
+
+    #[test]
     fn without_uniforms_textures_start_at_first_binding() {
-        let r = reflect(&sample_dag(false), &BindingOptions { group: 0, first_binding: 4 }, &info()).unwrap();
+        let r = reflect(
+            &sample_dag(false),
+            &BindingOptions { group: 0, first_binding: 4, reserve_uniform_binding: false },
+            &info(),
+        )
+        .unwrap();
         assert_eq!(r.uniform_binding, None);
         assert_eq!(r.uniform_block_size, 0);
         assert_eq!(r.textures[0].binding, 4);
@@ -211,7 +237,9 @@ mod tests {
             ));
             dag.surface.fields.push(SurfaceField { name: name.into(), ty: Type::Float, node: id });
         }
-        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).unwrap().context;
+        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0, reserve_uniform_binding: false }, &info())
+            .unwrap()
+            .context;
         let f: Vec<&str> = c.geomprops.iter().map(|g| g.function.as_str()).collect();
         assert_eq!(
             f,
@@ -235,7 +263,9 @@ mod tests {
         dag.surface.fields.push(SurfaceField { name: "a".into(), ty: Type::Color3, node: g });
         dag.surface.fields.push(SurfaceField { name: "b".into(), ty: Type::Float, node: h });
         dag.geomprop_defaults.insert("tint".into(), Value::Color3([1.0, 1.0, 1.0]));
-        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).unwrap().context;
+        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0, reserve_uniform_binding: false }, &info())
+            .unwrap()
+            .context;
         let bare = c.geomprops.iter().find(|g| g.name == "bare").unwrap();
         let tint = c.geomprops.iter().find(|g| g.name == "tint").unwrap();
         assert_eq!(bare.default, None);
@@ -265,7 +295,9 @@ mod tests {
             let ty = dag.node(id).ty;
             dag.surface.fields.push(SurfaceField { name: format!("f{n}"), ty, node: id });
         }
-        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).unwrap().context;
+        let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0, reserve_uniform_binding: false }, &info())
+            .unwrap()
+            .context;
         assert_eq!(c.varyings, vec![ContextEntry { name: "position_world".into(), ty: Type::Vector3 }]);
         assert_eq!(c.derived, vec![ContextEntry { name: "view_direction_world".into(), ty: Type::Vector3 }]);
         assert_eq!(c.globals, vec![ContextEntry { name: "time".into(), ty: Type::Float }]);
