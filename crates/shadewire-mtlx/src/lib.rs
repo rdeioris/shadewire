@@ -1,5 +1,6 @@
 //! MaterialX document reader and graph lowering for Shadewire
 
+pub mod compile_mtlx;
 pub mod document;
 pub mod elaborate;
 pub mod element;
@@ -13,6 +14,7 @@ pub mod to_ir;
 pub mod upgrade;
 pub mod version;
 
+pub use compile_mtlx::compile_mtlx;
 pub use document::Document;
 pub use elaborate::{ElaborateOptions, elaborate};
 pub use element::Element;

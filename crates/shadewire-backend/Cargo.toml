@@ -1,6 +1,6 @@
 [package]
-name = "shadewire-wgsl"
-description = "WGSL emitter for Shadewire material DAGs"
+name = "shadewire-backend"
+description = "Shadewire back end: material IR to WGSL and reflection, with optional naga translation"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

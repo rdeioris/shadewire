@@ -9,7 +9,9 @@ authors.workspace = true
 repository.workspace = true
 
 [dependencies]
-shadewire.workspace = true
+shadewire-ir.workspace = true
+shadewire-mtlx.workspace = true
+shadewire-backend = { workspace = true, features = ["translate"] }
 clap.workspace = true
 serde_json.workspace = true
 

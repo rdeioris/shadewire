@@ -1,7 +1,9 @@
-use shadewire::{
-    CompileOptions, Compiled, Error, GlslVersion, HlslShaderModel, MslVersion, MtlxOptions, Output, Target,
-    compile_mtlx, link, model_struct_name, optimize, reference_host, to_ir, translate,
+use shadewire_backend::{
+    CompileOptions, Compiled, GlslVersion, HlslShaderModel, MslVersion, Output, Target, link, reference_host, translate,
 };
+use shadewire_ir::optimize::optimize;
+use shadewire_ir::{Error, model_struct_name};
+use shadewire_mtlx::{MtlxOptions, compile_mtlx, to_ir};
 
 use clap::ValueEnum;
 

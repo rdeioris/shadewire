@@ -33,7 +33,7 @@ import MaterialX.PyMaterialXRenderGlsl as mx_render_glsl
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MATERIALS = ROOT / "tools/oracle/materials"
-OUT = ROOT / "crates/shadewire/tests/oracle"
+OUT = ROOT / "crates/shadewire-mtlx/tests/oracle"
 SIZE = 16
 
 

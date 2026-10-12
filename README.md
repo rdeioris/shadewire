@@ -27,13 +27,17 @@ Options:
 
 In the uniform block a `boolean` uniform is a `u32` (0 or 1), since WGSL has no host-shareable `bool`; `integer` is `i32`. Offsets and sizes are in the reflection's `uniforms`.
 
-Library:
+Library — the crates:
 
-The MaterialX front end (`shadewire_mtlx::to_ir`) lowers a material to the IR; the back end
-(`shadewire::compile`) optimizes, reflects and emits WGSL for any front end's IR.
+- `shadewire-ir`: the IR (a typed DAG), optimizer, CPU interpreter, reflection.
+- `shadewire-backend`: IR to WGSL and reflection (`compile`); with its `translate` feature (on by default), naga translation to HLSL, GLSL, MSL and SPIR-V.
+- `shadewire-mtlx`: the MaterialX front end, MaterialX to IR (`to_ir`) and MaterialX to WGSL in one call (`compile_mtlx`). It never pulls in naga.
+- `shadewire-cli`: the `shadewire` command.
 
 ```rust
-use shadewire::{compile, optimize, to_ir, CompileOptions, MtlxOptions};
+use shadewire_backend::{CompileOptions, compile};
+use shadewire_ir::optimize::optimize;
+use shadewire_mtlx::{MtlxOptions, to_ir};
 
 let text = std::fs::read_to_string("material.mtlx")?;
 let ir = to_ir(&text, Some("material.mtlx".as_ref()), None, &MtlxOptions::default())?;
@@ -44,7 +48,7 @@ println!("{}", out.wgsl);
 println!("{}", out.reflection.model);
 ```
 
-`compile_mtlx(text, file, material, &MtlxOptions, &CompileOptions)` does both steps in one call.
+`shadewire_mtlx::compile_mtlx(text, file, material, &MtlxOptions, &CompileOptions)` does both steps in one call. Examples: `cargo run -p shadewire-mtlx --example mtlx_to_wgsl -- material.mtlx` and `--example mtlx_to_hlsl`.
 
 ## Reflection
 
@@ -59,8 +63,8 @@ Each entry of `textures` names its file and the `colorspace` it was authored in.
 
 ## Targets
 
-Other languages come from the linked WGSL module through naga, behind the `translate` cargo feature (on by default). `default-features = false` gives a naga-free build with WGSL and reflection only. Targets are Shadewire's own types (`HlslShaderModel`, `GlslVersion`, `MslVersion`), so callers never depend on naga. HLSL shader model 6 samplers go through naga's sampler heap (register `s0`, space 0). MSL uses `fake_missing_bindings`, so resource slots follow declaration order.
+Other languages come from the linked WGSL module through naga, behind the `translate` feature of `shadewire-backend` (on by default; `default-features = false` gives a naga-free back end). Targets are Shadewire's own types (`HlslShaderModel`, `GlslVersion`, `MslVersion`), so callers never depend on naga. HLSL shader model 6 samplers go through naga's sampler heap (register `s0`, space 0). MSL uses `fake_missing_bindings`, so resource slots follow declaration order.
 
 ## Development
 
-The GPU parity test (interpreter vs WGSL on a real adapter, about three minutes) is ignored by default: run it with `cargo test -p shadewire-wgsl --test gpu_parity -- --ignored`. It skips when no adapter exists; `SHADEWIRE_REQUIRE_GPU=1` makes that a failure.
+The GPU parity test (interpreter vs WGSL on a real adapter, about three minutes) is ignored by default: run it with `cargo test -p shadewire-backend --test gpu_parity -- --ignored`. It skips when no adapter exists; `SHADEWIRE_REQUIRE_GPU=1` makes that a failure.

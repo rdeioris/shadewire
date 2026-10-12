@@ -1,31 +1,13 @@
+//! MaterialX to WGSL in one call.
+
 use std::path::Path;
 
-use shadewire_ir::optimize::optimize;
-use shadewire_ir::{BindingOptions, Dag, Error, Reflection, SourceInfo, reflect};
-use shadewire_mtlx::{MtlxOptions, to_ir};
-use shadewire_wgsl::{EmitOptions, emit};
+use shadewire_backend::{CompileOptions, Compiled, compile};
+use shadewire_ir::Error;
 
-use crate::options::CompileOptions;
+use crate::to_ir::{MtlxOptions, to_ir};
 
-/// The result of a compilation: the generated module, what a host must bind, and the DAG
-/// the module was emitted from (optimized when `CompileOptions::optimize`).
-#[derive(Clone, Debug)]
-pub struct Compiled {
-    pub wgsl: String,
-    pub reflection: Reflection,
-    pub dag: Dag,
-}
-
-/// The back end, for any front end's IR: optimize, reflect, emit.
-pub fn compile(dag: &Dag, source: &SourceInfo, options: &CompileOptions) -> Result<Compiled, Error> {
-    let dag = if options.optimize { optimize(dag) } else { dag.clone() };
-    let bindings = BindingOptions { group: options.group, first_binding: options.first_binding };
-    let reflection = reflect(&dag, &bindings, source)?;
-    let wgsl = emit(&dag, &reflection, &EmitOptions { flip_v: options.flip_v });
-    Ok(Compiled { wgsl, reflection, dag })
-}
-
-/// MaterialX text to WGSL in one call: `shadewire_mtlx::to_ir`, then `compile`.
+/// `to_ir`, then the back end's `compile`.
 pub fn compile_mtlx(
     text: &str,
     file: Option<&Path>,
@@ -40,6 +22,9 @@ pub fn compile_mtlx(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::to_ir::{MtlxOptions, to_ir};
+    use shadewire_backend::{CompileOptions, compile};
+    use shadewire_ir::Error;
 
     const EXAMPLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/resources/Materials/Examples");
 

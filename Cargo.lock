@@ -1028,16 +1028,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "shadewire"
+name = "shadewire-backend"
 version = "0.1.0"
 dependencies = [
- "insta",
  "naga",
- "png",
- "serde_json",
+ "pollster",
  "shadewire-ir",
- "shadewire-mtlx",
- "shadewire-wgsl",
+ "wgpu",
 ]
 
 [[package]]
@@ -1046,7 +1043,9 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "serde_json",
- "shadewire",
+ "shadewire-backend",
+ "shadewire-ir",
+ "shadewire-mtlx",
 ]
 
 [[package]]
@@ -1063,19 +1062,13 @@ name = "shadewire-mtlx"
 version = "0.1.0"
 dependencies = [
  "include_dir",
+ "insta",
+ "png",
  "quick-xml",
+ "serde_json",
+ "shadewire-backend",
  "shadewire-ir",
  "thiserror",
-]
-
-[[package]]
-name = "shadewire-wgsl"
-version = "0.1.0"
-dependencies = [
- "naga",
- "pollster",
- "shadewire-ir",
- "wgpu",
 ]
 
 [[package]]
