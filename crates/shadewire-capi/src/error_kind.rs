@@ -18,7 +18,7 @@ pub enum shadewire_error_kind {
     SHADEWIRE_ERROR_SHADER = 6,
     /// Reading or writing failed.
     SHADEWIRE_ERROR_IO = 7,
-    /// An internal panic was caught at the boundary.
+    /// An internal fault: a panic caught at the boundary, or a library bug the caller cannot fix.
     SHADEWIRE_ERROR_PANIC = 8,
 }
 
