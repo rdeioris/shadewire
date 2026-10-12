@@ -1,7 +1,9 @@
 //! Helpers shared by the emitter's test modules.
 
 use shadewire::reflection::live::live_nodes;
-use shadewire::{BindingOptions, ContextRead, Dag, Node, NodeId, NodeKind, Reflection, SourceInfo, Type, reflect};
+use shadewire::{
+    BindingOptions, ContextRead, Dag, HOST_PREFIX, Node, NodeId, NodeKind, Reflection, SourceInfo, Type, reflect,
+};
 
 use super::ops::Arg;
 use super::types::wgsl_type;
@@ -63,7 +65,7 @@ pub fn validates(dag: &Dag, reflection: &Reflection, wgsl: &str) {
         }
     }
     for t in &reflection.context.transforms {
-        stubs.push(format!("fn shadewire_{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
+        stubs.push(format!("fn {HOST_PREFIX}{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
     }
     let entry = "@fragment\nfn shadewire_test_fragment() -> @location(0) vec4<f32> {\n    _ = shadewire_eval_surface();\n    return vec4<f32>(0.0);\n}\n";
     naga_validates(&format!("{}\n{wgsl}\n{entry}", stubs.concat()));

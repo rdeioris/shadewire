@@ -213,7 +213,14 @@ mod tests {
         }
         let c = reflect(&dag, &BindingOptions { group: 0, first_binding: 0 }, &info()).unwrap().context;
         let f: Vec<&str> = c.geomprops.iter().map(|g| g.function.as_str()).collect();
-        assert_eq!(f, vec!["shadewire_geomprop_my_prop", "shadewire_geomprop_my_prop_2", "shadewire_geomprop_plain"]);
+        assert_eq!(
+            f,
+            vec![
+                "shadewire_host_geomprop_my_prop",
+                "shadewire_host_geomprop_my_prop_2",
+                "shadewire_host_geomprop_plain"
+            ]
+        );
     }
 
     #[test]
@@ -267,7 +274,7 @@ mod tests {
             vec![GeomPropReflection {
                 name: "tint".into(),
                 ty: Type::Color3,
-                function: "shadewire_geomprop_tint".into(),
+                function: "shadewire_host_geomprop_tint".into(),
                 default: None
             }]
         );

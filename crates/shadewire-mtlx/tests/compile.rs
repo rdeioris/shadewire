@@ -83,7 +83,7 @@ fn a_converted_uniform_is_a_uniform_expression() {
     assert_eq!((base.kind, base.uniform.as_deref()), ("uniform", Some("base")));
 }
 
-/// One host function per reflection name: `shadewire_texcoord_0` cannot return two types.
+/// One host function per reflection name: `shadewire_host_texcoord_0` cannot return two types.
 #[test]
 fn one_context_read_at_two_types_is_an_error() {
     let text = r#"<materialx version="1.39">

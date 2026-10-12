@@ -72,7 +72,7 @@ struct MaterialUniforms {
 fn shadewire_eval_surface() -> OpenPbrSurface {
     let n0: vec3<f32> = shadewire_u.tint;
     let n1: vec3<f32> = vec3<f32>(0.0, 0.0, 1.0);
-    let n3: vec2<f32> = shadewire_texcoord_0();
+    let n3: vec2<f32> = shadewire_host_texcoord_0();
     let n4: f32 = n3[0];
     let n5: vec3<f32> = (n1 + (n0 - n1) * n4);
     return OpenPbrSurface(n5, n4);
@@ -137,7 +137,7 @@ fn shadewire_eval_surface() -> OpenPbrSurface {
         dag.surface.fields.push(SurfaceField { name: "normal".into(), ty: Type::Vector3, node: wn });
         let r = reflection(&dag);
         let text = emit(&dag, &r, &EmitOptions::default());
-        assert!(text.contains("shadewire_geomprop_my_prop()"), "{text}");
+        assert!(text.contains("shadewire_host_geomprop_my_prop()"), "{text}");
         assert!(text.contains("return StandardSurface(n25, n10, n8);"), "{text}");
         validates(&dag, &r, &text);
     }

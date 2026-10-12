@@ -104,7 +104,7 @@ mod tests {
             node_lets(&dag, &r, &EmitOptions::default()),
             vec![
                 "let n0: bool = (shadewire_u.flag != 0u);",
-                "let n2: f32 = shadewire_geomprop_my_prop();",
+                "let n2: f32 = shadewire_host_geomprop_my_prop();",
                 "let n3: f32 = shadewire_u.my_prop;",
                 "let n4: f32 = select(n3, n2, (n2 > n3));",
                 "let n5: bool = (!n0);",
@@ -158,8 +158,8 @@ mod tests {
         assert_eq!(
             node_lets(&dag, &r, &EmitOptions::default()),
             [
-                "let n0: vec3<f32> = shadewire_normal_object();",
-                "let n1: vec3<f32> = normalize(shadewire_transform_normal_object_to_world(n0));"
+                "let n0: vec3<f32> = shadewire_host_normal_object();",
+                "let n1: vec3<f32> = normalize(shadewire_host_transform_normal_object_to_world(n0));"
             ]
         );
     }

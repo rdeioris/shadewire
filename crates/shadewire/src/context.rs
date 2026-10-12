@@ -1,5 +1,9 @@
 use crate::{Space, Type};
 
+/// Prefix of every function the host implements (`shadewire_host_texcoord_0`, ...); generated
+/// internal names use plain `shadewire_`.
+pub const HOST_PREFIX: &str = "shadewire_host_";
+
 /// A value the host supplies per fragment, per frame or per geometry.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ContextRead {
@@ -57,7 +61,7 @@ impl ContextRead {
 
     /// The host function the generated WGSL calls.
     pub fn function_name(&self) -> String {
-        format!("shadewire_{}", self.reflection_name())
+        format!("{HOST_PREFIX}{}", self.reflection_name())
     }
 
     pub fn class(&self) -> ContextClass {
@@ -76,13 +80,13 @@ mod tests {
 
     #[test]
     fn host_function_names() {
-        assert_eq!(ContextRead::Position(Space::World).function_name(), "shadewire_position_world");
-        assert_eq!(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }.function_name(), "shadewire_texcoord_0");
-        assert_eq!(ContextRead::ViewDirection(Space::World).function_name(), "shadewire_view_direction_world");
+        assert_eq!(ContextRead::Position(Space::World).function_name(), "shadewire_host_position_world");
+        assert_eq!(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }.function_name(), "shadewire_host_texcoord_0");
+        assert_eq!(ContextRead::ViewDirection(Space::World).function_name(), "shadewire_host_view_direction_world");
         assert_eq!(
             ContextRead::GeomProp { name: "displayColor".into(), ty: Type::Color3 }.function_name(),
-            "shadewire_geomprop_displayColor"
+            "shadewire_host_geomprop_displayColor"
         );
-        assert_eq!(ContextRead::Time.function_name(), "shadewire_time");
+        assert_eq!(ContextRead::Time.function_name(), "shadewire_host_time");
     }
 }

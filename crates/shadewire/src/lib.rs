@@ -20,7 +20,7 @@ mod value;
 mod value_parse;
 
 pub use classify::ParamKind;
-pub use context::{ContextClass, ContextRead};
+pub use context::{ContextClass, ContextRead, HOST_PREFIX};
 pub use dag::Dag;
 pub use error::{Error, Location};
 pub use node::{Node, NodeId, NodeKind};

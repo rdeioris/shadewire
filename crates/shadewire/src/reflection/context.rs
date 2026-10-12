@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{ContextClass, ContextRead, Dag, Error, Location, NodeKind, Op, Type, Value, transform_name};
+use crate::{ContextClass, ContextRead, Dag, Error, HOST_PREFIX, Location, NodeKind, Op, Type, Value, transform_name};
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct GeomPropReflection {
@@ -51,7 +51,7 @@ fn unique_functions(geomprops: &mut [GeomPropReflection]) {
     for g in geomprops.iter_mut() {
         let clean: String =
             g.name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' { c } else { '_' }).collect();
-        let base = format!("shadewire_geomprop_{clean}");
+        let base = format!("{HOST_PREFIX}geomprop_{clean}");
         let mut candidate = base.clone();
         let mut n = 2;
         while taken.contains(&candidate) {

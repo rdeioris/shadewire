@@ -4,7 +4,7 @@
 //! entry sets it); transforms are identities. Geomprops start at their authored default
 //! when reflection has one, else zero.
 
-use shadewire::{ContextEntry, Reflection, Type, Value};
+use shadewire::{ContextEntry, HOST_PREFIX, Reflection, Type, Value};
 
 use crate::emit::names::ident;
 use crate::emit::types::{literal, wgsl_type};
@@ -18,7 +18,7 @@ struct HostRead {
 }
 
 fn named_read(entry: &ContextEntry) -> HostRead {
-    HostRead { function: format!("shadewire_{}", entry.name), ty: entry.ty, init: None }
+    HostRead { function: format!("{HOST_PREFIX}{}", entry.name), ty: entry.ty, init: None }
 }
 
 fn varyings(reflection: &Reflection) -> Vec<HostRead> {
@@ -47,10 +47,10 @@ fn color_field(reflection: &Reflection) -> Option<String> {
     colors.iter().find(|n| n.as_str() == "base_color").or(colors.first()).map(|n| ident(n))
 }
 
-/// `position_world` for `shadewire_position_world`: the fragment input member; the private
+/// `position_world` for `shadewire_host_position_world`: the fragment input member; the private
 /// variable is `shadewire_in_` + this.
 fn member_name(function: &str) -> &str {
-    function.strip_prefix("shadewire_").unwrap_or(function)
+    function.strip_prefix(HOST_PREFIX).unwrap_or(function)
 }
 
 fn fragment_entry(reflection: &Reflection, model_struct: &str) -> String {
@@ -92,7 +92,7 @@ pub fn prelude(reflection: &Reflection, model_struct: &str) -> String {
         out.push_str(&format!("var<private> {var}: {ty}{start};\nfn {}() -> {ty} {{ return {var}; }}\n", r.function));
     }
     for t in &reflection.context.transforms {
-        out.push_str(&format!("fn shadewire_{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
+        out.push_str(&format!("fn {HOST_PREFIX}{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}\n"));
     }
     out.push('\n');
     out.push_str(&fragment_entry(reflection, model_struct));
@@ -133,9 +133,9 @@ mod tests {
         dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: t });
         let r = reflection(&dag);
         let generated = emit(&dag, &r, &EmitOptions::default());
-        assert!(generated.contains("shadewire_transform_normal_object_to_world("), "{generated}");
+        assert!(generated.contains("shadewire_host_transform_normal_object_to_world("), "{generated}");
         let prelude = prelude(&r, "GltfPbr");
-        assert!(prelude.contains("fn shadewire_transform_normal_object_to_world(v: vec3<f32>) -> vec3<f32>"));
+        assert!(prelude.contains("fn shadewire_host_transform_normal_object_to_world(v: vec3<f32>) -> vec3<f32>"));
         link(&generated, &prelude).unwrap();
     }
 
@@ -180,7 +180,7 @@ mod tests {
         dag.surface.fields.push(SurfaceField { name: "emissive".into(), ty: Type::Color3, node: n });
         let r = reflection(&dag);
         let prelude = prelude(&r, "GltfPbr");
-        assert!(prelude.contains("fn shadewire_geomprop_my_prop() -> f32"));
+        assert!(prelude.contains("fn shadewire_host_geomprop_my_prop() -> f32"));
         assert!(prelude.contains("shadewire_in_view_direction_world = vec3<f32>(0.0, 0.0, -1.0);"));
         assert!(prelude.contains("@location(0) normal_world: vec3<f32>"));
         link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
