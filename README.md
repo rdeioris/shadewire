@@ -138,4 +138,6 @@ The WGSL back end writes the other languages from the linked WGSL module through
 
 ## Development
 
+The Godot check compiles every shader the Godot back end's tests generate (the vendored examples and the emitter's own cases) with Godot's own compiler, headless and without a GPU: `python -I tools/godot_check/check_gdshader.py <path to a Godot 4.x binary>`.
+
 The GPU parity test (interpreter vs WGSL on a real adapter, about three minutes) is ignored by default: run it with `cargo test -p shadewire-wgsl --test gpu_parity -- --ignored`. It skips when no adapter exists; `SHADEWIRE_REQUIRE_GPU=1` makes that a failure.

@@ -7,7 +7,21 @@ fn shader(dag: &Dag, options: &GdshaderOptions) -> Assembled {
     let r = reflection(dag);
     let assembled = emit(dag, &r, &UniformNames::new(&r), options);
     godot_rules(&assembled.code);
+    static COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let n = COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let test = std::thread::current().name().unwrap_or("test").replace("::", "_");
+    write_out(&format!("{test}_{n}"), &assembled.code);
     assembled
+}
+
+/// With `SHADEWIRE_GDSHADER_OUT` set, writes a generated shader there, for `godot --headless` to
+/// check.
+fn write_out(name: &str, code: &str) {
+    if let Some(dir) = std::env::var_os("SHADEWIRE_GDSHADER_OUT") {
+        let dir = std::path::PathBuf::from(dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(format!("{name}.gdshader")), code).unwrap();
+    }
 }
 
 fn code(dag: &Dag) -> String {
