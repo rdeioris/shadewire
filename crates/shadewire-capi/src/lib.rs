@@ -4,6 +4,7 @@
 //! Every fallible function takes an `error` out-parameter: it is written only on failure and left untouched on
 //! success (callers initialise it to NULL), and may itself be NULL to ignore the error object.
 
+mod blob;
 mod compiled;
 mod error;
 mod error_kind;
@@ -13,8 +14,10 @@ mod options;
 mod status;
 mod strings;
 mod target;
+mod translate;
 mod version;
 
+pub use blob::{shadewire_blob, shadewire_blob_data, shadewire_blob_free, shadewire_blob_is_text};
 pub use compiled::{
     shadewire_compile_mtlx, shadewire_compiled, shadewire_compiled_free, shadewire_compiled_ir_dump,
     shadewire_compiled_reflection_json, shadewire_compiled_struct_name, shadewire_compiled_wgsl,
@@ -37,4 +40,5 @@ pub use target::{
     SHADEWIRE_TARGET_SPIRV, SHADEWIRE_TARGET_WEBGL2, SHADEWIRE_TARGET_WGSL, shadewire_target, shadewire_target_kind,
     to_target,
 };
+pub use translate::shadewire_translate;
 pub use version::{shadewire_version, shadewire_version_string};

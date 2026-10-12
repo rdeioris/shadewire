@@ -28,9 +28,15 @@ pub struct shadewire_compiled {
 ///
 /// # Safety
 /// `ptr` must be NULL or a live handle that outlives `'a`.
-#[allow(dead_code)] // used by the translate entry points in the next task
 pub(crate) unsafe fn borrow<'a>(ptr: *const shadewire_compiled) -> Result<&'a shadewire_compiled, ArgError> {
     unsafe { ptr.as_ref() }.ok_or_else(|| ArgError("compiled is NULL".to_string()))
+}
+
+impl shadewire_compiled {
+    /// The WGSL struct name of the shading model.
+    pub(crate) fn struct_name(&self) -> String {
+        self.struct_name.to_string_lossy().into_owned()
+    }
 }
 
 fn build(
@@ -132,7 +138,7 @@ pub unsafe extern "C" fn shadewire_compiled_reflection_json(
 }
 
 /// A text dump of the optimized IR, built on first call and valid until `c` is freed; see
-/// `shadewire_compiled_wgsl` for `len`. NULL when `c` is NULL or building the dump failed.
+/// `shadewire_compiled_wgsl` for `len`, which is 0 on failure. NULL when `c` is NULL or building the dump failed.
 ///
 /// # Safety
 /// As `shadewire_compiled_wgsl`.

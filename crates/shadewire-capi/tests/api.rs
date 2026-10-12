@@ -170,18 +170,19 @@ fn sentinel<T>() -> *mut T {
 #[test]
 fn error_is_untouched_on_success() {
     let example = default_example();
-    let mut error: *mut shadewire_error = null_mut();
+    let marker = sentinel::<shadewire_error>();
+    let mut error: *mut shadewire_error = marker;
     let mut ir = null_mut();
     let status = unsafe {
         shadewire_mtlx_to_ir(example.as_ptr().cast(), example.len(), null(), null(), null(), &mut ir, &mut error)
     };
-    assert_eq!((status, error.is_null()), (shadewire_status::SHADEWIRE_OK, true));
+    assert_eq!((status, error), (shadewire_status::SHADEWIRE_OK, marker));
     let mut compiled = null_mut();
     assert_eq!(
         unsafe { shadewire_wgsl_compile(ir, null(), &mut compiled, &mut error) },
         shadewire_status::SHADEWIRE_OK
     );
-    assert!(error.is_null());
+    assert_eq!(error, marker);
     let mut one = null_mut();
     let status = unsafe {
         shadewire_compile_mtlx(
@@ -195,7 +196,12 @@ fn error_is_untouched_on_success() {
             &mut error,
         )
     };
-    assert_eq!((status, error.is_null()), (shadewire_status::SHADEWIRE_OK, true));
+    assert_eq!((status, error), (shadewire_status::SHADEWIRE_OK, marker));
+    let mut blob = null_mut();
+    let target = shadewire_target { kind: SHADEWIRE_TARGET_WGSL, version: 0 };
+    let status = unsafe { shadewire_translate(compiled, null(), target, &mut blob, &mut error) };
+    assert_eq!((status, error), (shadewire_status::SHADEWIRE_OK, marker));
+    unsafe { shadewire_blob_free(blob) };
     unsafe { shadewire_compiled_free(one) };
     unsafe { shadewire_compiled_free(compiled) };
     unsafe { shadewire_ir_free(ir) };
@@ -235,4 +241,136 @@ fn getters_on_null_return_null_with_zero_len() {
         assert_eq!(len, 0);
         assert!(shadewire_compiled_struct_name(null()).is_null());
     }
+}
+
+fn compiled_from(path_in_materials: &str) -> *mut shadewire_compiled {
+    let path = format!(
+        "{}/../../vendor/materialx/resources/Materials/Examples/{path_in_materials}",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let text = std::fs::read_to_string(&path).unwrap();
+    let cpath = CString::new(path).unwrap();
+    let mut compiled = null_mut();
+    let mut error = null_mut();
+    let status = unsafe {
+        shadewire_compile_mtlx(
+            text.as_ptr().cast(),
+            text.len(),
+            cpath.as_ptr(),
+            null(),
+            null(),
+            null(),
+            &mut compiled,
+            &mut error,
+        )
+    };
+    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+    compiled
+}
+
+fn translate_to(
+    compiled: *const shadewire_compiled,
+    prelude: *const std::os::raw::c_char,
+    kind: shadewire_target_kind,
+    version: u32,
+) -> Result<*mut shadewire_blob, *mut shadewire_error> {
+    let mut blob = null_mut();
+    let mut error = null_mut();
+    let target = shadewire_target { kind, version };
+    match unsafe { shadewire_translate(compiled, prelude, target, &mut blob, &mut error) } {
+        shadewire_status::SHADEWIRE_OK => Ok(blob),
+        _ => Err(error),
+    }
+}
+
+fn blob_bytes(blob: *const shadewire_blob) -> Vec<u8> {
+    let mut len = 0usize;
+    let ptr = unsafe { shadewire_blob_data(blob, &mut len) };
+    unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec()
+}
+
+#[test]
+fn every_target_translates_the_default_example() {
+    let compiled = compiled_from("StandardSurface/standard_surface_default.mtlx");
+    let cases = [
+        (SHADEWIRE_TARGET_WGSL, 0),
+        (SHADEWIRE_TARGET_HLSL, 50),
+        (SHADEWIRE_TARGET_HLSL, 66),
+        (SHADEWIRE_TARGET_GLSL, 330),
+        (SHADEWIRE_TARGET_GLSL, 450),
+        (SHADEWIRE_TARGET_GLSL_ES, 300),
+        (SHADEWIRE_TARGET_GLSL_ES, 310),
+        (SHADEWIRE_TARGET_WEBGL2, 0),
+        (SHADEWIRE_TARGET_MSL, 203),
+        (SHADEWIRE_TARGET_SPIRV, 0),
+    ];
+    for (kind, version) in cases {
+        let blob = translate_to(compiled, null(), kind, version).unwrap_or_else(|_| panic!("kind {kind} {version}"));
+        let bytes = blob_bytes(blob);
+        assert!(!bytes.is_empty(), "kind {kind} {version}");
+        let is_text = unsafe { shadewire_blob_is_text(blob) };
+        assert_eq!(is_text, kind != SHADEWIRE_TARGET_SPIRV);
+        if is_text {
+            let ptr = unsafe { shadewire_blob_data(blob, null_mut()) };
+            assert_eq!(unsafe { *ptr.add(bytes.len()) }, 0, "kind {kind} {version}: trailing NUL");
+            let source = String::from_utf8(bytes).unwrap();
+            match (kind, version) {
+                (SHADEWIRE_TARGET_WGSL | SHADEWIRE_TARGET_HLSL, _) => {
+                    assert!(source.contains("shadewire_eval_surface"), "kind {kind}")
+                }
+                (SHADEWIRE_TARGET_GLSL_ES, 300) => assert!(source.contains("#version 300 es")),
+                _ => {}
+            }
+        } else {
+            assert_eq!(bytes[..4], [0x03, 0x02, 0x23, 0x07]);
+            assert_eq!(bytes.len() % 4, 0);
+        }
+        unsafe { shadewire_blob_free(blob) };
+    }
+    unsafe { shadewire_compiled_free(compiled) };
+}
+
+#[test]
+fn a_prelude_with_a_wrong_signature_is_a_shader_error_naming_a_line() {
+    let compiled = compiled_from("StandardSurface/standard_surface_brass_tiled.mtlx");
+    // The reference prelude is the linked text minus the generated WGSL that follows it.
+    let blob = translate_to(compiled, null(), SHADEWIRE_TARGET_WGSL, 0).unwrap();
+    let linked = String::from_utf8(blob_bytes(blob)).unwrap();
+    unsafe { shadewire_blob_free(blob) };
+    let generated = text(unsafe { shadewire_compiled_wgsl(compiled, null_mut()) });
+    let reference = linked.strip_suffix(generated.as_str()).expect("prelude comes first");
+    let good = "fn shadewire_host_texcoord_0() -> vec2<f32> { return shadewire_in_texcoord_0; }";
+    assert!(reference.contains(good), "{reference}");
+    let prelude =
+        CString::new(reference.replace(good, "fn shadewire_host_texcoord_0() -> f32 { return 0.0; }")).unwrap();
+    let error = translate_to(compiled, prelude.as_ptr(), SHADEWIRE_TARGET_HLSL, 66).unwrap_err();
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_SHADER);
+    let message = text(unsafe { shadewire_error_message(error, null_mut()) });
+    assert!(message.contains("expected to be `vec2<f32>`, but got `f32`"), "{message}");
+    let at = message.find("wgsl:").expect(&message) + "wgsl:".len();
+    assert!(message[at..].starts_with(|c: char| c.is_ascii_digit()), "{message}");
+    unsafe { shadewire_error_free(error) };
+    unsafe { shadewire_compiled_free(compiled) };
+}
+
+#[test]
+fn unknown_target_kinds_and_null_arguments_are_invalid_arguments() {
+    let compiled = compiled_from("StandardSurface/standard_surface_default.mtlx");
+    let marker = sentinel::<shadewire_blob>();
+    let target = shadewire_target { kind: 99, version: 0 };
+    let mut out = marker;
+    let mut error = null_mut();
+    let status = unsafe { shadewire_translate(compiled, null(), target, &mut out, &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
+    assert_eq!(out, marker);
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
+    unsafe { shadewire_error_free(error) };
+    let error = translate_to(compiled, null(), SHADEWIRE_TARGET_HLSL, 41).err().unwrap();
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
+    unsafe { shadewire_error_free(error) };
+    let error = translate_to(null(), null(), SHADEWIRE_TARGET_WGSL, 0).err().unwrap();
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
+    unsafe { shadewire_error_free(error) };
+    unsafe { shadewire_compiled_free(compiled) };
+    unsafe { shadewire_blob_free(null_mut()) };
 }
