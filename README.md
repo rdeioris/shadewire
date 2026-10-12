@@ -19,8 +19,9 @@ Front ends and back ends never depend on each other; they share only the core, a
 | `shadewire-mtlx` | front end: MaterialX 1.38/1.39 → IR (`to_ir`) | `shadewire` |
 | `shadewire-wgsl` | back end: IR → WGSL + reflection (`compile`); feature `translate` (default): naga translation of the linked module to HLSL, GLSL, MSL, SPIR-V | `shadewire` (+ naga) |
 | `shadewire-cli` | the `shadewire` command | all of the above |
+| `shadewire-capi` | C API (`shadewire.h`): MaterialX → WGSL + reflection, translation to the other languages | `shadewire`, `shadewire-mtlx`, `shadewire-wgsl` |
 
-Planned: a glTF front end, a C API (`shadewire-capi`), more back ends.
+Planned: a glTF front end, more back ends.
 
 ## What to depend on
 
@@ -33,6 +34,7 @@ Planned: a glTF front end, a C API (`shadewire-capi`), more back ends.
 | Your own IR (any source) → WGSL | `shadewire`, `shadewire-wgsl` | `default-features = false` |
 | Your own IR → HLSL/GLSL/MSL/SPIR-V | `shadewire`, `shadewire-wgsl` | `translate` (default) |
 | A command-line tool | `shadewire-cli` (the `shadewire` binary) | — |
+| A C/C++ host | `shadewire-capi` (shared or static library + `shadewire.h`) | — |
 
 ## Usage
 
@@ -71,6 +73,38 @@ shadewire ir material.mtlx               # print the IR (optimized; --no-optimiz
 - `--reflection FILE` writes the reflection JSON; it is written only when the shader was produced.
 - `--no-optimize` skips constant folding, simplification and sharing.
 - `--constants` bakes authored values in instead of exposing them as uniforms.
+
+## C API
+
+`cargo build -p shadewire-capi --release` writes the library to `target/release`: `shadewire_capi.dll` with its
+import library `shadewire_capi.dll.lib` and the static `shadewire_capi.lib` on Windows; `libshadewire_capi.so` or
+`libshadewire_capi.dylib` and the static `libshadewire_capi.a` elsewhere (a static link also needs the system
+libraries listed by `cargo rustc -p shadewire-capi --release --crate-type staticlib -- --print native-static-libs`).
+The header is `crates/shadewire-capi/include/shadewire.h`. Every handle and error has its own `_free`.
+
+```c
+#include "shadewire.h"
+
+shadewire_compiled *compiled = NULL;
+shadewire_blob *hlsl = NULL;
+shadewire_error *err = NULL;
+shadewire_target target = { SHADEWIRE_TARGET_HLSL, 60 };   /* shader model 6.0 */
+
+if (shadewire_compile_mtlx(text, len, "material.mtlx", NULL, NULL, NULL, &compiled, &err) == SHADEWIRE_OK &&
+    shadewire_translate(compiled, NULL, target, &hlsl, &err) == SHADEWIRE_OK) {
+    const char *code = (const char *)shadewire_blob_data(hlsl, NULL); /* NUL-terminated text */
+    puts(code);
+} else {
+    fprintf(stderr, "error: %s\n", shadewire_error_message(err, NULL));
+}
+shadewire_blob_free(hlsl);
+shadewire_compiled_free(compiled);
+shadewire_error_free(err);
+```
+
+`shadewire_compiled_wgsl` and `shadewire_compiled_reflection_json` read the WGSL and the reflection; a NULL host
+prelude in `shadewire_translate` links the reference host. `crates/shadewire-capi-ctest` builds a C99 version of this
+as a test.
 
 ## Reflection
 
