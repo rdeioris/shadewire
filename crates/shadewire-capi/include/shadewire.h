@@ -64,8 +64,9 @@ typedef struct shadewire_error shadewire_error;
 
 // Options for MaterialX import. Set `struct_size` to `sizeof` the struct, or use `shadewire_mtlx_options_default`.
 //
-// `models` is NULL for the default list, else `model_count` NUL-terminated UTF-8 strings. `working_colorspace` is
-// NULL for the default. `values_as_uniforms` must be 0 or 1.
+// `models` NULL with `model_count` 0 is the default list; NULL with a non-zero count is an error; non-NULL is exactly
+// `model_count` NUL-terminated UTF-8 strings, and a count of 0 means no models (every material is then
+// NoTranslation). `working_colorspace` is NULL for the default. `values_as_uniforms` must be 0 or 1.
 typedef struct shadewire_mtlx_options {
   uint32_t struct_size;
   const char *const *models;
@@ -90,7 +91,7 @@ typedef uint32_t shadewire_target_kind;
 // A target language and its version.
 //
 // `version` is the shader model times ten for HLSL (50, 51, 60..69), the `#version` number for GLSL (330, 400, 410,
-// 420, 430, 450) and GLSL ES (300, 310), `major * 100 + minor` for MSL (e.g. 203 for 2.3), and ignored for WGSL,
+// 420, 430, 450) and GLSL ES (300, 310), `major * 100 + minor` for MSL (e.g. 203 for 2.3; passed on as is, so 230 means 2.30), and ignored for WGSL,
 // WEBGL2 and SPIRV.
 typedef struct shadewire_target {
   shadewire_target_kind kind;

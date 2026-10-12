@@ -9,8 +9,9 @@ use crate::strings::{ArgError, opt_cstr};
 
 /// Options for MaterialX import. Set `struct_size` to `sizeof` the struct, or use `shadewire_mtlx_options_default`.
 ///
-/// `models` is NULL for the default list, else `model_count` NUL-terminated UTF-8 strings. `working_colorspace` is
-/// NULL for the default. `values_as_uniforms` must be 0 or 1.
+/// `models` NULL with `model_count` 0 is the default list; NULL with a non-zero count is an error; non-NULL is exactly
+/// `model_count` NUL-terminated UTF-8 strings, and a count of 0 means no models (every material is then
+/// NoTranslation). `working_colorspace` is NULL for the default. `values_as_uniforms` must be 0 or 1.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct shadewire_mtlx_options {
@@ -78,8 +79,11 @@ pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<Mtl
         return Ok(options);
     }
     let raw = unsafe { overlay(ptr, mtlx_defaults()) }?;
+    if raw.models.is_null() && raw.model_count > 0 {
+        return Err(ArgError(format!("models is NULL but model_count is {}", raw.model_count)));
+    }
     if !raw.models.is_null() {
-        let mut models = Vec::with_capacity(raw.model_count);
+        let mut models = Vec::new();
         for i in 0..raw.model_count {
             let entry = unsafe { *raw.models.add(i) };
             let text = unsafe { opt_cstr(entry) }?.ok_or_else(|| ArgError(format!("model {i} is NULL")))?;
@@ -235,5 +239,45 @@ mod tests {
         m.models = list.as_ptr();
         m.model_count = 1;
         assert!(unsafe { read_mtlx(&m) }.is_err());
+    }
+
+    #[test]
+    fn a_huge_count_fails_on_the_first_bad_entry_without_allocating() {
+        let list = [std::ptr::null::<c_char>()];
+        let mut m = mtlx_default_struct();
+        m.models = list.as_ptr();
+        m.model_count = 1_000_000;
+        assert!(unsafe { read_mtlx(&m) }.unwrap_err().0.contains("model 0"));
+    }
+
+    #[test]
+    fn null_models_with_a_count_is_an_error_and_empty_list_means_no_models() {
+        let mut m = mtlx_default_struct();
+        m.model_count = 3;
+        assert!(unsafe { read_mtlx(&m) }.unwrap_err().0.contains("models is NULL"));
+        let list: [*const c_char; 0] = [];
+        m.models = list.as_ptr();
+        m.model_count = 0;
+        assert!(unsafe { read_mtlx(&m) }.unwrap().models.is_empty());
+    }
+
+    #[test]
+    fn a_short_mtlx_struct_keeps_the_default_for_missing_fields() {
+        let mut m = mtlx_default_struct();
+        m.struct_size = offset_of!(shadewire_mtlx_options, values_as_uniforms) as u32;
+        m.values_as_uniforms = !MtlxOptions::default().values_as_uniforms;
+        let read = unsafe { read_mtlx(&m) }.unwrap();
+        assert_eq!(read.values_as_uniforms, MtlxOptions::default().values_as_uniforms);
+    }
+
+    #[test]
+    fn a_larger_struct_size_is_tolerated() {
+        let mut c = compile_default_struct();
+        c.struct_size = 1000;
+        c.group = 7;
+        assert_eq!(unsafe { read_compile(&c) }.unwrap().group, 7);
+        let mut m = mtlx_default_struct();
+        m.struct_size = 1000;
+        assert!(unsafe { read_mtlx(&m) }.is_ok());
     }
 }
