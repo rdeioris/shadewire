@@ -1,0 +1,22 @@
+[package]
+name = "shadewire-capi"
+description = "C API for Shadewire"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+name = "shadewire_capi"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+shadewire.workspace = true
+shadewire-mtlx.workspace = true
+shadewire-wgsl = { workspace = true, features = ["translate"] }
+serde_json.workspace = true
+
+[dev-dependencies]
+cbindgen.workspace = true
