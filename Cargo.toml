@@ -47,4 +47,6 @@ bevy = { version = "0.20", default-features = false, features = [
     "tonemapping_luts",
     "ktx2",
     "zstd_rust",
+    # glTF scenes are spawned through reflection: without it Transform is unregistered and spawning panics.
+    "reflect_auto_register",
 ] }
