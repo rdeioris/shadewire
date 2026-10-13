@@ -192,3 +192,21 @@ The WGSL back end writes the other languages from the linked WGSL module through
 ## Development
 
 The GPU parity test (interpreter vs WGSL on a real adapter, about three minutes) is ignored by default: run it with `cargo test -p shadewire-wgsl --test gpu_parity -- --ignored`. It skips when no adapter exists; `SHADEWIRE_REQUIRE_GPU=1` makes that a failure.
+
+The material library regression harness (`tools/matlib`) renders every 1k package (8- and 16-bit) of the
+[AMD GPUOpen MaterialX Library](https://matlib.gpuopen.com) on a sphere framed like the library's previews and compares
+each shot with the library's preview and with an accepted baseline. It renders with the `shadewire-pt` path tracer
+(`$SHADEWIRE_PT`, lit by a generated studio environment) or, with `--renderer bevy`, the `matlib_render` Bevy example.
+The data (about 6 GB) lives outside the repository, in `$SHADEWIRE_MATLIB` (default `tools/matlib/_data`, ignored by
+git):
+
+```
+python -I tools/matlib/fetch.py
+python -I tools/matlib/harness.py calibrate
+python -I tools/matlib/harness.py run
+python -I tools/matlib/harness.py accept <run dir>
+```
+
+`calibrate` (once) picks the UV scale of each material's sphere: the previews tile textures at a scale of their own.
+`run` writes `report.html` in the run directory and exits 1 on a regression: a package that no longer renders, a
+shot that differs from its renderer's baseline, or one further from the library's preview.

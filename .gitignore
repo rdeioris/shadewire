@@ -1,2 +1,4 @@
 /target
 crates/shadewire/tests/oracle/_work/
+tools/matlib/_data/
+__pycache__/
