@@ -3,134 +3,19 @@
     pip install shadewire wgpu pillow
     python wgpu_cube.py material.mtlx [--material NAME] [--out cube.png] [--size 800]
 
-Shadewire compiles the material: its pattern graph to `shadewire_eval_surface()`, and its lobes to a closure
-tree in the reflection. This file is the host: a cube mesh, a camera, a light, the material's own uniform block
-and textures bound where the reflection says, and the shading of the lobes (the host pieces of
-`wgsl_lobes.py`: the context functions, the lobe library, the closure tree as WGSL).
+Shadewire compiles the material (`scene.compile_material`): its pattern graph to `shadewire_eval_surface()`, its
+lobes to a closure tree the host shades. This file binds what the reflection asks for (the material's uniform
+block, textures and samplers in group 1) next to the scene (group 0), and draws the cube offscreen.
 """
 
 import argparse
-import math
 import os
-import struct
 
 import wgpu
 from PIL import Image
 
+import scene
 import shadewire
-from shadewire import mtlx, wgsl
-from wgsl_lobes import ENTRY, LOBE_LIBRARY, ClosureWriter, host_functions
-
-# The material's resources (uniform block, textures, samplers) go in group 1; the scene owns group 0.
-MATERIAL_GROUP = 1
-
-VERTEX = """
-struct Camera {
-    view_proj: mat4x4<f32>,
-}
-@group(0) @binding(1) var<uniform> camera: Camera;
-
-struct VertexIn {
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) tangent: vec3<f32>,
-    @location(3) uv: vec2<f32>,
-}
-struct VertexOut {
-    @builtin(position) clip: vec4<f32>,
-    @location(0) position_world: vec3<f32>,
-    @location(1) normal_world: vec3<f32>,
-    @location(2) tangent_world: vec3<f32>,
-    @location(3) uv: vec2<f32>,
-}
-
-@vertex
-fn vs_main(v: VertexIn) -> VertexOut {
-    // The cube sits at the origin unrotated: object space is world space.
-    var out: VertexOut;
-    out.clip = camera.view_proj * vec4<f32>(v.position, 1.0);
-    out.position_world = v.position;
-    out.normal_world = v.normal;
-    out.tangent_world = v.tangent;
-    out.uv = v.uv;
-    return out;
-}
-"""
-
-# ---------------------------------------------------------------------------------------------------- math
-
-
-def normalize(v):
-    n = math.sqrt(sum(x * x for x in v))
-    return [x / n for x in v]
-
-
-def cross(a, b):
-    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
-
-
-def dot(a, b):
-    return sum(x * y for x, y in zip(a, b))
-
-
-def look_at(eye, target, up):
-    """A right-handed view matrix, column-major (WGSL's `mat4x4` layout)."""
-    f = normalize([t - e for t, e in zip(target, eye)])
-    s = normalize(cross(f, up))
-    u = cross(s, f)
-    return [s[0], u[0], -f[0], 0.0, s[1], u[1], -f[1], 0.0, s[2], u[2], -f[2], 0.0,
-            -dot(s, eye), -dot(u, eye), dot(f, eye), 1.0]
-
-
-def perspective(fov_y, aspect, near, far):
-    """WebGPU's clip space: depth from 0 to 1. Column-major."""
-    f = 1.0 / math.tan(fov_y / 2.0)
-    return [f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, far / (near - far), -1, 0, 0, near * far / (near - far), 0]
-
-
-def multiply(a, b):
-    """a * b for column-major 4x4 matrices."""
-    return [sum(a[k * 4 + r] * b[c * 4 + k] for k in range(4)) for c in range(4) for r in range(4)]
-
-
-# ---------------------------------------------------------------------------------------------------- the cube
-
-
-def cube():
-    """Six faces of 2 x 2 units, each with its own normal, tangent (along +U) and UVs 0..1 (V up, as MaterialX)."""
-    faces = [  # (normal, tangent along U, bitangent along V)
-        ((0, 0, 1), (1, 0, 0), (0, 1, 0)), ((0, 0, -1), (-1, 0, 0), (0, 1, 0)),
-        ((1, 0, 0), (0, 0, -1), (0, 1, 0)), ((-1, 0, 0), (0, 0, 1), (0, 1, 0)),
-        ((0, 1, 0), (1, 0, 0), (0, 0, -1)), ((0, -1, 0), (1, 0, 0), (0, 0, 1)),
-    ]
-    vertices, indices = [], []
-    for n, t, b in faces:
-        base = len(vertices) // 11
-        for u, v in ((0, 0), (1, 0), (1, 1), (0, 1)):
-            p = [n[k] + t[k] * (2 * u - 1) + b[k] * (2 * v - 1) for k in range(3)]
-            vertices += [*p, *n, *t, u, v]
-        indices += [base, base + 1, base + 2, base, base + 2, base + 3]
-    return struct.pack(f"{len(vertices)}f", *vertices), struct.pack(f"{len(indices)}I", *indices), len(indices)
-
-
-# ---------------------------------------------------------------------------------------------------- the material
-
-
-def uniform_bytes(reflection):
-    """The material's uniform block: each uniform's default at its offset (booleans as u32, integers as i32)."""
-    data = bytearray(max(reflection["uniform_block_size"], 16))
-    for u in reflection["uniforms"]:
-        value = u["default"]
-        values = value if isinstance(value, list) else [value]
-        for k, x in enumerate(values):
-            if isinstance(x, bool):
-                struct.pack_into("<I", data, u["offset"] + 4 * k, int(x))
-            elif isinstance(x, int) and u["type"] == "integer":
-                struct.pack_into("<i", data, u["offset"] + 4 * k, x)
-            else:
-                struct.pack_into("<f", data, u["offset"] + 4 * k, float(x))
-    return bytes(data)
-
 
 ADDRESS = {"periodic": "repeat", "mirror": "mirror-repeat", "clamp": "clamp-to-edge", "constant": "clamp-to-edge"}
 
@@ -139,7 +24,7 @@ def material_entries(device, reflection, base_dir):
     """Bind group entries for the material's uniform block, textures and samplers, as the reflection places them."""
     entries = []
     if reflection["uniform_binding"] is not None:
-        data = uniform_bytes(reflection)
+        data = scene.uniform_bytes(reflection)
         buffer = device.create_buffer_with_data(data=data, usage=wgpu.BufferUsage.UNIFORM)
         entries.append({"binding": reflection["uniform_binding"], "resource": {"buffer": buffer, "size": len(data)}})
     for t in reflection["textures"]:
@@ -165,43 +50,22 @@ def material_entries(device, reflection, base_dir):
     return entries
 
 
-def shader(compiled):
-    """The generated module and the host around it, joined and validated by Shadewire (naga)."""
-    reflection = compiled.reflection
-    writer = ClosureWriter(reflection["closure"], compiled.model_struct)
-    host = "\n".join([host_functions(reflection), LOBE_LIBRARY, writer.write(), ENTRY, VERTEX])
-    if writer.unsupported:
-        print("lobes this host does not shade:", ", ".join(sorted(writer.unsupported)))
-    return wgsl.link(compiled.wgsl, host)
-
-
-# ---------------------------------------------------------------------------------------------------- render
-
-
 def render(mtlx_path, material, size):
-    text = open(mtlx_path, encoding="utf-8").read()
-    ir = mtlx.to_ir(text, path=mtlx_path, material=material, models=["surface"])
-    compiled = wgsl.compile(ir, group=MATERIAL_GROUP)
-    print(f"{ir.model}: {len(compiled.reflection['closure']['nodes'])} closure nodes, "
-          f"{len(compiled.reflection['uniforms'])} uniforms, {len(compiled.reflection['textures'])} textures")
-
+    compiled, linked = scene.compile_material(mtlx_path, material)
     adapter = wgpu.gpu.request_adapter_sync(power_preference="high-performance")
     device = adapter.request_device_sync()
-    module = device.create_shader_module(code=shader(compiled))
+    module = device.create_shader_module(code=linked)
     color_format = wgpu.TextureFormat.rgba8unorm_srgb
+    attribute_format = {2: wgpu.VertexFormat.float32x2, 3: wgpu.VertexFormat.float32x3}
     pipeline = device.create_render_pipeline(
         layout="auto",
         vertex={
             "module": module,
             "entry_point": "vs_main",
             "buffers": [{
-                "array_stride": 11 * 4,
-                "attributes": [
-                    {"format": wgpu.VertexFormat.float32x3, "offset": 0, "shader_location": 0},
-                    {"format": wgpu.VertexFormat.float32x3, "offset": 12, "shader_location": 1},
-                    {"format": wgpu.VertexFormat.float32x3, "offset": 24, "shader_location": 2},
-                    {"format": wgpu.VertexFormat.float32x2, "offset": 36, "shader_location": 3},
-                ],
+                "array_stride": scene.VERTEX_STRIDE,
+                "attributes": [{"format": attribute_format[n], "offset": offset, "shader_location": location}
+                               for location, n, offset in scene.VERTEX_ATTRIBUTES],
             }],
         },
         primitive={"topology": wgpu.PrimitiveTopology.triangle_list, "cull_mode": wgpu.CullMode.back},
@@ -211,22 +75,20 @@ def render(mtlx_path, material, size):
         fragment={"module": module, "entry_point": "fs_main", "targets": [{"format": color_format}]},
     )
 
-    # Group 0: the scene. `Scene` (in wgsl_lobes.ENTRY) is four vec3 padded to 16 bytes each.
     eye = [3.2, 2.4, 4.0]
-    scene = struct.pack("<16f", *eye, 0, *normalize([0.6, 1.0, 0.8]), 0, 3.0, 2.9, 2.7, 0, 0.35, 0.38, 0.45, 0)
-    view_proj = multiply(perspective(math.radians(35), 1.0, 0.1, 100.0), look_at(eye, [0, 0, 0], [0, 1, 0]))
-    scene_buffer = device.create_buffer_with_data(data=scene, usage=wgpu.BufferUsage.UNIFORM)
-    camera_buffer = device.create_buffer_with_data(data=struct.pack("<16f", *view_proj), usage=wgpu.BufferUsage.UNIFORM)
-    scene_group = device.create_bind_group(layout=pipeline.get_bind_group_layout(0), entries=[
-        {"binding": 0, "resource": {"buffer": scene_buffer, "size": len(scene)}},
-        {"binding": 1, "resource": {"buffer": camera_buffer, "size": 64}},
-    ])
-    groups = [scene_group]
+    scene_data, camera_data = scene.scene_bytes(eye), scene.camera_bytes(eye, 1.0)
+    scene_buffer = device.create_buffer_with_data(data=scene_data, usage=wgpu.BufferUsage.UNIFORM)
+    camera_buffer = device.create_buffer_with_data(data=camera_data, usage=wgpu.BufferUsage.UNIFORM)
+    groups = [device.create_bind_group(layout=pipeline.get_bind_group_layout(0), entries=[
+        {"binding": 0, "resource": {"buffer": scene_buffer, "size": len(scene_data)}},
+        {"binding": 1, "resource": {"buffer": camera_buffer, "size": len(camera_data)}},
+    ])]
     entries = material_entries(device, compiled.reflection, os.path.dirname(mtlx_path))
     if entries:
-        groups.append(device.create_bind_group(layout=pipeline.get_bind_group_layout(MATERIAL_GROUP), entries=entries))
+        layout = pipeline.get_bind_group_layout(scene.MATERIAL_GROUP)
+        groups.append(device.create_bind_group(layout=layout, entries=entries))
 
-    vertices, indices, index_count = cube()
+    vertices, indices, index_count = scene.cube()
     vertex_buffer = device.create_buffer_with_data(data=vertices, usage=wgpu.BufferUsage.VERTEX)
     index_buffer = device.create_buffer_with_data(data=indices, usage=wgpu.BufferUsage.INDEX)
 
