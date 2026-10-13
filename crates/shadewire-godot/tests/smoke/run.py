@@ -8,7 +8,8 @@ the library, and the vendored grid.png), imports it with the editor (the importe
 loads materials through the importer, the runtime API and the resource loader, draws them and saves a screenshot
 (default target/smoke/smoke.png). Exits 1 on a failed check or any shader error. It also checks the limits for
 untrusted documents: a graph past max_nodes fails cleanly through every runtime entry point, fractal noise octaves
-are clamped in a drawn shader, and a remote load past max_textures fails.
+are clamped in a drawn shader, a remote load past max_textures fails, a local document past max_material_bytes fails
+before it is read, and a texture past max_texture_pixels warns (or fails with strict_textures).
 
 For load_material_async it serves a remote document from two local HTTP servers, host A (127.0.0.1) and host B
 (localhost), on free ports, over plain http (smoke.gd passes the allow_http option). The document on A has a
@@ -238,9 +239,11 @@ def main():
     requests = a.log + b.log
     (http_work / "requests.json").write_text(json.dumps(requests, indent=1))
     failures = check_requests(requests)
-    # The resource loader reports the document over max_nodes (smoke.gd checks that it fails) as an error.
+    # The resource loader reports the documents over max_nodes and max_material_bytes (smoke.gd checks that they
+    # fail) as errors.
+    expected = ("user://limits/over_limit.mtlx", "user://limits/huge.mtlx")
     errors = [line for line in log.splitlines()
-              if ("SHADER ERROR" in line or "ERROR:" in line) and "user://limits/over_limit.mtlx" not in line]
+              if ("SHADER ERROR" in line or "ERROR:" in line) and not any(e in line for e in expected)]
     if code != 0 or errors or "FAILURES 0" not in log or failures:
         sys.exit(f"smoke test failed (exit {code}, {len(errors)} error lines, {len(failures)} server checks)")
     print(f"smoke test passed; screenshot {screenshot}")

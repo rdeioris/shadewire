@@ -52,6 +52,44 @@ pub fn image_format(bytes: &[u8]) -> Option<ImageFormat> {
     }
 }
 
+/// The width and height an image's header declares (PNG, JPEG or WebP), read without decoding: a small file can
+/// declare an image of gigabytes. `None` when the header is not one of these or is cut short.
+pub fn image_size(bytes: &[u8]) -> Option<(u64, u64)> {
+    let be = |i: usize, n: usize| Some(bytes.get(i..i + n)?.iter().fold(0u64, |v, b| v << 8 | *b as u64));
+    let le = |i: usize, n: usize| Some(bytes.get(i..i + n)?.iter().rev().fold(0u64, |v, b| v << 8 | *b as u64));
+    match image_format(bytes)? {
+        ImageFormat::Png if bytes.get(12..16)? == b"IHDR" => Some((be(16, 4)?, be(20, 4)?)),
+        ImageFormat::Png => None,
+        ImageFormat::Jpeg => {
+            // Segments up to the first start-of-frame marker (C0 to CF, but C4, C8 and CC are not frames).
+            let mut i = 2;
+            loop {
+                if *bytes.get(i)? != 0xff {
+                    return None;
+                }
+                let marker = *bytes.get(i + 1)?;
+                match marker {
+                    0xff => i += 1,
+                    0x01 | 0xd0..=0xd7 => i += 2,
+                    0xc0..=0xcf if ![0xc4, 0xc8, 0xcc].contains(&marker) => {
+                        return Some((be(i + 7, 2)?, be(i + 5, 2)?));
+                    }
+                    _ => i += 2 + be(i + 2, 2)? as usize,
+                }
+            }
+        }
+        ImageFormat::Webp => match bytes.get(12..16)? {
+            b"VP8 " if bytes.get(23..26)? == [0x9d, 0x01, 0x2a] => Some((le(26, 2)? & 0x3fff, le(28, 2)? & 0x3fff)),
+            b"VP8L" if *bytes.get(20)? == 0x2f => {
+                let bits = le(21, 4)?;
+                Some(((bits & 0x3fff) + 1, (bits >> 14 & 0x3fff) + 1))
+            }
+            b"VP8X" => Some((le(24, 3)? + 1, le(27, 3)? + 1)),
+            _ => None,
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -87,6 +125,28 @@ mod tests {
         assert_eq!(image_format(&[0xff, 0xd8, 0xff, 0xe0]), Some(ImageFormat::Jpeg));
         assert_eq!(image_format(b"RIFF\0\0\0\0WEBPVP8 "), Some(ImageFormat::Webp));
         assert_eq!(image_format(b"#?RADIANCE\n"), None);
+    }
+
+    #[test]
+    fn image_headers_give_the_declared_size() {
+        let mut png = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
+        png.extend([0, 0, 0x40, 0, 0, 0, 0x20, 0]);
+        assert_eq!(image_size(&png), Some((16384, 8192)));
+        assert_eq!(image_size(&png[..20]), None);
+        // SOI, an APP0 segment, a DHT (C4, not a frame), fill bytes, then a progressive frame (C2): height, width.
+        let jpeg = [0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0, 0xff, 0xc4, 0, 2, 0xff, 0xff, 0xc2, 0, 11, 8, 0x10, 0, 0x30, 0];
+        assert_eq!(image_size(&jpeg), Some((0x3000, 0x1000)));
+        assert_eq!(image_size(&jpeg[..jpeg.len() - 1]), None);
+        let webp = |chunk: &[u8], rest: &[u8]| [&b"RIFF\0\0\0\0WEBP"[..], chunk, b"\0\0\0\0", rest].concat();
+        let vp8 = webp(b"VP8 ", &[0, 0, 0, 0x9d, 0x01, 0x2a, 0x00, 0x04, 0x00, 0x02]);
+        assert_eq!(image_size(&vp8), Some((1024, 512)));
+        // 14 bits each, minus one: 4096 and 2048.
+        let bits: u32 = 4095 | 2047 << 14;
+        let vp8l = webp(b"VP8L", &[&[0x2f][..], &bits.to_le_bytes()].concat());
+        assert_eq!(image_size(&vp8l), Some((4096, 2048)));
+        let vp8x = webp(b"VP8X", &[0, 0, 0, 0, 0xff, 0xff, 0x00, 0x0f, 0, 0]);
+        assert_eq!(image_size(&vp8x), Some((65536, 16)));
+        assert_eq!(image_size(b"#?RADIANCE\n"), None);
     }
 
     /// A material sampling `count` textures, each `t<i>.png`.

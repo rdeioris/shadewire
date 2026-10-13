@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use crate::cache::{Cached, SharedCache};
 use crate::headers::{Header, HeaderRules, merge};
 use crate::location::join;
+use crate::options::Budget;
 use crate::url::{Url, without_fragment};
 
 /// One response, redirects not followed. Header names are lowercase.
@@ -94,8 +95,6 @@ pub struct FetchOptions {
     pub timeout: Duration,
     pub max_redirects: u32,
     pub max_response_bytes: u64,
-    /// Documents, includes and textures together.
-    pub max_material_bytes: u64,
 }
 
 impl Default for FetchOptions {
@@ -110,7 +109,6 @@ impl Default for FetchOptions {
             timeout: Duration::from_secs(60),
             max_redirects: 5,
             max_response_bytes: 64 * 1024 * 1024,
-            max_material_bytes: 256 * 1024 * 1024,
         }
     }
 }
@@ -130,11 +128,12 @@ pub struct Session {
     pub cache: Option<SharedCache>,
     pub cancelled: Arc<AtomicBool>,
     pub progress: Option<ProgressFn>,
+    /// The material's bytes, local sources included (`max_material_bytes`); unlimited unless set.
+    pub budget: Arc<Budget>,
     /// The host and port of the document: where `options.headers` go.
     document: Mutex<Option<(String, u16)>>,
     done: AtomicU64,
     total: AtomicU64,
-    used: AtomicU64,
     pinned: Mutex<Vec<String>>,
 }
 
@@ -150,10 +149,10 @@ impl Session {
             cache: None,
             cancelled: Arc::default(),
             progress: None,
+            budget: Arc::default(),
             document: Mutex::new(None),
             done: AtomicU64::new(0),
             total: AtomicU64::new(0),
-            used: AtomicU64::new(0),
             pinned: Mutex::new(Vec::new()),
         }
     }
@@ -192,19 +191,8 @@ impl Session {
         Ok(merge(layers))
     }
 
-    fn charge(&self, key: &str, bytes: usize) -> Result<(), String> {
-        let used = self.used.fetch_add(bytes as u64, Ordering::Relaxed) + bytes as u64;
-        if used > self.options.max_material_bytes {
-            return Err(format!(
-                "{key}: the material exceeds max_material_bytes ({} bytes)",
-                self.options.max_material_bytes
-            ));
-        }
-        Ok(())
-    }
-
     fn serve(&self, key: &str, cached: Cached) -> Result<Vec<u8>, String> {
-        self.charge(key, cached.body.len())?;
+        self.budget.charge(key, cached.body.len() as u64)?;
         let size = cached.body.len() as u64;
         self.report(size, size);
         Ok(cached.body)
@@ -278,7 +266,7 @@ impl Session {
                     return self.serve(key, cached);
                 }
                 200 => {
-                    self.charge(key, response.body.len())?;
+                    self.budget.charge(key, response.body.len() as u64)?;
                     let no_store = response
                         .header("cache-control")
                         .is_some_and(|c| c.split(',').any(|d| d.trim().eq_ignore_ascii_case("no-store")));
@@ -458,8 +446,8 @@ pub mod tests {
     #[test]
     fn the_material_size_cap_spans_every_fetch() {
         let fake = Fake::default().ok("https://a.org/1", "12345").ok("https://a.org/2", "12345");
-        let (s, _) =
-            session(fake, HeaderRules::default(), FetchOptions { max_material_bytes: 8, ..FetchOptions::default() });
+        let (mut s, _) = session(fake, HeaderRules::default(), FetchOptions::default());
+        s.budget = Budget::new(Some(8));
         s.fetch("https://a.org/1").unwrap();
         assert!(s.fetch("https://a.org/2").unwrap_err().contains("max_material_bytes"));
     }
