@@ -59,7 +59,7 @@ mod tests {
 
     #[test]
     fn builds_stdlib_defs() {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/libraries/stdlib/stdlib_defs.mtlx");
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/materialx/libraries/stdlib/stdlib_defs.mtlx");
         let text = std::fs::read_to_string(path).unwrap();
         let doc = build(&parse_str(&text, None).unwrap(), Some("stdlib_defs.mtlx")).unwrap();
         assert!(!doc.nodedefs.is_empty());
@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     fn stdlib_geompropdef_and_unit_scale() {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/libraries/stdlib/stdlib_defs.mtlx");
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/materialx/libraries/stdlib/stdlib_defs.mtlx");
         let text = std::fs::read_to_string(path).unwrap();
         let d = doc(&text);
         let uv0 = d.geompropdefs.iter().find(|g| g.name == "UV0").unwrap();

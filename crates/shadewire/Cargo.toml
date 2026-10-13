@@ -4,9 +4,13 @@ description = "Shadewire core: the material IR (a typed DAG), optimizer, CPU int
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+license = "MIT AND Apache-2.0 AND BSD-3-Clause"
 authors.workspace = true
 repository.workspace = true
+readme = "README.md"
+homepage.workspace = true
+keywords = ["materialx", "shader", "material", "compiler", "pbr"]
+categories = ["graphics", "rendering", "compilers"]
 
 [dependencies]
 serde.workspace = true

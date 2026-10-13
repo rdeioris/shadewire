@@ -7,6 +7,10 @@ rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+readme = "README.md"
+homepage.workspace = true
+keywords = ["materialx", "shader", "wgsl", "webgpu", "wgpu"]
+categories = ["graphics", "rendering"]
 
 [features]
 # `validate`: checking generated WGSL with naga, for tests.

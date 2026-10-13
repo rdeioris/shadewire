@@ -1,6 +1,6 @@
 [package]
 name = "shadewire-py"
-description = "Python bindings for Shadewire (the `shadewire` module): the MaterialX front end, the IR, the WGSL back end"
+description = "Python bindings for Shadewire (the `shadewire` module): the MaterialX front end, the IR, the back ends"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

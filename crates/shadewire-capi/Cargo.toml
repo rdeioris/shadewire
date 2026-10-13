@@ -1,6 +1,8 @@
 [package]
 name = "shadewire-capi"
 description = "C API for Shadewire"
+# Shipped as a shared or static library with its header, not through crates.io.
+publish = false
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

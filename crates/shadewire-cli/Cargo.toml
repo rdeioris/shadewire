@@ -7,6 +7,10 @@ rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+readme = "README.md"
+homepage.workspace = true
+keywords = ["materialx", "shader", "wgsl", "glsl", "hlsl"]
+categories = ["command-line-utilities", "graphics"]
 
 [dependencies]
 shadewire.workspace = true

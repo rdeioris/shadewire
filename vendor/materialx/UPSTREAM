@@ -1,4 +1,5 @@
 repository: https://github.com/AcademySoftwareFoundation/MaterialX
 tag: v1.39.5
 commit: 7b64921ef1d42f2d57871e9d2c43dc11f041f26b
-copied: LICENSE libraries/{stdlib,pbrlib,bxdf,cmlib} resources/Materials/Examples/**/*.mtlx resources/Images/grid.png
+copied: LICENSE resources/Materials/Examples/**/*.mtlx resources/Images/grid.png (libraries/{stdlib,pbrlib,bxdf,cmlib}
+live in crates/shadewire-mtlx/materialx, inside the crate that embeds them)
