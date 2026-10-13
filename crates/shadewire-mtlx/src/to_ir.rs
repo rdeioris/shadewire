@@ -14,7 +14,9 @@ use crate::upgrade::upgrade;
 /// What the front end decides: which models the host accepts and how values are read.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MtlxOptions {
-    /// Surface models the host accepts; a material of another model is `NoTranslation`.
+    /// Surface models the host accepts; a material of another model is `NoTranslation`. The default is the four
+    /// models most hosts map; `surface::KNOWN_MODELS` also has `UsdPreviewSurface` and `disney_principled`, and
+    /// `surface::CLOSURE_MODEL` opens every model not listed into its closure tree.
     pub models: Vec<String>,
     pub working_colorspace: String,
     /// Authored surface values and top-level interface values become uniforms.

@@ -1,11 +1,14 @@
-//! The shading models phase 1 compiles, and the fields of their surface structs.
+//! The shading models the front end compiles, and the fields of their surface structs.
 
 use shadewire::Type;
 
 use crate::document::{NodeDef, PortType};
 
-/// Shading models a surface can be compiled as without translation.
-pub const PHASE_ONE_MODELS: [&str; 4] = ["open_pbr_surface", "standard_surface", "gltf_pbr", "surface_unlit"];
+/// Shading models a surface can be compiled as without translation. A model's fields are the value inputs of its
+/// nodedef; its graph (the BSDF layers) is the host's business, unless the host accepts the closure model and not
+/// this one, which opens the model through its graph. Which of them a host accepts is `MtlxOptions::models`.
+pub const KNOWN_MODELS: [&str; 6] =
+    ["open_pbr_surface", "standard_surface", "gltf_pbr", "surface_unlit", "UsdPreviewSurface", "disney_principled"];
 
 /// The model of a pbrlib `surface` node: its fields are the values of its closure tree.
 pub const CLOSURE_MODEL: &str = "surface";
