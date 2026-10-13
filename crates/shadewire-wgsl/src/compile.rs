@@ -24,7 +24,8 @@ pub fn compile(dag: &Dag, source: &SourceInfo, options: &CompileOptions) -> Resu
         reserve_uniform_binding: options.reserve_uniform_binding,
     };
     let reflection = reflect(&dag, &bindings, source)?;
-    let wgsl = emit(&dag, &reflection, &EmitOptions { flip_v: options.flip_v });
+    let emit_options = EmitOptions { flip_v: options.flip_v, implicit_derivatives: options.implicit_derivatives };
+    let wgsl = emit(&dag, &reflection, &emit_options);
     Ok(Compiled { wgsl, reflection, dag })
 }
 

@@ -32,7 +32,14 @@ impl<'a> Index<'a> {
 
     /// The nodegraph that implements a nodedef, if any.
     pub fn graph_for_nodedef(&self, nodedef: &str) -> Option<&'a NodeGraph> {
-        self.documents.iter().find_map(|d| d.nodegraphs.iter().find(|g| g.nodedef.as_deref() == Some(nodedef)))
+        let direct =
+            self.documents.iter().find_map(|d| d.nodegraphs.iter().find(|g| g.nodedef.as_deref() == Some(nodedef)));
+        direct.or_else(|| {
+            let graph = self.documents.iter().find_map(|d| {
+                d.graph_implementations.iter().find(|(nd, _)| nd == nodedef).map(|(_, graph)| graph.as_str())
+            })?;
+            self.nodegraph(graph)
+        })
     }
 
     /// The file of the document holding `graph`, if it was named.

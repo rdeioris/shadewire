@@ -1,12 +1,14 @@
 //! Following a material's surfaceshader input to the shading model node:
 //! through `dot` nodes, user nodegraph outputs, nodegraph-implemented shader
-//! nodedefs, and same-model `mix` nodes.
+//! nodedefs, and same-model `mix` nodes. A host that accepts the `surface` model
+//! also gets the pbrlib `surface` node, the closure tree under it, and the named
+//! models it does not accept opened through their implementation graphs.
 
 use std::rc::Rc;
 
 use shadewire::{Error, Location};
 
-use super::models::PHASE_ONE_MODELS;
+use super::models::{CLOSURE_MODEL, PHASE_ONE_MODELS};
 use crate::document::{Document, Input, Node, NodeDef, PortType};
 use crate::elaborate::{Elaborator, Scope};
 use crate::resolve_nodedef::resolve_nodedef;
@@ -26,8 +28,22 @@ pub struct MixInput<'a> {
 /// reach is one shared source.
 #[derive(Clone)]
 pub enum SurfaceSource<'a> {
-    Model { node: &'a Node, nodedef: &'a NodeDef, scope: Scope<'a> },
-    Mix { fg: Rc<SurfaceSource<'a>>, bg: Rc<SurfaceSource<'a>>, mix_input: MixInput<'a> },
+    Model {
+        node: &'a Node,
+        nodedef: &'a NodeDef,
+        scope: Scope<'a>,
+    },
+    Mix {
+        fg: Rc<SurfaceSource<'a>>,
+        bg: Rc<SurfaceSource<'a>>,
+        mix_input: MixInput<'a>,
+    },
+    /// A pbrlib `surface` node: a closure tree, compiled as the `surface` model.
+    Closure {
+        node: &'a Node,
+        nodedef: &'a NodeDef,
+        scope: Scope<'a>,
+    },
 }
 
 impl SurfaceSource<'_> {
@@ -36,13 +52,16 @@ impl SurfaceSource<'_> {
         match self {
             SurfaceSource::Model { node, .. } => &node.category,
             SurfaceSource::Mix { fg, .. } => fg.model(),
+            SurfaceSource::Closure { .. } => CLOSURE_MODEL,
         }
     }
 
     /// `(scope id, node name)` of the model or mix node this source starts at.
     pub fn key(&self) -> (u32, String) {
         match self {
-            SurfaceSource::Model { node, scope, .. } => (scope.id, node.name.clone()),
+            SurfaceSource::Model { node, scope, .. } | SurfaceSource::Closure { node, scope, .. } => {
+                (scope.id, node.name.clone())
+            }
             SurfaceSource::Mix { mix_input, .. } => (mix_input.scope.id, mix_input.node.name.clone()),
         }
     }
@@ -173,7 +192,16 @@ impl<'a> Elaborator<'a> {
         let is_shader = node.port_type == PortType::SurfaceShader;
         if PHASE_ONE_MODELS.contains(&node.category.as_str()) {
             let nodedef = self.shader_nodedef(node, &at)?;
-            return Ok(SurfaceSource::Model { node, nodedef, scope: scope.clone() });
+            let opens = self.accepts_closures
+                && !self.accepted_models.contains(&node.category)
+                && self.index.graph_for_nodedef(&nodedef.name).is_some();
+            if !opens {
+                return Ok(SurfaceSource::Model { node, nodedef, scope: scope.clone() });
+            }
+        }
+        if node.category == CLOSURE_MODEL && is_shader && self.accepts_closures {
+            let nodedef = self.shader_nodedef(node, &at)?;
+            return Ok(SurfaceSource::Closure { node, nodedef, scope: scope.clone() });
         }
         if node.category == "mix" && is_shader {
             let fg = self.follow_shader_input(scope, node, "fg", depth + 1)?;

@@ -1,6 +1,7 @@
 //! Shadewire core: the material IR (a typed DAG), optimizer, CPU interpreter and reflection
 
 pub mod classify;
+mod closure;
 mod context;
 pub mod dag;
 mod dump;
@@ -20,6 +21,7 @@ mod value;
 mod value_parse;
 
 pub use classify::ParamKind;
+pub use closure::{ClosureGraph, ClosureId, ClosureNode, ClosureType};
 pub use context::{ContextClass, ContextRead, HOST_PREFIX};
 pub use dag::Dag;
 pub use error::{Error, Location};

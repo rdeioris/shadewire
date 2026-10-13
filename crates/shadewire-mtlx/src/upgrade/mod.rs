@@ -7,6 +7,7 @@ pub mod atan2;
 pub mod channels;
 pub mod normalmap;
 pub mod scope;
+pub mod subsurface;
 pub mod switch;
 pub mod swizzle;
 
@@ -27,6 +28,7 @@ pub fn upgrade(mut doc: Document) -> Result<Document, Error> {
             atan2::apply(&mut doc);
             switch::apply(&mut doc);
             normalmap::apply(&mut doc)?;
+            subsurface::apply(&mut doc);
             doc.version = (1, 39);
             Ok(doc)
         }

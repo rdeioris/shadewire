@@ -58,7 +58,8 @@ impl Fnv {
 /// `(structure_hash, group, first_binding, flip_v, reserve_uniform_binding)`.
 ///
 /// A DAG without geomprop defaults hashes exactly as before they were hashed; the defaults, when there
-/// are any, are a tagged section after the surface fields, in name order (a `BTreeMap`).
+/// are any, are a tagged section after the surface fields, in name order (a `BTreeMap`). A closure tree,
+/// when there is one, is a tagged section after them.
 pub fn structure_hash(dag: &Dag) -> String {
     let mut h = Fnv::new();
     h.text(&dag.surface.model);
@@ -118,6 +119,10 @@ pub fn structure_hash(dag: &Dag) -> String {
             h.text(name);
             h.value(value);
         }
+    }
+    if let Some(closure) = &dag.surface.closure {
+        h.byte(6);
+        h.text(&closure.dump());
     }
     format!("{:016x}", h.0)
 }

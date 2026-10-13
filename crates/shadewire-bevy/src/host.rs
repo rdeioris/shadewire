@@ -243,6 +243,7 @@ mod tests {
             context,
             displacement: None,
             approximations: Vec::new(),
+            closure: None,
         }
     }
 

@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+<!--
+  Shadewire (MIT): nodegraph implementations of the pbrlib nodes that compute lobe inputs. Upstream implements
+  them per language (pbrlib/genglsl/mx_*.glsl); as graphs of stdlib nodes they reach every Shadewire back end
+  and the CPU interpreter. Each graph follows the upstream GLSL function it names.
+-->
+<materialx version="1.39">
+
+  <!-- mx_roughness_anisotropy: an anisotropy of 0 gives an aspect of 1, so no branch is needed. -->
+  <nodegraph name="NG_shadewire_roughness_anisotropy" nodedef="ND_roughness_anisotropy">
+    <multiply name="sqr" type="float">
+      <input name="in1" type="float" interfacename="roughness" />
+      <input name="in2" type="float" interfacename="roughness" />
+    </multiply>
+    <clamp name="alpha" type="float">
+      <input name="in" type="float" nodename="sqr" />
+      <input name="low" type="float" value="0.00000001" />
+      <input name="high" type="float" value="1.0" />
+    </clamp>
+    <clamp name="aniso" type="float">
+      <input name="in" type="float" interfacename="anisotropy" />
+      <input name="low" type="float" value="0.0" />
+      <input name="high" type="float" value="0.98" />
+    </clamp>
+    <subtract name="one_minus" type="float">
+      <input name="in1" type="float" value="1.0" />
+      <input name="in2" type="float" nodename="aniso" />
+    </subtract>
+    <sqrt name="aspect" type="float">
+      <input name="in" type="float" nodename="one_minus" />
+    </sqrt>
+    <divide name="x_raw" type="float">
+      <input name="in1" type="float" nodename="alpha" />
+      <input name="in2" type="float" nodename="aspect" />
+    </divide>
+    <min name="x" type="float">
+      <input name="in1" type="float" nodename="x_raw" />
+      <input name="in2" type="float" value="1.0" />
+    </min>
+    <multiply name="y" type="float">
+      <input name="in1" type="float" nodename="alpha" />
+      <input name="in2" type="float" nodename="aspect" />
+    </multiply>
+    <combine2 name="result" type="vector2">
+      <input name="in1" type="float" nodename="x" />
+      <input name="in2" type="float" nodename="y" />
+    </combine2>
+    <output name="out" type="vector2" nodename="result" />
+  </nodegraph>
+
+  <!-- mx_roughness_dual: a negative y takes x. -->
+  <nodegraph name="NG_shadewire_roughness_dual" nodedef="ND_roughness_dual">
+    <extract name="rx" type="float">
+      <input name="in" type="vector2" interfacename="roughness" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="ry_given" type="float">
+      <input name="in" type="vector2" interfacename="roughness" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <ifgreatereq name="ry" type="float">
+      <input name="value1" type="float" nodename="ry_given" />
+      <input name="value2" type="float" value="0.0" />
+      <input name="in1" type="float" nodename="ry_given" />
+      <input name="in2" type="float" nodename="rx" />
+    </ifgreatereq>
+    <combine2 name="r" type="vector2">
+      <input name="in1" type="float" nodename="rx" />
+      <input name="in2" type="float" nodename="ry" />
+    </combine2>
+    <multiply name="sqr" type="vector2">
+      <input name="in1" type="vector2" nodename="r" />
+      <input name="in2" type="vector2" nodename="r" />
+    </multiply>
+    <clamp name="result" type="vector2">
+      <input name="in" type="vector2" nodename="sqr" />
+      <input name="low" type="float" value="0.00000001" />
+      <input name="high" type="float" value="1.0" />
+    </clamp>
+    <output name="out" type="vector2" nodename="result" />
+  </nodegraph>
+
+  <!-- mx_artistic_ior: "Artist Friendly Metallic Fresnel", Ole Gulbrandsen, 2014. stdlib has no color3 sqrt: power 0.5. -->
+  <nodegraph name="NG_shadewire_artistic_ior" nodedef="ND_artistic_ior">
+    <clamp name="r" type="color3">
+      <input name="in" type="color3" interfacename="reflectivity" />
+      <input name="low" type="float" value="0.0" />
+      <input name="high" type="float" value="0.99" />
+    </clamp>
+    <power name="r_sqrt" type="color3">
+      <input name="in1" type="color3" nodename="r" />
+      <input name="in2" type="float" value="0.5" />
+    </power>
+    <subtract name="one_minus_r" type="color3">
+      <input name="in1" type="color3" value="1.0, 1.0, 1.0" />
+      <input name="in2" type="color3" nodename="r" />
+    </subtract>
+    <add name="one_plus_r" type="color3">
+      <input name="in1" type="color3" nodename="r" />
+      <input name="in2" type="float" value="1.0" />
+    </add>
+    <divide name="n_min" type="color3">
+      <input name="in1" type="color3" nodename="one_minus_r" />
+      <input name="in2" type="color3" nodename="one_plus_r" />
+    </divide>
+    <add name="one_plus_r_sqrt" type="color3">
+      <input name="in1" type="color3" nodename="r_sqrt" />
+      <input name="in2" type="float" value="1.0" />
+    </add>
+    <subtract name="one_minus_r_sqrt" type="color3">
+      <input name="in1" type="color3" value="1.0, 1.0, 1.0" />
+      <input name="in2" type="color3" nodename="r_sqrt" />
+    </subtract>
+    <divide name="n_max" type="color3">
+      <input name="in1" type="color3" nodename="one_plus_r_sqrt" />
+      <input name="in2" type="color3" nodename="one_minus_r_sqrt" />
+    </divide>
+    <mix name="n" type="color3">
+      <input name="fg" type="color3" nodename="n_min" />
+      <input name="bg" type="color3" nodename="n_max" />
+      <input name="mix" type="color3" interfacename="edge_color" />
+    </mix>
+    <add name="np1" type="color3">
+      <input name="in1" type="color3" nodename="n" />
+      <input name="in2" type="float" value="1.0" />
+    </add>
+    <subtract name="nm1" type="color3">
+      <input name="in1" type="color3" nodename="n" />
+      <input name="in2" type="float" value="1.0" />
+    </subtract>
+    <multiply name="np1_sqr" type="color3">
+      <input name="in1" type="color3" nodename="np1" />
+      <input name="in2" type="color3" nodename="np1" />
+    </multiply>
+    <multiply name="nm1_sqr" type="color3">
+      <input name="in1" type="color3" nodename="nm1" />
+      <input name="in2" type="color3" nodename="nm1" />
+    </multiply>
+    <multiply name="np1_sqr_r" type="color3">
+      <input name="in1" type="color3" nodename="np1_sqr" />
+      <input name="in2" type="color3" nodename="r" />
+    </multiply>
+    <subtract name="k2_num" type="color3">
+      <input name="in1" type="color3" nodename="np1_sqr_r" />
+      <input name="in2" type="color3" nodename="nm1_sqr" />
+    </subtract>
+    <divide name="k2_raw" type="color3">
+      <input name="in1" type="color3" nodename="k2_num" />
+      <input name="in2" type="color3" nodename="one_minus_r" />
+    </divide>
+    <max name="k2" type="color3">
+      <input name="in1" type="color3" nodename="k2_raw" />
+      <input name="in2" type="float" value="0.0" />
+    </max>
+    <power name="k" type="color3">
+      <input name="in1" type="color3" nodename="k2" />
+      <input name="in2" type="float" value="0.5" />
+    </power>
+    <output name="ior" type="color3" nodename="n" />
+    <output name="extinction" type="color3" nodename="k" />
+  </nodegraph>
+
+</materialx>

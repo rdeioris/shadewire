@@ -1,5 +1,5 @@
 use shadewire::reflection::live::live_nodes;
-use shadewire::{ContextRead, Dag, NodeId, NodeKind, Reflection, Type};
+use shadewire::{ContextRead, Dag, NodeId, NodeKind, Op, Reflection, Type, Value};
 
 use super::EmitOptions;
 use super::names::UniformNames;
@@ -40,8 +40,11 @@ pub fn node_lets(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> V
                 let fallback = cast(&literal(default), default.ty(), work);
                 let grad = grad.map(|[dx, dy]| (node_name(dx), node_name(dy)));
                 let grad = grad.as_ref().map(|(dx, dy)| (dx.as_str(), dy.as_str()));
-                let fetch = sample_expr(t, &node_name(*uv), work, &fallback, grad, options.flip_v);
+                let fetch = sample_expr(t, &node_name(*uv), work, &fallback, grad, options);
                 cast(&fetch, work, node.ty)
+            }
+            NodeKind::Op { op: Op::Dpdx | Op::Dpdy, .. } if !options.implicit_derivatives => {
+                literal(&Value::zero(node.ty))
             }
             NodeKind::Const(_) | NodeKind::Op { .. } => pure_expr(dag, id),
         };

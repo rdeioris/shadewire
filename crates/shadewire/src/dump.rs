@@ -1,7 +1,7 @@
 use crate::{Dag, Node, NodeKind, Value};
 
 impl Dag {
-    /// One line per node, then one line per surface field and approximation.
+    /// One line per node, then one line per surface field, closure node and approximation.
     pub fn dump(&self) -> String {
         let mut out = format!("model {}\n", self.surface.model);
         for (index, node) in self.nodes.iter().enumerate() {
@@ -13,6 +13,9 @@ impl Dag {
         }
         for field in &self.surface.fields {
             out.push_str(&format!("{} = %{}\n", field.name, field.node.index()));
+        }
+        if let Some(closure) = &self.surface.closure {
+            out.push_str(&closure.dump());
         }
         for approximation in &self.approximations {
             out.push_str(&format!("approx {approximation}\n"));

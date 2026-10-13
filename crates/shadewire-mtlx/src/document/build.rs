@@ -23,9 +23,13 @@ pub fn build(root: &Element, file: Option<&str>) -> Result<Document, Error> {
             "output" => doc.outputs.push(build_output(child)),
             "unitdef" => doc.unitdefs.push(build_unitdef(child, file)?),
             "geompropdef" => doc.geompropdefs.push(build_geompropdef(child)),
-            "unittypedef" | "typedef" | "implementation" | "look" | "token" | "materialassign" | "variantset"
-            | "variantassign" | "visibility" | "collection" | "propertyset" | "propertysetassign" | "attributedef"
-            | "lookgroup" => {}
+            "implementation" => {
+                if let (Some(nodedef), Some(graph)) = (child.attr("nodedef"), child.attr("nodegraph")) {
+                    doc.graph_implementations.push((nodedef.to_string(), graph.to_string()));
+                }
+            }
+            "unittypedef" | "typedef" | "look" | "token" | "materialassign" | "variantset" | "variantassign"
+            | "visibility" | "collection" | "propertyset" | "propertysetassign" | "attributedef" | "lookgroup" => {}
             _ => doc.nodes.push(build_node(child, &inherit)),
         }
     }

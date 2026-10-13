@@ -12,10 +12,21 @@ pub struct CompileOptions {
     pub flip_v: bool,
     /// Run the optimizer before reflection and emission.
     pub optimize: bool,
+    /// Sample textures with `textureSample` and differentiate with `dpdx`/`dpdy`, which only a fragment stage
+    /// may call. Off, plain samples read mip level 0 (`textureSampleLevel`) and derivatives are zero, so the
+    /// module also runs in a compute stage (a ray tracer's shading).
+    pub implicit_derivatives: bool,
 }
 
 impl Default for CompileOptions {
     fn default() -> CompileOptions {
-        CompileOptions { group: 2, first_binding: 0, reserve_uniform_binding: false, flip_v: true, optimize: true }
+        CompileOptions {
+            group: 2,
+            first_binding: 0,
+            reserve_uniform_binding: false,
+            flip_v: true,
+            optimize: true,
+            implicit_derivatives: true,
+        }
     }
 }

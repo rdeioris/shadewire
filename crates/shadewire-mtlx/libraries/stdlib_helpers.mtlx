@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!--
+  Shadewire (MIT): nodegraph implementations of stdlib nodes upstream implements only per language
+  (stdlib/genglsl/mx_*.glsl). Each graph follows the upstream GLSL function it names.
+-->
+<materialx version="1.39">
+
+  <!-- mx_rotate_vector3: Rodrigues' rotation with MaterialX's row-vector order, cross(in, axis). -->
+  <nodegraph name="NG_shadewire_rotate3d_vector3" nodedef="ND_rotate3d_vector3">
+    <normalize name="k" type="vector3">
+      <input name="in" type="vector3" interfacename="axis" />
+    </normalize>
+    <multiply name="radians" type="float">
+      <input name="in1" type="float" interfacename="amount" />
+      <input name="in2" type="float" value="0.017453292519943295" />
+    </multiply>
+    <sin name="s" type="float">
+      <input name="in" type="float" nodename="radians" />
+    </sin>
+    <cos name="c" type="float">
+      <input name="in" type="float" nodename="radians" />
+    </cos>
+    <subtract name="oc" type="float">
+      <input name="in1" type="float" value="1.0" />
+      <input name="in2" type="float" nodename="c" />
+    </subtract>
+    <multiply name="term1" type="vector3">
+      <input name="in1" type="vector3" interfacename="in" />
+      <input name="in2" type="float" nodename="c" />
+    </multiply>
+    <crossproduct name="cross" type="vector3">
+      <input name="in1" type="vector3" interfacename="in" />
+      <input name="in2" type="vector3" nodename="k" />
+    </crossproduct>
+    <multiply name="term2" type="vector3">
+      <input name="in1" type="vector3" nodename="cross" />
+      <input name="in2" type="float" nodename="s" />
+    </multiply>
+    <dotproduct name="kdotv" type="float">
+      <input name="in1" type="vector3" nodename="k" />
+      <input name="in2" type="vector3" interfacename="in" />
+    </dotproduct>
+    <multiply name="scale3" type="float">
+      <input name="in1" type="float" nodename="kdotv" />
+      <input name="in2" type="float" nodename="oc" />
+    </multiply>
+    <multiply name="term3" type="vector3">
+      <input name="in1" type="vector3" nodename="k" />
+      <input name="in2" type="float" nodename="scale3" />
+    </multiply>
+    <add name="sum12" type="vector3">
+      <input name="in1" type="vector3" nodename="term1" />
+      <input name="in2" type="vector3" nodename="term2" />
+    </add>
+    <add name="result" type="vector3">
+      <input name="in1" type="vector3" nodename="sum12" />
+      <input name="in2" type="vector3" nodename="term3" />
+    </add>
+    <output name="out" type="vector3" nodename="result" />
+  </nodegraph>
+
+</materialx>

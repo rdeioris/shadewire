@@ -150,6 +150,7 @@ pub(crate) unsafe fn read_compile(ptr: *const shadewire_compile_options) -> Resu
             reserve_uniform_binding: flag(&raw const (*raw).reserve_uniform_binding),
             flip_v: flag(&raw const (*raw).flip_v),
             optimize: flag(&raw const (*raw).optimize),
+            implicit_derivatives: true,
         })
     }
 }

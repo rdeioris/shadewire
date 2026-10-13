@@ -17,7 +17,7 @@ impl Dag {
         Dag {
             nodes: Vec::new(),
             textures: Vec::new(),
-            surface: Surface { model: model.to_string(), fields: Vec::new() },
+            surface: Surface { model: model.to_string(), fields: Vec::new(), closure: None },
             approximations: Vec::new(),
             geomprop_defaults: BTreeMap::new(),
         }

@@ -1,3 +1,4 @@
+pub mod closure;
 pub mod const_fold;
 pub mod cse;
 pub mod dead_nodes;
@@ -6,12 +7,14 @@ pub mod rebuild;
 
 use crate::Dag;
 
-/// Folds constants, removes identities, shares equal nodes, drops unused nodes.
+/// Folds constants, removes identities, shares equal nodes, prunes closures constant weights turn off,
+/// drops unused nodes.
 pub fn optimize(dag: &Dag) -> Dag {
     let folded = const_fold::run(dag);
     let simplified = identities::run(&folded);
     let shared = cse::run(&simplified);
-    dead_nodes::run(&shared)
+    let pruned = closure::run(&shared);
+    dead_nodes::run(&pruned)
 }
 
 #[cfg(test)]

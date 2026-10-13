@@ -2,7 +2,7 @@ mod bindings;
 mod coerce;
 pub mod expressions;
 mod module;
-pub(crate) mod names;
+pub mod names;
 pub mod ops;
 pub mod probe;
 mod reserved;
@@ -21,11 +21,13 @@ pub use probe::probe_function;
 pub struct EmitOptions {
     /// Textures are uploaded top row first, MaterialX texcoords have V up.
     pub flip_v: bool,
+    /// Fragment-stage sampling and derivatives; off, level-0 samples and zero derivatives (`CompileOptions`).
+    pub implicit_derivatives: bool,
 }
 
 impl Default for EmitOptions {
     fn default() -> Self {
-        EmitOptions { flip_v: true }
+        EmitOptions { flip_v: true, implicit_derivatives: true }
     }
 }
 
