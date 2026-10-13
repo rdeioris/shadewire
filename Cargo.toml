@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/shadewire", "crates/shadewire-wgsl", "crates/shadewire-glsl", "crates/shadewire-mtlx", "crates/shadewire-cli", "crates/shadewire-capi", "crates/shadewire-capi-ctest", "crates/shadewire-bevy", "crates/shadewire-py"]
+members = ["crates/shadewire", "crates/shadewire-wgsl", "crates/shadewire-glsl", "crates/shadewire-hlsl", "crates/shadewire-msl", "crates/shadewire-mtlx", "crates/shadewire-cli", "crates/shadewire-capi", "crates/shadewire-capi-ctest", "crates/shadewire-bevy", "crates/shadewire-py"]
 
 [workspace.package]
 version = "0.1.0"
@@ -16,6 +16,8 @@ shadewire-mtlx = { path = "crates/shadewire-mtlx" }
 shadewire-capi = { path = "crates/shadewire-capi" }
 shadewire-wgsl = { path = "crates/shadewire-wgsl", default-features = false }
 shadewire-glsl = { path = "crates/shadewire-glsl" }
+shadewire-hlsl = { path = "crates/shadewire-hlsl" }
+shadewire-msl = { path = "crates/shadewire-msl" }
 naga = { version = "30", features = ["wgsl-in", "wgsl-out", "hlsl-out", "glsl-out", "msl-out", "spv-out"] }
 quick-xml = "0.38"
 include_dir = "0.7"

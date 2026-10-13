@@ -4008,6 +4008,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "shadewire-hlsl"
+version = "0.1.0"
+dependencies = [
+ "shadewire",
+]
+
+[[package]]
+name = "shadewire-msl"
+version = "0.1.0"
+dependencies = [
+ "shadewire",
+]
+
+[[package]]
 name = "shadewire-mtlx"
 version = "0.1.0"
 dependencies = [

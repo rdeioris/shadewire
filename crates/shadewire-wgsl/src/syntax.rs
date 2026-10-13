@@ -61,14 +61,14 @@ impl Syntax for Wgsl {
         format!("{name}: {}", self.ty(ty))
     }
 
-    fn signature(&self, f: &Function) -> String {
+    fn signature(&self, f: &Function, _module: &Module) -> String {
         let params: Vec<String> = f.params.iter().map(|(n, t)| self.param(n, t)).collect();
         let ret = if f.ret == Ty::Void { String::new() } else { format!(" -> {}", self.ty(&f.ret)) };
         format!("fn {}({}){ret}", f.name, params.join(", "))
     }
 
     /// WGSL has no declarations: the host's definitions are linked in.
-    fn extern_decl(&self, _f: &Function) -> Option<String> {
+    fn extern_decl(&self, _f: &Function, _module: &Module) -> Option<String> {
         None
     }
 

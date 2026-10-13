@@ -68,14 +68,14 @@ pub trait Syntax: Sized {
     }
 
     /// A function's signature, without the body or `;`.
-    fn signature(&self, f: &Function) -> String {
+    fn signature(&self, f: &Function, _module: &Module) -> String {
         let params: Vec<String> = f.params.iter().map(|(n, t)| self.param(n, t)).collect();
         format!("{} {}({})", self.ty(&f.ret), f.name, params.join(", "))
     }
 
     /// A host function's declaration.
-    fn extern_decl(&self, f: &Function) -> Option<String> {
-        Some(format!("{};", self.signature(f)))
+    fn extern_decl(&self, f: &Function, module: &Module) -> Option<String> {
+        Some(format!("{};", self.signature(f, module)))
     }
 
     /// A local: `T name = value;`.
@@ -142,6 +142,36 @@ pub trait Syntax: Sized {
 pub fn float(x: f32) -> String {
     let s = format!("{x:?}");
     if s.contains(['.', 'e', 'E']) || s.contains("inf") || s.contains("NaN") { s } else { format!("{s}.0") }
+}
+
+/// A member of a host-filled struct, or padding before one.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Field<'a> {
+    Member(&'a str, &'a Ty),
+    /// This many 4-byte words.
+    Pad(u32),
+}
+
+/// The members of a host-filled struct with padding words so that each sits at its reflected offset, for
+/// languages whose packing differs from WGSL's (HLSL's cbuffers, MSL's structs with packed vectors): there every
+/// member takes 4 bytes per component, and a WGSL offset is always a legal place for it.
+pub fn padded(s: &Struct) -> Vec<Field<'_>> {
+    let Some((offsets, size)) = &s.layout else {
+        return s.members.iter().map(|(m, t)| Field::Member(m, t)).collect();
+    };
+    let mut out = Vec::new();
+    let mut at = 0;
+    for ((m, t), offset) in s.members.iter().zip(offsets) {
+        if *offset > at {
+            out.push(Field::Pad((offset - at) / 4));
+        }
+        out.push(Field::Member(m, t));
+        at = offset + 4 * u32::from(t.width().unwrap_or(1));
+    }
+    if *size > at {
+        out.push(Field::Pad((size - at) / 4));
+    }
+    out
 }
 
 /// Binding strength of an expression, for parentheses.
@@ -326,9 +356,9 @@ impl<'a, S: Syntax> Printer<'a, S> {
                 let text = self.syntax.resource(r, module);
                 if text.is_empty() { text } else { text + "\n" }
             }
-            Item::Extern(f) => self.syntax.extern_decl(f).map_or(String::new(), |d| format!("{d}\n")),
+            Item::Extern(f) => self.syntax.extern_decl(f, module).map_or(String::new(), |d| format!("{d}\n")),
             Item::Function(f) => {
-                let mut lines = vec![format!("{} {{", self.syntax.signature(f))];
+                let mut lines = vec![format!("{} {{", self.syntax.signature(f, module))];
                 self.block(&f.body, 1, &mut lines);
                 lines.push("}".into());
                 lines.join("\n") + "\n"
