@@ -18,6 +18,7 @@ from shadewire_mtlx import builder, compiler  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--shadewire", default="")
+parser.add_argument("--mode", choices=["PRINCIPLED", "LOBES"], default="PRINCIPLED")
 parser.add_argument("files", nargs="*")
 args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else [])
 files = args.files or sorted(
@@ -39,7 +40,7 @@ for path in files:
     for name in names:
         label = f"{os.path.basename(path)}:{name}"
         try:
-            doc = compile_backend.compile(path, name, False)
+            doc = compile_backend.compile(path, name, False, args.mode)
         except compiler.CompileError as e:
             print(f"SKIP {label}: {str(e).splitlines()[0]}")
             continue

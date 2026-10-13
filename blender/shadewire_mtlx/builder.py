@@ -1,10 +1,11 @@
-"""Builds a Cycles node tree from a Shadewire IR document (`shadewire ir --json`).
+"""Builds a Blender material node tree from a Shadewire IR document (`shadewire ir --json`).
 
 Values are lists of components; a component is a Python float (a constant, folded on the spot) or a node
 output socket. Ops work component by component with Math nodes (vector ops use Vector Math), so every
 Shadewire op has an exact node form except the noises, which use Blender's own noise textures.
 
-The closure tree becomes Cycles shaders: each lobe's weight (the product of the mixes, multiplies and layers
+A named model (standard_surface, open_pbr_surface, gltf_pbr) becomes one Principled BSDF, its inputs driven by
+the model's fields. A closure tree (the `surface` model) becomes shader nodes, one BSDF per lobe: each lobe's weight (the product of the mixes, multiplies and layers
 above it) goes into the lobe's color when the lobe scales by one, else through a Mix Shader with black. A
 `layer` passes its base what the top does not reflect (one minus the top's albedo), as MaterialX's own
 GLSL does; the lobes are summed with Add Shader.
@@ -498,7 +499,7 @@ class Builder:
         return self.split(self.vmath("NORMALIZE", out).outputs[0])
 
     def op_zero(self, node, args, width):
-        """Screen-space derivatives: Cycles shading has none."""
+        """Screen-space derivatives: Blender's shader nodes have none."""
         return [0.0] * width
 
     def approximate(self, node):
@@ -755,6 +756,156 @@ class Builder:
         color = [self.mul(e, c) for e, c in zip(self.field("emission", 3), self.field("emission_color", 3))]
         return [self.emission_shader(color)], self.field("opacity", 1)[0]
 
+    # ------------------------------------------------------------------ named models as a Principled BSDF
+
+    def model_value(self, name, width, fallback):
+        """A field of the model at `width`, or `fallback` when the model lacks it."""
+        value = self.field(name, width)
+        return value if value is not None else self.widen(fallback, width)
+
+    def principled(self, sockets):
+        """A Principled BSDF with `sockets` (input name -> components, or None to leave the default) set, alpha
+        included; (its output, opacity 1). An input this Blender's Principled BSDF lacks is left out, with a
+        warning unless it is one newer versions added."""
+        n = self.tree.nodes.new("ShaderNodeBsdfPrincipled")
+        n.hide = False
+        depth = 0
+        for name, value in sockets.items():
+            if value is None:
+                continue
+            if name not in n.inputs:
+                if name not in NEWER_PRINCIPLED_INPUTS:
+                    self.warn(f"this Blender's Principled BSDF has no {name} input; it is left out")
+                continue
+            depth = max(depth, self.set_input(n.inputs[name], value[0] if len(value) == 1 else self.vector(value)))
+        self.place(n, depth + 1)
+        return [n.outputs[0]], 1.0
+
+    def optional(self, name, width=3):
+        """A field linked only when the model has it (normals and tangents: unlinked, the node uses its own)."""
+        return self.field(name, width)
+
+    def tinted_base(self, base, *tints):
+        """Blender's Principled BSDF tints subsurface and transmission with the base color: `base` moved toward
+        each (color, weight) as far as its weight."""
+        for color, weight in tints:
+            base = self.each(3, self.lerp, base, color, weight)
+        return base
+
+    def model_standard_surface(self):
+        f = self.model_value
+        base = self.each(3, self.mul, f("base_color", 3, [0.8]), f("base", 1, [1.0]))
+        base = self.tinted_base(base, (f("subsurface_color", 3, [1.0]), f("subsurface", 1, [0.0])),
+                                (f("transmission_color", 3, [1.0]), f("transmission", 1, [0.0])))
+        return self.principled({
+            "Base Color": base,
+            "Metallic": f("metalness", 1, [0.0]),
+            "Roughness": f("specular_roughness", 1, [0.2]),
+            "IOR": f("specular_IOR", 1, [1.5]),
+            "Alpha": [self.luminance(f("opacity", 3, [1.0]))],
+            "Normal": self.optional("normal"),
+            "Diffuse Roughness": f("diffuse_roughness", 1, [0.0]),
+            "Subsurface Weight": f("subsurface", 1, [0.0]),
+            "Subsurface Radius": f("subsurface_radius", 3, [1.0]),
+            "Subsurface Scale": f("subsurface_scale", 1, [1.0]),
+            "Subsurface Anisotropy": f("subsurface_anisotropy", 1, [0.0]),
+            # Blender's 0.5 is the IOR's own reflectance, standard_surface's 1.
+            "Specular IOR Level": [self.mul(f("specular", 1, [1.0])[0], 0.5)],
+            "Specular Tint": f("specular_color", 3, [1.0]),
+            "Anisotropic": f("specular_anisotropy", 1, [0.0]),
+            "Anisotropic Rotation": f("specular_rotation", 1, [0.0]),
+            "Tangent": self.optional("tangent"),
+            "Transmission Weight": f("transmission", 1, [0.0]),
+            "Coat Weight": f("coat", 1, [0.0]),
+            "Coat Roughness": f("coat_roughness", 1, [0.1]),
+            "Coat IOR": f("coat_IOR", 1, [1.5]),
+            "Coat Tint": f("coat_color", 3, [1.0]),
+            "Coat Normal": self.optional("coat_normal"),
+            "Sheen Weight": f("sheen", 1, [0.0]),
+            "Sheen Roughness": f("sheen_roughness", 1, [0.3]),
+            "Sheen Tint": f("sheen_color", 3, [1.0]),
+            "Emission Color": f("emission_color", 3, [1.0]),
+            "Emission Strength": f("emission", 1, [0.0]),
+            "Thin Film Thickness": f("thin_film_thickness", 1, [0.0]),
+            "Thin Film IOR": f("thin_film_IOR", 1, [1.5]),
+        })
+
+    def model_open_pbr(self):
+        f = self.model_value
+        base = self.each(3, self.mul, f("base_color", 3, [0.8]), f("base_weight", 1, [1.0]))
+        base = self.tinted_base(base, (f("subsurface_color", 3, [0.8]), f("subsurface_weight", 1, [0.0])),
+                                (f("transmission_color", 3, [1.0]), f("transmission_weight", 1, [0.0])))
+        film = self.mul(f("thin_film_thickness", 1, [0.5])[0], f("thin_film_weight", 1, [0.0])[0])
+        return self.principled({
+            "Base Color": base,
+            "Metallic": f("base_metalness", 1, [0.0]),
+            "Roughness": f("specular_roughness", 1, [0.3]),
+            "IOR": f("specular_ior", 1, [1.5]),
+            "Alpha": f("geometry_opacity", 1, [1.0]),
+            "Normal": self.optional("geometry_normal"),
+            "Diffuse Roughness": f("base_diffuse_roughness", 1, [0.0]),
+            "Subsurface Weight": f("subsurface_weight", 1, [0.0]),
+            "Subsurface Radius": f("subsurface_radius_scale", 3, [1.0]),
+            "Subsurface Scale": f("subsurface_radius", 1, [1.0]),
+            "Subsurface Anisotropy": f("subsurface_scatter_anisotropy", 1, [0.0]),
+            "Specular IOR Level": [self.mul(f("specular_weight", 1, [1.0])[0], 0.5)],
+            "Specular Tint": f("specular_color", 3, [1.0]),
+            "Anisotropic": f("specular_roughness_anisotropy", 1, [0.0]),
+            "Tangent": self.optional("geometry_tangent"),
+            "Transmission Weight": f("transmission_weight", 1, [0.0]),
+            "Coat Weight": f("coat_weight", 1, [0.0]),
+            "Coat Roughness": f("coat_roughness", 1, [0.0]),
+            "Coat IOR": f("coat_ior", 1, [1.6]),
+            "Coat Tint": f("coat_color", 3, [1.0]),
+            "Coat Normal": self.optional("geometry_coat_normal"),
+            "Sheen Weight": f("fuzz_weight", 1, [0.0]),
+            "Sheen Roughness": f("fuzz_roughness", 1, [0.5]),
+            "Sheen Tint": f("fuzz_color", 3, [1.0]),
+            # Luminance times color, as MaterialX's open_pbr_surface graph emits.
+            "Emission Color": f("emission_color", 3, [1.0]),
+            "Emission Strength": f("emission_luminance", 1, [0.0]),
+            # OpenPBR's thickness is in micrometres, Blender's in nanometres.
+            "Thin Film Thickness": [self.mul(film, 1000.0)],
+            "Thin Film IOR": f("thin_film_ior", 1, [1.4]),
+        })
+
+    def model_gltf_pbr(self):
+        f = self.model_value
+        # alpha_mode: 0 opaque, 1 mask (alpha_cutoff), 2 blend.
+        mode = f("alpha_mode", 1, [0.0])[0]
+        alpha = f("alpha", 1, [1.0])[0]
+        masked = self.math("GREATER_THAN", alpha, self.sub(f("alpha_cutoff", 1, [0.5])[0], 1e-6))
+        alpha = self.lerp(alpha, masked, self.math("COMPARE", mode, 1.0, 0.5))
+        alpha = self.lerp(alpha, 1.0, self.math("COMPARE", mode, 0.0, 0.5))
+        rotation = self.mul(f("anisotropy_rotation", 1, [0.0])[0], 1.0 / (2.0 * math.pi))
+        film = self.mul(f("iridescence_thickness", 1, [100.0])[0], f("iridescence", 1, [0.0])[0])
+        # glTF's occlusion is for the host's ambient light: the Principled BSDF has no input for it.
+        return self.principled({
+            "Base Color": f("base_color", 3, [1.0]),
+            "Metallic": f("metallic", 1, [1.0]),
+            "Roughness": f("roughness", 1, [1.0]),
+            "IOR": f("ior", 1, [1.5]),
+            "Alpha": [alpha],
+            "Normal": self.optional("normal"),
+            "Specular IOR Level": [self.mul(f("specular", 1, [1.0])[0], 0.5)],
+            "Specular Tint": f("specular_color", 3, [1.0]),
+            "Anisotropic": f("anisotropy_strength", 1, [0.0]),
+            "Anisotropic Rotation": [rotation],
+            "Tangent": self.optional("tangent"),
+            "Transmission Weight": f("transmission", 1, [0.0]),
+            "Coat Weight": f("clearcoat", 1, [0.0]),
+            "Coat Roughness": f("clearcoat_roughness", 1, [0.0]),
+            "Coat Normal": self.optional("clearcoat_normal"),
+            # The sheen's color is its strength: black leaves it out.
+            "Sheen Weight": [1.0],
+            "Sheen Roughness": f("sheen_roughness", 1, [0.0]),
+            "Sheen Tint": f("sheen_color", 3, [0.0]),
+            "Emission Color": f("emissive", 3, [0.0]),
+            "Emission Strength": f("emissive_strength", 1, [1.0]),
+            "Thin Film Thickness": [film],
+            "Thin Film IOR": f("iridescence_ior", 1, [1.3]),
+        })
+
     def sum_shaders(self, shaders):
         if not shaders:
             return self.black_shader()
@@ -942,7 +1093,13 @@ EMITTERS = {
 MODELS = {
     "surface": Builder.model_surface,
     "surface_unlit": Builder.model_unlit,
+    "standard_surface": Builder.model_standard_surface,
+    "open_pbr_surface": Builder.model_open_pbr,
+    "gltf_pbr": Builder.model_gltf_pbr,
 }
+
+# Principled BSDF inputs newer than Blender 4.2: left out without a warning where they are missing.
+NEWER_PRINCIPLED_INPUTS = {"Diffuse Roughness", "Thin Film Thickness", "Thin Film IOR"}
 
 # Math over constants, folded in Python instead of making a node; a None result leaves it to a node.
 FOLDS = {

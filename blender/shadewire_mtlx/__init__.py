@@ -1,7 +1,9 @@
-"""Shadewire MaterialX: MaterialX materials as Cycles node trees.
+"""Shadewire MaterialX: MaterialX materials as Blender material node trees, for Cycles and EEVEE.
 
-Shadewire compiles each material (pattern graphs, named models such as standard_surface or OpenPBR opened
-into their lobes, raw BSDF graphs) to its IR; this add-on turns the IR into nodes. File > Import > MaterialX
+Shadewire compiles each material to its IR; this add-on turns the IR into nodes. The pattern graph becomes Math,
+texture and geometry nodes. Then, by default (Principled BSDF), a named model (standard_surface, OpenPBR,
+glTF PBR) drives one Principled BSDF and a raw BSDF graph becomes one BSDF node per lobe; with MaterialX Lobes
+every material opens into its lobes, as MaterialX defines them. File > Import > MaterialX
 creates the document's materials; "Fill Materials from MaterialX" (Material properties, and the 3D view's
 Object menu) rebuilds the materials already in the file whose names match the document's, such as the empty
 ones Blender's USD importer makes for materials bound from a `.mtlx` reference.
@@ -10,7 +12,7 @@ ones Blender's USD importer makes for materials bound from a `.mtlx` reference.
 import os
 
 import bpy
-from bpy.props import BoolProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
 from . import builder, compiler
@@ -36,10 +38,22 @@ class ShadewirePreferences(bpy.types.AddonPreferences):
         self.layout.prop(self, "executable")
 
 
-def build(operator, context, mtlx, name, material, editable):
+MODES = [
+    ("PRINCIPLED", "Principled BSDF", "Named models (standard_surface, OpenPBR, glTF PBR) drive one Principled BSDF, "
+     "small and editable, for Cycles and EEVEE; raw BSDF graphs become their lobes"),
+    ("LOBES", "MaterialX Lobes", "Every material as its lobes, one BSDF node each, layered and mixed as MaterialX "
+     "defines them (closest to MaterialX; more nodes than EEVEE evaluates)"),
+]
+
+
+def mode_property():
+    return EnumProperty(name="Shading", items=MODES, default="PRINCIPLED")
+
+
+def build(operator, context, mtlx, name, material, editable, mode):
     """Compiles `name` of `mtlx` into `material`; reports warnings. False on failure."""
     try:
-        doc = compiler.backend(configured_executable(context)).compile(mtlx, name, editable)
+        doc = compiler.backend(configured_executable(context)).compile(mtlx, name, editable, mode)
     except compiler.CompileError as e:
         operator.report({"ERROR"}, f"{name or os.path.basename(mtlx)}: {e}")
         return False
@@ -48,6 +62,7 @@ def build(operator, context, mtlx, name, material, editable):
         operator.report({"WARNING"}, f"{material.name}: {w}")
     material["shadewire_source"] = mtlx
     material["shadewire_material"] = name or ""
+    material["shadewire_mode"] = mode
     return True
 
 
@@ -66,6 +81,7 @@ class SHADEWIRE_OT_import(bpy.types.Operator, ImportHelper):
         "are left out)",
         default=False,
     )
+    mode: mode_property()
     assign: BoolProperty(name="Assign to Selected", description="Give the first material to the selected objects")
 
     def execute(self, context):
@@ -77,7 +93,7 @@ class SHADEWIRE_OT_import(bpy.types.Operator, ImportHelper):
         made = []
         for name in names:
             material = bpy.data.materials.new(name)
-            if build(self, context, self.filepath, name, material, self.editable):
+            if build(self, context, self.filepath, name, material, self.editable, self.mode):
                 made.append(material)
             else:
                 bpy.data.materials.remove(material)
@@ -102,6 +118,7 @@ class SHADEWIRE_OT_fill(bpy.types.Operator, ImportHelper):
     filename_ext = ".mtlx"
     filter_glob: StringProperty(default="*.mtlx", options={"HIDDEN"})
     editable: BoolProperty(name="Editable Values", default=False)
+    mode: mode_property()
 
     def execute(self, context):
         try:
@@ -112,7 +129,7 @@ class SHADEWIRE_OT_fill(bpy.types.Operator, ImportHelper):
         filled = 0
         for name in names:
             material = bpy.data.materials.get(name)
-            if material is not None and build(self, context, self.filepath, name, material, self.editable):
+            if material is not None and build(self, context, self.filepath, name, material, self.editable, self.mode):
                 filled += 1
         self.report({"INFO"}, f"filled {filled} materials ({len(names)} in the document)")
         return {"FINISHED"}
@@ -134,7 +151,8 @@ class SHADEWIRE_OT_rebuild(bpy.types.Operator):
 
     def execute(self, context):
         m = context.material
-        ok = build(self, context, m["shadewire_source"], m["shadewire_material"] or None, m, self.editable)
+        mode = m.get("shadewire_mode", "PRINCIPLED")
+        ok = build(self, context, m["shadewire_source"], m["shadewire_material"] or None, m, self.editable, mode)
         return {"FINISHED"} if ok else {"CANCELLED"}
 
 

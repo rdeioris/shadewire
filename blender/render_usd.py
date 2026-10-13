@@ -25,6 +25,7 @@ parser.add_argument("--size", type=int, nargs=2, default=None)
 parser.add_argument("--shadewire", default="")
 parser.add_argument("--denoise", action="store_true")
 parser.add_argument("--editable", action="store_true")
+parser.add_argument("--mode", choices=["PRINCIPLED", "LOBES"], default="PRINCIPLED")
 parser.add_argument("--exposure", type=float, default=0.0)
 parser.add_argument("--view-transform", default="AgX")
 args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
@@ -39,7 +40,7 @@ for name in names:
     material = bpy.data.materials.get(name)
     if material is None:
         continue
-    doc = compile_backend.compile(args.mtlx, name, args.editable)
+    doc = compile_backend.compile(args.mtlx, name, args.editable, args.mode)
     warnings = builder.build_material(material, doc, os.path.dirname(args.mtlx))
     print(f"material {name}: {len(material.node_tree.nodes)} nodes", *(f"\n  warning: {w}" for w in warnings))
 

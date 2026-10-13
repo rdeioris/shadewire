@@ -12,8 +12,13 @@ import shutil
 import subprocess
 import sys
 
-# Shadewire's closure model; `surface_unlit` stays a model (it has no lobes).
-MODELS = ["surface", "surface_unlit"]
+# The models each import mode accepts. PRINCIPLED keeps the named models (one Principled BSDF each) and takes the
+# rest, raw BSDF graphs included, as Shadewire's closure model; LOBES opens every material into its lobes.
+# `surface_unlit` stays a model either way (it has no lobes).
+MODES = {
+    "PRINCIPLED": ["standard_surface", "open_pbr_surface", "gltf_pbr", "surface_unlit", "surface"],
+    "LOBES": ["surface", "surface_unlit"],
+}
 IR_FORMAT = ("shadewire-ir", 1)
 
 
@@ -48,10 +53,10 @@ class ModuleBackend:
         except self.module.ShadewireError as e:
             raise CompileError(str(e)) from e
 
-    def compile(self, mtlx, material, editable):
+    def compile(self, mtlx, material, editable, mode="PRINCIPLED"):
         """The MaterialX front end, the optimizer, the IR as a document."""
         try:
-            ir = self.module.mtlx.to_ir(self.read(mtlx), path=mtlx, material=material, models=MODELS,
+            ir = self.module.mtlx.to_ir(self.read(mtlx), path=mtlx, material=material, models=MODES[mode],
                                         values_as_uniforms=editable)
             doc = ir.optimize().to_dict()
         except self.module.ShadewireError as e:
@@ -76,9 +81,9 @@ class ExecutableBackend:
     def material_names(self, mtlx):
         return [line for line in self.run(["list", mtlx]).splitlines() if line.strip()]
 
-    def compile(self, mtlx, material, editable):
+    def compile(self, mtlx, material, editable, mode="PRINCIPLED"):
         args = ["ir", mtlx, "--json"]
-        for model in MODELS:
+        for model in MODES[mode]:
             args += ["--model", model]
         if material:
             args += ["--material", material]
