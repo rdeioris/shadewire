@@ -231,7 +231,7 @@ def convert(import_context, bl_material, usd_material, options):
 
 
 class ShadewireUSDHook(bpy.types.USDHook):
-    bl_idname = "shadewire_mtlx"
+    bl_idname = "shadewire"
     bl_label = "Shadewire MaterialX"
     bl_description = "Builds the MaterialX materials of imported USD scenes with Shadewire"
 

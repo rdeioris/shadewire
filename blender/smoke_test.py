@@ -4,11 +4,16 @@ registered, and every material with a MaterialX surface must arrive built and ev
 each scene is also imported flattened (its MaterialX inline, which the hook writes back as a document). Exits 1
 when a material fails.
 
-blender -b -P blender/smoke_test.py -- [--shadewire PATH] [--mode PRINCIPLED|LOBES] [--flatten] [file.mtlx|scene.usd ...]
+blender -b -P blender/smoke_test.py -- [--shadewire PATH] [--mode PRINCIPLED|LOBES] [--flatten] [--installed]
+    [file.mtlx|scene.usd ...]
+
+--installed tests the extension Blender has installed and enabled (from a zip, with its bundled module) instead of
+the add-on in this folder.
 """
 
 import argparse
 import glob
+import importlib.util
 import os
 import sys
 import tempfile
@@ -18,9 +23,27 @@ import bpy
 from pxr import Usd, UsdShade
 
 here = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, here)
-import shadewire_mtlx  # noqa: E402
-from shadewire_mtlx import builder, compiler, usd  # noqa: E402
+
+
+def load_addon(installed):
+    """The add-on, registered: as Blender installed and enabled it from an extension zip (`installed`), or from
+    `blender/shadewire`, loaded as `shadewire_addon` and with nothing added to sys.path, so that `import shadewire`
+    still finds the compiler module rather than the add-on's folder."""
+    if installed:
+        names = [name for name in sys.modules if name.startswith("bl_ext.") and name.endswith(".shadewire")]
+        if not names:
+            sys.exit("--installed: no enabled shadewire extension (install the zip with -e first)")
+        return sys.modules[names[0]]
+    folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shadewire")
+    spec = importlib.util.spec_from_file_location(
+        "shadewire_addon", os.path.join(folder, "__init__.py"), submodule_search_locations=[folder]
+    )
+    addon = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = addon
+    spec.loader.exec_module(addon)
+    addon.register()
+    return addon
+
 
 USD = (".usd", ".usda", ".usdc", ".usdz")
 
@@ -28,6 +51,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--shadewire", default="")
 parser.add_argument("--mode", choices=["PRINCIPLED", "LOBES"], default="PRINCIPLED")
 parser.add_argument("--flatten", action="store_true")
+parser.add_argument("--installed", action="store_true")
 parser.add_argument("files", nargs="*")
 args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else [])
 files = args.files or sorted(
@@ -35,10 +59,12 @@ files = args.files or sorted(
               recursive=True)
 )
 
+addon = load_addon(args.installed)
+builder, compiler, usd = addon.builder, addon.compiler, addon.usd
 compile_backend = compiler.backend(args.shadewire)
+print("add-on:", addon.__name__, os.path.dirname(addon.__file__))
 print("compiler:", compile_backend.name)
 usd.defaults.update(usd_mode=args.mode, executable=args.shadewire)
-shadewire_mtlx.register()
 
 
 def check_mtlx(path):
@@ -72,7 +98,7 @@ def check_usd(path):
     stage = Usd.Stage.Open(path)
     expected = sorted(p.GetName() for p in stage.Traverse()
                       if p.IsA(UsdShade.Material) and UsdShade.Material(p).GetSurfaceOutput("mtlx"))
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.wm.read_homefile(use_empty=True)
     try:
         bpy.ops.wm.usd_import(filepath=path)
     except RuntimeError as e:

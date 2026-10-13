@@ -79,8 +79,9 @@ No compatibility shims: old names are gone.
   cache key from the structure hash, and the `gltf_mtlx` example (a material on a glTF scene, live recompiling).
 - Limits: forward rendering, up to 8 textures and 1 KiB of uniforms per material.
 
-### Blender add-on (`blender/shadewire_mtlx`, new)
+### Blender add-on (`blender/shadewire`, new)
 
+- Blender 4.3 or later (conductors use the Metallic BSDF, new in 4.3); the extension's id is `shadewire`.
 - File > Import > MaterialX builds Blender material node trees (rendered by Cycles and EEVEE) through Shadewire.
   Every vendored example builds, in both shading modes.
 - USD import (Blender 4.4 or later): a `USDHook` builds the MaterialX materials of a USD scene as Blender imports

@@ -17,7 +17,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CRATE = os.path.join(HERE, "..", "crates", "shadewire-py")
-ADDON = os.path.join(HERE, "shadewire_mtlx")
+ADDON = os.path.join(HERE, "shadewire")
 
 # (Rust target, extra maturin arguments): Windows natively, the rest through zig.
 TARGETS = [
@@ -49,9 +49,9 @@ def build_wheels(out):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--blender", required=True, help="the Blender executable (4.2 or later)")
+    parser.add_argument("--blender", required=True, help="the Blender executable (4.3 or later)")
     parser.add_argument("--out", default=os.path.join(HERE, "..", "target", "extension"))
-    parser.add_argument("--skip-wheels", action="store_true", help="use the wheels already in shadewire_mtlx/wheels")
+    parser.add_argument("--skip-wheels", action="store_true", help="use the wheels already in shadewire/wheels")
     args = parser.parse_args()
 
     wheels = os.path.join(ADDON, "wheels")

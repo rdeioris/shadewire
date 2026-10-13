@@ -1,9 +1,10 @@
 # Shadewire MaterialX for Blender
 
-A Blender extension (4.2 or later) that imports MaterialX materials as Blender material node trees, which Cycles
-and EEVEE both render. Shadewire compiles each material; the add-on turns the result into nodes: Math and Vector
-Math for the patterns, Image Texture for images (raw texels: Shadewire's nodes convert colorspaces), Geometry,
-UV and Attribute nodes for what the material reads of the mesh, and then the shading, in one of two modes:
+A Blender extension (4.3 or later: conductors use the Metallic BSDF) that imports MaterialX materials as Blender
+material node trees, which Cycles and EEVEE both render. Shadewire compiles each material; the add-on turns the
+result into nodes: Math and Vector Math for the patterns, Image Texture for images (raw texels: Shadewire's nodes
+convert colorspaces), Geometry, UV and Attribute nodes for what the material reads of the mesh, and then the
+shading, in one of two modes:
 
 - **Principled BSDF** (the default): a material in a named model (`standard_surface`, `open_pbr_surface`,
   `gltf_pbr`) drives one Principled BSDF, its inputs linked to the model's parameters. Small, editable, and what
@@ -15,15 +16,15 @@ UV and Attribute nodes for what the material reads of the mesh, and then the sha
 
 ## License
 
-The add-on (`shadewire_mtlx`, the Python code that drives Blender) is licensed GPL-3.0-or-later (see
-`shadewire_mtlx/LICENSE`), as extensions.blender.org requires of add-ons. The `shadewire` module it bundles, like the
+The add-on (`shadewire`, the Python code that drives Blender) is licensed GPL-3.0-or-later (see
+`shadewire/LICENSE`), as extensions.blender.org requires of add-ons. The `shadewire` module it bundles, like the
 rest of Shadewire, is MIT, with parts under Apache-2.0 and BSD-3-Clause (see the repository's NOTICE); all three are
 compatible with the GPL.
 
 ## Install
 
 The extension bundles the compiler as the `shadewire` Python module (`crates/shadewire-py`): one wheel per
-platform, built for Python's stable ABI from 3.8, so it loads in every Blender from 4.2 on. Each platform has
+platform, built for Python's stable ABI from 3.8, so it loads in every Blender from 4.3 on. Each platform has
 its own extension zip (Windows x64 and ARM64, macOS Intel and Apple Silicon, Linux x64 and ARM64); install it
 from Preferences > Get Extensions > Install from Disk.
 
@@ -33,7 +34,7 @@ Build the wheels and the zips with `python blender/build_extension.py --blender 
 
 From a source checkout, without the module, the add-on falls back to the `shadewire` command-line compiler
 (`cargo build -p shadewire-cli --release`): set its path in the add-on's preferences, put it in
-`shadewire_mtlx/bin/`, or on PATH. A path in the preferences always wins over the module.
+`shadewire/bin/`, or on PATH. A path in the preferences always wins over the module.
 
 ## Use
 
@@ -49,7 +50,7 @@ From a source checkout, without the module, the add-on falls back to the `shadew
   unpacks them from a `.usdz`. The add-on's preferences turn it off and pick its Shading and Editable Values.
 - **Fill Materials from MaterialX** (Object menu, and the Material properties panel) rebuilds the materials
   already in the file whose names match the document's materials: for scenes imported without the hook (Blender
-  4.2 and 4.3, or the hook turned off).
+  4.3, or the hook turned off).
 - **Rebuild from MaterialX** (Material properties) compiles a material again from its document, in the mode it
   was built with.
 
@@ -63,6 +64,17 @@ From a source checkout, without the module, the add-on falls back to the `shadew
   builds every material of the given documents (default: the vendored MaterialX examples) and reports failures.
   USD scenes are imported through the USD hook: every MaterialX material must arrive built and every texture
   load; `--flatten` also imports each scene flattened, its MaterialX inline.
+
+Both scripts load the add-on from `blender/shadewire` under the module name `shadewire_addon` (its folder is not put
+on `sys.path`, where it would hide the `shadewire` compiler module). With `--installed` they use the extension
+Blender has installed and enabled instead: install a zip into a throwaway profile and test what users get, bundled
+wheel included:
+
+```bash
+export BLENDER_USER_RESOURCES=/tmp/shadewire-profile
+blender -b --command extension install-file -r user_default -e shadewire-0.1.0-linux_x64.zip
+blender -b -P blender/smoke_test.py -- --installed
+```
 
 ## Approximations
 

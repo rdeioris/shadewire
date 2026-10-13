@@ -1,7 +1,7 @@
 # Releasing
 
 Every package carries the workspace version (`Cargo.toml`, `[workspace.package] version`); the Python wheels take it
-from `crates/shadewire-py/Cargo.toml` and the Blender extension from `blender/shadewire_mtlx/blender_manifest.toml`
+from `crates/shadewire-py/Cargo.toml` and the Blender extension from `blender/shadewire/blender_manifest.toml`
 (`version`, and the wheel file names in `wheels`). Bump all three together, update `CHANGELOG.md`, commit, then:
 
 ## crates.io
@@ -33,16 +33,19 @@ before it exists): this repository, workflow `wheels.yml`, environment `pypi`; a
 the repository's settings (optionally with required reviewers, so a tag waits for approval).
 
 Without CI, the same files build locally (`python blender/build_extension.py ...` builds the wheels into
-`blender/shadewire_mtlx/wheels`, and `maturin sdist` in `crates/shadewire-py` the sdist), then
+`blender/shadewire/wheels`, and `maturin sdist` in `crates/shadewire-py` the sdist), then
 `twine check dist/*` and `twine upload dist/*`.
 
 ## Blender extensions (extensions.blender.org)
 
 ```
-python blender/build_extension.py --blender <blender 4.2 or later> --out dist/blender
-blender --command extension validate dist/blender/shadewire_mtlx-0.1.0-windows_x64.zip
+python blender/build_extension.py --blender <blender 4.3 or later> --out dist/blender
+blender --command extension validate dist/blender/shadewire-0.1.0-windows_x64.zip
 ```
+
+Then test each zip as users get it, on its platform, with a portable Blender (the oldest supported, 4.3, and the
+latest) and a throwaway profile, as `blender/README.md` shows (`smoke_test.py --installed`).
 
 One zip per platform, each with its wheel. Upload them on extensions.blender.org (Upload Extension, then one file per
 platform under the same version). The add-on is GPL-3.0-or-later, as the platform requires
-(`blender/shadewire_mtlx/LICENSE`, the manifest's `license` and `copyright`).
+(`blender/shadewire/LICENSE`, the manifest's `license` and `copyright`).

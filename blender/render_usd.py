@@ -3,18 +3,35 @@ USD importer imports them.
 
 blender -b -P blender/render_usd.py -- <scene.usd> <out.png> [--engine CYCLES|EEVEE] [--samples N] [--size W H]
     [--shadewire EXECUTABLE] [--mode PRINCIPLED|LOBES] [--denoise] [--editable] [--exposure STOPS]
-    [--view-transform NAME] [--world STRENGTH]
+    [--view-transform NAME] [--world STRENGTH] [--installed]
 """
 
 import argparse
+import importlib.util
 import os
 import sys
 
 import bpy
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import shadewire_mtlx  # noqa: E402
-from shadewire_mtlx import usd  # noqa: E402
+
+def load_addon(installed):
+    """The add-on, registered: as Blender installed and enabled it from an extension zip (`installed`), or from
+    `blender/shadewire`, loaded as `shadewire_addon` and with nothing added to sys.path, so that `import shadewire`
+    still finds the compiler module rather than the add-on's folder."""
+    if installed:
+        names = [name for name in sys.modules if name.startswith("bl_ext.") and name.endswith(".shadewire")]
+        if not names:
+            sys.exit("--installed: no enabled shadewire extension (install the zip with -e first)")
+        return sys.modules[names[0]]
+    folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shadewire")
+    spec = importlib.util.spec_from_file_location(
+        "shadewire_addon", os.path.join(folder, "__init__.py"), submodule_search_locations=[folder]
+    )
+    addon = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = addon
+    spec.loader.exec_module(addon)
+    addon.register()
+    return addon
 
 parser = argparse.ArgumentParser()
 parser.add_argument("scene")
@@ -29,11 +46,12 @@ parser.add_argument("--mode", choices=["PRINCIPLED", "LOBES"], default="PRINCIPL
 parser.add_argument("--exposure", type=float, default=0.0)
 parser.add_argument("--view-transform", default="AgX")
 parser.add_argument("--world", type=float, default=0.0, help="the strength of a grey world")
+parser.add_argument("--installed", action="store_true", help="use the installed extension, not this folder's add-on")
 args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
 
+usd = load_addon(args.installed).usd
 usd.defaults.update(usd_mode=args.mode, usd_editable=args.editable, executable=args.shadewire)
-shadewire_mtlx.register()
-bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.ops.wm.read_homefile(use_empty=True)
 bpy.ops.wm.usd_import(filepath=args.scene)
 for material in bpy.data.materials:
     if material.node_tree:
