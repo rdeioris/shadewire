@@ -18,6 +18,7 @@ sends an auth header scoped to A; the servers log every request, and this script
 """
 import http.server
 import json
+import os
 import pathlib
 import shutil
 import socket
@@ -207,7 +208,8 @@ def main():
     shutil.copytree(HERE, work, ignore=shutil.ignore_patterns("run.py", "__pycache__"))
     shutil.copytree(CRATE / "addons", work / "addons", ignore=shutil.ignore_patterns(".gitignore"))
     (work / "addons" / "shadewire" / "bin").mkdir(exist_ok=True)
-    shutil.copy(CRATE / "target" / "debug" / "shadewire_godot.dll", work / "addons" / "shadewire" / "bin")
+    target = pathlib.Path(os.environ.get("CARGO_TARGET_DIR") or CRATE / "target")
+    shutil.copy(target / "debug" / "shadewire_godot.dll", work / "addons" / "shadewire" / "bin")
     (work / "smoke" / "textures").mkdir()
     shutil.copy(GRID, work / "smoke" / "textures")
 
