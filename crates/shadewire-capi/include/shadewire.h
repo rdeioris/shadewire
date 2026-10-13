@@ -74,6 +74,11 @@ typedef uint32_t shadewire_error_kind;
 // (optimized when the options asked for it). Free it with `shadewire_compiled_free`.
 typedef struct shadewire_compiled shadewire_compiled;
 
+// The locations one document names, unresolved, in document order without repeats: its `xi:include` hrefs and its
+// texture files (`filename` values with `fileprefix` applied, as reflection reports them). Free it with
+// `shadewire_dependencies_free`.
+typedef struct shadewire_dependencies shadewire_dependencies;
+
 // An error returned by a failed call. Free it with `shadewire_error_free`.
 typedef struct shadewire_error shadewire_error;
 
@@ -81,6 +86,10 @@ typedef struct shadewire_error shadewire_error;
 // closure tree over them). Made by `shadewire_mtlx_to_ir`, compiled by `shadewire_compile`. Free it with
 // `shadewire_ir_free`.
 typedef struct shadewire_ir shadewire_ir;
+
+// The answer a `shadewire_resolve_fn` gives, written with `shadewire_resolution_set` or `_fail`. Owned by Shadewire
+// and valid only during the callback.
+typedef struct shadewire_resolution shadewire_resolution;
 
 // A list of strings. Free it with `shadewire_strings_free`.
 typedef struct shadewire_strings shadewire_strings;
@@ -118,13 +127,29 @@ typedef struct shadewire_compile_options {
   bool implicit_derivatives;
 } shadewire_compile_options;
 
+// Resolves one `xi:include`: `base` is the including document's location (as given to `shadewire_mtlx_to_ir`, or
+// as an earlier answer named it) and `href` the include's `href`, both NUL-terminated UTF-8 valid only during the
+// call. The callback answers through `out` with `shadewire_resolution_set` or `shadewire_resolution_fail` before it
+// returns; Shadewire copies what they are given, so the host keeps ownership of its buffers.
+//
+// It is called only during the Shadewire call that received the options, on that call's thread, never after it
+// returns; `user_data` is passed through untouched. It must not unwind (throw or `longjmp`) into Shadewire.
+typedef void (*shadewire_resolve_fn)(void *user_data,
+                                     const char *base,
+                                     const char *href,
+                                     struct shadewire_resolution *out);
+
 // Options for MaterialX import. Set `struct_size` to `sizeof` the struct, or use `shadewire_mtlx_options_default`.
 //
 // `models` NULL with `model_count` 0 is the default list; NULL with a non-zero count is an error; non-NULL is exactly
 // `model_count` NUL-terminated UTF-8 strings, and a count of 0 means no models (every material is then
 // NoTranslation). `working_colorspace` is NULL for the default. `values_as_uniforms` is true for any non-zero byte.
 //
-// `reserved` fills the tail padding and must be zero; new fields are only appended after it.
+// `reserved` fills the padding after `values_as_uniforms` and must be zero.
+//
+// `resolve` reads `xi:include`s: NULL reads the file system relative to the including document's location (a
+// path), non-NULL is the host's resolver (see `shadewire_resolve_fn`), called with `resolve_user_data`. A document
+// with includes needs a location either way. New fields are only appended at the end.
 typedef struct shadewire_mtlx_options {
   uint32_t struct_size;
   const char *const *models;
@@ -132,6 +157,8 @@ typedef struct shadewire_mtlx_options {
   const char *working_colorspace;
   bool values_as_uniforms;
   uint8_t reserved[7];
+  shadewire_resolve_fn resolve;
+  void *resolve_user_data;
 } shadewire_mtlx_options;
 
 #define SHADEWIRE_TARGET_WGSL 0
@@ -204,6 +231,53 @@ const char *shadewire_compiled_model_struct(const struct shadewire_compiled *c);
 // `c` must be NULL or a handle from this library not yet freed.
 void shadewire_compiled_free(struct shadewire_compiled *c);
 
+// The includes and files MaterialX `text` names, written to `out`. Includes are not followed: an included document
+// has its own, so list it again once fetched. `text`, `len` and `location` as `shadewire_mtlx_to_ir` (`location`
+// only names the document in errors). `*out` is written only on success.
+//
+// # Safety
+// `text` must hold `len` readable bytes (NULL is reported, not dereferenced); `location` must be NULL or a valid
+// NUL-terminated string; `out` must be valid for writing a pointer and `error` NULL or valid for writing a pointer.
+shadewire_status shadewire_mtlx_list_dependencies(const char *text,
+                                                  size_t len,
+                                                  const char *location,
+                                                  struct shadewire_dependencies **out,
+                                                  struct shadewire_error **error);
+
+// The number of includes; 0 when `d` is NULL.
+//
+// # Safety
+// `d` must be NULL or a live handle.
+size_t shadewire_dependencies_include_count(const struct shadewire_dependencies *d);
+
+// Include `index` (an `href` as written, relative to the document), valid until `d` is freed; NULL when `d` is NULL
+// or `index` is out of range.
+//
+// # Safety
+// `d` must be NULL or a live handle.
+const char *shadewire_dependencies_include(const struct shadewire_dependencies *d,
+                                           size_t index);
+
+// The number of files; 0 when `d` is NULL.
+//
+// # Safety
+// `d` must be NULL or a live handle.
+size_t shadewire_dependencies_file_count(const struct shadewire_dependencies *d);
+
+// File `index` (relative to the document, `fileprefix` applied), valid until `d` is freed; NULL when `d` is NULL or
+// `index` is out of range.
+//
+// # Safety
+// `d` must be NULL or a live handle.
+const char *shadewire_dependencies_file(const struct shadewire_dependencies *d,
+                                        size_t index);
+
+// Frees `d`; NULL is allowed.
+//
+// # Safety
+// `d` must be NULL or a handle from this library not yet freed.
+void shadewire_dependencies_free(struct shadewire_dependencies *d);
+
 // The kind of `err`; `SHADEWIRE_ERROR_INVALID_ARGUMENT` when `err` is NULL.
 //
 // # Safety
@@ -245,18 +319,19 @@ void shadewire_error_free(struct shadewire_error *err);
 // Lowers MaterialX `text` (`len` bytes of UTF-8, not NUL-terminated; NULL is SHADEWIRE_ERROR_INVALID_ARGUMENT) to the
 // IR and writes the handle to `out`.
 //
-// `path` (NUL-terminated, may be NULL) names the document for messages and relative includes; `material` selects a
-// material by name (NULL for the document's only one: SHADEWIRE_ERROR_MATERIAL when it has several); `options` may
-// be NULL for the defaults. The IR is not optimized (`shadewire_ir_optimize`; `shadewire_compile` optimizes by
-// default). `*out` is written only on success.
+// `location` (NUL-terminated, may be NULL) names the document in messages and is the base its includes resolve
+// against: a path for the default resolver, any string the host's `resolve` understands otherwise. `material`
+// selects a material by name (NULL for the document's only one: SHADEWIRE_ERROR_MATERIAL when it has several);
+// `options` may be NULL for the defaults. The IR is not optimized (`shadewire_ir_optimize`; `shadewire_compile`
+// optimizes by default). `*out` is written only on success.
 //
 // # Safety
-// `text` must hold `len` readable bytes (NULL is reported, not dereferenced); `path` and `material` must be NULL or
-// valid NUL-terminated strings; `options` must be NULL or valid (see `shadewire_mtlx_options`); `out` must be valid
+// `text` must hold `len` readable bytes (NULL is reported, not dereferenced); `location` and `material` must be NULL
+// or valid NUL-terminated strings; `options` must be NULL or valid (see `shadewire_mtlx_options`); `out` must be valid
 // for writing a pointer and `error` NULL or valid for writing a pointer.
 shadewire_status shadewire_mtlx_to_ir(const char *text,
                                       size_t len,
-                                      const char *path,
+                                      const char *location,
                                       const char *material,
                                       const struct shadewire_mtlx_options *options,
                                       struct shadewire_ir **out,
@@ -322,14 +397,16 @@ const char *shadewire_ir_json(const struct shadewire_ir *ir,
 // `ir` must be NULL or a handle from `shadewire_mtlx_to_ir` not yet freed.
 void shadewire_ir_free(struct shadewire_ir *ir);
 
-// The names of a MaterialX document's materials, in document order, written to `out`. `text`, `len` and `path` as
-// `shadewire_mtlx_to_ir`. `*out` is written only on success.
+// The names of a MaterialX document's materials (its includes' too), in document order, written to `out`. `text`,
+// `len` and `location` as `shadewire_mtlx_to_ir`; of `options` (NULL for the defaults) only the resolver is read.
+// `*out` is written only on success.
 //
 // # Safety
 // As `shadewire_mtlx_to_ir`.
 shadewire_status shadewire_mtlx_material_names(const char *text,
                                                size_t len,
-                                               const char *path,
+                                               const char *location,
+                                               const struct shadewire_mtlx_options *options,
                                                struct shadewire_strings **out,
                                                struct shadewire_error **error);
 
@@ -362,6 +439,27 @@ void shadewire_mtlx_options_default(struct shadewire_mtlx_options *out);
 // # Safety
 // `out` must be NULL or valid for writing a `shadewire_compile_options`.
 void shadewire_compile_options_default(struct shadewire_compile_options *out);
+
+// The included document: `location` (NUL-terminated UTF-8; the base its own includes resolve against and the name
+// in messages) and `len` bytes of UTF-8 `text`, both copied before this returns. Replaces an earlier answer; a NULL
+// or non-UTF-8 argument becomes a failure. No-op when `out` is NULL.
+//
+// # Safety
+// `out` must be NULL or the `shadewire_resolution` the callback was given; `location` NULL or a NUL-terminated
+// string; `text` NULL or `len` readable bytes.
+void shadewire_resolution_set(struct shadewire_resolution *out,
+                              const char *location,
+                              const char *text,
+                              size_t len);
+
+// The include cannot be resolved: `message` (NUL-terminated UTF-8, copied; NULL for a generic one) becomes the
+// error the Shadewire call fails with. Replaces an earlier answer. No-op when `out` is NULL.
+//
+// # Safety
+// `out` must be NULL or the `shadewire_resolution` the callback was given; `message` NULL or a NUL-terminated
+// string.
+void shadewire_resolution_fail(struct shadewire_resolution *out,
+                               const char *message);
 
 // The version as `(major << 16) | (minor << 8) | patch`.
 uint32_t shadewire_version(void);

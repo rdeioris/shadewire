@@ -60,20 +60,21 @@ pub(crate) unsafe fn borrow<'a>(ptr: *const shadewire_ir) -> Result<&'a Material
 /// Lowers MaterialX `text` (`len` bytes of UTF-8, not NUL-terminated; NULL is SHADEWIRE_ERROR_INVALID_ARGUMENT) to the
 /// IR and writes the handle to `out`.
 ///
-/// `path` (NUL-terminated, may be NULL) names the document for messages and relative includes; `material` selects a
-/// material by name (NULL for the document's only one: SHADEWIRE_ERROR_MATERIAL when it has several); `options` may
-/// be NULL for the defaults. The IR is not optimized (`shadewire_ir_optimize`; `shadewire_compile` optimizes by
-/// default). `*out` is written only on success.
+/// `location` (NUL-terminated, may be NULL) names the document in messages and is the base its includes resolve
+/// against: a path for the default resolver, any string the host's `resolve` understands otherwise. `material`
+/// selects a material by name (NULL for the document's only one: SHADEWIRE_ERROR_MATERIAL when it has several);
+/// `options` may be NULL for the defaults. The IR is not optimized (`shadewire_ir_optimize`; `shadewire_compile`
+/// optimizes by default). `*out` is written only on success.
 ///
 /// # Safety
-/// `text` must hold `len` readable bytes (NULL is reported, not dereferenced); `path` and `material` must be NULL or
-/// valid NUL-terminated strings; `options` must be NULL or valid (see `shadewire_mtlx_options`); `out` must be valid
+/// `text` must hold `len` readable bytes (NULL is reported, not dereferenced); `location` and `material` must be NULL
+/// or valid NUL-terminated strings; `options` must be NULL or valid (see `shadewire_mtlx_options`); `out` must be valid
 /// for writing a pointer and `error` NULL or valid for writing a pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_mtlx_to_ir(
     text: *const c_char,
     len: usize,
-    path: *const c_char,
+    location: *const c_char,
     material: *const c_char,
     options: *const shadewire_mtlx_options,
     out: *mut *mut shadewire_ir,
@@ -87,10 +88,10 @@ pub unsafe extern "C" fn shadewire_mtlx_to_ir(
                     return Err(CapiError::Argument("out is NULL".to_string()));
                 }
                 let text = text_arg(text, len)?;
-                let path = opt_cstr(path)?;
+                let location = opt_cstr(location)?;
                 let material = opt_cstr(material)?;
                 let options = read_mtlx(options)?;
-                let ir = shadewire_mtlx::to_ir(text, path, material, &options)?;
+                let ir = shadewire_mtlx::to_ir(text, location, material, &options)?;
                 *out = Box::into_raw(Box::new(shadewire_ir::new(ir)));
                 Ok(())
             }),

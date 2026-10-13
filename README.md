@@ -129,8 +129,8 @@ The C API follows the Python module name for name:
 
 | Python | C |
 |---|---|
-| `shadewire.mtlx.to_ir(text, path, material, models, working_colorspace, values_as_uniforms)` | `shadewire_mtlx_to_ir(text, len, path, material, &mtlx_options, &ir, &err)` |
-| `shadewire.mtlx.material_names(text, path)` | `shadewire_mtlx_material_names(text, len, path, &strings, &err)`, then `shadewire_strings_count` / `_get` |
+| `shadewire.mtlx.to_ir(text, location, material, models, working_colorspace, values_as_uniforms)` | `shadewire_mtlx_to_ir(text, len, location, material, &mtlx_options, &ir, &err)` |
+| `shadewire.mtlx.material_names(text, location)` | `shadewire_mtlx_material_names(text, len, location, &mtlx_options, &strings, &err)`, then `shadewire_strings_count` / `_get` |
 | `Ir.optimize()`, `.dump()`, `.to_dict()` | `shadewire_ir_optimize(ir, &optimized, &err)`, `shadewire_ir_dump`, `shadewire_ir_json` |
 | `Ir.model`, `.source`, `.structure_hash` | `shadewire_ir_model`, `shadewire_ir_source` and `_source_version`, `shadewire_ir_structure_hash` |
 | `shadewire.wgsl.compile(ir, ...)` (and `glsl`, `hlsl`, `msl`) | `shadewire_compile(ir, target, &compile_options, &compiled, &err)` |
@@ -142,6 +142,38 @@ The target is `SHADEWIRE_TARGET_WGSL`, `_GLSL` (`#version` 330, 400 to 460; 0 fo
 `_HLSL` or `_MSL`. `shadewire_compile_options` holds the back ends' keyword arguments (`group`, `first_binding`,
 `reserve_uniform_binding`, `flip_v`, `optimize`, `implicit_derivatives`); `shadewire_*_options_default` fills them.
 `crates/shadewire-capi-ctest` builds the same calls as a C99 (C11 on MSVC) test.
+
+### Includes and dependencies from C
+
+By default `xi:include`s are read from the file system, relative to the document's `location`. A host with its own
+I/O (an asset database, a virtual file system, an HTTP cache) sets `resolve` in `shadewire_mtlx_options`: Shadewire
+calls it with `resolve_user_data`, the including document's location and the `href`, and the callback answers with
+`shadewire_resolution_set(out, location, text, len)` or `shadewire_resolution_fail(out, message)`. Both copy their
+arguments, so the host's buffers stay its own. The callback runs only during the call whose options name it, on that
+call's thread; locations are opaque strings (`res://…`, `mem://…`), and the location an answer gives is the base for
+that document's own includes.
+
+```c
+static void resolve(void *user_data, const char *base, const char *href, shadewire_resolution *out) {
+    const my_file *file = my_lookup(user_data, base, href); /* the host's own join and lookup */
+    if (file != NULL) {
+        shadewire_resolution_set(out, file->location, file->bytes, file->len);
+    } else {
+        shadewire_resolution_fail(out, "not found");
+    }
+}
+
+shadewire_mtlx_options options;
+shadewire_mtlx_options_default(&options);
+options.resolve = resolve;
+options.resolve_user_data = my_library;
+shadewire_mtlx_to_ir(text, len, "res://materials/brick.mtlx", NULL, &options, &ir, &err);
+```
+
+To fetch everything up front, `shadewire_mtlx_list_dependencies(text, len, location, &deps, &err)` lists the
+document's include hrefs (`shadewire_dependencies_include_count` / `_include`) and texture files with `fileprefix`
+applied (`_file_count` / `_file`), unresolved and without repeats; list each fetched include again for its own, then
+compile with a resolver that answers from memory. Free the list with `shadewire_dependencies_free`.
 
 ## Bevy
 
