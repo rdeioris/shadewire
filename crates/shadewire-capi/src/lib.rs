@@ -24,6 +24,10 @@
 //! Threads: handles are immutable once returned, so any number of threads may call the accessors and
 //! `shadewire_compile` on the same handle at once (lazily built texts such as the IR dump
 //! are built once, safely). Free a handle exactly once, after every reader is done with it.
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
+)]
 
 mod compiled;
 mod error;

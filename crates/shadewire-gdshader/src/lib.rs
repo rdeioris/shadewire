@@ -11,6 +11,10 @@
 //!   evaluates MaterialX's reference lobes per light ([`lobes`]).
 //!
 //! Every field or effect Godot cannot represent is listed in `reflection.approximations`.
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
+)]
 
 pub mod context;
 pub mod limits;

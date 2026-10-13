@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>Shadewire</title>
+  <defs>
+    <linearGradient id="sw-wire" x1="22" y1="34" x2="106" y2="94" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE08A"/>
+      <stop offset="0.5" stop-color="#EF5B3A"/>
+      <stop offset="1" stop-color="#5A2A8C"/>
+    </linearGradient>
+  </defs>
+  <path fill="none" stroke="url(#sw-wire)" stroke-width="15" stroke-linecap="round" d="M28 36C82 36 46 92 100 92"/>
+  <circle cx="22" cy="36" r="13" fill="#1B1630"/>
+  <circle cx="22" cy="36" r="7" fill="#FFE08A"/>
+  <circle cx="106" cy="92" r="13" fill="#1B1630"/>
+  <circle cx="106" cy="92" r="7" fill="#5EE6D0"/>
+</svg>

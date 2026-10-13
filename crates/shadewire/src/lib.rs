@@ -1,4 +1,8 @@
 //! Shadewire core: the material IR (a typed DAG), optimizer, CPU interpreter and reflection
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
+)]
 
 pub mod classify;
 mod closure;

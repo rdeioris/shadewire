@@ -1,6 +1,10 @@
 //! Shadewire materials in Bevy: each MaterialX graph becomes a `StandardMaterial` extension whose
 //! main-pass fragment shader is generated per material. Forward rendering only: cameras with a deferred
 //! prepass draw Shadewire meshes with Bevy's standard deferred shader.
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
+)]
 
 mod assets;
 mod built;

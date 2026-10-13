@@ -6,6 +6,10 @@
 //! take them as trailing parameters, the uniform block first (`constant MaterialUniforms&`), then each texture and
 //! its sampler in reflection's order. The uniform block is padded to reflection's offsets (vectors of three are
 //! `packed_float3`).
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
+)]
 
 use std::collections::HashSet;
 

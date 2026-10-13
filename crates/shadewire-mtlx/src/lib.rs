@@ -1,4 +1,8 @@
 //! MaterialX document reader and graph lowering for Shadewire
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
+)]
 
 pub mod document;
 pub mod elaborate;

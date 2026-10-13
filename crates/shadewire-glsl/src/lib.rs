@@ -5,6 +5,10 @@
 //! Desktop GLSL from 330 and GLSL ES from 300 (WebGL 2). Textures are combined `sampler2D`s. From GLSL 420 and
 //! ES 310 the uniform block sits at binding point `uniform_binding` and texture `t` at unit `t.binding`
 //! (reflection's numbers); before, the host binds them by name (`MaterialUniforms`, `shadewire_t{index}`).
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
+)]
 
 use shadewire::shader::print::{Printer, Syntax, c_scalar, select_helpers};
 use shadewire::shader::*;

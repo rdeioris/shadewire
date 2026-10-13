@@ -5,6 +5,10 @@
 //! Resources sit at reflection's numbers: the uniform block at `register(b{uniform_binding}, space{group})`,
 //! texture `t` at `register(t{t.binding}, space{group})` and its sampler at `register(s{t.sampler_binding},
 //! space{group})`. The uniform block is padded to reflection's offsets.
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
+)]
 
 use shadewire::shader::print::{Printer, Syntax, c_scalar, padded_struct, select_helpers};
 use shadewire::shader::*;

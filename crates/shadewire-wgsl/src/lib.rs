@@ -1,5 +1,9 @@
 //! Shadewire WGSL back end: the material's shader tree (built by `shadewire::shader`) printed as WGSL, with its
 //! reflection.
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
+)]
 
 pub mod compile;
 pub mod syntax;

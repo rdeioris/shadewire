@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/shadewire-logo-dark.svg">
+    <img alt="Shadewire" src="assets/logo/shadewire-logo.svg" width="420">
+  </picture>
+</p>
+
 # Shadewire
 
 Shadewire is an open-source compiler for material graphs. A **front end** turns a material

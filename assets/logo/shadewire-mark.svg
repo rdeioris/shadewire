@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>Shadewire</title>
+  <defs>
+    <radialGradient id="sw-lit" cx="0.36" cy="0.32" r="0.78">
+      <stop offset="0" stop-color="#FFF3D1"/>
+      <stop offset="0.28" stop-color="#FFB547"/>
+      <stop offset="0.62" stop-color="#EF5B3A"/>
+      <stop offset="1" stop-color="#9E2A5E"/>
+    </radialGradient>
+    <clipPath id="sw-shadow">
+      <path d="M27.23 100.77A52 52 0 0 0 100.77 27.23A52 9 -45 0 0 27.23 100.77Z"/>
+    </clipPath>
+  </defs>
+  <!-- lit half: smooth shading -->
+  <path fill="url(#sw-lit)" d="M100.77 27.23A52 52 0 0 0 27.23 100.77A52 9 -45 0 1 100.77 27.23Z"/>
+  <!-- shadow half: the wireframe the shading is computed on -->
+  <path fill="#1B1630" d="M27.23 100.77A52 52 0 0 0 100.77 27.23A52 9 -45 0 0 27.23 100.77Z"/>
+  <g clip-path="url(#sw-shadow)" fill="none" stroke="#5EE6D0" stroke-width="2.6" stroke-linecap="round">
+    <ellipse cx="64" cy="64" rx="17" ry="52"/>
+    <ellipse cx="64" cy="64" rx="36" ry="52"/>
+    <ellipse cx="64" cy="64" rx="49" ry="52"/>
+    <ellipse cx="64" cy="90" rx="45" ry="9"/>
+    <ellipse cx="64" cy="64" rx="52" ry="12"/>
+    <ellipse cx="64" cy="38" rx="45" ry="9"/>
+    <circle cx="64" cy="64" r="51" stroke-width="2.6"/>
+  </g>
+  <!-- terminator -->
+  <path fill="none" stroke="#FFF3D1" stroke-width="2.2" stroke-linecap="round" d="M27.23 100.77A52 9 -45 0 1 100.77 27.23"/>
+</svg>
