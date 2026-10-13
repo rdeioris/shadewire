@@ -1,131 +1,290 @@
-//! The `shadewire` Python module: MaterialX materials compiled to the Shadewire IR, returned as Python objects
-//! (the document `shadewire ir --json` prints, see `shadewire::export`).
+//! The `shadewire` Python module, laid out like the Rust crates:
+//!
+//! - `shadewire.mtlx` (`shadewire_mtlx`): the MaterialX front end, `to_ir` and `material_names`;
+//! - `shadewire.Ir` (`shadewire::Dag` and its `SourceInfo`): the IR, with `optimize`, `dump` and `to_dict`
+//!   (the document `shadewire::export` writes);
+//! - `shadewire.wgsl` (`shadewire_wgsl`): the WGSL back end, `compile` (to a `Compiled` with the WGSL and its
+//!   reflection), `link`, `translate` and `reference_prelude`.
 //!
 //! Built against Python's stable ABI from 3.8 (`abi3-py38`): one build per platform imports in every CPython
-//! from 3.8 on. Compiles release the GIL.
-
-use std::path::{Path, PathBuf};
+//! from 3.8 on. Front-end and back-end calls release the GIL.
 
 use pyo3::create_exception;
-use pyo3::exceptions::PyException;
+use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
-use shadewire::optimize::optimize;
-use shadewire_mtlx::{MtlxOptions, to_ir};
+use pyo3::types::PyBytes;
+use shadewire::{Dag, SourceInfo, model_struct_name};
+use shadewire_mtlx::MtlxOptions;
+use shadewire_wgsl::{CompileOptions, GlslVersion, HlslShaderModel, MslVersion, Output, Target};
 
-create_exception!(shadewire, ShadewireError, PyException, "A MaterialX document Shadewire cannot read or compile.");
+create_exception!(shadewire, ShadewireError, PyException, "A document Shadewire cannot read, compile or link.");
 
 fn error(e: impl std::fmt::Display) -> PyErr {
     ShadewireError::new_err(e.to_string())
 }
 
-fn read(path: &Path) -> PyResult<String> {
-    std::fs::read_to_string(path).map_err(|e| error(format!("{}: {e}", path.display())))
-}
-
-/// The IR document of `material` in `text` as JSON text.
-fn ir_json(
-    text: &str,
-    path: Option<&Path>,
-    material: Option<&str>,
-    models: Option<Vec<String>>,
-    constants: bool,
-    optimized: bool,
-) -> Result<String, String> {
-    let mut options = MtlxOptions { values_as_uniforms: !constants, ..MtlxOptions::default() };
-    if let Some(models) = models {
-        options.models = models;
-    }
-    let ir = to_ir(text, path, material, &options).map_err(|e| e.to_string())?;
-    let dag = if optimized { optimize(&ir.dag) } else { ir.dag };
-    serde_json::to_string(&shadewire::export::export(&dag)).map_err(|e| e.to_string())
-}
-
+/// JSON text as Python objects.
 fn to_python(py: Python<'_>, json: &str) -> PyResult<Py<PyAny>> {
     Ok(py.import("json")?.call_method1("loads", (json,))?.unbind())
 }
 
-/// The version of the Shadewire library this module was built from.
+fn json<T: serde::Serialize>(value: &T) -> PyResult<String> {
+    serde_json::to_string(value).map_err(error)
+}
+
+// ---------------------------------------------------------------------------------------------------- the IR
+
+/// A material in Shadewire's IR: a typed DAG computing a shading model's fields (and, for the `surface` model,
+/// the closure tree over them). Front ends make it; back ends compile it.
+#[pyclass(name = "Ir", module = "shadewire", frozen)]
+struct PyIr {
+    dag: Dag,
+    source: SourceInfo,
+}
+
+#[pymethods]
+impl PyIr {
+    /// The IR with Shadewire's optimizer run over it: constants folded, identities removed, equal nodes
+    /// shared, closures that constant weights turn off pruned, unused nodes dropped.
+    fn optimize(&self, py: Python<'_>) -> PyIr {
+        let dag = py.detach(|| shadewire::optimize::optimize(&self.dag));
+        PyIr { dag, source: self.source.clone() }
+    }
+
+    /// One line per node, field, closure node and approximation: the text `shadewire ir` prints.
+    fn dump(&self) -> String {
+        self.dag.dump()
+    }
+
+    /// The IR as dicts and lists: nodes, textures, fields, the closure tree (`shadewire ir --json`).
+    fn to_dict(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_python(py, &json(&shadewire::export::export(&self.dag))?)
+    }
+
+    /// The shading model: `surface` (a closure tree), `standard_surface`, `open_pbr_surface`, `gltf_pbr`, ...
+    #[getter]
+    fn model(&self) -> &str {
+        &self.dag.surface.model
+    }
+
+    /// The front end that made it (`mtlx`) and the document's version.
+    #[getter]
+    fn source(&self) -> (String, String) {
+        (self.source.source.clone(), self.source.mtlx_version.clone())
+    }
+
+    /// The structure hash: equal for materials whose generated code is equal (uniform values left out).
+    #[getter]
+    fn structure_hash(&self) -> String {
+        shadewire::structure_hash(&self.dag)
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "<shadewire.Ir model={} nodes={} fields={}>",
+            self.dag.surface.model,
+            self.dag.nodes.len(),
+            self.dag.surface.fields.len()
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------- mtlx
+
+/// MaterialX text to the IR (not optimized). `path` names the document, for messages and relative includes;
+/// `material` picks one (None: the document's only one); `models` are the shading models the caller accepts
+/// (None: `open_pbr_surface`, `standard_surface`, `gltf_pbr`, `surface_unlit`; add `surface` for closure
+/// trees, which also opens the named models not listed); `values_as_uniforms` keeps authored values as
+/// uniforms (False bakes them in, so the optimizer can prune by them).
+#[pyfunction]
+#[pyo3(signature = (text, path=None, material=None, models=None, working_colorspace=None, values_as_uniforms=true))]
+fn to_ir(
+    py: Python<'_>,
+    text: String,
+    path: Option<std::path::PathBuf>,
+    material: Option<String>,
+    models: Option<Vec<String>>,
+    working_colorspace: Option<String>,
+    values_as_uniforms: bool,
+) -> PyResult<PyIr> {
+    let mut options = MtlxOptions { values_as_uniforms, ..MtlxOptions::default() };
+    if let Some(models) = models {
+        options.models = models;
+    }
+    if let Some(colorspace) = working_colorspace {
+        options.working_colorspace = colorspace;
+    }
+    let ir =
+        py.detach(|| shadewire_mtlx::to_ir(&text, path.as_deref(), material.as_deref(), &options)).map_err(error)?;
+    Ok(PyIr { dag: ir.dag, source: ir.source })
+}
+
+/// The names of a MaterialX document's materials, in document order.
+#[pyfunction]
+#[pyo3(signature = (text, path=None))]
+fn material_names(py: Python<'_>, text: String, path: Option<std::path::PathBuf>) -> PyResult<Vec<String>> {
+    py.detach(|| shadewire_mtlx::material_names(&text, path.as_deref())).map_err(error)
+}
+
+// ---------------------------------------------------------------------------------------------------- wgsl
+
+/// A compiled material: the generated WGSL (`fn shadewire_eval_surface() -> <model_struct>`) and what a host
+/// must bind and provide (the reflection).
+#[pyclass(name = "Compiled", module = "shadewire.wgsl", frozen)]
+struct PyCompiled {
+    wgsl: String,
+    reflection: shadewire::Reflection,
+}
+
+#[pymethods]
+impl PyCompiled {
+    #[getter]
+    fn wgsl(&self) -> &str {
+        &self.wgsl
+    }
+
+    /// Bindings, uniforms (offsets, defaults), textures, the host functions the code calls (`context`), each
+    /// field's kind, and the closure tree of a `surface` material.
+    #[getter]
+    fn reflection(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_python(py, &json(&self.reflection)?)
+    }
+
+    /// The WGSL name of the struct `shadewire_eval_surface` returns (`Surface`, `StandardSurface`, ...).
+    #[getter]
+    fn model_struct(&self) -> String {
+        model_struct_name(&self.reflection.model)
+    }
+
+    fn __repr__(&self) -> String {
+        format!("<shadewire.wgsl.Compiled model={} {} bytes of WGSL>", self.reflection.model, self.wgsl.len())
+    }
+}
+
+/// The IR to WGSL. `group` and `first_binding` place the uniform block, textures and samplers;
+/// `reserve_uniform_binding` keeps `first_binding` for the uniform block even without uniforms; `flip_v`
+/// flips V when sampling (images uploaded top row first); `optimize` runs the optimizer first;
+/// `implicit_derivatives` False makes the code run in a compute stage (level-0 samples, zero derivatives).
+#[pyfunction]
+#[pyo3(signature = (ir, group=2, first_binding=0, reserve_uniform_binding=false, flip_v=true, optimize=true, implicit_derivatives=true))]
+#[allow(clippy::too_many_arguments)]
+fn compile(
+    py: Python<'_>,
+    ir: &PyIr,
+    group: u32,
+    first_binding: u32,
+    reserve_uniform_binding: bool,
+    flip_v: bool,
+    optimize: bool,
+    implicit_derivatives: bool,
+) -> PyResult<PyCompiled> {
+    let options =
+        CompileOptions { group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives };
+    let compiled = py.detach(|| shadewire_wgsl::compile(&ir.dag, &ir.source, &options)).map_err(error)?;
+    Ok(PyCompiled { wgsl: compiled.wgsl, reflection: compiled.reflection })
+}
+
+/// `host_prelude` and `generated` joined and validated with naga; the joined module, or a ShadewireError with
+/// naga's message (line and caret) when it does not validate.
+#[pyfunction]
+fn link(py: Python<'_>, generated: String, host_prelude: String) -> PyResult<String> {
+    py.detach(|| shadewire_wgsl::link(&generated, &host_prelude)).map_err(error)
+}
+
+/// A complete, simple host for a compiled material: every host function returns a private variable (zero unless
+/// set), transforms are identities, and a fragment entry point returns the first color field. A template for
+/// writing your own; it knows nothing of closures.
+#[pyfunction]
+fn reference_prelude(compiled: &PyCompiled) -> String {
+    shadewire_wgsl::reference_host::prelude(&compiled.reflection, &model_struct_name(&compiled.reflection.model))
+}
+
+fn target(name: &str, version: Option<u32>) -> PyResult<Target> {
+    let hlsl = |v: u32| match v {
+        50 => Some(HlslShaderModel::Sm5_0),
+        51 => Some(HlslShaderModel::Sm5_1),
+        60 => Some(HlslShaderModel::Sm6_0),
+        61 => Some(HlslShaderModel::Sm6_1),
+        62 => Some(HlslShaderModel::Sm6_2),
+        63 => Some(HlslShaderModel::Sm6_3),
+        64 => Some(HlslShaderModel::Sm6_4),
+        65 => Some(HlslShaderModel::Sm6_5),
+        66 => Some(HlslShaderModel::Sm6_6),
+        67 => Some(HlslShaderModel::Sm6_7),
+        68 => Some(HlslShaderModel::Sm6_8),
+        69 => Some(HlslShaderModel::Sm6_9),
+        _ => None,
+    };
+    let bad = || PyValueError::new_err(format!("unsupported version {version:?} for {name}"));
+    Ok(match name {
+        "wgsl" => Target::Wgsl,
+        "hlsl" => Target::Hlsl(hlsl(version.unwrap_or(60)).ok_or_else(bad)?),
+        "glsl" => Target::Glsl(GlslVersion::Desktop(version.unwrap_or(450) as u16)),
+        "glsl-es" => Target::Glsl(GlslVersion::Es(version.unwrap_or(300) as u16)),
+        "webgl2" => Target::Glsl(GlslVersion::WebGl2),
+        "msl" => {
+            let v = version.unwrap_or(21);
+            Target::Msl(MslVersion { major: (v / 10) as u8, minor: (v % 10) as u8 })
+        }
+        "spirv" => Target::SpirV,
+        other => {
+            return Err(PyValueError::new_err(format!(
+                "unknown target {other}: wgsl, hlsl, glsl, glsl-es, webgl2, msl or spirv"
+            )));
+        }
+    })
+}
+
+/// A linked module (with an entry point, see `link`) in another language: `hlsl` (version 50..69, default 60),
+/// `glsl` (330..450, default 450), `glsl-es` (300 or 310), `webgl2`, `msl` (major * 10 + minor, default 21),
+/// `spirv` (bytes) or `wgsl` (naga's rewrite).
+#[pyfunction]
+#[pyo3(signature = (linked, target_name, version=None))]
+fn translate(py: Python<'_>, linked: String, target_name: &str, version: Option<u32>) -> PyResult<Py<PyAny>> {
+    let target = target(target_name, version)?;
+    match py.detach(|| shadewire_wgsl::translate(&linked, target)).map_err(error)? {
+        Output::Text(text) => Ok(text.into_pyobject(py)?.into_any().unbind()),
+        Output::Words(words) => {
+            let bytes: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
+            Ok(PyBytes::new(py, &bytes).into_any().unbind())
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------- the module
+
+/// The library version.
 #[pyfunction]
 fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
-/// The names of the materials of the MaterialX document at `path`, in document order.
-#[pyfunction]
-fn material_names(py: Python<'_>, path: PathBuf) -> PyResult<Vec<String>> {
-    let text = read(&path)?;
-    py.detach(|| shadewire_mtlx::material_names(&text, Some(&path)).map_err(|e| e.to_string())).map_err(error)
-}
-
-/// Compiles `material` (None: the document's only one) of the MaterialX document at `path` and returns its IR
-/// document as dicts and lists. `models` are the surface models the caller accepts (None: Shadewire's default
-/// four; include "surface" for closure trees); `constants` bakes authored values in instead of keeping them as
-/// uniforms; `optimize` runs Shadewire's optimizer (folding, sharing, closure pruning).
-#[pyfunction]
-#[pyo3(signature = (path, material=None, models=None, constants=false, optimize=true))]
-fn compile_ir(
-    py: Python<'_>,
-    path: PathBuf,
-    material: Option<String>,
-    models: Option<Vec<String>>,
-    constants: bool,
-    optimize: bool,
-) -> PyResult<Py<PyAny>> {
-    let text = read(&path)?;
-    let json =
-        py.detach(|| ir_json(&text, Some(&path), material.as_deref(), models, constants, optimize)).map_err(error)?;
-    to_python(py, &json)
-}
-
-/// `compile_ir` for a document given as text; `path` names it (for messages and relative includes).
-#[pyfunction]
-#[pyo3(signature = (text, path=None, material=None, models=None, constants=false, optimize=true))]
-fn compile_ir_text(
-    py: Python<'_>,
-    text: String,
-    path: Option<PathBuf>,
-    material: Option<String>,
-    models: Option<Vec<String>>,
-    constants: bool,
-    optimize: bool,
-) -> PyResult<Py<PyAny>> {
-    let json = py
-        .detach(|| ir_json(&text, path.as_deref(), material.as_deref(), models, constants, optimize))
-        .map_err(error)?;
-    to_python(py, &json)
+/// `name` as a submodule of `parent`, importable as `shadewire.<name>`.
+fn submodule<'py>(parent: &Bound<'py, PyModule>, name: &str) -> PyResult<Bound<'py, PyModule>> {
+    let py = parent.py();
+    let module = PyModule::new(py, name)?;
+    parent.add_submodule(&module)?;
+    py.import("sys")?.getattr("modules")?.set_item(format!("shadewire.{name}"), &module)?;
+    Ok(module)
 }
 
 #[pymodule]
-#[pyo3(name = "shadewire")]
+#[pyo3(name = "_native")]
 fn shadewire_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("ShadewireError", m.py().get_type::<ShadewireError>())?;
     m.add("IR_FORMAT_VERSION", shadewire::export::FORMAT_VERSION)?;
     m.add_function(wrap_pyfunction!(version, m)?)?;
-    m.add_function(wrap_pyfunction!(material_names, m)?)?;
-    m.add_function(wrap_pyfunction!(compile_ir, m)?)?;
-    m.add_function(wrap_pyfunction!(compile_ir_text, m)?)?;
+    m.add_class::<PyIr>()?;
+
+    let mtlx = submodule(m, "mtlx")?;
+    mtlx.add_function(wrap_pyfunction!(to_ir, &mtlx)?)?;
+    mtlx.add_function(wrap_pyfunction!(material_names, &mtlx)?)?;
+
+    let wgsl = submodule(m, "wgsl")?;
+    wgsl.add_class::<PyCompiled>()?;
+    wgsl.add_function(wrap_pyfunction!(compile, &wgsl)?)?;
+    wgsl.add_function(wrap_pyfunction!(link, &wgsl)?)?;
+    wgsl.add_function(wrap_pyfunction!(reference_prelude, &wgsl)?)?;
+    wgsl.add_function(wrap_pyfunction!(translate, &wgsl)?)?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::ir_json;
-
-    #[test]
-    fn a_surface_document_exports_its_closure_tree() {
-        let text = r#"<materialx version="1.39">
-          <oren_nayar_diffuse_bsdf name="d" type="BSDF" />
-          <surface name="s" type="surfaceshader"><input name="bsdf" type="BSDF" nodename="d" /></surface>
-          <surfacematerial name="M" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s" /></surfacematerial>
-        </materialx>"#;
-        let json = ir_json(text, None, None, Some(vec!["surface".to_string()]), true, true).unwrap();
-        assert!(json.starts_with(r#"{"format":"shadewire-ir","version":1,"model":"surface""#), "{json}");
-        assert!(json.contains(r#""kind":"oren_nayar_diffuse_bsdf""#), "{json}");
-    }
-
-    #[test]
-    fn errors_are_messages() {
-        let err = ir_json("<materialx version=\"1.39\"/>", None, None, None, false, true).unwrap_err();
-        assert!(err.contains("no material"), "{err}");
-    }
 }

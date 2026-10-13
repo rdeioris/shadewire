@@ -34,15 +34,26 @@ class ModuleBackend:
         self.module = module
         self.name = f"shadewire module {module.version()}"
 
+    @staticmethod
+    def read(mtlx):
+        try:
+            with open(mtlx, encoding="utf-8") as f:
+                return f.read()
+        except OSError as e:
+            raise CompileError(f"{mtlx}: {e}") from e
+
     def material_names(self, mtlx):
         try:
-            return self.module.material_names(mtlx)
+            return self.module.mtlx.material_names(self.read(mtlx), path=mtlx)
         except self.module.ShadewireError as e:
             raise CompileError(str(e)) from e
 
     def compile(self, mtlx, material, editable):
+        """The MaterialX front end, the optimizer, the IR as a document."""
         try:
-            doc = self.module.compile_ir(mtlx, material, models=MODELS, constants=not editable)
+            ir = self.module.mtlx.to_ir(self.read(mtlx), path=mtlx, material=material, models=MODELS,
+                                        values_as_uniforms=editable)
+            doc = ir.optimize().to_dict()
         except self.module.ShadewireError as e:
             raise CompileError(str(e)) from e
         return checked(doc)

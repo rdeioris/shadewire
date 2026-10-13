@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "shadewire"
-description = "Compile MaterialX materials with Shadewire: the IR (a typed DAG and closure tree) as Python objects"
+description = "Shadewire: compile MaterialX materials to an IR (a typed DAG and closure tree) and to WGSL, HLSL, GLSL, MSL, SPIR-V"
 requires-python = ">=3.8"
 license = "MIT"
 authors = [{ name = "Roberto De Ioris" }]
@@ -20,5 +20,7 @@ dynamic = ["version"]
 Repository = "https://github.com/rdeioris/shadewire"
 
 [tool.maturin]
-module-name = "shadewire"
+# A Python package (`python/shadewire`: the re-exports and the type stubs) around the native `shadewire._native`.
+python-source = "python"
+module-name = "shadewire._native"
 features = ["pyo3/extension-module"]
