@@ -4,15 +4,14 @@
     python gl_cube.py material.mtlx [--material NAME] [--size 800] [--frames N --screenshot out.png]
 
 Shadewire compiles the material and hands it over as a GLSL library (`shadewire.wgsl.glsl_library`): the struct
-of the material's values, its uniform block and samplers, `Surface shadewire_eval_surface()`, and a prototype
-for each host function the material calls (`vec3 shadewire_host_normal_world();`...). The reflection says the
-rest: which host functions, the closure tree over the material's lobes, and the resources to bind.
+of the material's values, its uniform block and samplers, `Surface shadewire_eval_surface()`, the functions that
+evaluate the material's lobes (`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`), and a
+prototype for each host function the material calls (`vec3 shadewire_host_normal_world();`...).
 
 Everything else is this file's GLSL: the vertex shader, and after the library in the fragment shader
 
 1. the host functions, reading the vertex shader's outputs;
-2. the lobes and the closure tree over them, written from the reflection, for one directional light;
-3. `main`.
+2. `main`: one directional light and uniform ambient light through the material.
 
 GLSL has no bind groups: the library puts the material's resources (WGSL group 1) at binding points
 `32 + binding`, and each texture combines with its sampler into one `sampler2D` at the texture's point. The scene's
@@ -123,152 +122,20 @@ def host_functions(reflection):
     return "\n".join(out), missing
 
 
-# ---------------------------------------------------------------------------------------------------- 2. the lobes
+# ---------------------------------------------------------------------------------------------------- 2. main
 
-# How each lobe answers one light: (response to the light, albedo: what it reflects of uniform light, and what a
-# layer over it takes away). `$name` is the lobe's input; a lobe without a normal input uses the geometric N.
-LOBE_CODE = {
-    "oren_nayar_diffuse_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
-    "burley_diffuse_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
-    "subsurface_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
-    "translucent_bsdf": ("vec3(0.0)", "vec3(0.0)"),
-    "sheen_bsdf": ("$weight * $color * sheen(L, V, $normal, $roughness)", "$weight * $color * 0.2"),
-    "dielectric_bsdf": ("$weight * $tint * dielectric(L, V, $normal, $ior, $roughness)",
-                        "$weight * $tint * fresnel_ior(dot($normal, V), $ior)"),
-    "conductor_bsdf": ("$weight * conductor(L, V, $normal, $ior, $extinction, $roughness)",
-                       "$weight * conductor_f0($ior, $extinction)"),
-    "generalized_schlick_bsdf": ("$weight * schlick(L, V, $normal, $color0, $color90, $exponent, $roughness)",
-                                 "$weight * $color0"),
-}
-
-LOBE_LIBRARY = """
-// L: toward the light, V: toward the viewer, n: the lobe's normal input (where a normal map arrives).
-const float PI = 3.14159265;
-
-float ggx(vec3 L, vec3 V, vec3 n, vec2 alpha2) {
-    n = normalize(n);
-    float a = max(0.5 * (alpha2.x + alpha2.y), 1e-3);
-    vec3 H = normalize(L + V);
-    float nh = max(dot(n, H), 0.0);
-    float nl = max(dot(n, L), 0.0);
-    float nv = max(dot(n, V), 1e-4);
-    float d = a * a / (PI * pow(nh * nh * (a * a - 1.0) + 1.0, 2.0));
-    float k = a * 0.5;
-    float g = nl / (nl * (1.0 - k) + k) * nv / (nv * (1.0 - k) + k);
-    return d * g / (4.0 * nv);  // times cos(L): the light's projected solid angle
-}
-float fresnel_ior(float c, float ior) {
-    float f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
-    return f0 + (1.0 - f0) * pow(1.0 - clamp(c, 0.0, 1.0), 5.0);
-}
-float diffuse(vec3 L, vec3 n) { return max(dot(normalize(n), L), 0.0) / PI; }
-float sheen(vec3 L, vec3 V, vec3 n, float r) {
-    return max(dot(normalize(n), L), 0.0) * 0.25 * pow(1.0 - max(dot(normalize(n), V), 0.0), 2.0 / max(r, 0.05));
-}
-float dielectric(vec3 L, vec3 V, vec3 n, float ior, vec2 alpha) {
-    return ggx(L, V, n, alpha) * fresnel_ior(dot(normalize(L + V), V), ior);
-}
-vec3 conductor_f0(vec3 ior, vec3 k) {
-    return ((ior - 1.0) * (ior - 1.0) + k * k) / ((ior + 1.0) * (ior + 1.0) + k * k);
-}
-vec3 conductor(vec3 L, vec3 V, vec3 n, vec3 ior, vec3 k, vec2 alpha) {
-    vec3 f0 = conductor_f0(ior, k);
-    return ggx(L, V, n, alpha) * (f0 + (1.0 - f0) * pow(1.0 - dot(normalize(L + V), V), 5.0));
-}
-vec3 schlick(vec3 L, vec3 V, vec3 n, vec3 c0, vec3 c90, float e, vec2 alpha) {
-    return ggx(L, V, n, alpha) * mix(c0, c90, pow(1.0 - dot(normalize(L + V), V), e));
-}
-"""
-
-ZERO = "vec3(0.0)"
-
-
-def closure_code(closure, model_struct):
-    """`host_bsdf(s, L, V, N)`, `host_albedo(s, V, N)` and `host_emission(s, V, N)` for the material's closure
-    tree, and the lobes this host does not shade."""
-    nodes = closure["nodes"]
-    unsupported = set()
-
-    def lobe(node):
-        code = LOBE_CODE.get(node["kind"])
-        if code is None:
-            unsupported.add(node["kind"])
-            return ZERO, ZERO
-        response, albedo = code
-        if "normal" not in node["inputs"]:
-            response, albedo = response.replace("$normal", "N"), albedo.replace("$normal", "N")
-        for key, field in sorted(node["inputs"].items(), key=lambda kv: -len(kv[0])):
-            response, albedo = response.replace(f"${key}", f"s.{field}"), albedo.replace(f"${key}", f"s.{field}")
-        return response, albedo
-
-    def layer(node):
-        top, top_albedo = bsdf(node["top"])
-        base, base_albedo = bsdf(node["base"])
-        rest = f"max(vec3(1.0) - ({top_albedo}), vec3(0.0))"  # what the top lets through to the base
-        return f"({top} + {rest} * ({base}))", f"({top_albedo} + {rest} * ({base_albedo}))"
-
-    def mix(node):
-        (fg, fg_albedo), (bg, bg_albedo), m = bsdf(node["fg"]), bsdf(node["bg"]), f"s.{node['mix']}"
-        return f"mix({bg}, {fg}, {m})", f"mix({bg_albedo}, {fg_albedo}, {m})"
-
-    def add(node):
-        (a, a_albedo), (b, b_albedo) = bsdf(node["in1"]), bsdf(node["in2"])
-        return f"({a} + {b})", f"({a_albedo} + {b_albedo})"
-
-    def multiply(node):
-        (c, c_albedo), w = bsdf(node["in1"]), f"vec3(s.{node['in2']})"
-        return f"({c} * {w})", f"({c_albedo} * {w})"
-
-    closure_ops = {"lobe": lobe, "layer": layer, "mix": mix, "add": add, "multiply": multiply}
-
-    def bsdf(index):
-        node = nodes[index]
-        return closure_ops[node["op"]](node)
-
-    def emitter(node):
-        inputs = node["inputs"]
-        if node["kind"] == "uniform_edf":
-            return f"s.{inputs['color']}"
-        if node["kind"] == "generalized_schlick_edf":
-            base = emission(node["closures"]["base"]) if "base" in node.get("closures", {}) else ZERO
-            c0, c90, e = (f"s.{inputs[k]}" for k in ("color0", "color90", "exponent"))
-            return f"({base} * mix({c0}, {c90}, pow(1.0 - max(dot(N, V), 0.0), {e})))"
-        unsupported.add(node["kind"])
-        return ZERO
-
-    emission_ops = {
-        "lobe": emitter,
-        "mix": lambda n: f"mix({emission(n['bg'])}, {emission(n['fg'])}, s.{n['mix']})",
-        "add": lambda n: f"({emission(n['in1'])} + {emission(n['in2'])})",
-        "layer": lambda n: f"({emission(n['top'])} + {emission(n['base'])})",
-        "multiply": lambda n: f"({emission(n['in1'])} * vec3(s.{n['in2']}))",
-    }
-
-    def emission(index):
-        node = nodes[index]
-        return emission_ops[node["op"]](node)
-
-    response, albedo = bsdf(closure["bsdf"]) if closure.get("bsdf") is not None else (ZERO, ZERO)
-    emitted = emission(closure["edf"]) if closure.get("edf") is not None else ZERO
-    code = (
-        f"vec3 host_bsdf({model_struct} s, vec3 L, vec3 V, vec3 N) {{\n    return {response};\n}}\n"
-        f"vec3 host_albedo({model_struct} s, vec3 V, vec3 N) {{\n    return {albedo};\n}}\n"
-        f"vec3 host_emission({model_struct} s, vec3 V, vec3 N) {{\n    return {emitted};\n}}\n"
-    )
-    return code, unsupported
-
-
-# ---------------------------------------------------------------------------------------------------- 3. main
-
+# One directional light and uniform ambient light. Shadewire's library evaluates the material's closure tree (its
+# lobes, layered and mixed as MaterialX defines them): the response to the light, the albedo (the response to
+# uniform white light) and the emission.
 MAIN = """
 void main() {
     Surface s = shadewire_eval_surface();
-    vec3 N = normalize(v_normal);
-    vec3 V = normalize(scene.camera_position - v_position);
-    vec3 L = normalize(scene.light_direction);
-    // The light through the lobes; uniform ambient light reflected by their albedo.
-    vec3 lit = host_bsdf(s, L, V, N) * scene.light_color + host_albedo(s, V, N) * scene.ambient;
-    frag_color = vec4(lit + host_emission(s, V, N), 1.0);  // linear: GL_FRAMEBUFFER_SRGB encodes it
+    vec3 n = normalize(v_normal);
+    vec3 v = normalize(scene.camera_position - v_position);
+    vec3 l = normalize(scene.light_direction);
+    vec3 lit = shadewire_eval_bsdf(s, l, v, n).response * scene.light_color
+             + shadewire_eval_albedo(s, v, n) * scene.ambient;
+    frag_color = vec4(lit + shadewire_eval_emission(s, v, n), 1.0);  // linear: GL_FRAMEBUFFER_SRGB encodes it
 }
 """
 
@@ -279,15 +146,12 @@ def glsl_program(mtlx_path, material):
     ir = mtlx.to_ir(text, path=mtlx_path, material=material, models=["surface"])
     compiled = wgsl.compile(ir, group=MATERIAL_GROUP)
     reflection = compiled.reflection
-    closures, unsupported = closure_code(reflection["closure"], compiled.model_struct)
-    if unsupported:
-        print("lobes this host does not shade:", ", ".join(sorted(unsupported)))
     print(f"{ir.model}: {len(reflection['closure']['nodes'])} closure nodes, "
           f"{len(reflection['uniforms'])} uniforms, {len(reflection['textures'])} textures")
     host, missing = host_functions(reflection)
     if missing:
         print("reads this host lacks (zero):", ", ".join(missing))
-    fragment = "\n".join([wgsl.glsl_library(compiled, 420), SCENE, host, LOBE_LIBRARY, closures, MAIN])
+    fragment = "\n".join([wgsl.glsl_library(compiled, 420), SCENE, host, MAIN])
     stages = [compileShader(VERTEX_SHADER, GL.GL_VERTEX_SHADER), compileShader(fragment, GL.GL_FRAGMENT_SHADER)]
     return compileProgram(*stages, validate=False), reflection
 

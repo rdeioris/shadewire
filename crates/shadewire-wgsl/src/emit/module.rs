@@ -2,6 +2,7 @@ use shadewire::{Dag, Reflection};
 
 use super::EmitOptions;
 use super::bindings::texture_bindings;
+use super::closure::{closure_functions, files_for as closure_files_for, source as closure_source};
 use super::expressions::{node_lets, node_name};
 use super::names::struct_name;
 use super::ops::cast;
@@ -10,11 +11,14 @@ use super::uniforms::uniform_block;
 use crate::leaf_library::files_for;
 
 /// Joins the sections, skipping empty ones, one blank line between them. The leaf library
-/// files the live nodes call come before the entry, each once, in dependency order.
+/// files the live nodes call come before the entry, each once, in dependency order; with a closure tree,
+/// the closure library and the functions evaluating the tree follow.
 pub fn assemble(dag: &Dag, reflection: &Reflection, options: &EmitOptions) -> String {
     let mut sections = vec![model_struct(dag), uniform_block(reflection), texture_bindings(reflection)];
     sections.extend(files_for(dag).into_iter().map(String::from));
+    sections.extend(closure_files_for(dag).into_iter().map(|f| closure_source(f).to_string()));
     sections.push(entry(dag, reflection, options));
+    sections.push(closure_functions(dag));
     let parts: Vec<&str> = sections.iter().map(|s| s.trim_end()).filter(|s| !s.is_empty()).collect();
     let mut out = parts.join("\n\n");
     out.push('\n');

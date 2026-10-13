@@ -1,6 +1,8 @@
 //! A compiled material as a GLSL library for hosts written in GLSL: the surface struct, the material's uniform
-//! block and samplers, `shadewire_eval_surface()`, and a prototype for every host function it calls. The host
-//! appends its own GLSL (the host functions, its lighting, `main`) and compiles the whole as a fragment shader.
+//! block and samplers, `shadewire_eval_surface()`, with a closure tree the functions evaluating it
+//! (`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`), and a prototype for every host
+//! function it calls. The host appends its own GLSL (the host functions, its lights, `main`) and compiles the
+//! whole as a fragment shader.
 //!
 //! naga writes only complete stages, so the generated module is linked with stub host functions and an entry
 //! point, translated, and the stubs become prototypes again; names naga suffixed with `_` (those ending in a
@@ -72,13 +74,44 @@ fn definition_end(lines: &[&str], start: usize) -> usize {
     i + 1
 }
 
+/// The closure evaluation functions and their parameters, which a host reads by name.
+const EVAL_FUNCTIONS: [&str; 3] = ["shadewire_eval_bsdf", "shadewire_eval_albedo", "shadewire_eval_emission"];
+const EVAL_PARAMS: [&str; 4] = ["surface", "to_light", "to_viewer", "shading_normal"];
+
+/// `text` with whole-identifier `{name}_{digits}` (naga's way of keeping names unique across a module) back to
+/// `name`.
+fn unsuffix(text: &str, name: &str) -> String {
+    let prefix = format!("{name}_");
+    let mut out = text.to_string();
+    let mut search = 0;
+    while let Some(found) = out[search..].find(&prefix) {
+        let at = search + found;
+        let digits = out[at + prefix.len()..].chars().take_while(char::is_ascii_digit).count();
+        let word = &out[at..at + prefix.len() + digits];
+        if digits > 0 && whole_word(&out, at, word) {
+            out.replace_range(at..at + word.len(), name);
+            search = at + name.len();
+        } else {
+            search = at + prefix.len();
+        }
+    }
+    out
+}
+
 /// The material as a GLSL library (see the module doc). `generated` is `Compiled::wgsl`.
 pub fn glsl_library(generated: &str, reflection: &Reflection, version: GlslVersion) -> Result<String, Error> {
     let stubs = stubs(reflection);
     let mut prelude: String = stubs.iter().map(|(_, code)| code.as_str()).collect();
-    prelude.push_str(&format!(
-        "@fragment fn {ENTRY}() -> @location(0) vec4<f32> {{ _ = shadewire_eval_surface(); return vec4<f32>(0.0); }}\n"
-    ));
+    // The entry calls every function the host may: naga writes what a stage reaches.
+    let closures = generated.contains("fn shadewire_eval_bsdf(");
+    let calls = if closures {
+        "let s = shadewire_eval_surface(); let z = vec3<f32>(0.0); _ = shadewire_eval_bsdf(s, z, z, z); \
+         _ = shadewire_eval_albedo(s, z, z); _ = shadewire_eval_emission(s, z, z);"
+    } else {
+        "_ = shadewire_eval_surface();"
+    };
+    prelude
+        .push_str(&format!("@fragment fn {ENTRY}() -> @location(0) vec4<f32> {{ {calls} return vec4<f32>(0.0); }}\n"));
     let linked = link(generated, &prelude)?;
     let Output::Text(glsl) = translate(&linked, Target::Glsl(version), Some(ENTRY))? else {
         return Err(Error::Naga("GLSL is text".into()));
@@ -110,6 +143,18 @@ pub fn glsl_library(generated: &str, reflection: &Reflection, version: GlslVersi
             i += 1;
             continue;
         }
+        if !line.starts_with(' ') && EVAL_FUNCTIONS.iter().any(|name| defines(name)) {
+            // Each function's own parameters, under the names the host reads.
+            let end = definition_end(&lines, i);
+            let mut definition = lines[i..end].join("\n");
+            for param in EVAL_PARAMS {
+                definition = unsuffix(&definition, param);
+            }
+            out.push_str(&definition);
+            out.push('\n');
+            i = end;
+            continue;
+        }
         if !line.starts_with(' ') && stub_names.iter().any(|name| defines(name)) {
             out.push_str(line.trim_end_matches(" {"));
             out.push_str(";\n");
@@ -124,6 +169,12 @@ pub fn glsl_library(generated: &str, reflection: &Reflection, version: GlslVersi
     out.push_str(&format!(
         "// The host defines the shadewire_host_* functions above and calls `{model} shadewire_eval_surface()`.\n"
     ));
+    if closures {
+        out.push_str(
+            "// Then, per light, `shadewire_eval_bsdf(surface, to_light, to_viewer, shading_normal).response`, and\n\
+             // once `shadewire_eval_albedo` (for uniform light) and `shadewire_eval_emission`.\n",
+        );
+    }
     Ok(out)
 }
 
@@ -157,6 +208,46 @@ mod tests {
         assert!(glsl.contains("Surface shadewire_eval_surface() {"), "{glsl}");
         assert!(!glsl.contains("main()") && !glsl.contains("_fs2p_"), "{glsl}");
         assert!(!glsl.contains("texcoord_0_") && !glsl.contains("color0_"), "{glsl}");
+    }
+
+    #[test]
+    fn a_closure_tree_brings_its_evaluation_functions() {
+        let mut dag = Dag::new("surface");
+        let n = add(&mut dag, NodeKind::Context(ContextRead::Normal(Space::World)), Type::Vector3);
+        let c = add(&mut dag, NodeKind::Const(Value::Color3([0.8, 0.2, 0.1])), Type::Color3);
+        dag.surface.fields.push(SurfaceField { name: "c0_color".into(), ty: Type::Color3, node: c });
+        dag.surface.fields.push(SurfaceField { name: "c0_normal".into(), ty: Type::Vector3, node: n });
+        let mut graph = ClosureGraph::default();
+        let lobe = graph.add(ClosureNode::Lobe {
+            kind: "oren_nayar_diffuse_bsdf".into(),
+            ty: ClosureType::Bsdf,
+            inputs: [("color", "c0_color"), ("normal", "c0_normal")].map(|(k, v)| (k.into(), v.into())).into(),
+            settings: Default::default(),
+            closures: Default::default(),
+        });
+        graph.bsdf = Some(lobe);
+        dag.surface.closure = Some(graph);
+        let r = reflection(&dag);
+        let glsl = glsl_library(&emit(&dag, &r, &EmitOptions::default()), &r, GlslVersion::Desktop(420)).unwrap();
+        assert!(glsl.contains("struct ShadewireBsdf {\n    vec3 response;\n    vec3 throughput;\n};"), "{glsl}");
+        assert!(glsl.contains("ShadewireBsdf shadewire_eval_bsdf(Surface surface, vec3 to_light, vec3 to_viewer, vec3 shading_normal) {"), "{glsl}");
+        assert!(
+            glsl.contains("vec3 shadewire_eval_albedo(Surface surface, vec3 to_viewer, vec3 shading_normal) {"),
+            "{glsl}"
+        );
+        assert!(
+            glsl.contains("vec3 shadewire_eval_emission(Surface surface, vec3 to_viewer, vec3 shading_normal) {"),
+            "{glsl}"
+        );
+        assert!(!glsl.contains("main()"), "{glsl}");
+    }
+
+    #[test]
+    fn unsuffix_touches_numbered_whole_identifiers_only() {
+        assert_eq!(
+            unsuffix("surface_1.c0 + surface_x + my_surface_2 + surface_", "surface"),
+            "surface.c0 + surface_x + my_surface_2 + surface_"
+        );
     }
 
     #[test]

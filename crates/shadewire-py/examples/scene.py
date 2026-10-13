@@ -6,7 +6,7 @@ import math
 import struct
 
 from shadewire import mtlx, wgsl
-from wgsl_lobes import ENTRY, LOBE_LIBRARY, ClosureWriter, host_functions
+from wgsl_lobes import ENTRY, host_functions
 
 # The material's resources (uniform block, textures, samplers) go in group 1; the scene owns group 0
 # (binding 0: `Scene` of wgsl_lobes.ENTRY, binding 1: `Camera` below).
@@ -147,10 +147,7 @@ def compile_material(path, material=None):
     ir = mtlx.to_ir(text, path=path, material=material, models=["surface"])
     compiled = wgsl.compile(ir, group=MATERIAL_GROUP)
     reflection = compiled.reflection
-    writer = ClosureWriter(reflection["closure"], compiled.model_struct)
-    host = "\n".join([host_functions(reflection), LOBE_LIBRARY, writer.write(), ENTRY, VERTEX])
-    if writer.unsupported:
-        print("lobes this host does not shade:", ", ".join(sorted(writer.unsupported)))
+    host = "\n".join([host_functions(reflection), ENTRY, VERTEX])
     print(f"{ir.model}: {len(reflection['closure']['nodes'])} closure nodes, "
           f"{len(reflection['uniforms'])} uniforms, {len(reflection['textures'])} textures")
     return compiled, wgsl.link(compiled.wgsl, host)

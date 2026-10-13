@@ -200,9 +200,11 @@ fn reference_prelude(compiled: &PyCompiled) -> String {
 }
 
 /// The compiled material as a GLSL library, for hosts written in GLSL: the surface struct, the uniform block and
-/// samplers (at binding points `32 * group + binding`), `shadewire_eval_surface()`, and a prototype for each host
-/// function it calls, under the reflection's names. Append the host's GLSL (the host functions, lighting, `main`)
-/// and compile the whole as a fragment shader. `version`: GLSL 420..460 (GLSL ES 310 or 320 with `es`).
+/// samplers (at binding points `32 * group + binding`), `shadewire_eval_surface()`, with a closure tree the
+/// functions evaluating it (`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`), and a
+/// prototype for each host function it calls, under the reflection's names. Append the host's GLSL (the host
+/// functions, lights, `main`) and compile the whole as a fragment shader. `version`: GLSL 420..460 (GLSL ES 310 or
+/// 320 with `es`).
 #[pyfunction]
 #[pyo3(signature = (compiled, version=420, es=false))]
 fn glsl_library(py: Python<'_>, compiled: &PyCompiled, version: u16, es: bool) -> PyResult<String> {

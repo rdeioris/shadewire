@@ -1,4 +1,5 @@
 mod bindings;
+pub mod closure;
 mod coerce;
 pub mod expressions;
 mod module;

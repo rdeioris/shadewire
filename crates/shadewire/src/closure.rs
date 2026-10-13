@@ -2,8 +2,9 @@
 //! `mix`, `add` and `multiply`.
 //!
 //! The tree's shape is fixed per material; every value it reads (a lobe input, a mix weight, the opacity)
-//! is a surface field, computed by the DAG like any other model's field. The host owns the lobes: it
-//! implements each lobe kind it supports and walks the tree.
+//! is a surface field, computed by the DAG like any other model's field. A back end may evaluate the tree
+//! (the WGSL one writes `shadewire_eval_bsdf` and friends from MaterialX's reference lobes); a host with
+//! other needs, such as a path tracer sampling directions, walks it itself.
 
 use std::collections::BTreeMap;
 
