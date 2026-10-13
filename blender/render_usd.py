@@ -1,7 +1,7 @@
 """Renders a USD scene with Cycles, its MaterialX materials built by the Shadewire add-on.
 
 blender -b -P blender/render_usd.py -- <scene.usd> <materials.mtlx> <out.png> [--samples N] [--size W H]
-    [--shadewire PATH] [--denoise] [--editable] [--exposure STOPS] [--view-transform NAME]
+    [--shadewire EXECUTABLE] [--denoise] [--editable] [--exposure STOPS] [--view-transform NAME]
 
 Blender's USD importer makes an empty material for each binding into the `.mtlx` reference; they are rebuilt
 from the document by name, as the add-on's "Fill Materials from MaterialX" does.
@@ -32,13 +32,14 @@ args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.wm.usd_import(filepath=args.scene)
 
-exe = compiler.executable(args.shadewire)
-names = compiler.material_names(exe, args.mtlx)
+compile_backend = compiler.backend(args.shadewire)
+print("compiler:", compile_backend.name)
+names = compile_backend.material_names(args.mtlx)
 for name in names:
     material = bpy.data.materials.get(name)
     if material is None:
         continue
-    doc = compiler.compile_material(exe, args.mtlx, name, args.editable)
+    doc = compile_backend.compile(args.mtlx, name, args.editable)
     warnings = builder.build_material(material, doc, os.path.dirname(args.mtlx))
     print(f"material {name}: {len(material.node_tree.nodes)} nodes", *(f"\n  warning: {w}" for w in warnings))
 

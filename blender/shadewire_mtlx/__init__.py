@@ -27,7 +27,8 @@ class ShadewirePreferences(bpy.types.AddonPreferences):
 
     executable: StringProperty(
         name="shadewire executable",
-        description="The shadewire command-line compiler (empty: the add-on's bin folder, then PATH)",
+        description="A shadewire command-line compiler to use instead of the bundled shadewire module (the "
+        "module is used when this is empty and it is installed; else the add-on's bin folder, then PATH)",
         subtype="FILE_PATH",
     )
 
@@ -38,8 +39,7 @@ class ShadewirePreferences(bpy.types.AddonPreferences):
 def build(operator, context, mtlx, name, material, editable):
     """Compiles `name` of `mtlx` into `material`; reports warnings. False on failure."""
     try:
-        exe = compiler.executable(configured_executable(context))
-        doc = compiler.compile_material(exe, mtlx, name, editable)
+        doc = compiler.backend(configured_executable(context)).compile(mtlx, name, editable)
     except compiler.CompileError as e:
         operator.report({"ERROR"}, f"{name or os.path.basename(mtlx)}: {e}")
         return False
@@ -70,8 +70,7 @@ class SHADEWIRE_OT_import(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
         try:
-            exe = compiler.executable(configured_executable(context))
-            names = compiler.material_names(exe, self.filepath)
+            names = compiler.backend(configured_executable(context)).material_names(self.filepath)
         except compiler.CompileError as e:
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}
@@ -106,8 +105,7 @@ class SHADEWIRE_OT_fill(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
         try:
-            exe = compiler.executable(configured_executable(context))
-            names = compiler.material_names(exe, self.filepath)
+            names = compiler.backend(configured_executable(context)).material_names(self.filepath)
         except compiler.CompileError as e:
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}

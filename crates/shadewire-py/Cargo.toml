@@ -1,0 +1,23 @@
+[package]
+name = "shadewire-py"
+description = "Python bindings for Shadewire: MaterialX materials to the Shadewire IR (the `shadewire` module)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+# The Python module is `shadewire` (`pyproject.toml`); the Rust name differs from the core crate's.
+name = "shadewire_py"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+shadewire.workspace = true
+shadewire-mtlx.workspace = true
+serde_json.workspace = true
+# The stable ABI from Python 3.8: one build per platform loads in every CPython from 3.8 on. Import libraries
+# are generated, so Windows builds need no Python installed.
+pyo3 = { version = "0.29", features = ["abi3-py38", "generate-import-lib"] }

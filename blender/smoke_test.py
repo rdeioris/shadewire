@@ -25,12 +25,13 @@ files = args.files or sorted(
               recursive=True)
 )
 
-exe = compiler.executable(args.shadewire)
+compile_backend = compiler.backend(args.shadewire)
+print("compiler:", compile_backend.name)
 failures = 0
 built = 0
 for path in files:
     try:
-        names = compiler.material_names(exe, path)
+        names = compile_backend.material_names(path)
     except compiler.CompileError as e:
         print(f"FAIL {path}: {e}")
         failures += 1
@@ -38,7 +39,7 @@ for path in files:
     for name in names:
         label = f"{os.path.basename(path)}:{name}"
         try:
-            doc = compiler.compile_material(exe, path, name, False)
+            doc = compile_backend.compile(path, name, False)
         except compiler.CompileError as e:
             print(f"SKIP {label}: {str(e).splitlines()[0]}")
             continue

@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 id = "shadewire_mtlx"
 version = "0.1.0"
 name = "Shadewire MaterialX"
-tagline = "Import MaterialX materials as Cycles node trees, compiled by Shadewire"
+tagline = "MaterialX materials as Cycles node trees, compiled by Shadewire"
 maintainer = "Roberto De Ioris"
 type = "add-on"
 website = "https://github.com/rdeioris/shadewire"
@@ -11,5 +11,17 @@ tags = ["Material", "Import-Export"]
 blender_version_min = "4.2.0"
 license = ["SPDX:MIT"]
 
+# Every platform Blender ships for. Each wheel is the `shadewire` module for Python's stable ABI from 3.8
+# (one per platform serves every Blender); `blender/build_extension.py` builds them into `wheels/`.
+platforms = ["windows-x64", "windows-arm64", "macos-x64", "macos-arm64", "linux-x64", "linux-arm64"]
+wheels = [
+  "./wheels/shadewire-0.1.0-cp38-abi3-win_amd64.whl",
+  "./wheels/shadewire-0.1.0-cp38-abi3-win_arm64.whl",
+  "./wheels/shadewire-0.1.0-cp38-abi3-macosx_10_12_x86_64.whl",
+  "./wheels/shadewire-0.1.0-cp38-abi3-macosx_11_0_arm64.whl",
+  "./wheels/shadewire-0.1.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+  "./wheels/shadewire-0.1.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+]
+
 [permissions]
-files = "Reads MaterialX documents and their textures; runs the shadewire compiler"
+files = "Reads MaterialX documents and their textures"

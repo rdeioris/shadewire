@@ -1,4 +1,10 @@
-"""Runs the shadewire compiler: a MaterialX material to its IR document (`shadewire ir --json`)."""
+"""Compiles MaterialX materials to the Shadewire IR document.
+
+Two backends with one interface: the `shadewire` Python module (the wheels this extension bundles, which
+Blender installs; built for Python's stable ABI from 3.8, so one wheel per platform serves every Blender), and
+the `shadewire` command-line compiler (`shadewire ir --json`), used when the module is missing, such as when
+the add-on runs from a source checkout.
+"""
 
 import json
 import os
@@ -7,55 +13,89 @@ import subprocess
 import sys
 
 # Shadewire's closure model; `surface_unlit` stays a model (it has no lobes).
-MODELS = ("surface", "surface_unlit")
+MODELS = ["surface", "surface_unlit"]
+IR_FORMAT = ("shadewire-ir", 1)
 
 
 class CompileError(Exception):
     pass
 
 
-def executable(configured=""):
-    """The compiler: the configured path, one bundled in the add-on's `bin`, or `shadewire` on PATH."""
-    name = "shadewire.exe" if sys.platform == "win32" else "shadewire"
-    candidates = []
-    if configured:
-        candidates.append(configured)
-    candidates.append(os.path.join(os.path.dirname(__file__), "bin", name))
-    found = shutil.which("shadewire")
-    if found:
-        candidates.append(found)
-    for path in candidates:
-        if path and os.path.isfile(path):
-            return path
-    raise CompileError(
-        "shadewire not found: set its path in the add-on preferences, put it in the add-on's bin folder, "
-        "or on PATH (cargo build -p shadewire-cli --release)"
-    )
-
-
-def _run(exe, args):
-    flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-    done = subprocess.run([exe, *args], capture_output=True, text=True, creationflags=flags)
-    if done.returncode != 0:
-        raise CompileError(done.stderr.strip() or f"shadewire exited with {done.returncode}")
-    return done.stdout
-
-
-def material_names(exe, mtlx):
-    return [line for line in _run(exe, ["list", mtlx]).splitlines() if line.strip()]
-
-
-def compile_material(exe, mtlx, material, editable):
-    """The IR document of `material` (None: the document's only one). `editable` keeps authored values as
-    uniforms (Value/RGB nodes); otherwise they are constants and the closure tree is pruned by them."""
-    args = ["ir", mtlx, "--json"]
-    for model in MODELS:
-        args += ["--model", model]
-    if material:
-        args += ["--material", material]
-    if not editable:
-        args.append("--constants")
-    doc = json.loads(_run(exe, args))
-    if doc.get("format") != "shadewire-ir" or doc.get("version") != 1:
+def checked(doc):
+    if (doc.get("format"), doc.get("version")) != IR_FORMAT:
         raise CompileError(f"unexpected IR document {doc.get('format')} {doc.get('version')}")
     return doc
+
+
+class ModuleBackend:
+    """The `shadewire` Python module, in process."""
+
+    def __init__(self, module):
+        self.module = module
+        self.name = f"shadewire module {module.version()}"
+
+    def material_names(self, mtlx):
+        try:
+            return self.module.material_names(mtlx)
+        except self.module.ShadewireError as e:
+            raise CompileError(str(e)) from e
+
+    def compile(self, mtlx, material, editable):
+        try:
+            doc = self.module.compile_ir(mtlx, material, models=MODELS, constants=not editable)
+        except self.module.ShadewireError as e:
+            raise CompileError(str(e)) from e
+        return checked(doc)
+
+
+class ExecutableBackend:
+    """The `shadewire` command-line compiler, one process per call."""
+
+    def __init__(self, path):
+        self.path = path
+        self.name = f"shadewire executable {path}"
+
+    def run(self, args):
+        flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        done = subprocess.run([self.path, *args], capture_output=True, text=True, creationflags=flags)
+        if done.returncode != 0:
+            raise CompileError(done.stderr.strip() or f"shadewire exited with {done.returncode}")
+        return done.stdout
+
+    def material_names(self, mtlx):
+        return [line for line in self.run(["list", mtlx]).splitlines() if line.strip()]
+
+    def compile(self, mtlx, material, editable):
+        args = ["ir", mtlx, "--json"]
+        for model in MODELS:
+            args += ["--model", model]
+        if material:
+            args += ["--material", material]
+        if not editable:
+            args.append("--constants")
+        return checked(json.loads(self.run(args)))
+
+
+def find_executable(configured=""):
+    """The configured compiler, one in the add-on's `bin`, or `shadewire` on PATH; None when there is none."""
+    name = "shadewire.exe" if sys.platform == "win32" else "shadewire"
+    candidates = [configured, os.path.join(os.path.dirname(__file__), "bin", name), shutil.which("shadewire")]
+    return next((path for path in candidates if path and os.path.isfile(path)), None)
+
+
+def backend(configured_executable=""):
+    """The module when it imports (and no executable is configured), else the executable."""
+    if not configured_executable:
+        try:
+            import shadewire
+        except ImportError:
+            pass
+        else:
+            return ModuleBackend(shadewire)
+    path = find_executable(configured_executable)
+    if path is None:
+        raise CompileError(
+            "no Shadewire compiler: install the extension build that bundles the shadewire module, "
+            "or set the shadewire executable in the add-on preferences"
+        )
+    return ExecutableBackend(path)
