@@ -68,7 +68,7 @@ impl FromMtlx for ShadewireMaterial {
         images: &mut Assets<Image>,
         shaders: &mut Assets<Shader>,
     ) -> Result<Self, ShadewireError> {
-        let ir = to_ir(text, path, material, &MtlxOptions::default())?;
+        let ir = to_ir(text, path.map(|p| p.display().to_string()).as_deref(), material, &MtlxOptions::default())?;
         let options = compile_options();
         let compiled = compile(&ir.dag, &ir.source, &options)?;
         let source = module(&compiled)?;

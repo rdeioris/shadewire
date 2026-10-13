@@ -6,7 +6,7 @@ use shadewire::{ContextRead, Dag, Error, NodeKind, Op, Space, TransformKind, Typ
 use super::models::{KNOWN_MODELS, fields};
 use crate::document::Document;
 use crate::document::build::build;
-use crate::include::resolve_includes;
+use crate::include::{Resolver, resolve_includes};
 use crate::index::Index;
 use crate::library::standard;
 use crate::parse::parse_str;
@@ -20,7 +20,7 @@ fn load(relative: &str) -> Document {
     let text = std::fs::read_to_string(&path).unwrap();
     let file = path.to_string_lossy().to_string();
     let root = parse_str(&text, Some(&file)).unwrap();
-    let root = resolve_includes(root, path.parent(), Some(&file)).unwrap();
+    let root = resolve_includes(root, Some(&file), &Resolver::default()).unwrap();
     upgrade(build(&root, Some(&file)).unwrap()).unwrap()
 }
 

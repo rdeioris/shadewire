@@ -55,7 +55,7 @@ use shadewire_mtlx::{MtlxOptions, to_ir};
 use shadewire_wgsl::{CompileOptions, compile};
 
 let text = std::fs::read_to_string("material.mtlx")?;
-let ir = to_ir(&text, Some("material.mtlx".as_ref()), None, &MtlxOptions::default())?;
+let ir = to_ir(&text, Some("material.mtlx"), None, &MtlxOptions::default())?;
 print!("{}", optimize(&ir.dag).dump()); // the IR, one node per line
 
 let out = compile(&ir.dag, &ir.source, &CompileOptions::default())?;

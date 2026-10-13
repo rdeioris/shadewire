@@ -12,14 +12,14 @@ pip install shadewire
 from shadewire import mtlx, glsl
 
 text = open("material.mtlx", encoding="utf-8").read()
-ir = mtlx.to_ir(text, path="material.mtlx")      # the material in Shadewire's IR
+ir = mtlx.to_ir(text, location="material.mtlx")      # the material in Shadewire's IR
 compiled = glsl.compile(ir, version=420)         # or shadewire.wgsl / .hlsl / .msl
 print(compiled.code)                             # the model's struct, shadewire_eval_surface(), ...
 print(compiled.reflection["uniforms"])           # offsets and defaults of the uniform block
 print(compiled.reflection["textures"])           # files, colorspaces, bindings
 ```
 
-- `shadewire.mtlx`: `to_ir(text, path=None, material=None, models=None, ...)` and `material_names(text, path=None)`.
+- `shadewire.mtlx`: `to_ir(text, location=None, material=None, models=None, ...)` and `material_names(text, location=None)`.
   `models` lists the shading models the renderer accepts: `standard_surface`, `open_pbr_surface`, `gltf_pbr`,
   `surface_unlit`, and `surface`, the material as a closure tree of MaterialX's lobes (raw BSDF graphs included).
 - `shadewire.Ir`: `optimize()`, `dump()`, `to_dict()` (the IR as a JSON-like document), `model`, `structure_hash`.

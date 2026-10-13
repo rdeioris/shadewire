@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use shadewire::*;
-use shadewire_mtlx::{MtlxOptions, material_names, to_ir};
+use shadewire_mtlx::{MtlxOptions, Resolver, material_names, to_ir};
 
 use crate::{GdshaderOptions, GdshaderOutput, LOBE_MODELS, MODELS, Transparency, compile};
 
@@ -290,10 +289,10 @@ fn every_vendored_example_compiles_mapped_and_with_lobes() {
         files.sort();
         for path in files {
             let text = std::fs::read_to_string(&path).unwrap();
-            for material in material_names(&text, Some(&path)).unwrap() {
+            for material in material_names(&text, path.to_str(), &Resolver::default()).unwrap() {
                 for models in [&MODELS[..], &LOBE_MODELS[..]] {
                     for values_as_uniforms in [true, false] {
-                        let ir = to_ir(&text, Some(&path), Some(&material), &options(models, values_as_uniforms))
+                        let ir = to_ir(&text, path.to_str(), Some(&material), &options(models, values_as_uniforms))
                             .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
                         let out = compile(&ir.dag, &ir.source, &GdshaderOptions::default())
                             .unwrap_or_else(|e| panic!("{} {material}: {e}", path.display()));

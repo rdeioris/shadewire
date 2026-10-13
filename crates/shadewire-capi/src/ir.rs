@@ -3,7 +3,6 @@
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::panic::AssertUnwindSafe;
-use std::path::Path;
 use std::sync::OnceLock;
 
 use shadewire_mtlx::MaterialIr;
@@ -82,7 +81,7 @@ pub(crate) unsafe fn lower(
     let path = unsafe { opt_cstr(path) }?;
     let material = unsafe { opt_cstr(material) }?;
     let options = unsafe { read_mtlx(options) }?;
-    let ir = shadewire_mtlx::to_ir(text, path.map(Path::new), material, &options)?;
+    let ir = shadewire_mtlx::to_ir(text, path, material, &options)?;
     let model = c_string(ir.dag.surface.model.clone());
     Ok(shadewire_ir { ir, model, dump: OnceLock::new() })
 }

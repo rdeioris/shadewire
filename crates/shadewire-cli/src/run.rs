@@ -1,7 +1,7 @@
 use shadewire::Error;
 use shadewire::optimize::optimize;
 use shadewire::shader::{CompileOptions, Compiled};
-use shadewire_mtlx::{MtlxOptions, material_names, to_ir};
+use shadewire_mtlx::{MtlxOptions, Resolver, material_names, to_ir};
 
 use crate::args::{Args, Command, CompileArgs, IrArgs, Lang, ListArgs, Transparency};
 
@@ -37,7 +37,7 @@ fn compile_options(args: &CompileArgs) -> CompileOptions {
 fn ir_command(args: &IrArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
     let mtlx = mtlx_options(&args.models, args.constants);
-    let ir = to_ir(&text, Some(&args.file), args.material.as_deref(), &mtlx)?;
+    let ir = to_ir(&text, Some(&args.file.display().to_string()), args.material.as_deref(), &mtlx)?;
     let dag = if args.no_optimize { ir.dag } else { optimize(&ir.dag) };
     if args.json {
         let text = serde_json::to_string(&shadewire::export::export(&dag)).map_err(|e| Error::Io(e.to_string()))?;
@@ -50,7 +50,7 @@ fn ir_command(args: &IrArgs) -> Result<(), Error> {
 
 fn list_command(args: &ListArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
-    for name in material_names(&text, Some(&args.file))? {
+    for name in material_names(&text, Some(&args.file.display().to_string()), &Resolver::default())? {
         println!("{name}");
     }
     Ok(())
@@ -103,7 +103,7 @@ fn compile_command(args: &CompileArgs) -> Result<(), Error> {
         let models: &[&str] = if args.lobes { &shadewire_gdshader::LOBE_MODELS } else { &shadewire_gdshader::MODELS };
         mtlx.models = models.iter().map(|m| m.to_string()).collect();
     }
-    let ir = to_ir(&text, Some(&args.file), args.material.as_deref(), &mtlx)?;
+    let ir = to_ir(&text, Some(&args.file.display().to_string()), args.material.as_deref(), &mtlx)?;
     let compiled = compile(&ir, args)?;
     if let Some(path) = &args.reflection {
         let json = serde_json::to_string_pretty(&compiled.reflection).map_err(|e| Error::Io(e.to_string()))?;

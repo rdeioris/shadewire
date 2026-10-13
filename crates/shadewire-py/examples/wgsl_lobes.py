@@ -104,7 +104,7 @@ def main():
 
     text = open(args.mtlx, encoding="utf-8").read()
     # Front end: accept the closure model, so raw BSDF graphs and named models both arrive as lobes.
-    ir = mtlx.to_ir(text, path=args.mtlx, material=args.material, models=["surface"], values_as_uniforms=False)
+    ir = mtlx.to_ir(text, location=args.mtlx, material=args.material, models=["surface"], values_as_uniforms=False)
     print(ir, "->", ir.optimize())
     # Back end: the material's own resources (uniforms, textures) in group 1; the host owns group 0.
     compiled = wgsl.compile(ir, group=1)

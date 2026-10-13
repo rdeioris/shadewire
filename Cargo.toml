@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
 members = ["crates/shadewire", "crates/shadewire-wgsl", "crates/shadewire-glsl", "crates/shadewire-gdshader", "crates/shadewire-hlsl", "crates/shadewire-msl", "crates/shadewire-mtlx", "crates/shadewire-cli", "crates/shadewire-capi", "crates/shadewire-capi-ctest", "crates/shadewire-bevy", "crates/shadewire-py"]
+# Its own workspace: gdext needs a newer Rust (see its Cargo.toml).
+exclude = ["crates/shadewire-godot"]
 
 [workspace.package]
 version = "0.1.0"
