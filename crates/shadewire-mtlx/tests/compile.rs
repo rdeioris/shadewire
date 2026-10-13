@@ -33,7 +33,7 @@ fn standard_surface_example_compiles() {
     assert_eq!(out.reflection.model, "standard_surface");
     assert_eq!(out.reflection.source, "mtlx");
     assert_eq!(out.reflection.group, 2);
-    assert!(out.wgsl.contains("fn shadewire_eval_surface() -> StandardSurface"), "{}", out.wgsl);
+    assert!(out.code.contains("fn shadewire_eval_surface() -> StandardSurface"), "{}", out.code);
 }
 
 /// Hextile gradients use derivatives: hosts learn that the function is fragment-only.

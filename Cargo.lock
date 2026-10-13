@@ -4001,6 +4001,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "shadewire-glsl"
+version = "0.1.0"
+dependencies = [
+ "shadewire",
+]
+
+[[package]]
 name = "shadewire-mtlx"
 version = "0.1.0"
 dependencies = [

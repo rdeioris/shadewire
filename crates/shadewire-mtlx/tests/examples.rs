@@ -54,7 +54,7 @@ fn variant(error: &Error) -> String {
 fn check(text: &str, path: &Path, material: &str) -> Result<(), Error> {
     let compiled = compile_mtlx(text, Some(path), Some(material), &MtlxOptions::default(), &CompileOptions::default())?;
     let model = shadewire::model_struct_name(&compiled.reflection.model);
-    let linked = link(&compiled.wgsl, &reference_host::prelude(&compiled.reflection, &model))?;
+    let linked = link(&compiled.code, &reference_host::prelude(&compiled.reflection, &model))?;
     for target in targets() {
         translate(&linked, target, None)?;
     }

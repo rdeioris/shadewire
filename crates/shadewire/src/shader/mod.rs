@@ -2,6 +2,8 @@
 //! support libraries are parsed into one, and each back end (WGSL, GLSL, HLSL, MSL) only prints it.
 
 pub mod ast;
+pub mod compile;
+pub mod compile_options;
 pub mod fixtures;
 pub mod infer;
 pub mod library;
@@ -12,3 +14,5 @@ pub mod print;
 mod reserved;
 
 pub use ast::*;
+pub use compile::{Compiled, compile_with, lower};
+pub use compile_options::CompileOptions;

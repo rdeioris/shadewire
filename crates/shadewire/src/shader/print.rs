@@ -322,7 +322,10 @@ impl<'a, S: Syntax> Printer<'a, S> {
             Item::Comment(text) => format!("// {text}\n"),
             Item::Struct(s) => self.syntax.structure(s),
             Item::Const { name, ty, value } => format!("{}\n", self.syntax.constant(name, ty, self.expr(value))),
-            Item::Resource(r) => format!("{}\n", self.syntax.resource(r, module)),
+            Item::Resource(r) => {
+                let text = self.syntax.resource(r, module);
+                if text.is_empty() { text } else { text + "\n" }
+            }
             Item::Extern(f) => self.syntax.extern_decl(f).map_or(String::new(), |d| format!("{d}\n")),
             Item::Function(f) => {
                 let mut lines = vec![format!("{} {{", self.syntax.signature(f))];

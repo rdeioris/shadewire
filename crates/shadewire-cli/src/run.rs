@@ -80,11 +80,11 @@ fn lang_name(lang: Lang) -> String {
 /// The text or bytes to write: generated WGSL as is, or the linked module translated.
 fn render(compiled: &Compiled, lang: Lang) -> Result<Vec<u8>, Error> {
     if lang == Lang::Wgsl {
-        return Ok(compiled.wgsl.clone().into_bytes());
+        return Ok(compiled.code.clone().into_bytes());
     }
     eprintln!("note: {} output links the reference host, which supplies the entry point", lang_name(lang));
     let prelude = reference_host::prelude(&compiled.reflection, &model_struct_name(&compiled.reflection.model));
-    let linked = link(&compiled.wgsl, &prelude)?;
+    let linked = link(&compiled.code, &prelude)?;
     Ok(match translate(&linked, target(lang), None)? {
         Output::Text(text) => text.into_bytes(),
         Output::Words(words) => words.iter().flat_map(|w| w.to_le_bytes()).collect(),

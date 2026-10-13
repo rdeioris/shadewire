@@ -288,3 +288,54 @@ pub fn all() -> Vec<(&'static str, Dag)> {
         ("empty_closure", empty_closure()),
     ]
 }
+
+/// Definitions of every host function the reflection lists, for a back end's tests to compile the code whole:
+/// reads return zero, transforms return their argument.
+pub fn host_stubs(reflection: &Reflection) -> Vec<crate::shader::Item> {
+    use crate::shader::{Expr, Item, Stmt};
+    crate::shader::material::host_functions(reflection)
+        .into_iter()
+        .map(|mut f| {
+            let value = match f.params.first() {
+                Some((name, ty)) => Expr::name(name.clone(), ty.clone()),
+                None if f.ret.is_scalar() => zero_scalar(&f.ret),
+                None => Expr::construct(f.ret.clone(), vec![Expr::f32(0.0)]),
+            };
+            f.body = vec![Stmt::Return(Some(value))];
+            Item::Function(f)
+        })
+        .collect()
+}
+
+fn zero_scalar(ty: &crate::shader::Ty) -> crate::shader::Expr {
+    use crate::shader::{Expr, Scalar, Ty};
+    match ty {
+        Ty::Scalar(Scalar::Bool) => Expr::bool(false),
+        Ty::Scalar(Scalar::I32) => Expr::i32(0),
+        Ty::Scalar(Scalar::U32) => Expr::u32(0),
+        _ => Expr::f32(0.0),
+    }
+}
+
+/// An external compiler for a back end's tests: `$SHADEWIRE_<NAME>` (the name upper-cased), else on PATH, else in
+/// the Vulkan SDK's `Bin`. `None` when absent, and the test skips; with `SHADEWIRE_REQUIRE_TOOLS` set a missing
+/// tool panics instead.
+pub fn tool(name: &str) -> Option<std::path::PathBuf> {
+    let exe = if cfg!(windows) { format!("{name}.exe") } else { name.to_string() };
+    let env_name = format!("SHADEWIRE_{}", name.to_uppercase());
+    let found = std::env::var_os(&env_name)
+        .map(std::path::PathBuf::from)
+        .or_else(|| {
+            let path = std::env::var_os("PATH")?;
+            std::env::split_paths(&path).map(|d| d.join(&exe)).find(|p| p.is_file())
+        })
+        .or_else(|| {
+            let sdk = std::env::var_os("VULKAN_SDK")?;
+            let p = std::path::PathBuf::from(sdk).join("Bin").join(&exe);
+            p.is_file().then_some(p)
+        });
+    if found.is_none() && std::env::var_os("SHADEWIRE_REQUIRE_TOOLS").is_some() {
+        panic!("{name} not found (set {env_name}, PATH or VULKAN_SDK)");
+    }
+    found
+}

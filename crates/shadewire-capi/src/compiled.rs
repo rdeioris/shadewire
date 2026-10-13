@@ -48,7 +48,7 @@ fn build(
     let json = serde_json::to_string_pretty(&compiled.reflection)
         .map_err(|e| CapiError::Internal(format!("reflection could not be serialised: {e}")))?;
     Ok(shadewire_compiled {
-        wgsl: c_string(compiled.wgsl.clone()),
+        wgsl: c_string(compiled.code.clone()),
         reflection_json: c_string(json),
         struct_name: c_string(model_struct_name(&compiled.reflection.model)),
         dump: OnceLock::new(),

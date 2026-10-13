@@ -53,7 +53,7 @@ fn run(handle: &shadewire_compiled, prelude: Option<&str>, target: Target) -> Re
         Some(text) => text.to_string(),
         None => reference_host::prelude(&compiled.reflection, &handle.struct_name()),
     };
-    let linked = link(&compiled.wgsl, &prelude)?;
+    let linked = link(&compiled.code, &prelude)?;
     if target == Target::Wgsl {
         return Ok(shadewire_blob::text(linked));
     }

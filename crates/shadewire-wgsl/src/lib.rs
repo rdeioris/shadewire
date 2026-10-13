@@ -2,7 +2,6 @@
 //! reflection
 
 pub mod compile;
-pub mod compile_options;
 #[cfg(feature = "translate")]
 pub mod glsl_library;
 #[cfg(feature = "translate")]
@@ -18,13 +17,13 @@ mod tests;
 #[cfg(feature = "translate")]
 pub mod translate;
 
-pub use compile::{Compiled, compile, emit};
-pub use compile_options::CompileOptions;
+pub use compile::{compile, emit};
 #[cfg(feature = "translate")]
 pub use glsl_library::glsl_library;
 #[cfg(feature = "translate")]
 pub use link::link;
 pub use shadewire::shader::material::MaterialOptions;
+pub use shadewire::shader::{CompileOptions, Compiled};
 pub use syntax::{Wgsl, literal, print, wgsl_type};
 #[cfg(feature = "translate")]
 pub use target::{GlslVersion, HlslShaderModel, MslVersion, Target};

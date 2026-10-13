@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //    The reference host is a minimal stand-in; a real renderer passes its own prelude.
     let struct_name = model_struct_name(&compiled.reflection.model);
     let prelude = reference_host::prelude(&compiled.reflection, &struct_name);
-    let linked = link(&compiled.wgsl, &prelude)?;
+    let linked = link(&compiled.code, &prelude)?;
 
     // 3. WGSL -> HLSL through naga.
     let Output::Text(hlsl) = translate(&linked, Target::Hlsl(HlslShaderModel::Sm6_0), None)? else {

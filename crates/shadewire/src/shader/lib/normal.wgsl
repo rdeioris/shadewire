@@ -8,7 +8,7 @@ fn shadewire_normalmap(v: vec3<f32>, scale: vec2<f32>, n: vec3<f32>, t: vec3<f32
     if v.x * v.x + v.y * v.y + v.z * v.z == 0.0 {
         value = vec3<f32>(0.0, 0.0, 1.0);
     }
-    let out = t * value.x * scale.x + b * value.y * scale.y + n * value.z;
-    let len = sqrt(out.x * out.x + out.y * out.y + out.z * out.z);
-    return out / len;
+    let mapped = t * value.x * scale.x + b * value.y * scale.y + n * value.z;
+    let len = sqrt(mapped.x * mapped.x + mapped.y * mapped.y + mapped.z * mapped.z);
+    return mapped / len;
 }

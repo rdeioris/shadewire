@@ -1,38 +1,17 @@
-//! The back end: any front end's IR to WGSL and reflection.
+//! The WGSL back end's compile: the shared steps, printed as WGSL.
 
-use shadewire::optimize::optimize;
-use shadewire::{BindingOptions, Dag, Error, Reflection, SourceInfo, reflect};
-
-use crate::compile_options::CompileOptions;
 use shadewire::shader::material::{MaterialOptions, material};
-
-/// The result of a compilation: the generated module, what a host must bind, and the DAG
-/// the module was emitted from (optimized when `CompileOptions::optimize`).
-#[derive(Clone, Debug)]
-pub struct Compiled {
-    pub wgsl: String,
-    pub reflection: Reflection,
-    pub dag: Dag,
-}
+use shadewire::shader::{CompileOptions, Compiled, compile_with};
+use shadewire::{Dag, Error, Reflection, SourceInfo};
 
 /// The material's code as WGSL: its shader tree, printed.
 pub fn emit(dag: &Dag, reflection: &Reflection, options: &MaterialOptions) -> String {
     crate::print(&material(dag, reflection, options))
 }
 
-/// Optimize (when asked), reflect, emit.
+/// Optimize (when asked), reflect, print as WGSL.
 pub fn compile(dag: &Dag, source: &SourceInfo, options: &CompileOptions) -> Result<Compiled, Error> {
-    let dag = if options.optimize { optimize(dag) } else { dag.clone() };
-    let bindings = BindingOptions {
-        group: options.group,
-        first_binding: options.first_binding,
-        reserve_uniform_binding: options.reserve_uniform_binding,
-    };
-    let reflection = reflect(&dag, &bindings, source)?;
-    let material_options =
-        MaterialOptions { flip_v: options.flip_v, implicit_derivatives: options.implicit_derivatives };
-    let wgsl = emit(&dag, &reflection, &material_options);
-    Ok(Compiled { wgsl, reflection, dag })
+    compile_with(dag, source, options, |module, _| crate::print(module))
 }
 
 #[cfg(test)]
@@ -67,7 +46,7 @@ mod tests {
         let out = compile(&texture_only_dag(), &info(), &reserved).unwrap();
         assert_eq!(out.reflection.uniform_binding, None);
         assert_eq!(out.reflection.textures[0].binding, 1);
-        assert!(out.wgsl.contains("@binding(1)"), "{}", out.wgsl);
+        assert!(out.code.contains("@binding(1)"), "{}", out.code);
     }
 
     #[test]

@@ -1,4 +1,5 @@
-/// Back-end knobs: how the IR becomes WGSL and reflection. `Default` is what most hosts want.
+/// Back-end knobs every back end shares: how the IR becomes code and reflection. `Default` is what most hosts
+/// want.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CompileOptions {
     /// Bind group of the generated uniform block, textures and samplers.

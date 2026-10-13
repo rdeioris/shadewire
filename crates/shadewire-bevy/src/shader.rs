@@ -121,7 +121,7 @@ pub fn module(compiled: &Compiled) -> Result<String, ShadewireError> {
     out.push('\n');
     out.push_str(&host.declarations);
     out.push('\n');
-    out.push_str(&compiled.wgsl);
+    out.push_str(&compiled.code);
     out.push('\n');
     out.push_str(ENTRY_HEAD);
     out.push_str(&host.statements);

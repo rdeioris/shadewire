@@ -135,6 +135,55 @@ mod tests {
         }
     }
 
+    /// Library names print as they are in every language: none may be reserved in any.
+    #[test]
+    fn no_library_name_is_reserved() {
+        use crate::shader::ast::{Stmt, Ty};
+        fn body(stmts: &[Stmt], out: &mut Vec<String>) {
+            for s in stmts {
+                match s {
+                    Stmt::Let { name, .. } => out.push(name.clone()),
+                    Stmt::If { then, otherwise, .. } => {
+                        body(then, out);
+                        body(otherwise, out);
+                    }
+                    Stmt::For { init, body: b, .. } => {
+                        body(std::slice::from_ref(init), out);
+                        body(b, out);
+                    }
+                    Stmt::Switch { cases, default, .. } => {
+                        cases.iter().for_each(|(_, b)| body(b, out));
+                        body(default, out);
+                    }
+                    _ => {}
+                }
+            }
+        }
+        let mut bad = Vec::new();
+        for name in FILES {
+            let mut names = Vec::new();
+            for item in &module(name).items {
+                match item {
+                    Item::Function(f) => {
+                        names.push(f.name.clone());
+                        names.extend(f.params.iter().map(|(p, _)| p.clone()));
+                        body(&f.body, &mut names);
+                    }
+                    Item::Struct(s) => {
+                        names.push(s.name.clone());
+                        names.extend(s.members.iter().map(|(m, _)| m.clone()));
+                    }
+                    Item::Const { name, ty, .. } if *ty != Ty::Unknown => names.push(name.clone()),
+                    _ => {}
+                }
+            }
+            bad.extend(
+                names.into_iter().filter(|n| crate::shader::names::is_reserved(n)).map(|n| format!("{name}: {n}")),
+            );
+        }
+        assert!(bad.is_empty(), "reserved names in the libraries: {bad:?}");
+    }
+
     #[test]
     fn every_file_carries_the_attribution() {
         for name in FILES {

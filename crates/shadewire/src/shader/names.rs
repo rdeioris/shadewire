@@ -2,6 +2,11 @@ use crate::Reflection;
 
 use super::reserved::RESERVED;
 
+/// Whether `name` is a keyword or reserved word of a language some back end writes.
+pub fn is_reserved(name: &str) -> bool {
+    RESERVED.contains(&name)
+}
+
 /// Makes an authored name a valid identifier in every language a back end writes: invalid characters become `_`,
 /// a leading digit gets a `_` prefix, reserved words get a trailing `_`.
 pub fn ident(name: &str) -> String {

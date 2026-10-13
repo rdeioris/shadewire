@@ -181,7 +181,7 @@ fn compile(
     let options =
         CompileOptions { group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives };
     let compiled = py.detach(|| shadewire_wgsl::compile(&ir.dag, &ir.source, &options)).map_err(error)?;
-    Ok(PyCompiled { wgsl: compiled.wgsl, reflection: compiled.reflection })
+    Ok(PyCompiled { wgsl: compiled.code, reflection: compiled.reflection })
 }
 
 /// `host_prelude` and `generated` joined and validated with naga; the joined module, or a ShadewireError with
