@@ -1,16 +1,20 @@
-use shadewire::Reflection;
+use crate::Reflection;
 
 use super::reserved::RESERVED;
 
-/// Makes an authored name a valid WGSL identifier: invalid characters become `_`,
+/// Makes an authored name a valid identifier in every language a back end writes: invalid characters become `_`,
 /// a leading digit gets a `_` prefix, reserved words get a trailing `_`.
 pub fn ident(name: &str) -> String {
     let mut out: String = name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' { c } else { '_' }).collect();
     if out.is_empty() || out.starts_with(|c: char| c.is_ascii_digit()) {
         out.insert(0, '_');
     }
-    // A lone `_` is the phony assignment token, and a `__` prefix is reserved.
-    if out == "_" || out.starts_with("__") {
+    // GLSL reserves every name with `__` in it, and `gl_` prefixes.
+    while out.contains("__") {
+        out = out.replace("__", "_");
+    }
+    // A lone `_` is WGSL's phony assignment token.
+    if out == "_" || out.starts_with("gl_") {
         out.insert(0, 'x');
     }
     if RESERVED.contains(&out.as_str()) {
@@ -19,7 +23,7 @@ pub fn ident(name: &str) -> String {
     out
 }
 
-/// One unique WGSL member name per reflection uniform, index-aligned with `reflection.uniforms`.
+/// One unique member name per reflection uniform, index-aligned with `reflection.uniforms`.
 /// Names that `ident` maps alike get `_2`, `_3`... Reflection keeps the authored names;
 /// hosts fill the buffer by offset.
 pub struct UniformNames {
@@ -47,9 +51,9 @@ impl UniformNames {
     }
 }
 
-/// The WGSL struct name of a shading model.
+/// The struct name of a shading model.
 pub fn struct_name(model: &str) -> String {
-    shadewire::model_struct_name(model)
+    crate::model_struct_name(model)
 }
 
 #[cfg(test)]
@@ -60,6 +64,8 @@ mod tests {
     fn reserved_words_get_an_underscore() {
         assert_eq!(ident("filter"), "filter_");
         assert_eq!(ident("struct"), "struct_");
+        assert_eq!(ident("sample"), "sample_");
+        assert_eq!(ident("texture"), "texture_");
         assert_eq!(ident("base_color"), "base_color");
     }
 
@@ -69,7 +75,9 @@ mod tests {
         assert_eq!(ident("2d"), "_2d");
         assert_eq!(ident("a b"), "a_b");
         assert_eq!(ident("_"), "x_");
-        assert_eq!(ident("__a"), "x__a");
+        assert_eq!(ident("__a"), "_a");
+        assert_eq!(ident("a__b"), "a_b");
+        assert_eq!(ident("gl_Position"), "xgl_Position");
     }
 
     #[test]

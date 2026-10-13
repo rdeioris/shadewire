@@ -144,9 +144,9 @@ fn glsl_version(version: GlslVersion) -> glsl::Version {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::emit::test_support::add;
     use crate::target::MslVersion;
-    use crate::{EmitOptions, emit, link::link, reference_host};
+    use crate::{MaterialOptions, emit, link::link, reference_host};
+    use shadewire::shader::fixtures::add;
     use shadewire::*;
 
     fn linked() -> String {
@@ -182,7 +182,7 @@ mod tests {
         let info = SourceInfo { source: "t".into(), mtlx_version: "1.39".into() };
         let r =
             reflect(&dag, &BindingOptions { group, first_binding: 0, reserve_uniform_binding: false }, &info).unwrap();
-        let generated = emit(&dag, &r, &EmitOptions::default());
+        let generated = emit(&dag, &r, &MaterialOptions::default());
         let prelude = reference_host::prelude(&r, "OpenPbrSurface");
         link(&generated, &prelude).unwrap_or_else(|e| panic!("{generated}\n{e}"))
     }

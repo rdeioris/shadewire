@@ -4,9 +4,9 @@ mod gpu;
 
 use gpu::cases::{Case, all, family};
 use shadewire::interpret::{ContextSource, NoTextures, eval_nodes};
+use shadewire::shader::material::probe;
+use shadewire::shader::{Item, Module, library};
 use shadewire::{ContextRead, Space, TransformKind, Value};
-use shadewire_wgsl::emit::probe_function;
-use shadewire_wgsl::leaf_library;
 
 /// Parity cases read no host data.
 struct NoContext;
@@ -50,16 +50,13 @@ fn error(gpu: [f32; 4], cpu: [f32; 4]) -> f32 {
 fn wgsl_functions(cases: &[Case]) -> String {
     let mut names: Vec<&str> = Vec::new();
     for case in cases {
-        names.extend(leaf_library::names_for(&case.dag));
+        names.extend(library::names_for(&case.dag));
     }
-    let mut text: Vec<String> = Vec::new();
-    for name in leaf_library::FILES {
-        if names.contains(&name) {
-            text.push(leaf_library::source(name).to_string());
-        }
-    }
+    let items = library::FILES.iter().filter(|n| names.contains(n)).flat_map(|n| library::module(n).items.clone());
+    let mut text: Vec<String> = vec![shadewire_wgsl::print(&Module { items: items.collect() })];
     for (i, case) in cases.iter().enumerate() {
-        let probe = probe_function(&case.dag, case.node, &format!("case_{i}"));
+        let function = probe(&case.dag, case.node, &format!("case_{i}"));
+        let probe = shadewire_wgsl::print(&Module { items: vec![Item::Function(function)] });
         text.push(gpu::opaque_constants(&case.dag, case.node, &probe));
     }
     text.join("\n")

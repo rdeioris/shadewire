@@ -6,8 +6,8 @@
 
 use shadewire::{ContextEntry, HOST_PREFIX, Reflection, Type, Value};
 
-use crate::emit::names::ident;
-use crate::emit::types::{literal, wgsl_type};
+use crate::{literal, wgsl_type};
+use shadewire::shader::names::ident;
 
 /// One host read: the function name and the type it returns.
 struct HostRead {
@@ -102,8 +102,8 @@ pub fn prelude(reflection: &Reflection, model_struct: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::emit::test_support::{add, reflection};
-    use crate::{EmitOptions, emit, link::link};
+    use crate::{MaterialOptions, emit, link::link};
+    use shadewire::shader::fixtures::{add, reflection};
     use shadewire::*;
 
     #[test]
@@ -115,7 +115,7 @@ mod tests {
         let prelude = prelude(&r, "GltfPbr");
         assert!(prelude.contains("@builtin(position)"));
         assert!(prelude.contains("vec3<f32>(0.0), 1.0"));
-        link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
+        link(&emit(&dag, &r, &MaterialOptions::default()), &prelude).unwrap();
     }
 
     #[test]
@@ -132,7 +132,7 @@ mod tests {
         );
         dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: t });
         let r = reflection(&dag);
-        let generated = emit(&dag, &r, &EmitOptions::default());
+        let generated = emit(&dag, &r, &MaterialOptions::default());
         assert!(generated.contains("shadewire_host_transform_normal_object_to_world("), "{generated}");
         let prelude = prelude(&r, "GltfPbr");
         assert!(prelude.contains("fn shadewire_host_transform_normal_object_to_world(v: vec3<f32>) -> vec3<f32>"));
@@ -162,7 +162,7 @@ mod tests {
             "{prelude}"
         );
         assert!(prelude.contains("var<private> shadewire_in_geomprop_bare: f32;"), "{prelude}");
-        link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
+        link(&emit(&dag, &r, &MaterialOptions::default()), &prelude).unwrap();
     }
 
     #[test]
@@ -183,6 +183,6 @@ mod tests {
         assert!(prelude.contains("fn shadewire_host_geomprop_my_prop() -> f32"));
         assert!(prelude.contains("shadewire_in_view_direction_world = vec3<f32>(0.0, 0.0, -1.0);"));
         assert!(prelude.contains("@location(0) normal_world: vec3<f32>"));
-        link(&emit(&dag, &r, &EmitOptions::default()), &prelude).unwrap();
+        link(&emit(&dag, &r, &MaterialOptions::default()), &prelude).unwrap();
     }
 }

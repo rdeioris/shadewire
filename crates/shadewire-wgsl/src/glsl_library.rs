@@ -10,12 +10,12 @@
 
 use shadewire::{HOST_PREFIX, Reflection, model_struct_name};
 
-use crate::emit::names::ident;
-use crate::emit::types::wgsl_type;
 use crate::link::link;
 use crate::target::{GlslVersion, Target};
 use crate::translate::{Output, translate};
+use crate::wgsl_type;
 use shadewire::Error;
+use shadewire::shader::names::ident;
 
 const ENTRY: &str = "shadewire_library_main";
 
@@ -181,8 +181,8 @@ pub fn glsl_library(generated: &str, reflection: &Reflection, version: GlslVersi
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::emit::test_support::{add, reflection};
-    use crate::{EmitOptions, emit};
+    use crate::{MaterialOptions, emit};
+    use shadewire::shader::fixtures::{add, reflection};
     use shadewire::*;
 
     fn material() -> (String, Reflection) {
@@ -194,7 +194,7 @@ mod tests {
         dag.surface.fields.push(SurfaceField { name: "c0_color0".into(), ty: Type::Color3, node: c });
         dag.surface.fields.push(SurfaceField { name: "c0_normal".into(), ty: Type::Vector3, node: n });
         let r = reflection(&dag);
-        (emit(&dag, &r, &EmitOptions::default()), r)
+        (emit(&dag, &r, &MaterialOptions::default()), r)
     }
 
     #[test]
@@ -228,7 +228,7 @@ mod tests {
         graph.bsdf = Some(lobe);
         dag.surface.closure = Some(graph);
         let r = reflection(&dag);
-        let glsl = glsl_library(&emit(&dag, &r, &EmitOptions::default()), &r, GlslVersion::Desktop(420)).unwrap();
+        let glsl = glsl_library(&emit(&dag, &r, &MaterialOptions::default()), &r, GlslVersion::Desktop(420)).unwrap();
         assert!(glsl.contains("struct ShadewireBsdf {\n    vec3 response;\n    vec3 throughput;\n};"), "{glsl}");
         assert!(glsl.contains("ShadewireBsdf shadewire_eval_bsdf(Surface surface, vec3 to_light, vec3 to_viewer, vec3 shading_normal) {"), "{glsl}");
         assert!(

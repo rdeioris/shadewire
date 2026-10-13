@@ -4,7 +4,7 @@ use shadewire::optimize::optimize;
 use shadewire::{BindingOptions, Dag, Error, Reflection, SourceInfo, reflect};
 
 use crate::compile_options::CompileOptions;
-use crate::emit::{EmitOptions, emit};
+use shadewire::shader::material::{MaterialOptions, material};
 
 /// The result of a compilation: the generated module, what a host must bind, and the DAG
 /// the module was emitted from (optimized when `CompileOptions::optimize`).
@@ -13,6 +13,11 @@ pub struct Compiled {
     pub wgsl: String,
     pub reflection: Reflection,
     pub dag: Dag,
+}
+
+/// The material's code as WGSL: its shader tree, printed.
+pub fn emit(dag: &Dag, reflection: &Reflection, options: &MaterialOptions) -> String {
+    crate::print(&material(dag, reflection, options))
 }
 
 /// Optimize (when asked), reflect, emit.
@@ -24,8 +29,9 @@ pub fn compile(dag: &Dag, source: &SourceInfo, options: &CompileOptions) -> Resu
         reserve_uniform_binding: options.reserve_uniform_binding,
     };
     let reflection = reflect(&dag, &bindings, source)?;
-    let emit_options = EmitOptions { flip_v: options.flip_v, implicit_derivatives: options.implicit_derivatives };
-    let wgsl = emit(&dag, &reflection, &emit_options);
+    let material_options =
+        MaterialOptions { flip_v: options.flip_v, implicit_derivatives: options.implicit_derivatives };
+    let wgsl = emit(&dag, &reflection, &material_options);
     Ok(Compiled { wgsl, reflection, dag })
 }
 

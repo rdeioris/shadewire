@@ -13,6 +13,7 @@ mod op;
 pub mod ops;
 pub mod optimize;
 pub mod reflection;
+pub mod shader;
 mod space;
 mod structure_hash;
 mod surface;
