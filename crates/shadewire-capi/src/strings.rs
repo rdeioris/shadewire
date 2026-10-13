@@ -24,6 +24,22 @@ pub(crate) fn cached_text(cell: &OnceLock<CString>, build: impl FnOnce() -> Stri
     Some(cell.get_or_init(|| built))
 }
 
+/// The text cached in `cell` (built by `build` on first use), its byte length written to `len` when non-null; NULL
+/// (and 0) when `build` panicked.
+///
+/// # Safety
+/// `len` must be NULL or valid for writing a `usize`.
+pub(crate) unsafe fn cached_out(
+    cell: &OnceLock<CString>,
+    build: impl FnOnce() -> String,
+    len: *mut usize,
+) -> *const c_char {
+    match cached_text(cell, build) {
+        Some(text) => unsafe { out_str(text, len) },
+        None => unsafe { null_str(len) },
+    }
+}
+
 /// Writes 0 to `len` when non-null and returns NULL.
 ///
 /// # Safety

@@ -1,6 +1,7 @@
-//! The back ends: the IR to code (WGSL, GLSL, HLSL or MSL) and reflection, as the opaque `shadewire_compiled` handle.
+//! The back ends (Python's `shadewire.wgsl`, `.glsl`, `.hlsl`, `.msl`): the IR to code and reflection, as the opaque
+//! `shadewire_compiled` handle (Python's `shadewire.Compiled`).
 
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::panic::AssertUnwindSafe;
 use std::sync::OnceLock;
@@ -13,15 +14,18 @@ use crate::guard::guarded;
 use crate::ir::{borrow as borrow_ir, lower, shadewire_ir};
 use crate::options::{read_compile, shadewire_compile_options, shadewire_mtlx_options};
 use crate::status::shadewire_status;
-use crate::strings::{c_string, cached_text, null_str, out_str};
+use crate::strings::{c_string, cached_out, null_str, out_str};
 use crate::target::{Backend, backend, shadewire_target};
 
-/// A compiled material: its code, reflection and the optimized IR. Free it with `shadewire_compiled_free`.
+/// A compiled material: the code in its language (the model's struct, `shadewire_eval_surface()`, the closure
+/// functions, declarations of the host functions it calls), its reflection, and the IR the code was printed from
+/// (optimized when the options asked for it). Free it with `shadewire_compiled_free`.
 pub struct shadewire_compiled {
     pub(crate) compiled: Compiled,
+    language: &'static CStr,
     code: CString,
     reflection_json: CString,
-    struct_name: CString,
+    model_struct: CString,
     dump: OnceLock<CString>,
 }
 
@@ -31,18 +35,19 @@ fn build(
     options: &CompileOptions,
     target: Backend,
 ) -> Result<shadewire_compiled, CapiError> {
-    let compiled = match target {
-        Backend::Wgsl => shadewire_wgsl::compile(dag, source, options)?,
-        Backend::Glsl(version) => shadewire_glsl::compile(dag, source, options, version)?,
-        Backend::Hlsl => shadewire_hlsl::compile(dag, source, options)?,
-        Backend::Msl => shadewire_msl::compile(dag, source, options)?,
+    let (compiled, language) = match target {
+        Backend::Wgsl => (shadewire_wgsl::compile(dag, source, options)?, c"wgsl"),
+        Backend::Glsl(version) => (shadewire_glsl::compile(dag, source, options, version)?, c"glsl"),
+        Backend::Hlsl => (shadewire_hlsl::compile(dag, source, options)?, c"hlsl"),
+        Backend::Msl => (shadewire_msl::compile(dag, source, options)?, c"msl"),
     };
     let json = serde_json::to_string_pretty(&compiled.reflection)
         .map_err(|e| CapiError::Internal(format!("reflection could not be serialised: {e}")))?;
     Ok(shadewire_compiled {
+        language,
         code: c_string(compiled.code.clone()),
         reflection_json: c_string(json),
-        struct_name: c_string(model_struct_name(&compiled.reflection.model)),
+        model_struct: c_string(model_struct_name(&compiled.reflection.model)),
         dump: OnceLock::new(),
         compiled,
     })
@@ -114,6 +119,18 @@ pub unsafe extern "C" fn shadewire_compile_mtlx(
     }
 }
 
+/// The language of the code: "wgsl", "glsl" (GLSL ES too), "hlsl" or "msl"; static. NULL when `c` is NULL.
+///
+/// # Safety
+/// `c` must be NULL or a live handle.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn shadewire_compiled_language(c: *const shadewire_compiled) -> *const c_char {
+    match unsafe { c.as_ref() } {
+        Some(handle) => handle.language.as_ptr(),
+        None => std::ptr::null(),
+    }
+}
+
 /// The generated code, valid until `c` is freed; writes its byte length to `len` when non-null. NULL when `c` is
 /// NULL.
 ///
@@ -124,7 +141,9 @@ pub unsafe extern "C" fn shadewire_compiled_code(c: *const shadewire_compiled, l
     unsafe { text_of(c, len, |c| &c.code) }
 }
 
-/// The reflection as pretty-printed JSON, valid until `c` is freed; see `shadewire_compiled_code` for `len`.
+/// The reflection as pretty-printed JSON (bindings, uniforms with offsets and defaults, textures, the host functions
+/// the code calls, each field's kind, the closure tree of a `surface` material), valid until `c` is freed; see
+/// `shadewire_compiled_code` for `len`.
 ///
 /// # Safety
 /// As `shadewire_compiled_code`.
@@ -144,22 +163,19 @@ pub unsafe extern "C" fn shadewire_compiled_reflection_json(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_compiled_ir_dump(c: *const shadewire_compiled, len: *mut usize) -> *const c_char {
     match unsafe { c.as_ref() } {
-        Some(handle) => match cached_text(&handle.dump, || handle.compiled.dag.dump()) {
-            Some(dump) => unsafe { out_str(dump, len) },
-            None => unsafe { null_str(len) },
-        },
+        Some(handle) => unsafe { cached_out(&handle.dump, || handle.compiled.dag.dump(), len) },
         None => unsafe { null_str(len) },
     }
 }
 
-/// The struct name of the shading model (for example "StandardSurface"), valid until `c` is freed; NULL when `c`
-/// is NULL.
+/// The name of the struct `shadewire_eval_surface` returns (for example "StandardSurface"), valid until `c` is freed;
+/// NULL when `c` is NULL.
 ///
 /// # Safety
 /// `c` must be NULL or a live handle.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn shadewire_compiled_struct_name(c: *const shadewire_compiled) -> *const c_char {
-    unsafe { text_of(c, std::ptr::null_mut(), |c| &c.struct_name) }
+pub unsafe extern "C" fn shadewire_compiled_model_struct(c: *const shadewire_compiled) -> *const c_char {
+    unsafe { text_of(c, std::ptr::null_mut(), |c| &c.model_struct) }
 }
 
 /// Frees `c`; NULL is allowed.

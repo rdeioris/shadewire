@@ -28,7 +28,8 @@ class Ir:
 
 class Compiled:
     """A compiled material: the code in its language (the model's struct, `shadewire_eval_surface()`, the
-    closure functions, declarations of the host functions it calls) and its reflection."""
+    closure functions, declarations of the host functions it calls), its reflection, and the IR the code was
+    printed from (optimized when the back end was asked to)."""
 
     @property
     def language(self) -> str: ...
@@ -38,5 +39,7 @@ class Compiled:
     def reflection(self) -> Dict[str, Any]: ...
     @property
     def model_struct(self) -> str: ...
+    @property
+    def ir(self) -> Ir: ...
 
 def version() -> str: ...

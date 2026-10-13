@@ -1,4 +1,5 @@
-"""The GLSL back end (the Rust crate `shadewire_glsl`): a GLSL library, desktop from 330, ES from 300."""
+"""The GLSL back end (the Rust crate `shadewire_glsl`): a GLSL library, desktop 330 and 400 to
+460 (default 420), ES 300 to 320 (default 300). Another version raises `ShadewireError`."""
 
 from typing import Optional
 

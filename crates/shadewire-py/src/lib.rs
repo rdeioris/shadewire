@@ -10,7 +10,7 @@
 //! from 3.8 on. Front-end and back-end calls release the GIL.
 
 use pyo3::create_exception;
-use pyo3::exceptions::{PyException, PyValueError};
+use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use shadewire::shader::CompileOptions;
 use shadewire::{Dag, SourceInfo, model_struct_name};
@@ -128,13 +128,15 @@ fn material_names(py: Python<'_>, text: String, path: Option<std::path::PathBuf>
 // ---------------------------------------------------------------------------------------------------- back ends
 
 /// A compiled material: the generated code in its language (the model's struct, `shadewire_eval_surface()`, the
-/// closure functions, declarations of the host functions it calls) and what a host must bind and provide (the
-/// reflection).
+/// closure functions, declarations of the host functions it calls), what a host must bind and provide (the
+/// reflection), and the IR the code was printed from (optimized when the back end was asked to).
 #[pyclass(name = "Compiled", module = "shadewire", frozen)]
 struct PyCompiled {
     language: &'static str,
     code: String,
     reflection: shadewire::Reflection,
+    dag: Dag,
+    source: SourceInfo,
 }
 
 #[pymethods]
@@ -163,6 +165,12 @@ impl PyCompiled {
         model_struct_name(&self.reflection.model)
     }
 
+    /// The IR the code was printed from.
+    #[getter]
+    fn ir(&self) -> PyIr {
+        PyIr { dag: self.dag.clone(), source: self.source.clone() }
+    }
+
     fn __repr__(&self) -> String {
         format!("<shadewire.Compiled {} model={} {} bytes>", self.language, self.reflection.model, self.code.len())
     }
@@ -180,18 +188,22 @@ fn options(
     CompileOptions { group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives }
 }
 
-type Backend = fn(&Dag, &SourceInfo, &CompileOptions) -> Result<shadewire::shader::Compiled, shadewire::Error>;
-
 /// Runs a back end with the GIL released.
 fn run(
     py: Python<'_>,
     language: &'static str,
     ir: &PyIr,
     options: CompileOptions,
-    backend: Backend,
+    backend: impl FnOnce(&Dag, &SourceInfo, &CompileOptions) -> Result<shadewire::shader::Compiled, shadewire::Error> + Send,
 ) -> PyResult<PyCompiled> {
     let compiled = py.detach(|| backend(&ir.dag, &ir.source, &options)).map_err(error)?;
-    Ok(PyCompiled { language, code: compiled.code, reflection: compiled.reflection })
+    Ok(PyCompiled {
+        language,
+        code: compiled.code,
+        reflection: compiled.reflection,
+        dag: compiled.dag,
+        source: ir.source.clone(),
+    })
 }
 
 /// The IR to WGSL. `group` and `first_binding` place the uniform block, textures and samplers;
@@ -215,8 +227,8 @@ fn compile_wgsl(
     run(py, "wgsl", ir, options, shadewire_wgsl::compile)
 }
 
-/// The IR to a GLSL library: `version` is the `#version` (desktop from 330, default 420; ES from 300 with `es`,
-/// default 300). From GLSL 420 and ES 310 the uniform block sits at binding point `uniform_binding` and each
+/// The IR to a GLSL library: `version` is the `#version` (desktop 330 and 400 to 460, default 420; with `es`, 300
+/// to 320, default 300; any other is a `ShadewireError`). From GLSL 420 and ES 310 the uniform block sits at binding point `uniform_binding` and each
 /// texture (a `sampler2D`) at unit `binding`, as reflected; before, bind them by name. The other options as
 /// `shadewire.wgsl.compile`.
 #[pyfunction]
@@ -234,17 +246,9 @@ fn compile_glsl(
     optimize: bool,
     implicit_derivatives: bool,
 ) -> PyResult<PyCompiled> {
-    use shadewire_glsl::Version;
-    let version = match (es, version) {
-        (false, None) => Version::Desktop(420),
-        (false, Some(v)) if v >= 330 => Version::Desktop(v),
-        (true, None) => Version::Es(300),
-        (true, Some(v)) if v >= 300 => Version::Es(v),
-        (_, Some(v)) => return Err(PyValueError::new_err(format!("unsupported GLSL version {v}"))),
-    };
+    let version = shadewire_glsl::Version::new(es, version);
     let options = options(group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives);
-    let compiled = py.detach(|| shadewire_glsl::compile(&ir.dag, &ir.source, &options, version)).map_err(error)?;
-    Ok(PyCompiled { language: "glsl", code: compiled.code, reflection: compiled.reflection })
+    run(py, "glsl", ir, options, |dag, source, options| shadewire_glsl::compile(dag, source, options, version))
 }
 
 /// The IR to an HLSL library (shader model 5.1 and up): resources at `register(b|t|s{binding}, space{group})`, as

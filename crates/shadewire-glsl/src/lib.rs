@@ -12,12 +12,12 @@ use shadewire::{Dag, Error, SourceInfo, Type};
 
 pub use shadewire::shader::{CompileOptions, Compiled};
 
-/// The GLSL dialect and version.
+/// The GLSL dialect and version: one of `DESKTOP` or `ES` (`compile` refuses any other).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Version {
-    /// `#version N core`, N from 330.
+    /// `#version N core`.
     Desktop(u16),
-    /// `#version N es`, N from 300.
+    /// `#version N es`.
     Es(u16),
 }
 
@@ -28,6 +28,33 @@ impl Default for Version {
 }
 
 impl Version {
+    /// The desktop versions: 330, then 400 to 460.
+    pub const DESKTOP: [u16; 8] = [330, 400, 410, 420, 430, 440, 450, 460];
+    /// The ES versions: 300 (WebGL 2) to 320.
+    pub const ES: [u16; 3] = [300, 310, 320];
+
+    /// Desktop or ES `number`, or its default (420, ES 300) when None. The bindings and the CLI take versions
+    /// this way; `compile` checks the result.
+    pub fn new(es: bool, number: Option<u16>) -> Version {
+        match es {
+            false => Version::Desktop(number.unwrap_or(420)),
+            true => Version::Es(number.unwrap_or(300)),
+        }
+    }
+
+    /// The version, or `Error::UnsupportedTarget` when GLSL has no such version.
+    pub fn check(self) -> Result<Version, Error> {
+        let known = match self {
+            Version::Desktop(v) => Self::DESKTOP.contains(&v),
+            Version::Es(v) => Self::ES.contains(&v),
+        };
+        match (known, self) {
+            (true, _) => Ok(self),
+            (false, Version::Desktop(v)) => Err(Error::UnsupportedTarget(format!("GLSL {v}"))),
+            (false, Version::Es(v)) => Err(Error::UnsupportedTarget(format!("GLSL ES {v}"))),
+        }
+    }
+
     /// Whether `layout(binding = N)` is available.
     fn explicit_bindings(self) -> bool {
         match self {
@@ -206,8 +233,9 @@ pub fn print(module: &Module, version: Version) -> String {
     Printer::new(&Glsl { version }).module(module)
 }
 
-/// Optimize (when asked), reflect, print as a GLSL library.
+/// Optimize (when asked), reflect, print as a GLSL library. `Error::UnsupportedTarget` for a version GLSL lacks.
 pub fn compile(dag: &Dag, source: &SourceInfo, options: &CompileOptions, version: Version) -> Result<Compiled, Error> {
+    let version = version.check()?;
     compile_with(dag, source, options, |module, _| print(module, version))
 }
 

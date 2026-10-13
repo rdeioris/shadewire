@@ -40,6 +40,7 @@ pub(crate) fn kind_of(error: &shadewire::Error) -> shadewire_error_kind {
         | Error::MissingLeafImpl { .. }
         | Error::BadValue { .. } => shadewire_error_kind::SHADEWIRE_ERROR_GRAPH,
         Error::Io(_) => shadewire_error_kind::SHADEWIRE_ERROR_IO,
+        Error::UnsupportedTarget(_) => shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT,
     }
 }
 

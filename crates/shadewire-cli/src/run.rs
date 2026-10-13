@@ -62,12 +62,8 @@ fn compile(ir: &shadewire_mtlx::MaterialIr, args: &CompileArgs) -> Result<Compil
     let (dag, source) = (&ir.dag, &ir.source);
     match args.lang {
         Lang::Wgsl => shadewire_wgsl::compile(dag, source, &options),
-        Lang::Glsl => {
-            let version = shadewire_glsl::Version::Desktop(args.glsl_version.unwrap_or(420));
-            shadewire_glsl::compile(dag, source, &options, version)
-        }
-        Lang::GlslEs => {
-            let version = shadewire_glsl::Version::Es(args.glsl_version.unwrap_or(300));
+        Lang::Glsl | Lang::GlslEs => {
+            let version = shadewire_glsl::Version::new(args.lang == Lang::GlslEs, args.glsl_version);
             shadewire_glsl::compile(dag, source, &options, version)
         }
         Lang::Hlsl => shadewire_hlsl::compile(dag, source, &options),

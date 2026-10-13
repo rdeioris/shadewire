@@ -108,6 +108,15 @@ No compatibility shims: old names are gone.
 
 ### CLI and C API
 
+- The C API follows the Python module name for name: `shadewire_mtlx_material_names` (a `shadewire_strings` list),
+  `shadewire_ir_optimize`, `shadewire_ir_json` (`Ir.to_dict`, format `SHADEWIRE_IR_FORMAT_VERSION`),
+  `shadewire_ir_source`, `_source_version`, `_structure_hash`, `shadewire_compiled_language`, and
+  `implicit_derivatives` in the compile options. `shadewire_compiled_struct_name` is now
+  `shadewire_compiled_model_struct`.
+- GLSL versions follow one rule everywhere (`shadewire_glsl::Version::check`): desktop 330 and 400 to 460, ES 300
+  to 320. Another version is `Error::UnsupportedTarget` in Rust, `ShadewireError` in Python, an error in the CLI and
+  SHADEWIRE_ERROR_INVALID_ARGUMENT in C.
+- Python's `Compiled.ir`: the IR the code was printed from.
 - `shadewire list` prints a document's materials; `shadewire ir --json` writes the IR document.
 - `--reserve-uniform-binding` in the CLI, `reserve_uniform_binding` in the C API's compile options.
 

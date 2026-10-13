@@ -68,7 +68,8 @@ fn location_of(error: &shadewire::Error) -> Option<&shadewire::Location> {
         | Error::NoMaterial
         | Error::AmbiguousMaterial { .. }
         | Error::UnknownMaterial { .. }
-        | Error::Io(_) => None,
+        | Error::Io(_)
+        | Error::UnsupportedTarget(_) => None,
     }
 }
 

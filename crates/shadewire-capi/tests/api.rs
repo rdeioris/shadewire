@@ -100,7 +100,8 @@ fn the_default_example_compiles() {
     let compiled = compile(ir, null());
     let code = text(unsafe { shadewire_compiled_code(compiled, null_mut()) });
     assert!(code.contains("fn shadewire_eval_surface() -> StandardSurface"));
-    assert_eq!(text(unsafe { shadewire_compiled_struct_name(compiled) }), "StandardSurface");
+    assert_eq!(text(unsafe { shadewire_compiled_model_struct(compiled) }), "StandardSurface");
+    assert_eq!(text(unsafe { shadewire_compiled_language(compiled) }), "wgsl");
     let json: serde_json::Value =
         serde_json::from_str(&text(unsafe { shadewire_compiled_reflection_json(compiled, null_mut()) })).unwrap();
     assert_eq!(json["model"], "standard_surface");
@@ -307,7 +308,17 @@ fn getters_on_null_return_null_with_zero_len() {
         len = 99;
         assert!(shadewire_compiled_ir_dump(null(), &mut len).is_null());
         assert_eq!(len, 0);
-        assert!(shadewire_compiled_struct_name(null()).is_null());
+        assert!(shadewire_compiled_model_struct(null()).is_null());
+        assert!(shadewire_compiled_language(null()).is_null());
+        assert!(shadewire_ir_source(null()).is_null());
+        assert!(shadewire_ir_source_version(null()).is_null());
+        assert!(shadewire_ir_structure_hash(null()).is_null());
+        len = 99;
+        assert!(shadewire_ir_json(null(), &mut len).is_null());
+        assert_eq!(len, 0);
+        assert_eq!(shadewire_strings_count(null()), 0);
+        assert!(shadewire_strings_get(null(), 0).is_null());
+        shadewire_strings_free(null_mut());
     }
 }
 
@@ -370,5 +381,90 @@ fn unknown_targets_and_versions_are_invalid_arguments() {
     let status = unsafe { shadewire_compile(ir, target, null(), &mut out, &mut error) };
     assert_eq!((status, out), (shadewire_status::SHADEWIRE_ERROR, marker));
     unsafe { shadewire_error_free(error) };
+    unsafe { shadewire_ir_free(ir) };
+}
+
+#[test]
+fn the_ir_answers_what_python_s_ir_does() {
+    let ir = to_ir(&default_example());
+    assert_eq!(text(unsafe { shadewire_ir_model(ir) }), "standard_surface");
+    assert_eq!(text(unsafe { shadewire_ir_source(ir) }), "mtlx");
+    assert!(!text(unsafe { shadewire_ir_source_version(ir) }).is_empty());
+    let hash = text(unsafe { shadewire_ir_structure_hash(ir) });
+    assert!(!hash.is_empty());
+    let mut len = 0usize;
+    let json: serde_json::Value =
+        serde_json::from_str(&text(unsafe { shadewire_ir_json(ir, &mut len) })).expect("the IR as JSON");
+    assert!(len > 0);
+    assert_eq!(json["version"], SHADEWIRE_IR_FORMAT_VERSION);
+    assert_eq!(json["model"], "standard_surface");
+
+    let mut optimized = null_mut();
+    let mut error = null_mut();
+    assert_eq!(unsafe { shadewire_ir_optimize(ir, &mut optimized, &mut error) }, shadewire_status::SHADEWIRE_OK);
+    let before =
+        serde_json::from_str::<serde_json::Value>(&text(unsafe { shadewire_ir_json(ir, null_mut()) })).unwrap();
+    let after =
+        serde_json::from_str::<serde_json::Value>(&text(unsafe { shadewire_ir_json(optimized, null_mut()) })).unwrap();
+    let nodes = |doc: &serde_json::Value| doc["nodes"].as_array().map_or(0, Vec::len);
+    assert!(nodes(&after) <= nodes(&before));
+    assert_eq!(text(unsafe { shadewire_ir_model(optimized) }), "standard_surface");
+    unsafe { shadewire_ir_free(optimized) };
+    unsafe { shadewire_ir_free(ir) };
+}
+
+#[test]
+fn optimize_refuses_null() {
+    let mut out = null_mut();
+    let mut error = null_mut();
+    assert_eq!(unsafe { shadewire_ir_optimize(null(), &mut out, &mut error) }, shadewire_status::SHADEWIRE_ERROR);
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
+    assert!(out.is_null());
+    unsafe { shadewire_error_free(error) };
+}
+
+#[test]
+fn material_names_lists_the_document_s_materials() {
+    let doc = r#"<?xml version="1.0"?>
+<materialx version="1.39">
+  <standard_surface name="SR_a" type="surfaceshader" />
+  <surfacematerial name="First" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_a" />
+  </surfacematerial>
+  <surfacematerial name="Second" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_a" />
+  </surfacematerial>
+</materialx>"#;
+    let mut names = null_mut();
+    let mut error = null_mut();
+    let status =
+        unsafe { shadewire_mtlx_material_names(doc.as_ptr().cast(), doc.len(), null(), &mut names, &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+    let count = unsafe { shadewire_strings_count(names) };
+    let listed: Vec<String> = (0..count).map(|i| text(unsafe { shadewire_strings_get(names, i) })).collect();
+    assert_eq!(listed, ["First", "Second"]);
+    assert!(unsafe { shadewire_strings_get(names, count) }.is_null());
+    unsafe { shadewire_strings_free(names) };
+
+    // Two materials and none named: the same error Python raises.
+    let mut ir = null_mut();
+    let status =
+        unsafe { shadewire_mtlx_to_ir(doc.as_ptr().cast(), doc.len(), null(), null(), null(), &mut ir, &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_MATERIAL);
+    unsafe { shadewire_error_free(error) };
+}
+
+#[test]
+fn implicit_derivatives_off_compiles_for_compute() {
+    let ir = to_ir(&default_example());
+    let mut options = std::mem::MaybeUninit::uninit();
+    unsafe { shadewire_compile_options_default(options.as_mut_ptr()) };
+    let mut options = unsafe { options.assume_init() };
+    assert!(options.implicit_derivatives);
+    options.implicit_derivatives = false;
+    let compiled = compile(ir, &options);
+    assert!(!text(unsafe { shadewire_compiled_code(compiled, null_mut()) }).is_empty());
+    unsafe { shadewire_compiled_free(compiled) };
     unsafe { shadewire_ir_free(ir) };
 }

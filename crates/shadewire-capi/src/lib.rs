@@ -1,6 +1,21 @@
 #![allow(non_camel_case_types)]
 //! C API for Shadewire: opaque handles, `shadewire_*` functions, no panic crosses the boundary.
 //!
+//! It follows the Rust crates and the Python module (`shadewire`) name for name:
+//!
+//! - `shadewire.mtlx.to_ir`, `.material_names`: `shadewire_mtlx_to_ir`, `shadewire_mtlx_material_names` (a
+//!   `shadewire_strings`);
+//! - `shadewire.Ir` (`.optimize()`, `.dump()`, `.to_dict()`, `.model`, `.source`, `.structure_hash`): `shadewire_ir`
+//!   (`shadewire_ir_optimize`, `_dump`, `_json`, `_model`, `_source` and `_source_version`, `_structure_hash`);
+//! - `shadewire.wgsl.compile`, `.glsl`, `.hlsl`, `.msl` and their keyword arguments: `shadewire_compile` with a
+//!   `shadewire_target` and `shadewire_compile_options`;
+//! - `shadewire.Compiled` (`.language`, `.code`, `.reflection`, `.model_struct`, `.ir`): `shadewire_compiled`
+//!   (`shadewire_compiled_language`, `_code`, `_reflection_json`, `_model_struct`, `_ir_dump`);
+//! - `IR_FORMAT_VERSION`, `version()`, `ShadewireError`: `SHADEWIRE_IR_FORMAT_VERSION`, `shadewire_version_string`,
+//!   `shadewire_error`.
+//!
+//! `shadewire_compile_mtlx` (to the IR and compiled in one call) is C's own.
+//!
 //! Every fallible function takes an `error` out-parameter: it is written only on failure and left untouched on
 //! success (callers initialise it to NULL), and may itself be NULL to ignore the error object.
 //!
@@ -16,6 +31,7 @@ mod error;
 mod error_kind;
 mod guard;
 mod ir;
+mod names;
 mod options;
 mod status;
 mod strings;
@@ -25,14 +41,23 @@ mod version;
 
 pub use compiled::{
     shadewire_compile, shadewire_compile_mtlx, shadewire_compiled, shadewire_compiled_code, shadewire_compiled_free,
-    shadewire_compiled_ir_dump, shadewire_compiled_reflection_json, shadewire_compiled_struct_name,
+    shadewire_compiled_ir_dump, shadewire_compiled_language, shadewire_compiled_model_struct,
+    shadewire_compiled_reflection_json,
 };
 pub use error::{
     shadewire_error, shadewire_error_file, shadewire_error_free, shadewire_error_get_kind, shadewire_error_line,
     shadewire_error_message, shadewire_error_path,
 };
 pub use error_kind::shadewire_error_kind;
-pub use ir::{shadewire_ir, shadewire_ir_dump, shadewire_ir_free, shadewire_ir_model, shadewire_mtlx_to_ir};
+pub use ir::{
+    SHADEWIRE_IR_FORMAT_VERSION, shadewire_ir, shadewire_ir_dump, shadewire_ir_free, shadewire_ir_json,
+    shadewire_ir_model, shadewire_ir_optimize, shadewire_ir_source, shadewire_ir_source_version,
+    shadewire_ir_structure_hash, shadewire_mtlx_to_ir,
+};
+pub use names::{
+    shadewire_mtlx_material_names, shadewire_strings, shadewire_strings_count, shadewire_strings_free,
+    shadewire_strings_get,
+};
 pub use options::{
     shadewire_compile_options, shadewire_compile_options_default, shadewire_mtlx_options,
     shadewire_mtlx_options_default,

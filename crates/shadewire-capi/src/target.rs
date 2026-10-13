@@ -14,7 +14,7 @@ pub const SHADEWIRE_TARGET_MSL: shadewire_target_kind = 4;
 ///
 /// `version` is the `#version` number for GLSL (330, 400, 410, 420, 430, 440, 450, 460; 0 for 420) and GLSL ES
 /// (300, 310, 320; 0 for 300), and ignored for WGSL, HLSL and MSL. Any other version is
-/// SHADEWIRE_ERROR_INVALID_ARGUMENT.
+/// SHADEWIRE_ERROR_INVALID_ARGUMENT. Python's `shadewire.glsl.compile(version=, es=)`.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct shadewire_target {
@@ -31,26 +31,22 @@ pub(crate) enum Backend {
     Msl,
 }
 
-fn bad_version(language: &str, version: u32) -> ArgError {
-    ArgError(format!("unsupported {language} version {version}"))
+/// The GLSL version `version` names (0 for the default), as the glsl crate checks it.
+fn glsl(es: bool, version: u32) -> Result<Backend, ArgError> {
+    let number = match version {
+        0 => None,
+        v => Some(u16::try_from(v).map_err(|_| ArgError(format!("unsupported target: GLSL version {v}")))?),
+    };
+    let version = shadewire_glsl::Version::new(es, number).check().map_err(|e| ArgError(e.to_string()))?;
+    Ok(Backend::Glsl(version))
 }
 
 /// The back end a C target selects, rejecting unknown kinds and versions.
 pub(crate) fn backend(target: shadewire_target) -> Result<Backend, ArgError> {
-    use shadewire_glsl::Version;
-    let version = target.version;
     match target.kind {
         SHADEWIRE_TARGET_WGSL => Ok(Backend::Wgsl),
-        SHADEWIRE_TARGET_GLSL => match version {
-            0 => Ok(Backend::Glsl(Version::Desktop(420))),
-            330 | 400 | 410 | 420 | 430 | 440 | 450 | 460 => Ok(Backend::Glsl(Version::Desktop(version as u16))),
-            _ => Err(bad_version("GLSL", version)),
-        },
-        SHADEWIRE_TARGET_GLSL_ES => match version {
-            0 => Ok(Backend::Glsl(Version::Es(300))),
-            300 | 310 | 320 => Ok(Backend::Glsl(Version::Es(version as u16))),
-            _ => Err(bad_version("GLSL ES", version)),
-        },
+        SHADEWIRE_TARGET_GLSL => glsl(false, target.version),
+        SHADEWIRE_TARGET_GLSL_ES => glsl(true, target.version),
         SHADEWIRE_TARGET_HLSL => Ok(Backend::Hlsl),
         SHADEWIRE_TARGET_MSL => Ok(Backend::Msl),
         other => Err(ArgError(format!("unknown target kind {other}"))),
@@ -79,7 +75,7 @@ mod tests {
             assert_eq!(t(SHADEWIRE_TARGET_GLSL, v), Ok(Backend::Glsl(Version::Desktop(v as u16))));
         }
         assert_eq!(t(SHADEWIRE_TARGET_GLSL, 0), Ok(Backend::Glsl(Version::Desktop(420))));
-        for bad in [300, 320, 470, 70000] {
+        for bad in [300, 320, 470, 70000, 65536 + 420] {
             assert!(t(SHADEWIRE_TARGET_GLSL, bad).is_err(), "GLSL {bad}");
         }
     }

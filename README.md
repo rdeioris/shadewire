@@ -116,10 +116,24 @@ int print_hlsl(const char *text, size_t len) {
 }
 ```
 
-`shadewire_compiled_code` and `shadewire_compiled_reflection_json` read the code and the reflection;
-`shadewire_compile` compiles an IR handle from `shadewire_mtlx_to_ir`. The target is `SHADEWIRE_TARGET_WGSL`,
-`_GLSL` and `_GLSL_ES` (with their `#version`, 0 for the default), `_HLSL` or `_MSL`. `crates/shadewire-capi-ctest`
-builds the same calls as a C99 (C11 on MSVC) test.
+The C API follows the Python module name for name:
+
+| Python | C |
+|---|---|
+| `shadewire.mtlx.to_ir(text, path, material, models, working_colorspace, values_as_uniforms)` | `shadewire_mtlx_to_ir(text, len, path, material, &mtlx_options, &ir, &err)` |
+| `shadewire.mtlx.material_names(text, path)` | `shadewire_mtlx_material_names(text, len, path, &strings, &err)`, then `shadewire_strings_count` / `_get` |
+| `Ir.optimize()`, `.dump()`, `.to_dict()` | `shadewire_ir_optimize(ir, &optimized, &err)`, `shadewire_ir_dump`, `shadewire_ir_json` |
+| `Ir.model`, `.source`, `.structure_hash` | `shadewire_ir_model`, `shadewire_ir_source` and `_source_version`, `shadewire_ir_structure_hash` |
+| `shadewire.wgsl.compile(ir, ...)` (and `glsl`, `hlsl`, `msl`) | `shadewire_compile(ir, target, &compile_options, &compiled, &err)` |
+| `Compiled.language`, `.code`, `.reflection`, `.model_struct` | `shadewire_compiled_language`, `_code`, `_reflection_json`, `_model_struct` |
+| `Compiled.ir` | `shadewire_compiled_ir_dump` (the IR the code was printed from) |
+| `IR_FORMAT_VERSION`, `version()` | `SHADEWIRE_IR_FORMAT_VERSION`, `shadewire_version_string()` |
+
+`shadewire_compile_mtlx` does `shadewire_mtlx_to_ir` and `shadewire_compile` in one call. The target is
+`SHADEWIRE_TARGET_WGSL`, `_GLSL` (`#version` 330, 400 to 460; 0 for 420), `_GLSL_ES` (300 to 320; 0 for 300),
+`_HLSL` or `_MSL`. `shadewire_compile_options` holds the back ends' keyword arguments (`group`, `first_binding`,
+`reserve_uniform_binding`, `flip_v`, `optimize`, `implicit_derivatives`); `shadewire_*_options_default` fills them.
+`crates/shadewire-capi-ctest` builds the same calls as a C99 (C11 on MSVC) test.
 
 ## Bevy
 

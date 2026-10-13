@@ -30,25 +30,26 @@ pub struct shadewire_mtlx_options {
     pub reserved: [u8; 7],
 }
 
-/// Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
-/// The booleans are true for any non-zero byte.
+/// Options for compilation (the keyword arguments of Python's `compile`). Set `struct_size` to `sizeof` the struct,
+/// or use `shadewire_compile_options_default`. The booleans are true for any non-zero byte.
 ///
-/// `reserve_uniform_binding` keeps `first_binding` for the uniform block even when the material has no uniforms, so
-/// textures start at `first_binding + 1` (for hosts that bind their own buffer there); a caller whose `struct_size`
-/// ends before it gets false.
+/// `group` and `first_binding` place the uniform block, textures and samplers. `reserve_uniform_binding` keeps
+/// `first_binding` for the uniform block even when the material has no uniforms, so textures start at
+/// `first_binding + 1` (for hosts that bind their own buffer there). `flip_v` flips V when sampling (images uploaded
+/// top row first). `optimize` runs the optimizer first. `implicit_derivatives` false makes the code run in a compute
+/// stage (level-0 samples, zero derivatives).
 ///
-/// `reserved` and `reserved_tail` fill padding and must be zero; new fields are only appended after `reserved_tail`.
+/// New fields are only appended at the end.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct shadewire_compile_options {
     pub struct_size: u32,
     pub group: u32,
     pub first_binding: u32,
+    pub reserve_uniform_binding: bool,
     pub flip_v: bool,
     pub optimize: bool,
-    pub reserved: [u8; 2],
-    pub reserve_uniform_binding: bool,
-    pub reserved_tail: [u8; 3],
+    pub implicit_derivatives: bool,
 }
 
 fn compile_defaults() -> shadewire_compile_options {
@@ -57,11 +58,10 @@ fn compile_defaults() -> shadewire_compile_options {
         struct_size: std::mem::size_of::<shadewire_compile_options>() as u32,
         group: d.group,
         first_binding: d.first_binding,
+        reserve_uniform_binding: d.reserve_uniform_binding,
         flip_v: d.flip_v,
         optimize: d.optimize,
-        reserved: [0; 2],
-        reserve_uniform_binding: d.reserve_uniform_binding,
-        reserved_tail: [0; 3],
+        implicit_derivatives: d.implicit_derivatives,
     }
 }
 
@@ -150,7 +150,7 @@ pub(crate) unsafe fn read_compile(ptr: *const shadewire_compile_options) -> Resu
             reserve_uniform_binding: flag(&raw const (*raw).reserve_uniform_binding),
             flip_v: flag(&raw const (*raw).flip_v),
             optimize: flag(&raw const (*raw).optimize),
-            implicit_derivatives: true,
+            implicit_derivatives: flag(&raw const (*raw).implicit_derivatives),
         })
     }
 }
@@ -211,25 +211,17 @@ mod tests {
     }
 
     #[test]
-    fn the_reserved_bytes_end_each_struct() {
-        let compile_end = offset_of!(shadewire_compile_options, reserved_tail) + 3;
+    fn the_structs_end_without_padding() {
+        let compile_end = offset_of!(shadewire_compile_options, implicit_derivatives) + 1;
         assert_eq!(size_of::<shadewire_compile_options>(), compile_end);
-        // The 16-byte struct of the first release ended with `reserved`; the new field starts after it.
-        assert_eq!(offset_of!(shadewire_compile_options, reserved) + 2, 16);
-        assert_eq!(offset_of!(shadewire_compile_options, reserve_uniform_binding), 16);
         let mtlx_end = offset_of!(shadewire_mtlx_options, reserved) + 7;
         assert_eq!(size_of::<shadewire_mtlx_options>(), mtlx_end);
         #[cfg(target_pointer_width = "64")]
-        assert_eq!((size_of::<shadewire_compile_options>(), size_of::<shadewire_mtlx_options>()), (20, 40));
+        assert_eq!((size_of::<shadewire_compile_options>(), size_of::<shadewire_mtlx_options>()), (16, 40));
     }
 
     #[test]
     fn defaults_zero_the_reserved_bytes() {
-        let mut c = MaybeUninit::<shadewire_compile_options>::uninit();
-        unsafe { c.as_mut_ptr().cast::<u8>().write_bytes(0xAA, size_of::<shadewire_compile_options>()) };
-        unsafe { shadewire_compile_options_default(c.as_mut_ptr()) };
-        let c = unsafe { c.assume_init() };
-        assert_eq!((c.reserved, c.reserved_tail), ([0; 2], [0; 3]));
         let mut m = MaybeUninit::<shadewire_mtlx_options>::uninit();
         unsafe { m.as_mut_ptr().cast::<u8>().write_bytes(0xAA, size_of::<shadewire_mtlx_options>()) };
         unsafe { shadewire_mtlx_options_default(m.as_mut_ptr()) };
@@ -247,8 +239,10 @@ mod tests {
         set_bool_byte(&mut c, offset_of!(shadewire_compile_options, flip_v), 2);
         set_bool_byte(&mut c, offset_of!(shadewire_compile_options, optimize), 2);
         set_bool_byte(&mut c, offset_of!(shadewire_compile_options, reserve_uniform_binding), 2);
+        set_bool_byte(&mut c, offset_of!(shadewire_compile_options, implicit_derivatives), 2);
         let read = unsafe { read_compile(c.as_ptr()) }.unwrap();
-        assert_eq!((u8::from(read.flip_v), u8::from(read.optimize), u8::from(read.reserve_uniform_binding)), (1, 1, 1));
+        let flags = [read.flip_v, read.optimize, read.reserve_uniform_binding, read.implicit_derivatives];
+        assert_eq!(flags.map(u8::from), [1, 1, 1, 1]);
         let mut m = MaybeUninit::new(mtlx_default_struct());
         set_bool_byte(&mut m, offset_of!(shadewire_mtlx_options, values_as_uniforms), 2);
         let read = unsafe { read_mtlx(m.as_ptr()) }.unwrap();
@@ -279,13 +273,13 @@ mod tests {
     }
 
     #[test]
-    fn an_old_16_byte_caller_does_not_reserve_the_uniform_binding() {
+    fn implicit_derivatives_is_read() {
         let mut c = compile_default_struct();
-        c.struct_size = 16;
-        c.reserve_uniform_binding = true; // beyond struct_size: must not be read
-        assert!(!unsafe { read_compile(&c) }.unwrap().reserve_uniform_binding);
-        c.struct_size = size_of::<shadewire_compile_options>() as u32;
-        assert!(unsafe { read_compile(&c) }.unwrap().reserve_uniform_binding);
+        assert!(unsafe { read_compile(&c) }.unwrap().implicit_derivatives);
+        c.implicit_derivatives = false;
+        assert!(!unsafe { read_compile(&c) }.unwrap().implicit_derivatives);
+        c.struct_size = offset_of!(shadewire_compile_options, implicit_derivatives) as u32;
+        assert!(unsafe { read_compile(&c) }.unwrap().implicit_derivatives, "beyond struct_size: the default");
     }
 
     #[test]

@@ -71,3 +71,16 @@ fn closures_and_types() {
     assert_eq!(Glsl { version: Version::default() }.ty(&Ty::Vector(3, Scalar::U32)), "uvec3");
     let _ = Item::Comment(String::new());
 }
+
+#[test]
+fn compile_refuses_versions_glsl_lacks() {
+    let dag = fixtures::everything();
+    let source = SourceInfo { source: "test".into(), mtlx_version: "1.39".into() };
+    for version in [Version::Desktop(300), Version::Desktop(470), Version::Es(330), Version::Es(100)] {
+        let err = compile(&dag, &source, &CompileOptions::default(), version).unwrap_err();
+        assert!(matches!(err, Error::UnsupportedTarget(_)), "{version:?}: {err}");
+    }
+    assert_eq!(Version::new(false, None), Version::Desktop(420));
+    assert_eq!(Version::new(true, None), Version::Es(300));
+    assert_eq!(Version::new(true, Some(310)).check(), Ok(Version::Es(310)));
+}
