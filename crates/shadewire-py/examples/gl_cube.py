@@ -128,21 +128,20 @@ LOBE_CODE = {
     "burley_diffuse_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
     "subsurface_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
     "translucent_bsdf": ("vec3(0.0)", "vec3(0.0)"),
-    "sheen_bsdf": ("$weight * $color * sheen(L, $normal, $roughness)", "$weight * $color * 0.2"),
-    "dielectric_bsdf": ("$weight * $tint * dielectric(L, $normal, $ior, $roughness)",
+    "sheen_bsdf": ("$weight * $color * sheen(L, V, $normal, $roughness)", "$weight * $color * 0.2"),
+    "dielectric_bsdf": ("$weight * $tint * dielectric(L, V, $normal, $ior, $roughness)",
                         "$weight * $tint * fresnel_ior(dot($normal, V), $ior)"),
-    "conductor_bsdf": ("$weight * conductor(L, $normal, $ior, $extinction, $roughness)",
+    "conductor_bsdf": ("$weight * conductor(L, V, $normal, $ior, $extinction, $roughness)",
                        "$weight * conductor_f0($ior, $extinction)"),
-    "generalized_schlick_bsdf": ("$weight * schlick(L, $normal, $color0, $color90, $exponent, $roughness)",
+    "generalized_schlick_bsdf": ("$weight * schlick(L, V, $normal, $color0, $color90, $exponent, $roughness)",
                                  "$weight * $color0"),
 }
 
 LOBE_LIBRARY = """
+// L: toward the light, V: toward the viewer, n: the lobe's normal input (where a normal map arrives).
 const float PI = 3.14159265;
-vec3 N;  // the geometric normal
-vec3 V;  // toward the viewer
 
-float ggx(vec3 L, vec3 n, vec2 alpha2) {
+float ggx(vec3 L, vec3 V, vec3 n, vec2 alpha2) {
     n = normalize(n);
     float a = max(0.5 * (alpha2.x + alpha2.y), 1e-3);
     vec3 H = normalize(L + V);
@@ -159,21 +158,21 @@ float fresnel_ior(float c, float ior) {
     return f0 + (1.0 - f0) * pow(1.0 - clamp(c, 0.0, 1.0), 5.0);
 }
 float diffuse(vec3 L, vec3 n) { return max(dot(normalize(n), L), 0.0) / PI; }
-float sheen(vec3 L, vec3 n, float r) {
+float sheen(vec3 L, vec3 V, vec3 n, float r) {
     return max(dot(normalize(n), L), 0.0) * 0.25 * pow(1.0 - max(dot(normalize(n), V), 0.0), 2.0 / max(r, 0.05));
 }
-float dielectric(vec3 L, vec3 n, float ior, vec2 alpha) {
-    return ggx(L, n, alpha) * fresnel_ior(dot(normalize(L + V), V), ior);
+float dielectric(vec3 L, vec3 V, vec3 n, float ior, vec2 alpha) {
+    return ggx(L, V, n, alpha) * fresnel_ior(dot(normalize(L + V), V), ior);
 }
 vec3 conductor_f0(vec3 ior, vec3 k) {
     return ((ior - 1.0) * (ior - 1.0) + k * k) / ((ior + 1.0) * (ior + 1.0) + k * k);
 }
-vec3 conductor(vec3 L, vec3 n, vec3 ior, vec3 k, vec2 alpha) {
+vec3 conductor(vec3 L, vec3 V, vec3 n, vec3 ior, vec3 k, vec2 alpha) {
     vec3 f0 = conductor_f0(ior, k);
-    return ggx(L, n, alpha) * (f0 + (1.0 - f0) * pow(1.0 - dot(normalize(L + V), V), 5.0));
+    return ggx(L, V, n, alpha) * (f0 + (1.0 - f0) * pow(1.0 - dot(normalize(L + V), V), 5.0));
 }
-vec3 schlick(vec3 L, vec3 n, vec3 c0, vec3 c90, float e, vec2 alpha) {
-    return ggx(L, n, alpha) * mix(c0, c90, pow(1.0 - dot(normalize(L + V), V), e));
+vec3 schlick(vec3 L, vec3 V, vec3 n, vec3 c0, vec3 c90, float e, vec2 alpha) {
+    return ggx(L, V, n, alpha) * mix(c0, c90, pow(1.0 - dot(normalize(L + V), V), e));
 }
 """
 
@@ -181,8 +180,8 @@ ZERO = "vec3(0.0)"
 
 
 def closure_code(closure, model_struct):
-    """`host_bsdf(s, L)`, `host_albedo(s)` and `host_emission(s)` for the material's closure tree, and the lobes
-    this host does not shade."""
+    """`host_bsdf(s, L, V, N)`, `host_albedo(s, V, N)` and `host_emission(s, V, N)` for the material's closure
+    tree, and the lobes this host does not shade."""
     nodes = closure["nodes"]
     unsupported = set()
 
@@ -248,9 +247,9 @@ def closure_code(closure, model_struct):
     response, albedo = bsdf(closure["bsdf"]) if closure.get("bsdf") is not None else (ZERO, ZERO)
     emitted = emission(closure["edf"]) if closure.get("edf") is not None else ZERO
     code = (
-        f"vec3 host_bsdf({model_struct} s, vec3 L) {{\n    return {response};\n}}\n"
-        f"vec3 host_albedo({model_struct} s) {{\n    return {albedo};\n}}\n"
-        f"vec3 host_emission({model_struct} s) {{\n    return {emitted};\n}}\n"
+        f"vec3 host_bsdf({model_struct} s, vec3 L, vec3 V, vec3 N) {{\n    return {response};\n}}\n"
+        f"vec3 host_albedo({model_struct} s, vec3 V, vec3 N) {{\n    return {albedo};\n}}\n"
+        f"vec3 host_emission({model_struct} s, vec3 V, vec3 N) {{\n    return {emitted};\n}}\n"
     )
     return code, unsupported
 
@@ -260,11 +259,12 @@ def closure_code(closure, model_struct):
 MAIN = """
 void main() {
     Surface s = shadewire_eval_surface();
-    N = normalize(v_normal);
-    V = normalize(scene.camera_position - v_position);
+    vec3 N = normalize(v_normal);
+    vec3 V = normalize(scene.camera_position - v_position);
+    vec3 L = normalize(scene.light_direction);
     // The light through the lobes; uniform ambient light reflected by their albedo.
-    vec3 lit = host_bsdf(s, normalize(scene.light_direction)) * scene.light_color + host_albedo(s) * scene.ambient;
-    frag_color = vec4(lit + host_emission(s), 1.0);  // linear: GL_FRAMEBUFFER_SRGB encodes it
+    vec3 lit = host_bsdf(s, L, V, N) * scene.light_color + host_albedo(s, V, N) * scene.ambient;
+    frag_color = vec4(lit + host_emission(s, V, N), 1.0);  // linear: GL_FRAMEBUFFER_SRGB encodes it
 }
 """
 

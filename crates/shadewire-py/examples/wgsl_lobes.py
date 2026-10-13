@@ -70,23 +70,20 @@ LOBE_CODE = {
     "burley_diffuse_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
     "subsurface_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
     "translucent_bsdf": ("vec3<f32>(0.0)", "vec3<f32>(0.0)"),
-    "sheen_bsdf": ("$weight * $color * sheen(L, $normal, $roughness)", "$weight * $color * 0.2"),
-    "dielectric_bsdf": ("$weight * $tint * dielectric(L, $normal, $ior, $roughness)",
+    "sheen_bsdf": ("$weight * $color * sheen(L, V, $normal, $roughness)", "$weight * $color * 0.2"),
+    "dielectric_bsdf": ("$weight * $tint * dielectric(L, V, $normal, $ior, $roughness)",
                         "$weight * $tint * fresnel_ior(dot($normal, V), $ior)"),
-    "conductor_bsdf": ("$weight * conductor(L, $normal, $ior, $extinction, $roughness)",
+    "conductor_bsdf": ("$weight * conductor(L, V, $normal, $ior, $extinction, $roughness)",
                        "$weight * conductor_f0($ior, $extinction)"),
-    "generalized_schlick_bsdf": ("$weight * schlick(L, $normal, $color0, $color90, $exponent, $roughness)",
+    "generalized_schlick_bsdf": ("$weight * schlick(L, V, $normal, $color0, $color90, $exponent, $roughness)",
                                  "$weight * $color0"),
 }
 
 LOBE_LIBRARY = """
+// L: toward the light, V: toward the viewer, n: the lobe's normal input (where a normal map arrives).
 const PI: f32 = 3.14159265;
-// The shading point, set once per fragment: the geometric normal and the direction to the viewer. Each lobe
-// shades with its own normal input (`n`), where a normal map arrives.
-var<private> N: vec3<f32>;
-var<private> V: vec3<f32>;
 
-fn ggx(L: vec3<f32>, n_in: vec3<f32>, alpha2: vec2<f32>) -> f32 {
+fn ggx(L: vec3<f32>, V: vec3<f32>, n_in: vec3<f32>, alpha2: vec2<f32>) -> f32 {
     let n = normalize(n_in);
     let a = max(0.5 * (alpha2.x + alpha2.y), 1e-3);
     let H = normalize(L + V);
@@ -103,28 +100,30 @@ fn fresnel_ior(c: f32, ior: f32) -> f32 {
     return f0 + (1.0 - f0) * pow(1.0 - clamp(c, 0.0, 1.0), 5.0);
 }
 fn diffuse(L: vec3<f32>, n: vec3<f32>) -> f32 { return max(dot(normalize(n), L), 0.0) / PI; }
-fn sheen(L: vec3<f32>, n: vec3<f32>, r: f32) -> f32 {
+fn sheen(L: vec3<f32>, V: vec3<f32>, n: vec3<f32>, r: f32) -> f32 {
     return max(dot(normalize(n), L), 0.0) * 0.25 * pow(1.0 - max(dot(normalize(n), V), 0.0), 2.0 / max(r, 0.05));
 }
-fn dielectric(L: vec3<f32>, n: vec3<f32>, ior: f32, alpha: vec2<f32>) -> f32 {
-    return ggx(L, n, alpha) * fresnel_ior(dot(normalize(L + V), V), ior);
+fn dielectric(L: vec3<f32>, V: vec3<f32>, n: vec3<f32>, ior: f32, alpha: vec2<f32>) -> f32 {
+    return ggx(L, V, n, alpha) * fresnel_ior(dot(normalize(L + V), V), ior);
 }
 fn conductor_f0(ior: vec3<f32>, k: vec3<f32>) -> vec3<f32> {
     return ((ior - 1.0) * (ior - 1.0) + k * k) / ((ior + 1.0) * (ior + 1.0) + k * k);
 }
-fn conductor(L: vec3<f32>, n: vec3<f32>, ior: vec3<f32>, k: vec3<f32>, alpha: vec2<f32>) -> vec3<f32> {
+fn conductor(L: vec3<f32>, V: vec3<f32>, n: vec3<f32>, ior: vec3<f32>, k: vec3<f32>, alpha: vec2<f32>) -> vec3<f32> {
     let f0 = conductor_f0(ior, k);
     let c = dot(normalize(L + V), V);
-    return ggx(L, n, alpha) * (f0 + (1.0 - f0) * pow(1.0 - c, 5.0));
+    return ggx(L, V, n, alpha) * (f0 + (1.0 - f0) * pow(1.0 - c, 5.0));
 }
-fn schlick(L: vec3<f32>, n: vec3<f32>, c0: vec3<f32>, c90: vec3<f32>, e: f32, alpha: vec2<f32>) -> vec3<f32> {
-    return ggx(L, n, alpha) * mix(c0, c90, pow(1.0 - dot(normalize(L + V), V), e));
+fn schlick(L: vec3<f32>, V: vec3<f32>, n: vec3<f32>, c0: vec3<f32>, c90: vec3<f32>, e: f32,
+           alpha: vec2<f32>) -> vec3<f32> {
+    return ggx(L, V, n, alpha) * mix(c0, c90, pow(1.0 - dot(normalize(L + V), V), e));
 }
 """
 
 
 class ClosureWriter:
-    """WGSL that evaluates a closure tree for one light: `host_bsdf(s, L)` and `host_emission(s)`."""
+    """WGSL that evaluates a closure tree for one light: `host_bsdf(s, L, V, N)`, `host_albedo(s, V, N)` and
+    `host_emission(s, V, N)`."""
 
     def __init__(self, closure, model_struct):
         self.closure = closure
@@ -200,9 +199,12 @@ class ClosureWriter:
         bsdf, albedo = self.bsdf(self.closure["bsdf"]) if self.closure.get("bsdf") is not None else zero
         edf = self.emission(self.closure["edf"]) if self.closure.get("edf") is not None else "vec3<f32>(0.0)"
         return (
-            f"fn host_bsdf(s: {self.model_struct}, L: vec3<f32>) -> vec3<f32> {{\n    return {bsdf};\n}}\n"
-            f"fn host_albedo(s: {self.model_struct}) -> vec3<f32> {{\n    return {albedo};\n}}\n"
-            f"fn host_emission(s: {self.model_struct}) -> vec3<f32> {{\n    return {edf};\n}}\n"
+            f"fn host_bsdf(s: {self.model_struct}, L: vec3<f32>, V: vec3<f32>, N: vec3<f32>) -> vec3<f32> {{\n"
+            f"    return {bsdf};\n}}\n"
+            f"fn host_albedo(s: {self.model_struct}, V: vec3<f32>, N: vec3<f32>) -> vec3<f32> {{\n"
+            f"    return {albedo};\n}}\n"
+            f"fn host_emission(s: {self.model_struct}, V: vec3<f32>, N: vec3<f32>) -> vec3<f32> {{\n"
+            f"    return {edf};\n}}\n"
         )
 
 
@@ -227,12 +229,12 @@ struct Scene {
 fn fs_main(frag: Fragment) -> @location(0) vec4<f32> {
     host_set_context(frag);
     let s = shadewire_eval_surface();
-    N = normalize(frag.normal_world);
-    V = normalize(scene.camera_position - frag.position_world);
+    let N = normalize(frag.normal_world);
+    let V = normalize(scene.camera_position - frag.position_world);
     let L = normalize(scene.light_direction);
     // The light through the lobes; uniform ambient light reflected by their albedo.
-    let lit = host_bsdf(s, L) * scene.light_color + host_albedo(s) * scene.ambient;
-    return vec4<f32>(lit + host_emission(s), 1.0);
+    let lit = host_bsdf(s, L, V, N) * scene.light_color + host_albedo(s, V, N) * scene.ambient;
+    return vec4<f32>(lit + host_emission(s, V, N), 1.0);
 }
 """
 
