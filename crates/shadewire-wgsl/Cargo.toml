@@ -1,6 +1,6 @@
 [package]
 name = "shadewire-wgsl"
-description = "Shadewire WGSL back end: material IR to WGSL and reflection, with optional naga translation"
+description = "Shadewire WGSL back end: material IR to WGSL and reflection"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,9 +9,8 @@ authors.workspace = true
 repository.workspace = true
 
 [features]
-default = ["translate"]
-# `link` and `translate` (validation and HLSL/GLSL/MSL/SPIR-V output) through naga.
-translate = ["dep:naga"]
+# `validate`: checking generated WGSL with naga, for tests.
+validate = ["dep:naga"]
 
 [dependencies]
 shadewire.workspace = true

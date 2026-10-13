@@ -3,8 +3,8 @@
 //! - `shadewire.mtlx` (`shadewire_mtlx`): the MaterialX front end, `to_ir` and `material_names`;
 //! - `shadewire.Ir` (`shadewire::Dag` and its `SourceInfo`): the IR, with `optimize`, `dump` and `to_dict`
 //!   (the document `shadewire::export` writes);
-//! - `shadewire.wgsl` (`shadewire_wgsl`): the WGSL back end, `compile` (to a `Compiled` with the WGSL and its
-//!   reflection), `link`, `translate` and `reference_prelude`.
+//! - `shadewire.wgsl`, `shadewire.glsl`, `shadewire.hlsl`, `shadewire.msl` (`shadewire_wgsl` ...): the back ends,
+//!   each a `compile` to a `shadewire.Compiled` (the code and its reflection).
 //!
 //! Built against Python's stable ABI from 3.8 (`abi3-py38`): one build per platform imports in every CPython
 //! from 3.8 on. Front-end and back-end calls release the GIL.
@@ -12,12 +12,11 @@
 use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PyBytes;
+use shadewire::shader::CompileOptions;
 use shadewire::{Dag, SourceInfo, model_struct_name};
 use shadewire_mtlx::MtlxOptions;
-use shadewire_wgsl::{CompileOptions, GlslVersion, HlslShaderModel, MslVersion, Output, Target};
 
-create_exception!(shadewire, ShadewireError, PyException, "A document Shadewire cannot read, compile or link.");
+create_exception!(shadewire, ShadewireError, PyException, "A document Shadewire cannot read or compile.");
 
 fn error(e: impl std::fmt::Display) -> PyErr {
     ShadewireError::new_err(e.to_string())
@@ -126,21 +125,29 @@ fn material_names(py: Python<'_>, text: String, path: Option<std::path::PathBuf>
     py.detach(|| shadewire_mtlx::material_names(&text, path.as_deref())).map_err(error)
 }
 
-// ---------------------------------------------------------------------------------------------------- wgsl
+// ---------------------------------------------------------------------------------------------------- back ends
 
-/// A compiled material: the generated WGSL (`fn shadewire_eval_surface() -> <model_struct>`) and what a host
-/// must bind and provide (the reflection).
-#[pyclass(name = "Compiled", module = "shadewire.wgsl", frozen)]
+/// A compiled material: the generated code in its language (the model's struct, `shadewire_eval_surface()`, the
+/// closure functions, declarations of the host functions it calls) and what a host must bind and provide (the
+/// reflection).
+#[pyclass(name = "Compiled", module = "shadewire", frozen)]
 struct PyCompiled {
-    wgsl: String,
+    language: &'static str,
+    code: String,
     reflection: shadewire::Reflection,
 }
 
 #[pymethods]
 impl PyCompiled {
+    /// `wgsl`, `glsl`, `hlsl` or `msl`.
     #[getter]
-    fn wgsl(&self) -> &str {
-        &self.wgsl
+    fn language(&self) -> &str {
+        self.language
+    }
+
+    #[getter]
+    fn code(&self) -> &str {
+        &self.code
     }
 
     /// Bindings, uniforms (offsets, defaults), textures, the host functions the code calls (`context`), each
@@ -150,15 +157,41 @@ impl PyCompiled {
         to_python(py, &json(&self.reflection)?)
     }
 
-    /// The WGSL name of the struct `shadewire_eval_surface` returns (`Surface`, `StandardSurface`, ...).
+    /// The name of the struct `shadewire_eval_surface` returns (`Surface`, `StandardSurface`, ...).
     #[getter]
     fn model_struct(&self) -> String {
         model_struct_name(&self.reflection.model)
     }
 
     fn __repr__(&self) -> String {
-        format!("<shadewire.wgsl.Compiled model={} {} bytes of WGSL>", self.reflection.model, self.wgsl.len())
+        format!("<shadewire.Compiled {} model={} {} bytes>", self.language, self.reflection.model, self.code.len())
     }
+}
+
+/// The options every back end takes.
+fn options(
+    group: u32,
+    first_binding: u32,
+    reserve_uniform_binding: bool,
+    flip_v: bool,
+    optimize: bool,
+    implicit_derivatives: bool,
+) -> CompileOptions {
+    CompileOptions { group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives }
+}
+
+type Backend = fn(&Dag, &SourceInfo, &CompileOptions) -> Result<shadewire::shader::Compiled, shadewire::Error>;
+
+/// Runs a back end with the GIL released.
+fn run(
+    py: Python<'_>,
+    language: &'static str,
+    ir: &PyIr,
+    options: CompileOptions,
+    backend: Backend,
+) -> PyResult<PyCompiled> {
+    let compiled = py.detach(|| backend(&ir.dag, &ir.source, &options)).map_err(error)?;
+    Ok(PyCompiled { language, code: compiled.code, reflection: compiled.reflection })
 }
 
 /// The IR to WGSL. `group` and `first_binding` place the uniform block, textures and samplers;
@@ -166,9 +199,9 @@ impl PyCompiled {
 /// flips V when sampling (images uploaded top row first); `optimize` runs the optimizer first;
 /// `implicit_derivatives` False makes the code run in a compute stage (level-0 samples, zero derivatives).
 #[pyfunction]
-#[pyo3(signature = (ir, group=2, first_binding=0, reserve_uniform_binding=false, flip_v=true, optimize=true, implicit_derivatives=true))]
+#[pyo3(name = "compile", signature = (ir, group=2, first_binding=0, reserve_uniform_binding=false, flip_v=true, optimize=true, implicit_derivatives=true))]
 #[allow(clippy::too_many_arguments)]
-fn compile(
+fn compile_wgsl(
     py: Python<'_>,
     ir: &PyIr,
     group: u32,
@@ -178,101 +211,79 @@ fn compile(
     optimize: bool,
     implicit_derivatives: bool,
 ) -> PyResult<PyCompiled> {
-    let options =
-        CompileOptions { group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives };
-    let compiled = py.detach(|| shadewire_wgsl::compile(&ir.dag, &ir.source, &options)).map_err(error)?;
-    Ok(PyCompiled { wgsl: compiled.code, reflection: compiled.reflection })
+    let options = options(group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives);
+    run(py, "wgsl", ir, options, shadewire_wgsl::compile)
 }
 
-/// `host_prelude` and `generated` joined and validated with naga; the joined module, or a ShadewireError with
-/// naga's message (line and caret) when it does not validate.
+/// The IR to a GLSL library: `version` is the `#version` (desktop from 330, default 420; ES from 300 with `es`,
+/// default 300). From GLSL 420 and ES 310 the uniform block sits at binding point `uniform_binding` and each
+/// texture (a `sampler2D`) at unit `binding`, as reflected; before, bind them by name. The other options as
+/// `shadewire.wgsl.compile`.
 #[pyfunction]
-fn link(py: Python<'_>, generated: String, host_prelude: String) -> PyResult<String> {
-    py.detach(|| shadewire_wgsl::link(&generated, &host_prelude)).map_err(error)
-}
-
-/// A complete, simple host for a compiled material: every host function returns a private variable (zero unless
-/// set), transforms are identities, and a fragment entry point returns the first color field. A template for
-/// writing your own; it knows nothing of closures.
-#[pyfunction]
-fn reference_prelude(compiled: &PyCompiled) -> String {
-    shadewire_wgsl::reference_host::prelude(&compiled.reflection, &model_struct_name(&compiled.reflection.model))
-}
-
-/// The compiled material as a GLSL library, for hosts written in GLSL: the surface struct, the uniform block and
-/// samplers (at binding points `32 * group + binding`), `shadewire_eval_surface()`, with a closure tree the
-/// functions evaluating it (`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`), and a
-/// prototype for each host function it calls, under the reflection's names. Append the host's GLSL (the host
-/// functions, lights, `main`) and compile the whole as a fragment shader. `version`: GLSL 420..460 (GLSL ES 310 or
-/// 320 with `es`).
-#[pyfunction]
-#[pyo3(signature = (compiled, version=420, es=false))]
-fn glsl_library(py: Python<'_>, compiled: &PyCompiled, version: u16, es: bool) -> PyResult<String> {
-    let version = if es { GlslVersion::Es(version) } else { GlslVersion::Desktop(version) };
-    py.detach(|| shadewire_wgsl::glsl_library(&compiled.wgsl, &compiled.reflection, version)).map_err(error)
-}
-
-fn target(name: &str, version: Option<u32>) -> PyResult<Target> {
-    let hlsl = |v: u32| match v {
-        50 => Some(HlslShaderModel::Sm5_0),
-        51 => Some(HlslShaderModel::Sm5_1),
-        60 => Some(HlslShaderModel::Sm6_0),
-        61 => Some(HlslShaderModel::Sm6_1),
-        62 => Some(HlslShaderModel::Sm6_2),
-        63 => Some(HlslShaderModel::Sm6_3),
-        64 => Some(HlslShaderModel::Sm6_4),
-        65 => Some(HlslShaderModel::Sm6_5),
-        66 => Some(HlslShaderModel::Sm6_6),
-        67 => Some(HlslShaderModel::Sm6_7),
-        68 => Some(HlslShaderModel::Sm6_8),
-        69 => Some(HlslShaderModel::Sm6_9),
-        _ => None,
-    };
-    let bad = || PyValueError::new_err(format!("unsupported version {version:?} for {name}"));
-    Ok(match name {
-        "wgsl" => Target::Wgsl,
-        "hlsl" => Target::Hlsl(hlsl(version.unwrap_or(60)).ok_or_else(bad)?),
-        "glsl" => Target::Glsl(GlslVersion::Desktop(version.unwrap_or(450) as u16)),
-        "glsl-es" => Target::Glsl(GlslVersion::Es(version.unwrap_or(300) as u16)),
-        "webgl2" => Target::Glsl(GlslVersion::WebGl2),
-        "msl" => {
-            let v = version.unwrap_or(21);
-            Target::Msl(MslVersion { major: (v / 10) as u8, minor: (v % 10) as u8 })
-        }
-        "spirv" => Target::SpirV,
-        other => {
-            return Err(PyValueError::new_err(format!(
-                "unknown target {other}: wgsl, hlsl, glsl, glsl-es, webgl2, msl or spirv"
-            )));
-        }
-    })
-}
-
-/// A linked module (with an entry point, see `link`) in another language: `hlsl` (version 50..69, default 60),
-/// `glsl` (330..450, default 450), `glsl-es` (300 or 310), `webgl2`, `msl` (major * 10 + minor, default 21),
-/// `spirv` (bytes) or `wgsl` (naga's rewrite).
-///
-/// `entry_point` picks the entry point to write (GLSL, HLSL and SPIR-V write one; None: the first fragment
-/// entry point). GLSL follows OpenGL's conventions: clip-space depth from -1 to 1, and `@group(g)
-/// @binding(b)` at binding point `32 * g + b` (GLSL 4.20 / ES 3.10; a texture and its sampler combine into one
-/// `sampler2D` at the texture's point).
-#[pyfunction]
-#[pyo3(signature = (linked, target_name, version=None, entry_point=None))]
-fn translate(
+#[pyo3(name = "compile", signature = (ir, version=None, es=false, group=2, first_binding=0, reserve_uniform_binding=false, flip_v=true, optimize=true, implicit_derivatives=true))]
+#[allow(clippy::too_many_arguments)]
+fn compile_glsl(
     py: Python<'_>,
-    linked: String,
-    target_name: &str,
-    version: Option<u32>,
-    entry_point: Option<String>,
-) -> PyResult<Py<PyAny>> {
-    let target = target(target_name, version)?;
-    match py.detach(|| shadewire_wgsl::translate(&linked, target, entry_point.as_deref())).map_err(error)? {
-        Output::Text(text) => Ok(text.into_pyobject(py)?.into_any().unbind()),
-        Output::Words(words) => {
-            let bytes: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
-            Ok(PyBytes::new(py, &bytes).into_any().unbind())
-        }
-    }
+    ir: &PyIr,
+    version: Option<u16>,
+    es: bool,
+    group: u32,
+    first_binding: u32,
+    reserve_uniform_binding: bool,
+    flip_v: bool,
+    optimize: bool,
+    implicit_derivatives: bool,
+) -> PyResult<PyCompiled> {
+    use shadewire_glsl::Version;
+    let version = match (es, version) {
+        (false, None) => Version::Desktop(420),
+        (false, Some(v)) if v >= 330 => Version::Desktop(v),
+        (true, None) => Version::Es(300),
+        (true, Some(v)) if v >= 300 => Version::Es(v),
+        (_, Some(v)) => return Err(PyValueError::new_err(format!("unsupported GLSL version {v}"))),
+    };
+    let options = options(group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives);
+    let compiled = py.detach(|| shadewire_glsl::compile(&ir.dag, &ir.source, &options, version)).map_err(error)?;
+    Ok(PyCompiled { language: "glsl", code: compiled.code, reflection: compiled.reflection })
+}
+
+/// The IR to an HLSL library (shader model 5.1 and up): resources at `register(b|t|s{binding}, space{group})`, as
+/// reflected. The options as `shadewire.wgsl.compile`.
+#[pyfunction]
+#[pyo3(name = "compile", signature = (ir, group=2, first_binding=0, reserve_uniform_binding=false, flip_v=true, optimize=true, implicit_derivatives=true))]
+#[allow(clippy::too_many_arguments)]
+fn compile_hlsl(
+    py: Python<'_>,
+    ir: &PyIr,
+    group: u32,
+    first_binding: u32,
+    reserve_uniform_binding: bool,
+    flip_v: bool,
+    optimize: bool,
+    implicit_derivatives: bool,
+) -> PyResult<PyCompiled> {
+    let options = options(group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives);
+    run(py, "hlsl", ir, options, shadewire_hlsl::compile)
+}
+
+/// The IR to a Metal Shading Language library: the functions that read the material's resources take them as
+/// trailing parameters (the uniform block, then each texture and sampler). The options as
+/// `shadewire.wgsl.compile`.
+#[pyfunction]
+#[pyo3(name = "compile", signature = (ir, group=2, first_binding=0, reserve_uniform_binding=false, flip_v=true, optimize=true, implicit_derivatives=true))]
+#[allow(clippy::too_many_arguments)]
+fn compile_msl(
+    py: Python<'_>,
+    ir: &PyIr,
+    group: u32,
+    first_binding: u32,
+    reserve_uniform_binding: bool,
+    flip_v: bool,
+    optimize: bool,
+    implicit_derivatives: bool,
+) -> PyResult<PyCompiled> {
+    let options = options(group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives);
+    run(py, "msl", ir, options, shadewire_msl::compile)
 }
 
 // ---------------------------------------------------------------------------------------------------- the module
@@ -304,12 +315,14 @@ fn shadewire_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     mtlx.add_function(wrap_pyfunction!(to_ir, &mtlx)?)?;
     mtlx.add_function(wrap_pyfunction!(material_names, &mtlx)?)?;
 
+    m.add_class::<PyCompiled>()?;
     let wgsl = submodule(m, "wgsl")?;
-    wgsl.add_class::<PyCompiled>()?;
-    wgsl.add_function(wrap_pyfunction!(compile, &wgsl)?)?;
-    wgsl.add_function(wrap_pyfunction!(link, &wgsl)?)?;
-    wgsl.add_function(wrap_pyfunction!(reference_prelude, &wgsl)?)?;
-    wgsl.add_function(wrap_pyfunction!(translate, &wgsl)?)?;
-    wgsl.add_function(wrap_pyfunction!(glsl_library, &wgsl)?)?;
+    wgsl.add_function(wrap_pyfunction!(compile_wgsl, &wgsl)?)?;
+    let glsl = submodule(m, "glsl")?;
+    glsl.add_function(wrap_pyfunction!(compile_glsl, &glsl)?)?;
+    let hlsl = submodule(m, "hlsl")?;
+    hlsl.add_function(wrap_pyfunction!(compile_hlsl, &hlsl)?)?;
+    let msl = submodule(m, "msl")?;
+    msl.add_function(wrap_pyfunction!(compile_msl, &msl)?)?;
     Ok(())
 }

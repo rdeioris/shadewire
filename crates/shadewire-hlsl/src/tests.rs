@@ -1,52 +1,10 @@
 //! The HLSL back end over the shared fixtures: each library compiles in dxc as a library (its host functions
 //! external), and completed with stub host functions and an entry point as a pixel shader, as HLSL 2018 and 2021.
 
-use std::process::Command;
-
-use shadewire::shader::Module;
-use shadewire::shader::fixtures::{self, host_stubs, reflection, tool};
+use shadewire::shader::fixtures::{self, reflection};
 use shadewire::shader::material::{MaterialOptions, material};
-use shadewire::shader::print::Printer;
 
 use super::*;
-
-/// The library, then stub host functions and a pixel shader calling everything the host may.
-fn whole_shader(module: &Module, reflection: &shadewire::Reflection) -> String {
-    let printer = Printer::new(&Hlsl);
-    let mut text = print(module);
-    for stub in host_stubs(reflection) {
-        text.push_str(&printer.item(&stub, module));
-    }
-    let model = module.functions().find(|f| f.name == "shadewire_eval_surface").map(|f| Hlsl.ty(&f.ret)).unwrap();
-    let mut calls = format!("    {model} s = shadewire_eval_surface();\n");
-    if module.functions().any(|f| f.name == "shadewire_eval_bsdf") {
-        calls.push_str(
-            "    float3 n = float3(0.0, 0.0, 1.0);\n    ShadewireBsdf b = shadewire_eval_bsdf(s, n, n, n);\n    \
-             float3 a = shadewire_eval_albedo(s, n, n);\n    float3 e = shadewire_eval_emission(s, n, n);\n",
-        );
-    }
-    text.push_str(&format!("\nfloat4 main() : SV_Target {{\n{calls}    return float4(0.0, 0.0, 0.0, 0.0);\n}}\n"));
-    text
-}
-
-fn dxc(name: &str, text: &str, args: &[&str]) {
-    let Some(dxc) = tool("dxc") else {
-        eprintln!("dxc not found: {name} not compiled");
-        return;
-    };
-    let dir = std::env::temp_dir().join("shadewire-hlsl-tests");
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join(format!("{name}.hlsl"));
-    std::fs::write(&path, text).unwrap();
-    let out =
-        Command::new(dxc).args(args).arg(&path).arg("-Fo").arg(dir.join(format!("{name}.dxil"))).output().unwrap();
-    let log = String::from_utf8_lossy(&out.stderr);
-    assert!(out.status.success(), "{name} {args:?}:\n{log}\n\n{}", numbered(text));
-}
-
-fn numbered(text: &str) -> String {
-    text.lines().enumerate().map(|(i, l)| format!("{:4} {l}", i + 1)).collect::<Vec<_>>().join("\n")
-}
 
 #[test]
 fn every_fixture_compiles() {
@@ -56,9 +14,8 @@ fn every_fixture_compiles() {
             let options = MaterialOptions { implicit_derivatives, ..MaterialOptions::default() };
             let module = material(&dag, &r, &options);
             let tag = format!("{name}_{implicit_derivatives}");
-            dxc(&format!("{tag}_lib"), &print(&module), &["-T", "lib_6_3", "-HV", "2021"]);
-            for hv in ["2018", "2021"] {
-                dxc(&format!("{tag}_ps{hv}"), &whole_shader(&module, &r), &["-T", "ps_6_0", "-E", "main", "-HV", hv]);
+            if !crate::validate::check(&tag, &print(&module), &r).unwrap_or_else(|e| panic!("{tag}:\n{e}")) {
+                eprintln!("dxc not found: {tag} not compiled");
             }
         }
     }

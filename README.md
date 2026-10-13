@@ -15,13 +15,18 @@ Front ends and back ends never depend on each other; they share only the core, a
 
 | Crate | Role | Depends on |
 |---|---|---|
-| `shadewire` | core: the IR, optimizer, CPU interpreter, reflection, errors | — |
+| `shadewire` | core: the IR, optimizer, CPU interpreter, reflection, errors; the shader tree every back end prints (`shader`: the material's code, the support libraries, the shared printing) | — |
 | `shadewire-mtlx` | front end: MaterialX 1.38/1.39 → IR (`to_ir`) | `shadewire` |
-| `shadewire-wgsl` | back end: IR → WGSL + reflection (`compile`); feature `translate` (default): naga translation of the linked module to HLSL, GLSL, MSL, SPIR-V | `shadewire` (+ naga) |
+| `shadewire-wgsl` | back end: IR → WGSL + reflection (`compile`) | `shadewire` |
+| `shadewire-glsl` | back end: IR → a GLSL library (desktop from 330, ES from 300) + reflection | `shadewire` |
+| `shadewire-hlsl` | back end: IR → an HLSL library (shader model 5.1 and up) + reflection | `shadewire` |
+| `shadewire-msl` | back end: IR → a Metal Shading Language library + reflection | `shadewire` |
 | `shadewire-cli` | the `shadewire` command | all of the above |
-| `shadewire-capi` | C API (`shadewire.h`): MaterialX → WGSL + reflection, translation to the other languages | `shadewire`, `shadewire-mtlx`, `shadewire-wgsl` |
-| `shadewire-bevy` | Bevy 0.20: MaterialX → a `StandardMaterial` extension with a generated fragment shader (`ShadewirePlugin`, `FromMtlx`) | `shadewire`, `shadewire-mtlx`, `shadewire-wgsl` (no naga), `bevy` |
+| `shadewire-capi` | C API (`shadewire.h`): MaterialX → code in any back end's language + reflection | `shadewire`, `shadewire-mtlx`, the back ends |
+| `shadewire-bevy` | Bevy 0.20: MaterialX → a `StandardMaterial` extension with a generated fragment shader (`ShadewirePlugin`, `FromMtlx`) | `shadewire`, `shadewire-mtlx`, `shadewire-wgsl`, `bevy` |
 
+Each back end is a printer of the shared shader tree: everything they have in common (the material's code, the
+support libraries, operator precedence, declaration order, identifiers valid in every language) lives in the core.
 Planned: a glTF front end, more back ends.
 
 ## What to depend on
@@ -30,10 +35,9 @@ Planned: a glTF front end, more back ends.
 |---|---|---|
 | Inspect or print a material's IR | `shadewire`, `shadewire-mtlx` | — |
 | Evaluate a material on the CPU (tests, baking, thumbnails) | `shadewire`, `shadewire-mtlx` | — |
-| MaterialX → WGSL + reflection (wgpu, Bevy, WebGPU) | `shadewire-mtlx`, `shadewire-wgsl` | `shadewire-wgsl`: `default-features = false` (no naga) |
-| MaterialX → HLSL, GLSL, GLSL ES, MSL or SPIR-V | `shadewire-mtlx`, `shadewire-wgsl` | `shadewire-wgsl`: `translate` (default) |
-| Your own IR (any source) → WGSL | `shadewire`, `shadewire-wgsl` | `default-features = false` |
-| Your own IR → HLSL/GLSL/MSL/SPIR-V | `shadewire`, `shadewire-wgsl` | `translate` (default) |
+| MaterialX → WGSL + reflection (wgpu, Bevy, WebGPU) | `shadewire-mtlx`, `shadewire-wgsl` | — |
+| MaterialX → GLSL, GLSL ES, HLSL or MSL | `shadewire-mtlx`, `shadewire-glsl` / `-hlsl` / `-msl` | — |
+| Your own IR (any source) → any of them | `shadewire` and the back end | — |
 | A command-line tool | `shadewire-cli` (the `shadewire` binary) | — |
 | A C/C++ host | `shadewire-capi` (shared or static library + `shadewire.h`) | — |
 | A Bevy app | `shadewire-bevy` | — |
@@ -52,13 +56,15 @@ let ir = to_ir(&text, Some("material.mtlx".as_ref()), None, &MtlxOptions::defaul
 print!("{}", optimize(&ir.dag).dump()); // the IR, one node per line
 
 let out = compile(&ir.dag, &ir.source, &CompileOptions::default())?;
-println!("{}", out.wgsl);             // fn shadewire_eval_surface() -> <ModelStruct>
+println!("{}", out.code);             // fn shadewire_eval_surface() -> <ModelStruct>
 println!("{}", out.reflection.model);
 ```
 
-The generated code calls host functions (`shadewire_host_texcoord_0()`, `shadewire_host_normal_world()`, ...) that the
-host defines in its own WGSL prelude, next to its BRDF and entry point; `link` joins and validates
-the two, `translate` writes the other languages. Examples:
+Every back end writes the same library in its language: the model's struct, the uniform block and textures,
+`shadewire_eval_surface()`, and for a material with lobes the functions evaluating them as MaterialX defines
+(`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`). The code calls host functions
+(`shadewire_host_texcoord_0()`, `shadewire_host_normal_world()`, ...), declared in GLSL, HLSL and MSL, which the host
+defines in its own code next to its lights and entry point. Examples:
 `cargo run -p shadewire-mtlx --example mtlx_to_wgsl -- material.mtlx` and `--example mtlx_to_hlsl`.
 
 Command line:
@@ -71,7 +77,7 @@ shadewire ir material.mtlx               # print the IR (optimized; --no-optimiz
 
 - `--material NAME` picks the material when the document has several.
 - `--model MODEL` (repeatable) names the surface models the host accepts; by default all four. A material of another model is an error, not a translation.
-- `--lang wgsl|hlsl|glsl|glsl-es|msl|spirv`: anything but `wgsl` links the reference host (which supplies an entry point) before translating; SPIR-V needs `-o`.
+- `--lang wgsl|glsl|glsl-es|hlsl|msl` picks the back end; `--glsl-version N` the GLSL version (default 420, 300 for `glsl-es`).
 - `--reflection FILE` writes the reflection JSON; it is written only when the shader was produced.
 - `--no-optimize` skips constant folding, simplification and sharing.
 - `--constants` bakes authored values in instead of exposing them as uniforms.
@@ -90,31 +96,29 @@ The header is `crates/shadewire-capi/include/shadewire.h`. Every handle and erro
 
 #include "shadewire.h"
 
-/* Compiles `len` bytes of MaterialX `text` and prints it as HLSL shader model 6.0; returns 0 on success. */
+/* Compiles `len` bytes of MaterialX `text` and prints it as an HLSL library; returns 0 on success. */
 int print_hlsl(const char *text, size_t len) {
     shadewire_compiled *compiled = NULL;
-    shadewire_blob *hlsl = NULL;
     shadewire_error *err = NULL;
-    shadewire_target target = {SHADEWIRE_TARGET_HLSL, 60};
+    shadewire_target target = {SHADEWIRE_TARGET_HLSL, 0};
     int result = 1;
 
-    if (shadewire_compile_mtlx(text, len, "material.mtlx", NULL, NULL, NULL, &compiled, &err) == SHADEWIRE_OK &&
-        shadewire_translate(compiled, NULL, target, &hlsl, &err) == SHADEWIRE_OK) {
-        puts((const char *)shadewire_blob_data(hlsl, NULL)); /* text blobs are NUL-terminated */
+    if (shadewire_compile_mtlx(text, len, "material.mtlx", NULL, NULL, target, NULL, &compiled, &err) == SHADEWIRE_OK) {
+        puts(shadewire_compiled_code(compiled, NULL));
         result = 0;
     } else {
         fprintf(stderr, "error: %s\n", shadewire_error_message(err, NULL));
     }
-    shadewire_blob_free(hlsl);
     shadewire_compiled_free(compiled);
     shadewire_error_free(err);
     return result;
 }
 ```
 
-`shadewire_compiled_wgsl` and `shadewire_compiled_reflection_json` read the WGSL and the reflection; a NULL host
-prelude in `shadewire_translate` links the reference host. `crates/shadewire-capi-ctest` builds the same calls as a
-C99 (C11 on MSVC) test.
+`shadewire_compiled_code` and `shadewire_compiled_reflection_json` read the code and the reflection;
+`shadewire_compile` compiles an IR handle from `shadewire_mtlx_to_ir`. The target is `SHADEWIRE_TARGET_WGSL`,
+`_GLSL` and `_GLSL_ES` (with their `#version`, 0 for the default), `_HLSL` or `_MSL`. `crates/shadewire-capi-ctest`
+builds the same calls as a C99 (C11 on MSVC) test.
 
 ## Bevy
 
@@ -178,11 +182,23 @@ Each entry of `textures` names its file and the `colorspace` it was authored in.
 
 In the uniform block a `boolean` uniform is a `u32` (0 or 1), since WGSL has no host-shareable `bool`; `integer` is `i32`. Offsets and sizes are in the reflection's `uniforms`.
 
-`structure_hash` covers the material's graph only: its shape, constants, textures and geomprop defaults, with uniform values left out. The WGSL also depends on the bind `group`, the first binding, the V flip and whether the uniform binding is reserved, so a shader cache keys on `(structure_hash, group, first_binding, flip_v, reserve_uniform_binding)`.
+`structure_hash` covers the material's graph only: its shape, constants, textures and geomprop defaults, with uniform values left out. The code also depends on its language, the bind `group`, the first binding, the V flip and whether the uniform binding is reserved, so a shader cache keys on `(structure_hash, language, group, first_binding, flip_v, reserve_uniform_binding)`.
 
-## Targets
+## Languages
 
-The WGSL back end writes the other languages from the linked WGSL module through naga, behind its `translate` feature (on by default; `default-features = false` leaves naga out). Targets are Shadewire's own types (`HlslShaderModel`, `GlslVersion`, `MslVersion`), so callers never depend on naga. HLSL shader model 6 samplers go through naga's sampler heap (register `s0`, space 0). MSL uses `fake_missing_bindings`, so resource slots follow declaration order.
+Bindings follow the reflection's numbers in each language's terms:
+
+- WGSL: `@group(group) @binding(n)`, a texture and its sampler apart.
+- GLSL: the uniform block at binding point `uniform_binding` and each texture (a `sampler2D`) at unit `binding`
+  from GLSL 420 and ES 310; before, bind them by name (`MaterialUniforms`, `shadewire_t{index}`).
+- HLSL: `register(b|t|s{binding}, space{group})`; the uniform block (a `ConstantBuffer`) padded to the reflected
+  offsets.
+- MSL: Metal has no global resources, so `shadewire_eval_surface` takes them as trailing parameters (the uniform
+  block, then each texture and sampler); the uniform block padded to the reflected offsets.
+
+Each back end's tests compile every test material with the real compiler when it is installed: naga for WGSL,
+glslangValidator for GLSL, dxc for HLSL (found on PATH, in `$VULKAN_SDK/Bin`, or as `$SHADEWIRE_GLSLANGVALIDATOR` /
+`$SHADEWIRE_DXC`; `SHADEWIRE_REQUIRE_TOOLS=1` makes a missing one a failure). MSL has no such check yet.
 
 ## Development
 

@@ -15,7 +15,10 @@ include_dir.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-shadewire-wgsl = { workspace = true, features = ["translate"] }
+shadewire-wgsl = { workspace = true, features = ["validate"] }
+shadewire-glsl.workspace = true
+shadewire-hlsl.workspace = true
+shadewire-msl.workspace = true
 insta.workspace = true
 png.workspace = true
 serde_json.workspace = true

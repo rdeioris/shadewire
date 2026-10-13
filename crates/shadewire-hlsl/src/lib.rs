@@ -201,3 +201,4 @@ pub fn hlsl_type(ty: Type) -> String {
 
 #[cfg(test)]
 mod tests;
+pub mod validate;

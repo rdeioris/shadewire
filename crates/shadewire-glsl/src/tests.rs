@@ -1,60 +1,14 @@
 //! The GLSL back end over the shared fixtures: each library, completed with stub host functions and a `main`,
 //! compiles in glslangValidator at every version.
 
-use std::process::Command;
-
-use shadewire::shader::fixtures::{self, host_stubs, reflection, tool};
+use shadewire::shader::fixtures::{self, reflection};
 use shadewire::shader::material::{MaterialOptions, material};
-use shadewire::shader::print::Printer;
-use shadewire::shader::{Item, Module, Ty};
+use shadewire::shader::{Item, Ty};
 
 use super::*;
 
 const VERSIONS: [Version; 5] =
     [Version::Desktop(330), Version::Desktop(420), Version::Desktop(450), Version::Es(300), Version::Es(310)];
-
-/// The library, then stub host functions and a `main` calling everything the host may.
-fn whole_shader(module: &Module, reflection: &shadewire::Reflection, version: Version) -> String {
-    let syntax = Glsl { version };
-    let printer = Printer::new(&syntax);
-    let mut text = print(module, version);
-    for stub in host_stubs(reflection) {
-        text.push_str(&printer.item(&stub, module));
-    }
-    let model =
-        module.functions().find(|f| f.name == "shadewire_eval_surface").map(|f| syntax.ty(&f.ret)).expect("the entry");
-    let closures = module.functions().any(|f| f.name == "shadewire_eval_bsdf");
-    let mut calls = format!("    {model} s = shadewire_eval_surface();\n");
-    if closures {
-        calls.push_str(
-            "    ShadewireBsdf b = shadewire_eval_bsdf(s, vec3(0.0), vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 1.0));\n    \
-             vec3 a = shadewire_eval_albedo(s, vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 1.0));\n    \
-             vec3 e = shadewire_eval_emission(s, vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 1.0));\n",
-        );
-    }
-    text.push_str(&format!(
-        "\nlayout(location = 0) out vec4 shadewire_test_color;\nvoid main() {{\n{calls}    shadewire_test_color = vec4(0.0);\n}}\n"
-    ));
-    text
-}
-
-fn glslang(name: &str, text: &str) {
-    let Some(validator) = tool("glslangValidator") else {
-        eprintln!("glslangValidator not found: {name} not compiled");
-        return;
-    };
-    let dir = std::env::temp_dir().join("shadewire-glsl-tests");
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join(format!("{name}.frag"));
-    std::fs::write(&path, text).unwrap();
-    let out = Command::new(validator).arg("-S").arg("frag").arg(&path).output().unwrap();
-    let log = String::from_utf8_lossy(&out.stdout);
-    assert!(out.status.success(), "{name}:\n{log}\n\n{}", numbered(text));
-}
-
-fn numbered(text: &str) -> String {
-    text.lines().enumerate().map(|(i, l)| format!("{:4} {l}", i + 1)).collect::<Vec<_>>().join("\n")
-}
 
 #[test]
 fn every_fixture_compiles_at_every_version() {
@@ -65,7 +19,10 @@ fn every_fixture_compiles_at_every_version() {
             let module = material(&dag, &r, &options);
             for version in VERSIONS {
                 let tag = format!("{name}_{version:?}_{implicit_derivatives}").replace(['(', ')'], "");
-                glslang(&tag, &whole_shader(&module, &r, version));
+                let compiled = crate::validate::check(&tag, &print(&module, version), &r, version);
+                if !compiled.unwrap_or_else(|e| panic!("{tag}:\n{e}")) {
+                    eprintln!("glslangValidator not found: {tag} not compiled");
+                }
             }
         }
     }

@@ -12,14 +12,12 @@ A host adds two things around them:
    listed in the reflection's `context`;
 2. an entry point that sets the host values, calls `shadewire_eval_surface`, and lights it.
 
-`shadewire.wgsl.link` joins the pieces and validates them with naga, so a mistake shows as an error with its line.
+The host's code follows the generated code in one module, which a WGSL compiler (wgpu, naga, Tint) validates.
 """
 
 import argparse
-import sys
 
-import shadewire
-from shadewire import mtlx, wgsl
+from shadewire import hlsl, mtlx, wgsl
 
 WGSL_TYPE = {
     "float": "f32", "integer": "i32", "boolean": "bool",
@@ -100,7 +98,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("mtlx")
     parser.add_argument("--material")
-    parser.add_argument("--hlsl", help="also write the linked shader as HLSL")
+    parser.add_argument("--out", help="write the whole WGSL module here")
+    parser.add_argument("--hlsl", help="also write the material as an HLSL library")
     args = parser.parse_args()
 
     text = open(args.mtlx, encoding="utf-8").read()
@@ -110,18 +109,17 @@ def main():
     # Back end: the material's own resources (uniforms, textures) in group 1; the host owns group 0.
     compiled = wgsl.compile(ir, group=1)
     reflection = compiled.reflection
-    print(f"generated: {len(compiled.wgsl.splitlines())} lines, struct {compiled.model_struct}, "
+    print(f"generated: {len(compiled.code.splitlines())} lines, struct {compiled.model_struct}, "
           f"{len(reflection['textures'])} textures, {len(reflection['uniforms'])} uniforms")
     print("closure tree:", [n.get("kind", n["op"]) for n in reflection["closure"]["nodes"]])
 
-    host = "\n".join([host_functions(reflection), ENTRY])
-    try:
-        linked = wgsl.link(compiled.wgsl, host)
-    except shadewire.ShadewireError as e:
-        sys.exit(f"the host does not link:\n{e}")
-    print(f"linked and validated: {len(linked.splitlines())} lines")
+    module = "\n".join([compiled.code, host_functions(reflection), ENTRY])
+    print(f"the whole module: {len(module.splitlines())} lines")
+    if args.out:
+        open(args.out, "w", encoding="utf-8").write(module)
+        print("wrote", args.out)
     if args.hlsl:
-        open(args.hlsl, "w", encoding="utf-8").write(wgsl.translate(linked, "hlsl", 60))
+        open(args.hlsl, "w", encoding="utf-8").write(hlsl.compile(ir, group=1).code)
         print("wrote", args.hlsl)
 
 

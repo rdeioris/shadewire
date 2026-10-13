@@ -17,8 +17,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 shadewire.workspace = true
 shadewire-mtlx.workspace = true
-# With naga: `link` validates, `translate` writes HLSL, GLSL, MSL and SPIR-V.
-shadewire-wgsl = { workspace = true, features = ["translate"] }
+shadewire-wgsl.workspace = true
+shadewire-glsl.workspace = true
+shadewire-hlsl.workspace = true
+shadewire-msl.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 # The stable ABI from Python 3.8: one build per platform loads in every CPython from 3.8 on. Import libraries

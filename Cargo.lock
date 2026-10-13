@@ -3977,6 +3977,9 @@ dependencies = [
  "cbindgen",
  "serde_json",
  "shadewire",
+ "shadewire-glsl",
+ "shadewire-hlsl",
+ "shadewire-msl",
  "shadewire-mtlx",
  "shadewire-wgsl",
 ]
@@ -3996,6 +3999,9 @@ dependencies = [
  "clap",
  "serde_json",
  "shadewire",
+ "shadewire-glsl",
+ "shadewire-hlsl",
+ "shadewire-msl",
  "shadewire-mtlx",
  "shadewire-wgsl",
 ]
@@ -4031,6 +4037,9 @@ dependencies = [
  "quick-xml",
  "serde_json",
  "shadewire",
+ "shadewire-glsl",
+ "shadewire-hlsl",
+ "shadewire-msl",
  "shadewire-wgsl",
  "thiserror 2.0.21",
 ]
@@ -4062,6 +4071,9 @@ dependencies = [
  "serde",
  "serde_json",
  "shadewire",
+ "shadewire-glsl",
+ "shadewire-hlsl",
+ "shadewire-msl",
  "shadewire-mtlx",
  "shadewire-wgsl",
 ]

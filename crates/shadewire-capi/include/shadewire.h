@@ -53,12 +53,10 @@ enum shadewire_error_kind
   SHADEWIRE_ERROR_MATERIAL = 4,
   // The node graph is invalid.
   SHADEWIRE_ERROR_GRAPH = 5,
-  // The generated shader failed validation.
-  SHADEWIRE_ERROR_SHADER = 6,
   // Reading or writing failed.
-  SHADEWIRE_ERROR_IO = 7,
+  SHADEWIRE_ERROR_IO = 6,
   // An internal fault: a panic caught at the boundary, or a library bug the caller cannot fix.
-  SHADEWIRE_ERROR_PANIC = 8,
+  SHADEWIRE_ERROR_PANIC = 7,
 };
 #ifndef __cplusplus
 #if __STDC_VERSION__ >= 202311L
@@ -68,12 +66,7 @@ typedef uint32_t shadewire_error_kind;
 #endif // __STDC_VERSION__ >= 202311L
 #endif // __cplusplus
 
-// A translated shader, text or binary. Free it with `shadewire_blob_free`.
-//
-// Text blobs are followed by a NUL byte that the reported length does not count.
-typedef struct shadewire_blob shadewire_blob;
-
-// A compiled material: WGSL, reflection and the optimized IR. Free it with `shadewire_compiled_free`.
+// A compiled material: its code, reflection and the optimized IR. Free it with `shadewire_compiled_free`.
 typedef struct shadewire_compiled shadewire_compiled;
 
 // An error returned by a failed call. Free it with `shadewire_error_free`.
@@ -81,6 +74,19 @@ typedef struct shadewire_error shadewire_error;
 
 // A MaterialX material lowered to the IR. Free it with `shadewire_ir_free`.
 typedef struct shadewire_ir shadewire_ir;
+
+// Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
+typedef uint32_t shadewire_target_kind;
+
+// A target language and its version.
+//
+// `version` is the `#version` number for GLSL (330, 400, 410, 420, 430, 440, 450, 460; 0 for 420) and GLSL ES
+// (300, 310, 320; 0 for 300), and ignored for WGSL, HLSL and MSL. Any other version is
+// SHADEWIRE_ERROR_INVALID_ARGUMENT.
+typedef struct shadewire_target {
+  shadewire_target_kind kind;
+  uint32_t version;
+} shadewire_target;
 
 // Options for compilation. Set `struct_size` to `sizeof` the struct, or use `shadewire_compile_options_default`.
 // The booleans are true for any non-zero byte.
@@ -117,107 +123,72 @@ typedef struct shadewire_mtlx_options {
   uint8_t reserved[7];
 } shadewire_mtlx_options;
 
-// Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
-typedef uint32_t shadewire_target_kind;
-
-// A target language and its version.
-//
-// `version` is the shader model times ten for HLSL (50, 51, 60..69), the `#version` number for GLSL (330, 400, 410,
-// 420, 430, 450) and GLSL ES (300, 310), `major * 100 + minor` for MSL (100..102, 200..204, 300..302 or 400, the
-// Metal versions naga knows; 203 is 2.3), and ignored for WGSL, WEBGL2 and SPIRV. Any other version is
-// SHADEWIRE_ERROR_INVALID_ARGUMENT.
-typedef struct shadewire_target {
-  shadewire_target_kind kind;
-  uint32_t version;
-} shadewire_target;
-
 #define SHADEWIRE_TARGET_WGSL 0
 
-#define SHADEWIRE_TARGET_HLSL 1
+#define SHADEWIRE_TARGET_GLSL 1
 
-#define SHADEWIRE_TARGET_GLSL 2
+#define SHADEWIRE_TARGET_GLSL_ES 2
 
-#define SHADEWIRE_TARGET_GLSL_ES 3
+#define SHADEWIRE_TARGET_HLSL 3
 
-#define SHADEWIRE_TARGET_WEBGL2 4
-
-#define SHADEWIRE_TARGET_MSL 5
-
-#define SHADEWIRE_TARGET_SPIRV 6
+#define SHADEWIRE_TARGET_MSL 4
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-// The blob's bytes, valid until `b` is freed; writes their count to `len` when non-null (a text blob's trailing NUL
-// is not counted). NULL, with `len` 0, when `b` is NULL.
-//
-// # Safety
-// `b` must be NULL or a live handle; `len` NULL or valid for writing a `size_t`.
-const uint8_t *shadewire_blob_data(const struct shadewire_blob *b,
-                                   size_t *len);
-
-// Whether the blob is text (NUL-terminated, UTF-8) rather than binary; false when `b` is NULL.
-//
-// # Safety
-// `b` must be NULL or a live handle.
-bool shadewire_blob_is_text(const struct shadewire_blob *b);
-
-// Frees `b`; NULL is allowed.
-//
-// # Safety
-// `b` must be NULL or a handle from this library not yet freed.
-void shadewire_blob_free(struct shadewire_blob *b);
-
-// Compiles `ir` to WGSL and reflection and writes the handle to `out`. `options` may be NULL for the defaults.
-// `*out` is written only on success.
+// Compiles `ir` to the code of `target` and its reflection and writes the handle to `out`. `options` may be NULL for
+// the defaults. `*out` is written only on success.
 //
 // # Safety
 // `ir` must be a live handle (NULL is an error); `options` NULL or valid (see `shadewire_compile_options`); `out`
 // valid for writing a pointer; `error` NULL or valid for writing a pointer.
-shadewire_status shadewire_wgsl_compile(const struct shadewire_ir *ir,
-                                        const struct shadewire_compile_options *options,
-                                        struct shadewire_compiled **out,
-                                        struct shadewire_error **error);
+shadewire_status shadewire_compile(const struct shadewire_ir *ir,
+                                   struct shadewire_target target,
+                                   const struct shadewire_compile_options *options,
+                                   struct shadewire_compiled **out,
+                                   struct shadewire_error **error);
 
-// `shadewire_mtlx_to_ir` then `shadewire_wgsl_compile` in one call, with one handle out. `text` is `len` bytes of
+// `shadewire_mtlx_to_ir` then `shadewire_compile` in one call, with one handle out. `text` is `len` bytes of
 // UTF-8 and must be non-NULL (NULL is SHADEWIRE_ERROR_INVALID_ARGUMENT); `mtlx` and `options` may be NULL for the
 // defaults. `*out` is written only on success.
 //
 // # Safety
-// The union of the safety requirements of `shadewire_mtlx_to_ir` and `shadewire_wgsl_compile`.
+// The union of the safety requirements of `shadewire_mtlx_to_ir` and `shadewire_compile`.
 shadewire_status shadewire_compile_mtlx(const char *text,
                                         size_t len,
                                         const char *path,
                                         const char *material,
                                         const struct shadewire_mtlx_options *mtlx,
+                                        struct shadewire_target target,
                                         const struct shadewire_compile_options *options,
                                         struct shadewire_compiled **out,
                                         struct shadewire_error **error);
 
-// The WGSL source, valid until `c` is freed; writes its byte length to `len` when non-null. NULL when `c` is NULL.
+// The generated code, valid until `c` is freed; writes its byte length to `len` when non-null. NULL when `c` is
+// NULL.
 //
 // # Safety
 // `c` must be NULL or a live handle; `len` NULL or valid for writing a `size_t`.
-const char *shadewire_compiled_wgsl(const struct shadewire_compiled *c,
+const char *shadewire_compiled_code(const struct shadewire_compiled *c,
                                     size_t *len);
 
-// The reflection as pretty-printed JSON, valid until `c` is freed; see `shadewire_compiled_wgsl` for `len`.
+// The reflection as pretty-printed JSON, valid until `c` is freed; see `shadewire_compiled_code` for `len`.
 //
 // # Safety
-// As `shadewire_compiled_wgsl`.
+// As `shadewire_compiled_code`.
 const char *shadewire_compiled_reflection_json(const struct shadewire_compiled *c,
                                                size_t *len);
 
 // A text dump of the optimized IR, built on first call and valid until `c` is freed; see
-// `shadewire_compiled_wgsl` for `len`, which is 0 on failure. NULL when `c` is NULL or building the dump failed.
+// `shadewire_compiled_code` for `len`, which is 0 on failure. NULL when `c` is NULL or building the dump failed.
 //
 // # Safety
-// As `shadewire_compiled_wgsl`.
+// As `shadewire_compiled_code`.
 const char *shadewire_compiled_ir_dump(const struct shadewire_compiled *c,
                                        size_t *len);
 
-// The WGSL struct name of the shading model (for example "StandardSurface"), valid until `c` is freed; NULL when `c`
+// The struct name of the shading model (for example "StandardSurface"), valid until `c` is freed; NULL when `c`
 // is NULL.
 //
 // # Safety
@@ -250,8 +221,7 @@ const char *shadewire_error_message(const struct shadewire_error *err,
 // `err` must be NULL or a live error handle.
 const char *shadewire_error_file(const struct shadewire_error *err);
 
-// The 1-based document line of `err`, or 0 when it has none (or `err` is NULL). SHADEWIRE_ERROR_SHADER errors
-// (from naga) carry their line inside the message text, and this is 0 for them.
+// The 1-based document line of `err`, or 0 when it has none (or `err` is NULL).
 //
 // # Safety
 // `err` must be NULL or a live error handle.
@@ -318,21 +288,6 @@ void shadewire_mtlx_options_default(struct shadewire_mtlx_options *out);
 // # Safety
 // `out` must be NULL or valid for writing a `shadewire_compile_options`.
 void shadewire_compile_options_default(struct shadewire_compile_options *out);
-
-// Links `host_prelude` (WGSL defining every `shadewire_host_*` function; NULL for the reference prelude, which backs
-// each read with a private variable) to the compiled material and translates the result to `target`.
-//
-// WGSL targets yield the linked text; HLSL, GLSL and MSL yield text blobs; SPIR-V yields a binary blob. Prelude
-// problems come back as SHADEWIRE_ERROR_SHADER errors. `*out` is written only on success.
-//
-// # Safety
-// `compiled` must be a live handle (NULL is an error); `host_prelude` NULL or a valid NUL-terminated string; `out`
-// valid for writing a pointer; `error` NULL or valid for writing a pointer.
-shadewire_status shadewire_translate(const struct shadewire_compiled *compiled,
-                                     const char *host_prelude,
-                                     struct shadewire_target target,
-                                     struct shadewire_blob **out,
-                                     struct shadewire_error **error);
 
 // The version as `(major << 16) | (minor << 8) | patch`.
 uint32_t shadewire_version(void);

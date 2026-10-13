@@ -25,14 +25,14 @@ pub struct ListArgs {
     pub file: PathBuf,
 }
 
+/// The language of the generated code: each a back end of its own.
 #[derive(Copy, Clone, Debug, PartialEq, ValueEnum)]
 pub enum Lang {
     Wgsl,
-    Hlsl,
     Glsl,
     GlslEs,
+    Hlsl,
     Msl,
-    Spirv,
 }
 
 #[derive(Parser, Debug)]
@@ -68,10 +68,13 @@ pub struct CompileArgs {
     pub models: Vec<String>,
     #[arg(long, value_enum, default_value = "wgsl")]
     pub lang: Lang,
+    /// The GLSL version: default 420 for `glsl`, 300 for `glsl-es`
+    #[arg(long)]
+    pub glsl_version: Option<u16>,
     /// Write the reflection JSON here
     #[arg(long)]
     pub reflection: Option<PathBuf>,
-    /// Write the shader here instead of stdout
+    /// Write the code here instead of stdout
     #[arg(short = 'o', long)]
     pub output: Option<PathBuf>,
     /// Skip the optimizer

@@ -23,9 +23,9 @@ fn hlsl_with_a_reflection_file() {
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     let value: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&json).unwrap()).unwrap();
     assert_eq!(value["model"], "standard_surface");
-    let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(stderr.contains("reference host"), "{stderr}");
-    assert!(String::from_utf8_lossy(&out.stdout).contains("shadewire_reference_main"));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("StandardSurface shadewire_eval_surface() {"), "{stdout}");
+    assert!(stdout.contains("ConstantBuffer<MaterialUniforms> shadewire_u : register(b0, space2);"), "{stdout}");
 }
 
 #[test]
@@ -35,7 +35,6 @@ fn wgsl_goes_to_the_output_file_as_generated() {
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     let text = std::fs::read_to_string(&wgsl).unwrap();
     assert!(text.contains("fn shadewire_eval_surface() -> StandardSurface"));
-    assert!(!text.contains("shadewire_reference_main"));
     assert!(out.stderr.is_empty());
 }
 
@@ -82,21 +81,19 @@ fn an_error_is_one_message_and_exit_one() {
 }
 
 #[test]
-fn the_note_names_the_language_as_typed() {
-    let out = run(&["compile", EXAMPLE, "--lang", "glsl-es"]);
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
-    let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(stderr.contains("note: glsl-es output links the reference host"), "{stderr}");
-}
-
-#[test]
-fn no_reflection_file_when_the_shader_fails() {
-    let json = scratch("failed.json");
-    let _ = std::fs::remove_file(&json);
-    let out = run(&["compile", EXAMPLE, "--lang", "spirv", "--reflection", json.to_str().unwrap()]);
-    assert_eq!(out.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&out.stderr).contains("give -o"));
-    assert!(!json.exists(), "the reflection was written for a failed compile");
+fn every_language_with_its_version() {
+    for (lang, extra, expect) in [
+        ("glsl", &[][..], "#version 420 core"),
+        ("glsl", &["--glsl-version", "330"][..], "#version 330 core"),
+        ("glsl-es", &[][..], "#version 300 es"),
+        ("msl", &[][..], "#include <metal_stdlib>"),
+    ] {
+        let mut args = vec!["compile", EXAMPLE, "--lang", lang];
+        args.extend_from_slice(extra);
+        let out = run(&args);
+        assert!(out.status.success(), "{lang}: {}", String::from_utf8_lossy(&out.stderr));
+        assert!(String::from_utf8_lossy(&out.stdout).starts_with(expect), "{lang} {extra:?}");
+    }
 }
 
 #[test]

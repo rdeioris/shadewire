@@ -4,7 +4,7 @@
 use shadewire::shader::fixtures::{self, add, reflection};
 use shadewire::*;
 
-use crate::test_support::{naga_validates, validates};
+use crate::validate::{check, naga};
 use crate::{MaterialOptions, emit};
 
 fn wgsl(dag: &Dag) -> (String, Reflection) {
@@ -17,7 +17,7 @@ fn every_fixture_validates() {
     for (name, dag) in fixtures::all() {
         let (text, r) = wgsl(&dag);
         assert!(!text.contains("fn shadewire_host_"), "{name}: host functions are the host's");
-        validates(&r, &text);
+        check(&text, &r).unwrap();
     }
 }
 
@@ -28,7 +28,7 @@ fn without_implicit_derivatives_every_fixture_validates() {
         let r = reflection(&dag);
         let text = emit(&dag, &r, &options);
         assert!(!text.contains("textureSample(") && !text.contains("dpdx"), "{name}: {text}");
-        validates(&r, &text);
+        check(&text, &r).unwrap();
     }
 }
 
@@ -67,7 +67,7 @@ fn shadewire_eval_surface() -> OpenPbrSurface {
 }
 ";
     assert_eq!(text, expected);
-    validates(&r, &text);
+    check(&text, &r).unwrap();
 }
 
 #[test]
@@ -165,10 +165,10 @@ fn validates_checks_the_fragment_stage() {
     let dag = Dag::new("m");
     let text =
         "struct M { x: f32 }\nfn shadewire_eval_surface() -> M {\n    workgroupBarrier();\n    return M(1.0);\n}\n";
-    validates(&reflection(&dag), text);
+    check(text, &reflection(&dag)).map_err(|e| panic!("{e}")).unwrap();
 }
 
 #[test]
 fn naga_validates_accepts_a_plain_function() {
-    naga_validates("fn f() -> f32 { return 1.0; }");
+    naga("fn f() -> f32 { return 1.0; }").unwrap();
 }

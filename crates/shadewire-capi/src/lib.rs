@@ -8,10 +8,9 @@
 //! is reserved as explicit `reserved` bytes that callers set to zero and the library ignores on read.
 //!
 //! Threads: handles are immutable once returned, so any number of threads may call the accessors and
-//! `shadewire_wgsl_compile` / `shadewire_translate` on the same handle at once (lazily built texts such as the IR dump
+//! `shadewire_compile` on the same handle at once (lazily built texts such as the IR dump
 //! are built once, safely). Free a handle exactly once, after every reader is done with it.
 
-mod blob;
 mod compiled;
 mod error;
 mod error_kind;
@@ -22,14 +21,11 @@ mod status;
 mod strings;
 mod target;
 mod threads;
-mod translate;
 mod version;
 
-pub use blob::{shadewire_blob, shadewire_blob_data, shadewire_blob_free, shadewire_blob_is_text};
 pub use compiled::{
-    shadewire_compile_mtlx, shadewire_compiled, shadewire_compiled_free, shadewire_compiled_ir_dump,
-    shadewire_compiled_reflection_json, shadewire_compiled_struct_name, shadewire_compiled_wgsl,
-    shadewire_wgsl_compile,
+    shadewire_compile, shadewire_compile_mtlx, shadewire_compiled, shadewire_compiled_code, shadewire_compiled_free,
+    shadewire_compiled_ir_dump, shadewire_compiled_reflection_json, shadewire_compiled_struct_name,
 };
 pub use error::{
     shadewire_error, shadewire_error_file, shadewire_error_free, shadewire_error_get_kind, shadewire_error_line,
@@ -44,9 +40,8 @@ pub use options::{
 pub use status::shadewire_status;
 pub use target::{
     SHADEWIRE_TARGET_GLSL, SHADEWIRE_TARGET_GLSL_ES, SHADEWIRE_TARGET_HLSL, SHADEWIRE_TARGET_MSL,
-    SHADEWIRE_TARGET_SPIRV, SHADEWIRE_TARGET_WEBGL2, SHADEWIRE_TARGET_WGSL, shadewire_target, shadewire_target_kind,
+    SHADEWIRE_TARGET_WGSL, shadewire_target, shadewire_target_kind,
 };
-pub use translate::shadewire_translate;
 pub use version::{
     SHADEWIRE_VERSION_MAJOR, SHADEWIRE_VERSION_MINOR, SHADEWIRE_VERSION_PATCH, shadewire_version,
     shadewire_version_string,

@@ -3,8 +3,9 @@
 use std::path::Path;
 
 use shadewire::Error;
+use shadewire::shader::{CompileOptions, Compiled};
 use shadewire_mtlx::{MtlxOptions, to_ir};
-use shadewire_wgsl::{CompileOptions, Compiled, compile};
+use shadewire_wgsl::compile;
 
 /// `to_ir`, then `compile`.
 pub fn compile_mtlx(

@@ -150,4 +150,5 @@ def compile_material(path, material=None):
     host = "\n".join([host_functions(reflection), ENTRY, VERTEX])
     print(f"{ir.model}: {len(reflection['closure']['nodes'])} closure nodes, "
           f"{len(reflection['uniforms'])} uniforms, {len(reflection['textures'])} textures")
-    return compiled, wgsl.link(compiled.wgsl, host)
+    # wgpu validates the whole module when it makes the shader module.
+    return compiled, compiled.code + "\n" + host

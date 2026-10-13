@@ -14,12 +14,10 @@ pub enum shadewire_error_kind {
     SHADEWIRE_ERROR_MATERIAL = 4,
     /// The node graph is invalid.
     SHADEWIRE_ERROR_GRAPH = 5,
-    /// The generated shader failed validation.
-    SHADEWIRE_ERROR_SHADER = 6,
     /// Reading or writing failed.
-    SHADEWIRE_ERROR_IO = 7,
+    SHADEWIRE_ERROR_IO = 6,
     /// An internal fault: a panic caught at the boundary, or a library bug the caller cannot fix.
-    SHADEWIRE_ERROR_PANIC = 8,
+    SHADEWIRE_ERROR_PANIC = 7,
 }
 
 /// The kind of a core error.
@@ -41,7 +39,6 @@ pub(crate) fn kind_of(error: &shadewire::Error) -> shadewire_error_kind {
         | Error::Cycle { .. }
         | Error::MissingLeafImpl { .. }
         | Error::BadValue { .. } => shadewire_error_kind::SHADEWIRE_ERROR_GRAPH,
-        Error::Naga(_) => shadewire_error_kind::SHADEWIRE_ERROR_SHADER,
         Error::Io(_) => shadewire_error_kind::SHADEWIRE_ERROR_IO,
     }
 }
@@ -103,8 +100,7 @@ mod tests {
     }
 
     #[test]
-    fn shader_and_io() {
-        assert_eq!(kind_of(&Error::Naga("x".into())), K::SHADEWIRE_ERROR_SHADER);
+    fn io_is_io() {
         assert_eq!(kind_of(&Error::Io("x".into())), K::SHADEWIRE_ERROR_IO);
     }
 }

@@ -1,24 +1,19 @@
-//! Output language selection at the C boundary.
-
-use shadewire_wgsl::{GlslVersion, HlslShaderModel, MslVersion, Target};
+//! Output language selection at the C boundary: which back end compiles.
 
 use crate::strings::ArgError;
 
 /// Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
 pub type shadewire_target_kind = u32;
 pub const SHADEWIRE_TARGET_WGSL: shadewire_target_kind = 0;
-pub const SHADEWIRE_TARGET_HLSL: shadewire_target_kind = 1;
-pub const SHADEWIRE_TARGET_GLSL: shadewire_target_kind = 2;
-pub const SHADEWIRE_TARGET_GLSL_ES: shadewire_target_kind = 3;
-pub const SHADEWIRE_TARGET_WEBGL2: shadewire_target_kind = 4;
-pub const SHADEWIRE_TARGET_MSL: shadewire_target_kind = 5;
-pub const SHADEWIRE_TARGET_SPIRV: shadewire_target_kind = 6;
+pub const SHADEWIRE_TARGET_GLSL: shadewire_target_kind = 1;
+pub const SHADEWIRE_TARGET_GLSL_ES: shadewire_target_kind = 2;
+pub const SHADEWIRE_TARGET_HLSL: shadewire_target_kind = 3;
+pub const SHADEWIRE_TARGET_MSL: shadewire_target_kind = 4;
 
 /// A target language and its version.
 ///
-/// `version` is the shader model times ten for HLSL (50, 51, 60..69), the `#version` number for GLSL (330, 400, 410,
-/// 420, 430, 450) and GLSL ES (300, 310), `major * 100 + minor` for MSL (100..102, 200..204, 300..302 or 400, the
-/// Metal versions naga knows; 203 is 2.3), and ignored for WGSL, WEBGL2 and SPIRV. Any other version is
+/// `version` is the `#version` number for GLSL (330, 400, 410, 420, 430, 440, 450, 460; 0 for 420) and GLSL ES
+/// (300, 310, 320; 0 for 300), and ignored for WGSL, HLSL and MSL. Any other version is
 /// SHADEWIRE_ERROR_INVALID_ARGUMENT.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -27,65 +22,37 @@ pub struct shadewire_target {
     pub version: u32,
 }
 
+/// A back end, with what it needs to know.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Backend {
+    Wgsl,
+    Glsl(shadewire_glsl::Version),
+    Hlsl,
+    Msl,
+}
+
 fn bad_version(language: &str, version: u32) -> ArgError {
     ArgError(format!("unsupported {language} version {version}"))
 }
 
-fn hlsl_model(version: u32) -> Result<HlslShaderModel, ArgError> {
-    match version {
-        50 => Ok(HlslShaderModel::Sm5_0),
-        51 => Ok(HlslShaderModel::Sm5_1),
-        60 => Ok(HlslShaderModel::Sm6_0),
-        61 => Ok(HlslShaderModel::Sm6_1),
-        62 => Ok(HlslShaderModel::Sm6_2),
-        63 => Ok(HlslShaderModel::Sm6_3),
-        64 => Ok(HlslShaderModel::Sm6_4),
-        65 => Ok(HlslShaderModel::Sm6_5),
-        66 => Ok(HlslShaderModel::Sm6_6),
-        67 => Ok(HlslShaderModel::Sm6_7),
-        68 => Ok(HlslShaderModel::Sm6_8),
-        69 => Ok(HlslShaderModel::Sm6_9),
-        _ => Err(bad_version("HLSL", version)),
-    }
-}
-
-/// The Metal Shading Language versions naga 30 writes: 1.0-1.2, 2.0-2.4, 3.0-3.2 and 4.0.
-fn msl_version(version: u32) -> Result<MslVersion, ArgError> {
-    let (major, minor) = match version {
-        100 => (1, 0),
-        101 => (1, 1),
-        102 => (1, 2),
-        200 => (2, 0),
-        201 => (2, 1),
-        202 => (2, 2),
-        203 => (2, 3),
-        204 => (2, 4),
-        300 => (3, 0),
-        301 => (3, 1),
-        302 => (3, 2),
-        400 => (4, 0),
-        _ => return Err(bad_version("MSL", version)),
-    };
-    Ok(MslVersion { major, minor })
-}
-
-/// Converts a C target to the Rust one, rejecting unknown kinds and versions.
-pub(crate) fn to_target(target: shadewire_target) -> Result<Target, ArgError> {
+/// The back end a C target selects, rejecting unknown kinds and versions.
+pub(crate) fn backend(target: shadewire_target) -> Result<Backend, ArgError> {
+    use shadewire_glsl::Version;
     let version = target.version;
     match target.kind {
-        SHADEWIRE_TARGET_WGSL => Ok(Target::Wgsl),
-        SHADEWIRE_TARGET_HLSL => hlsl_model(version).map(Target::Hlsl),
+        SHADEWIRE_TARGET_WGSL => Ok(Backend::Wgsl),
         SHADEWIRE_TARGET_GLSL => match version {
-            330 | 400 | 410 | 420 | 430 | 450 => Ok(Target::Glsl(GlslVersion::Desktop(version as u16))),
+            0 => Ok(Backend::Glsl(Version::Desktop(420))),
+            330 | 400 | 410 | 420 | 430 | 440 | 450 | 460 => Ok(Backend::Glsl(Version::Desktop(version as u16))),
             _ => Err(bad_version("GLSL", version)),
         },
         SHADEWIRE_TARGET_GLSL_ES => match version {
-            300 | 310 => Ok(Target::Glsl(GlslVersion::Es(version as u16))),
+            0 => Ok(Backend::Glsl(Version::Es(300))),
+            300 | 310 | 320 => Ok(Backend::Glsl(Version::Es(version as u16))),
             _ => Err(bad_version("GLSL ES", version)),
         },
-        SHADEWIRE_TARGET_WEBGL2 => Ok(Target::Glsl(GlslVersion::WebGl2)),
-        SHADEWIRE_TARGET_MSL => msl_version(version).map(Target::Msl),
-        SHADEWIRE_TARGET_SPIRV => Ok(Target::SpirV),
+        SHADEWIRE_TARGET_HLSL => Ok(Backend::Hlsl),
+        SHADEWIRE_TARGET_MSL => Ok(Backend::Msl),
         other => Err(ArgError(format!("unknown target kind {other}"))),
     }
 }
@@ -93,64 +60,42 @@ pub(crate) fn to_target(target: shadewire_target) -> Result<Target, ArgError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use shadewire_glsl::Version;
 
-    fn t(kind: shadewire_target_kind, version: u32) -> Result<Target, ArgError> {
-        to_target(shadewire_target { kind, version })
+    fn t(kind: shadewire_target_kind, version: u32) -> Result<Backend, ArgError> {
+        backend(shadewire_target { kind, version })
     }
 
     #[test]
-    fn wgsl_webgl2_and_spirv_ignore_the_version() {
-        assert_eq!(t(SHADEWIRE_TARGET_WGSL, 12345), Ok(Target::Wgsl));
-        assert_eq!(t(SHADEWIRE_TARGET_WEBGL2, 7), Ok(Target::Glsl(GlslVersion::WebGl2)));
-        assert_eq!(t(SHADEWIRE_TARGET_SPIRV, 0), Ok(Target::SpirV));
-    }
-
-    #[test]
-    fn hlsl_models() {
-        assert_eq!(t(SHADEWIRE_TARGET_HLSL, 50), Ok(Target::Hlsl(HlslShaderModel::Sm5_0)));
-        assert_eq!(t(SHADEWIRE_TARGET_HLSL, 51), Ok(Target::Hlsl(HlslShaderModel::Sm5_1)));
-        assert_eq!(t(SHADEWIRE_TARGET_HLSL, 60), Ok(Target::Hlsl(HlslShaderModel::Sm6_0)));
-        assert_eq!(t(SHADEWIRE_TARGET_HLSL, 66), Ok(Target::Hlsl(HlslShaderModel::Sm6_6)));
-        assert_eq!(t(SHADEWIRE_TARGET_HLSL, 69), Ok(Target::Hlsl(HlslShaderModel::Sm6_9)));
-        for bad in [0, 40, 52, 59, 70, 600] {
-            assert!(t(SHADEWIRE_TARGET_HLSL, bad).is_err(), "HLSL {bad}");
-        }
+    fn wgsl_hlsl_and_msl_ignore_the_version() {
+        assert_eq!(t(SHADEWIRE_TARGET_WGSL, 12345), Ok(Backend::Wgsl));
+        assert_eq!(t(SHADEWIRE_TARGET_HLSL, 60), Ok(Backend::Hlsl));
+        assert_eq!(t(SHADEWIRE_TARGET_MSL, 7), Ok(Backend::Msl));
     }
 
     #[test]
     fn glsl_versions() {
-        for v in [330, 400, 410, 420, 430, 450] {
-            assert_eq!(t(SHADEWIRE_TARGET_GLSL, v), Ok(Target::Glsl(GlslVersion::Desktop(v as u16))));
+        for v in [330, 400, 410, 420, 430, 440, 450, 460] {
+            assert_eq!(t(SHADEWIRE_TARGET_GLSL, v), Ok(Backend::Glsl(Version::Desktop(v as u16))));
         }
-        for bad in [0, 300, 440, 460, 70000] {
+        assert_eq!(t(SHADEWIRE_TARGET_GLSL, 0), Ok(Backend::Glsl(Version::Desktop(420))));
+        for bad in [300, 320, 470, 70000] {
             assert!(t(SHADEWIRE_TARGET_GLSL, bad).is_err(), "GLSL {bad}");
         }
     }
 
     #[test]
     fn glsl_es_versions() {
-        assert_eq!(t(SHADEWIRE_TARGET_GLSL_ES, 300), Ok(Target::Glsl(GlslVersion::Es(300))));
-        assert_eq!(t(SHADEWIRE_TARGET_GLSL_ES, 310), Ok(Target::Glsl(GlslVersion::Es(310))));
-        assert!(t(SHADEWIRE_TARGET_GLSL_ES, 320).is_err());
+        for v in [300, 310, 320] {
+            assert_eq!(t(SHADEWIRE_TARGET_GLSL_ES, v), Ok(Backend::Glsl(Version::Es(v as u16))));
+        }
+        assert_eq!(t(SHADEWIRE_TARGET_GLSL_ES, 0), Ok(Backend::Glsl(Version::Es(300))));
         assert!(t(SHADEWIRE_TARGET_GLSL_ES, 330).is_err());
     }
 
     #[test]
-    fn msl_accepts_the_metal_versions_naga_knows() {
-        let known = [(1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (3, 0), (3, 1), (3, 2), (4, 0)];
-        for (major, minor) in known {
-            let version = u32::from(major) * 100 + u32::from(minor);
-            assert_eq!(t(SHADEWIRE_TARGET_MSL, version), Ok(Target::Msl(MslVersion { major, minor })), "MSL {version}");
-        }
-        for bad in [0, 99, 103, 110, 205, 230, 303, 310, 401, 500, 100_000] {
-            assert!(t(SHADEWIRE_TARGET_MSL, bad).is_err(), "MSL {bad}");
-        }
-    }
-
-    #[test]
     fn unknown_kinds_are_rejected() {
-        assert!(t(7, 0).is_err());
-        assert!(t(99, 330).is_err());
+        assert!(t(5, 0).is_err());
         assert!(t(u32::MAX, 0).is_err());
     }
 }

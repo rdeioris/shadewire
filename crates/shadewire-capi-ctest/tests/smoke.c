@@ -1,4 +1,4 @@
-/* C99 smoke test of the Shadewire C API: compile a MaterialX file, translate it to HLSL, check a parse error. */
+/* C99 smoke test of the Shadewire C API: compile a MaterialX file to WGSL and to HLSL, check a parse error. */
 
 #include "shadewire.h"
 
@@ -36,42 +36,40 @@ static char *read_file(const char *path, size_t *len) {
     return text;
 }
 
-static int compile_and_translate(const char *text, size_t len, const char *path, char *report, size_t report_len) {
+/* Compiles the file to `kind`, checking the code names `expect`. */
+static int compile_to(const char *text, size_t len, const char *path, shadewire_target_kind kind, const char *expect,
+                      int first_step, char *report, size_t report_len) {
     shadewire_compile_options options;
     shadewire_compiled *compiled = NULL;
-    shadewire_blob *hlsl = NULL;
     shadewire_error *err = NULL;
     shadewire_target target;
-    const char *wgsl;
     const char *code;
     int step = 0;
 
     shadewire_compile_options_default(&options);
-    if (shadewire_compile_mtlx(text, len, path, NULL, NULL, &options, &compiled, &err) != SHADEWIRE_OK) {
-        step = fail(report, report_len, 2, "shadewire_compile_mtlx failed", err);
+    target.kind = kind;
+    target.version = 0;
+    if (shadewire_compile_mtlx(text, len, path, NULL, NULL, target, &options, &compiled, &err) != SHADEWIRE_OK) {
+        step = fail(report, report_len, first_step, "shadewire_compile_mtlx failed", err);
         goto done;
     }
-    wgsl = shadewire_compiled_wgsl(compiled, NULL);
-    if (wgsl == NULL || strstr(wgsl, "shadewire_eval_surface") == NULL) {
-        step = fail(report, report_len, 3, "the WGSL lacks shadewire_eval_surface", NULL);
-        goto done;
-    }
-    target.kind = SHADEWIRE_TARGET_HLSL;
-    target.version = 60;
-    if (shadewire_translate(compiled, NULL, target, &hlsl, &err) != SHADEWIRE_OK) {
-        step = fail(report, report_len, 4, "shadewire_translate to HLSL 6.0 failed", err);
-        goto done;
-    }
-    code = (const char *)shadewire_blob_data(hlsl, NULL);
-    if (!shadewire_blob_is_text(hlsl) || code == NULL || strstr(code, "shadewire_eval_surface") == NULL) {
-        step = fail(report, report_len, 5, "the HLSL lacks shadewire_eval_surface", NULL);
+    code = shadewire_compiled_code(compiled, NULL);
+    if (code == NULL || strstr(code, expect) == NULL) {
+        step = fail(report, report_len, first_step + 1, "the code lacks what it should have", NULL);
         goto done;
     }
 
 done:
-    shadewire_blob_free(hlsl);
     shadewire_compiled_free(compiled);
     shadewire_error_free(err);
+    return step;
+}
+
+static int compile_and_translate(const char *text, size_t len, const char *path, char *report, size_t report_len) {
+    int step = compile_to(text, len, path, SHADEWIRE_TARGET_WGSL, "fn shadewire_eval_surface", 2, report, report_len);
+    if (step == 0) {
+        step = compile_to(text, len, path, SHADEWIRE_TARGET_HLSL, "shadewire_eval_surface() {", 4, report, report_len);
+    }
     return step;
 }
 

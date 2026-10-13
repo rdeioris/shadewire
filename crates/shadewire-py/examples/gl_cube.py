@@ -3,8 +3,8 @@
     pip install shadewire pygame PyOpenGL pillow
     python gl_cube.py material.mtlx [--material NAME] [--size 800] [--frames N --screenshot out.png]
 
-Shadewire compiles the material and hands it over as a GLSL library (`shadewire.wgsl.glsl_library`): the struct
-of the material's values, its uniform block and samplers, `Surface shadewire_eval_surface()`, the functions that
+Shadewire compiles the material to a GLSL library (`shadewire.glsl.compile`): the struct of the material's
+values, its uniform block and textures, `Surface shadewire_eval_surface()`, the functions that
 evaluate the material's lobes (`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`), and a
 prototype for each host function the material calls (`vec3 shadewire_host_normal_world();`...).
 
@@ -13,9 +13,9 @@ Everything else is this file's GLSL: the vertex shader, and after the library in
 1. the host functions, reading the vertex shader's outputs;
 2. `main`: one directional light and uniform ambient light through the material.
 
-GLSL has no bind groups: the library puts the material's resources (WGSL group 1) at binding points
-`32 + binding`, and each texture combines with its sampler into one `sampler2D` at the texture's point. The scene's
-uniform blocks use 0 and 1. Escape or closing the window quits.
+The material's resources sit at the binding points its reflection gives: its uniform block at `uniform_binding`,
+each texture (a `sampler2D`) at unit `binding`. They start at 2 (`FIRST_BINDING`): the scene's uniform blocks use 0
+and 1. Escape or closing the window quits.
 """
 
 import argparse
@@ -31,9 +31,9 @@ from OpenGL.GL.shaders import compileProgram, compileShader
 from PIL import Image
 
 import shadewire
-from shadewire import mtlx, wgsl
+from shadewire import glsl, mtlx
 
-MATERIAL_GROUP = 1
+FIRST_BINDING = 2
 GLSL_TYPE = {"float": "float", "integer": "int", "boolean": "bool", "vector2": "vec2", "vector3": "vec3",
              "color3": "vec3", "vector4": "vec4", "color4": "vec4"}
 
@@ -144,14 +144,14 @@ def glsl_program(mtlx_path, material):
     """The program: the vertex shader, and Shadewire's GLSL library with this host after it. Also the reflection."""
     text = open(mtlx_path, encoding="utf-8").read()
     ir = mtlx.to_ir(text, path=mtlx_path, material=material, models=["surface"])
-    compiled = wgsl.compile(ir, group=MATERIAL_GROUP)
+    compiled = glsl.compile(ir, version=420, first_binding=FIRST_BINDING)
     reflection = compiled.reflection
     print(f"{ir.model}: {len(reflection['closure']['nodes'])} closure nodes, "
           f"{len(reflection['uniforms'])} uniforms, {len(reflection['textures'])} textures")
     host, missing = host_functions(reflection)
     if missing:
         print("reads this host lacks (zero):", ", ".join(missing))
-    fragment = "\n".join([wgsl.glsl_library(compiled, 420), SCENE, host, MAIN])
+    fragment = "\n".join([compiled.code, SCENE, host, MAIN])
     stages = [compileShader(VERTEX_SHADER, GL.GL_VERTEX_SHADER), compileShader(fragment, GL.GL_FRAGMENT_SHADER)]
     return compileProgram(*stages, validate=False), reflection
 
@@ -222,11 +222,6 @@ def cube_vao():
 # ---------------------------------------------------------------------------------------------------- the material
 
 
-def gl_binding(group, binding):
-    """Where Shadewire's GLSL puts WGSL `@group(group) @binding(binding)`."""
-    return 32 * group + binding
-
-
 def uniform_buffer(data, point):
     buffer = GL.glGenBuffers(1)
     GL.glBindBuffer(GL.GL_UNIFORM_BUFFER, buffer)
@@ -255,9 +250,9 @@ WRAP = {"periodic": GL.GL_REPEAT, "mirror": GL.GL_MIRRORED_REPEAT, "clamp": GL.G
 
 
 def bind_material(reflection, base_dir):
-    """The material's uniform block and textures at the binding points of group `MATERIAL_GROUP`."""
+    """The material's uniform block and textures at the binding points the reflection gives."""
     if reflection["uniform_binding"] is not None:
-        uniform_buffer(material_uniforms(reflection), gl_binding(MATERIAL_GROUP, reflection["uniform_binding"]))
+        uniform_buffer(material_uniforms(reflection), reflection["uniform_binding"])
     for t in reflection["textures"]:
         path = os.path.join(base_dir, t["file"])
         try:
@@ -265,7 +260,7 @@ def bind_material(reflection, base_dir):
         except OSError:
             print(f"warning: texture {path} not found; it reads as mid grey")
             image = Image.new("RGBA", (1, 1), (128, 128, 128, 255))
-        GL.glActiveTexture(GL.GL_TEXTURE0 + gl_binding(MATERIAL_GROUP, t["binding"]))
+        GL.glActiveTexture(GL.GL_TEXTURE0 + t["binding"])
         GL.glBindTexture(GL.GL_TEXTURE_2D, GL.glGenTextures(1))
         # Raw texels (GL_RGBA8, never sRGB: the generated code converts colorspaces), top row first: Shadewire
         # flips V when sampling.

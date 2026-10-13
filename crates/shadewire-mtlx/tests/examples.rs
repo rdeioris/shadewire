@@ -1,6 +1,6 @@
-//! Acceptance: every material of the upstream Examples compiles, links against the
-//! reference host and translates to every naga back end, or is allow-listed with a
-//! reason the spec puts out of phase 1.
+//! Acceptance: every material of the upstream Examples compiles with every back end, and the code validates (WGSL
+//! in naga; GLSL in glslangValidator and HLSL in dxc when installed), or is allow-listed with a reason the spec puts
+//! out of phase 1.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -11,10 +11,8 @@ use shadewire_mtlx::parse::parse_str;
 mod common;
 
 use common::compile_mtlx;
+use shadewire::shader::CompileOptions;
 use shadewire_mtlx::MtlxOptions;
-use shadewire_wgsl::{
-    CompileOptions, GlslVersion, HlslShaderModel, MslVersion, Target, link, reference_host, translate,
-};
 
 const FOLDERS: [&str; 3] = ["StandardSurface", "OpenPbr", "GltfPbr"];
 const ALLOWLIST: &str = include_str!("examples_allowlist.txt");
@@ -24,16 +22,6 @@ const OUT_OF_PHASE: [&str; 4] = ["bsdf graph", "translation", "matrix", "displac
 
 fn examples() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../vendor/materialx/resources/Materials/Examples")
-}
-
-fn targets() -> [Target; 5] {
-    [
-        Target::Hlsl(HlslShaderModel::Sm6_0),
-        Target::Glsl(GlslVersion::Desktop(450)),
-        Target::Glsl(GlslVersion::Es(300)),
-        Target::Msl(MslVersion { major: 2, minor: 1 }),
-        Target::SpirV,
-    ]
 }
 
 /// The `surfacematerial` names of a document, includes resolved.
@@ -50,14 +38,21 @@ fn variant(error: &Error) -> String {
     debug.split(|c: char| !c.is_alphanumeric()).next().unwrap_or_default().to_string()
 }
 
-/// Compile, link and translate one material; the first failure wins.
+/// Compile one material with every back end and validate the code; the first failure wins. A validator's
+/// failure is a bug, not an allow-listed error, so it panics.
 fn check(text: &str, path: &Path, material: &str) -> Result<(), Error> {
-    let compiled = compile_mtlx(text, Some(path), Some(material), &MtlxOptions::default(), &CompileOptions::default())?;
-    let model = shadewire::model_struct_name(&compiled.reflection.model);
-    let linked = link(&compiled.code, &reference_host::prelude(&compiled.reflection, &model))?;
-    for target in targets() {
-        translate(&linked, target, None)?;
-    }
+    let options = CompileOptions::default();
+    let compiled = compile_mtlx(text, Some(path), Some(material), &MtlxOptions::default(), &options)?;
+    let name = format!("{}_{material}", path.file_stem().unwrap_or_default().to_string_lossy());
+    let fail = |language: &str, e: String| -> ! { panic!("{name}: the {language} does not validate:\n{e}") };
+    shadewire_wgsl::validate::check(&compiled.code, &compiled.reflection).unwrap_or_else(|e| fail("WGSL", e));
+    let ir = shadewire_mtlx::to_ir(text, Some(path), Some(material), &MtlxOptions::default())?;
+    let version = shadewire_glsl::Version::Desktop(420);
+    let glsl = shadewire_glsl::compile(&ir.dag, &ir.source, &options, version)?;
+    shadewire_glsl::validate::check(&name, &glsl.code, &glsl.reflection, version).unwrap_or_else(|e| fail("GLSL", e));
+    let hlsl = shadewire_hlsl::compile(&ir.dag, &ir.source, &options)?;
+    shadewire_hlsl::validate::check(&name, &hlsl.code, &hlsl.reflection).unwrap_or_else(|e| fail("HLSL", e));
+    shadewire_msl::compile(&ir.dag, &ir.source, &options)?;
     Ok(())
 }
 
