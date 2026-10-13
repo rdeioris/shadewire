@@ -14,6 +14,7 @@ produces it, through node graphs and the material's interface. Textures go throu
 """
 
 import os
+import traceback
 from xml.sax.saxutils import quoteattr
 
 import bpy
@@ -53,12 +54,13 @@ def is_mtlx_layer(layer):
 def mtlx_source(material):
     """(the `.mtlx` layer, the material's name in it) when `material` and every prim under it compose from that
     layer alone, else None."""
-    layers = set()
+    # By identifier: USD before 26 wraps one layer in Python objects that do not hash alike.
+    layers = {}
     for prim in Usd.PrimRange(material.GetPrim()):
-        layers.update(spec.layer for spec in prim.GetPrimStack())
+        layers.update((spec.layer.identifier, spec.layer) for spec in prim.GetPrimStack())
     if len(layers) != 1:
         return None
-    layer = layers.pop()
+    layer = layers.popitem()[1]
     if not is_mtlx_layer(layer):
         return None
     spec = material.GetPrim().GetPrimStack()[0]
@@ -172,7 +174,7 @@ def output_type(shader, output):
     prop = None
     if node is not None:
         # usdMtlx names a shader's only output after its type (`surface`) rather than the nodedef's (`out`).
-        names = node.GetShaderOutputNames()
+        names = node.GetShaderOutputNames() if hasattr(node, "GetShaderOutputNames") else node.GetOutputNames()
         prop = node.GetShaderOutput(output.GetBaseName() if output.GetBaseName() in names or len(names) != 1
                                     else names[0])
     if prop is not None:
@@ -239,10 +241,14 @@ class ShadewireUSDHook(bpy.types.USDHook):
 
     @staticmethod
     def on_material_import(import_context, bl_material, usd_material):
+        # A failure falls back to Blender's own conversion, which an exception escaping here would abort.
         try:
             warnings = convert(import_context, bl_material, usd_material, settings(bpy.context))
         except compiler.CompileError as e:
             print(f"Shadewire: {usd_material.GetPath()}: {e}")
+            return False
+        except Exception:
+            print(f"Shadewire: {usd_material.GetPath()}:", traceback.format_exc(), sep="\n")
             return False
         for w in warnings:
             print(f"Shadewire: {bl_material.name}: {w}")

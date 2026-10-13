@@ -73,18 +73,24 @@ def check_usd(path):
     expected = sorted(p.GetName() for p in stage.Traverse()
                       if p.IsA(UsdShade.Material) and UsdShade.Material(p).GetSurfaceOutput("mtlx"))
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.wm.usd_import(filepath=path)
+    try:
+        bpy.ops.wm.usd_import(filepath=path)
+    except RuntimeError as e:
+        print(f"FAIL {os.path.basename(path)}: {e}")
+        return 1, 0
     failures = built = 0
     for name in expected:
         label = f"{os.path.basename(path)}:{name}"
         material = bpy.data.materials.get(name)
-        if material and material.node_tree and any(n.bl_idname == "ShaderNodeOutputMaterial" and
-                                                   n.inputs["Surface"].is_linked for n in material.node_tree.nodes):
+        # Built by the hook (which marks it), not by Blender's fallback after a failure.
+        if material and "shadewire_mode" in material and any(
+                n.bl_idname == "ShaderNodeOutputMaterial" and n.inputs["Surface"].is_linked
+                for n in material.node_tree.nodes):
             built += 1
             print(f"ok   {label}: {len(material.node_tree.nodes)} nodes")
         else:
             failures += 1
-            print(f"FAIL {label}: left empty")
+            print(f"FAIL {label}: not built by the hook")
     for image in bpy.data.images:
         if image.size[0] == 0:
             failures += 1

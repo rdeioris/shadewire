@@ -42,7 +42,10 @@ for material in bpy.data.materials:
 scene = bpy.context.scene
 scene.camera = next(o for o in bpy.data.objects if o.type == "CAMERA")
 if args.engine == "EEVEE":
-    scene.render.engine = "BLENDER_EEVEE"
+    try:
+        scene.render.engine = "BLENDER_EEVEE"
+    except TypeError:  # Blender 4.2 to 4.5
+        scene.render.engine = "BLENDER_EEVEE_NEXT"
     scene.eevee.taa_render_samples = args.samples
 else:
     scene.render.engine = "CYCLES"
