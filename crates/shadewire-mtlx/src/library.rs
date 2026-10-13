@@ -1,4 +1,4 @@
-//! The vendored MaterialX standard library, embedded in the binary.
+//! The vendored MaterialX standard library and Shadewire's own library graphs, embedded in the binary.
 
 use std::sync::OnceLock;
 
@@ -9,7 +9,10 @@ use crate::document::build::build;
 use crate::document::flatten::flatten_inheritance;
 use crate::parse::parse_str;
 
-static LIBRARIES: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/../../vendor/materialx/libraries");
+static LIBRARIES: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/materialx/libraries");
+
+/// Shadewire's graphs for library nodedefs upstream implements only per language; named `shadewire/...`.
+static OWN_LIBRARIES: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/libraries");
 
 pub struct Library {
     pub documents: Vec<Document>,
@@ -39,10 +42,14 @@ fn load() -> Library {
     let mut files = Vec::new();
     collect(&LIBRARIES, &mut files);
     files.sort_by_key(|f| f.path().to_path_buf());
-    let documents = files
-        .into_iter()
-        .map(|file| {
-            let name = file.path().to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/");
+    let mut own = Vec::new();
+    collect(&OWN_LIBRARIES, &mut own);
+    own.sort_by_key(|f| f.path().to_path_buf());
+    let named =
+        files.into_iter().map(|f| (String::new(), f)).chain(own.into_iter().map(|f| ("shadewire/".to_string(), f)));
+    let documents = named
+        .map(|(prefix, file)| {
+            let name = format!("{prefix}{}", file.path().to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/"));
             let text = file.contents_utf8().unwrap_or_else(|| panic!("{name} is not utf-8"));
             let root = parse_str(text, Some(&name)).unwrap_or_else(|e| panic!("{name}: {e}"));
             build(&root, Some(&name)).unwrap_or_else(|e| panic!("{name}: {e}"))

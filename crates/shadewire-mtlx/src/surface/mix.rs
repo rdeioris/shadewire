@@ -35,6 +35,11 @@ impl<'a> Elaborator<'a> {
                 Ok(out)
             }
             SurfaceSource::Mix { fg, bg, mix_input } => self.mixed_fields(fg, bg, mix_input),
+            SurfaceSource::Closure { node, scope, .. } => Err(Error::UnsupportedSurface {
+                at: self.at(scope, node.line, scope.origin(&node.name)),
+                node: node.name.clone(),
+                reason: "a surface node mixed with a shading model".to_string(),
+            }),
         }
     }
 
@@ -70,7 +75,7 @@ impl<'a> Elaborator<'a> {
 
     /// `mix(bg, fg, weight)`; booleans and integers cannot blend, so they
     /// take `fg` when the weight is at least one half.
-    fn mix_field(&mut self, fg: NodeId, bg: NodeId, weight: NodeId, ty: Type, origin: String) -> NodeId {
+    pub(crate) fn mix_field(&mut self, fg: NodeId, bg: NodeId, weight: NodeId, ty: Type, origin: String) -> NodeId {
         let kind = match ty {
             Type::Boolean | Type::Integer => {
                 let half = Node { kind: NodeKind::Const(Value::Float(0.5)), ty: Type::Float, origin: origin.clone() };

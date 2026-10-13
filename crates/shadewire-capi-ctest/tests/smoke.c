@@ -1,4 +1,5 @@
-/* C99 smoke test of the Shadewire C API: compile a MaterialX file, translate it to HLSL, check a parse error. */
+/* C99 smoke test of the Shadewire C API: list a MaterialX file's materials, lower it to the IR and read it back as
+ * JSON, compile it to WGSL and to HLSL, check a parse error. */
 
 #include "shadewire.h"
 
@@ -36,42 +37,82 @@ static char *read_file(const char *path, size_t *len) {
     return text;
 }
 
-static int compile_and_translate(const char *text, size_t len, const char *path, char *report, size_t report_len) {
+/* Compiles the file to `kind`, checking the code names `expect`. */
+static int compile_to(const char *text, size_t len, const char *path, shadewire_target_kind kind, const char *expect,
+                      int first_step, char *report, size_t report_len) {
     shadewire_compile_options options;
+    shadewire_ir *ir = NULL;
     shadewire_compiled *compiled = NULL;
-    shadewire_blob *hlsl = NULL;
     shadewire_error *err = NULL;
     shadewire_target target;
-    const char *wgsl;
     const char *code;
     int step = 0;
 
     shadewire_compile_options_default(&options);
-    if (shadewire_compile_mtlx(text, len, path, NULL, NULL, &options, &compiled, &err) != SHADEWIRE_OK) {
-        step = fail(report, report_len, 2, "shadewire_compile_mtlx failed", err);
+    options.implicit_derivatives = true;
+    target.kind = kind;
+    target.version = 0;
+    if (shadewire_mtlx_to_ir(text, len, path, NULL, NULL, &ir, &err) != SHADEWIRE_OK ||
+        shadewire_compile(ir, target, &options, &compiled, &err) != SHADEWIRE_OK) {
+        step = fail(report, report_len, first_step, "lowering or compiling failed", err);
         goto done;
     }
-    wgsl = shadewire_compiled_wgsl(compiled, NULL);
-    if (wgsl == NULL || strstr(wgsl, "shadewire_eval_surface") == NULL) {
-        step = fail(report, report_len, 3, "the WGSL lacks shadewire_eval_surface", NULL);
-        goto done;
-    }
-    target.kind = SHADEWIRE_TARGET_HLSL;
-    target.version = 60;
-    if (shadewire_translate(compiled, NULL, target, &hlsl, &err) != SHADEWIRE_OK) {
-        step = fail(report, report_len, 4, "shadewire_translate to HLSL 6.0 failed", err);
-        goto done;
-    }
-    code = (const char *)shadewire_blob_data(hlsl, NULL);
-    if (!shadewire_blob_is_text(hlsl) || code == NULL || strstr(code, "shadewire_eval_surface") == NULL) {
-        step = fail(report, report_len, 5, "the HLSL lacks shadewire_eval_surface", NULL);
+    code = shadewire_compiled_code(compiled, NULL);
+    if (code == NULL || strstr(code, expect) == NULL || shadewire_compiled_language(compiled) == NULL ||
+        strcmp(shadewire_compiled_model_struct(compiled), "StandardSurface") != 0) {
+        step = fail(report, report_len, first_step + 1, "the code lacks what it should have", NULL);
         goto done;
     }
 
 done:
-    shadewire_blob_free(hlsl);
     shadewire_compiled_free(compiled);
+    shadewire_ir_free(ir);
     shadewire_error_free(err);
+    return step;
+}
+
+/* The steps of Python's `shadewire.mtlx.material_names`, `to_ir`, `Ir.optimize` and `Ir.to_dict`. */
+static int names_and_ir(const char *text, size_t len, const char *path, char *report, size_t report_len) {
+    shadewire_strings *names = NULL;
+    shadewire_ir *ir = NULL;
+    shadewire_ir *optimized = NULL;
+    shadewire_error *err = NULL;
+    const char *json;
+    size_t json_len = 0;
+    int step = 0;
+
+    if (shadewire_mtlx_material_names(text, len, path, &names, &err) != SHADEWIRE_OK) {
+        step = fail(report, report_len, 10, "shadewire_mtlx_material_names failed", err);
+        goto done;
+    }
+    if (shadewire_strings_count(names) != 1 || shadewire_strings_get(names, 0) == NULL) {
+        step = fail(report, report_len, 11, "the document should have one material", NULL);
+        goto done;
+    }
+    if (shadewire_mtlx_to_ir(text, len, path, shadewire_strings_get(names, 0), NULL, &ir, &err) != SHADEWIRE_OK ||
+        shadewire_ir_optimize(ir, &optimized, &err) != SHADEWIRE_OK) {
+        step = fail(report, report_len, 12, "lowering or optimizing failed", err);
+        goto done;
+    }
+    json = shadewire_ir_json(optimized, &json_len);
+    if (json == NULL || json_len == 0 || json[0] != '{' || strcmp(shadewire_ir_source(optimized), "mtlx") != 0 ||
+        shadewire_ir_structure_hash(optimized) == NULL) {
+        step = fail(report, report_len, 13, "the IR does not read back", NULL);
+    }
+
+done:
+    shadewire_strings_free(names);
+    shadewire_ir_free(ir);
+    shadewire_ir_free(optimized);
+    shadewire_error_free(err);
+    return step;
+}
+
+static int compile_and_translate(const char *text, size_t len, const char *path, char *report, size_t report_len) {
+    int step = compile_to(text, len, path, SHADEWIRE_TARGET_WGSL, "fn shadewire_eval_surface", 2, report, report_len);
+    if (step == 0) {
+        step = compile_to(text, len, path, SHADEWIRE_TARGET_HLSL, "shadewire_eval_surface() {", 4, report, report_len);
+    }
     return step;
 }
 
@@ -114,7 +155,10 @@ int shadewire_smoke(const char *mtlx_path, char *report, size_t report_len) {
     if (text == NULL) {
         return fail(report, report_len, 1, "cannot read the MaterialX file", NULL);
     }
-    step = compile_and_translate(text, len, mtlx_path, report, report_len);
+    step = names_and_ir(text, len, mtlx_path, report, report_len);
+    if (step == 0) {
+        step = compile_and_translate(text, len, mtlx_path, report, report_len);
+    }
     free(text);
     if (step == 0) {
         step = parse_error(report, report_len);

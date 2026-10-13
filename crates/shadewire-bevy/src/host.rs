@@ -20,7 +20,7 @@
 //! Anything else is `ShadewireError::UnsupportedHost` naming it.
 
 use shadewire::{HOST_PREFIX, Reflection, Type, Value};
-use shadewire_wgsl::emit::types::{literal, wgsl_type};
+use shadewire_wgsl::{literal, wgsl_type};
 
 use crate::error::ShadewireError;
 
@@ -243,6 +243,7 @@ mod tests {
             context,
             displacement: None,
             approximations: Vec::new(),
+            closure: None,
         }
     }
 

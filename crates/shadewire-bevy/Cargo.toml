@@ -3,10 +3,14 @@ name = "shadewire-bevy"
 description = "Shadewire materials in Bevy: MaterialX graphs as StandardMaterial extensions"
 version.workspace = true
 edition.workspace = true
-rust-version = "1.97.1"
+rust-version = "1.97"
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+readme = "README.md"
+homepage.workspace = true
+keywords = ["materialx", "bevy", "shader", "material", "pbr"]
+categories = ["game-development", "rendering"]
 
 [dependencies]
 shadewire.workspace = true

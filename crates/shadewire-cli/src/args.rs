@@ -15,16 +15,24 @@ pub enum Command {
     Compile(CompileArgs),
     /// Print the IR of a MaterialX material (the DAG the shader is emitted from)
     Ir(IrArgs),
+    /// List the materials of a MaterialX document, one name per line
+    List(ListArgs),
 }
 
+#[derive(Parser, Debug)]
+pub struct ListArgs {
+    /// The .mtlx document
+    pub file: PathBuf,
+}
+
+/// The language of the generated code: each a back end of its own.
 #[derive(Copy, Clone, Debug, PartialEq, ValueEnum)]
 pub enum Lang {
     Wgsl,
-    Hlsl,
     Glsl,
     GlslEs,
+    Hlsl,
     Msl,
-    Spirv,
 }
 
 #[derive(Parser, Debug)]
@@ -43,6 +51,9 @@ pub struct IrArgs {
     /// Bake authored values in as constants instead of uniforms
     #[arg(long)]
     pub constants: bool,
+    /// Print the IR as a JSON document (`shadewire::export`) instead of text
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -57,10 +68,13 @@ pub struct CompileArgs {
     pub models: Vec<String>,
     #[arg(long, value_enum, default_value = "wgsl")]
     pub lang: Lang,
+    /// The GLSL version: default 420 for `glsl`, 300 for `glsl-es`
+    #[arg(long)]
+    pub glsl_version: Option<u16>,
     /// Write the reflection JSON here
     #[arg(long)]
     pub reflection: Option<PathBuf>,
-    /// Write the shader here instead of stdout
+    /// Write the code here instead of stdout
     #[arg(short = 'o', long)]
     pub output: Option<PathBuf>,
     /// Skip the optimizer

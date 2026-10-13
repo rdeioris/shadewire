@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{Dag, Error, NodeKind, Type, Value, structure_hash};
+use crate::{ClosureGraph, Dag, Error, NodeKind, Type, Value, structure_hash};
 
 pub use context::{ContextEntry, ContextReflection, GeomPropReflection};
 pub use params::ParamReflection;
@@ -55,6 +55,9 @@ pub struct Reflection {
     pub context: ContextReflection,
     pub displacement: Option<String>,
     pub approximations: Vec<String>,
+    /// The closure tree of a `surface` model; its field names are keys of `params`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closure: Option<ClosureGraph>,
 }
 
 /// What a host must bind and provide for `dag`. Fails when two context reads
@@ -110,6 +113,7 @@ pub fn reflect(dag: &Dag, bindings: &BindingOptions, source: &SourceInfo) -> Res
         context: context::context(dag, &live)?,
         displacement: None,
         approximations,
+        closure: dag.surface.closure.clone(),
     })
 }
 

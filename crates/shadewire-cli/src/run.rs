@@ -1,19 +1,15 @@
+use shadewire::Error;
 use shadewire::optimize::optimize;
-use shadewire::{Error, model_struct_name};
-use shadewire_mtlx::{MtlxOptions, to_ir};
-use shadewire_wgsl::{
-    CompileOptions, Compiled, GlslVersion, HlslShaderModel, MslVersion, Output, Target, compile, link, reference_host,
-    translate,
-};
+use shadewire::shader::{CompileOptions, Compiled};
+use shadewire_mtlx::{MtlxOptions, material_names, to_ir};
 
-use clap::ValueEnum;
-
-use crate::args::{Args, Command, CompileArgs, IrArgs, Lang};
+use crate::args::{Args, Command, CompileArgs, IrArgs, Lang, ListArgs};
 
 pub fn run(args: Args) -> Result<(), Error> {
     match args.command {
         Command::Compile(compile) => compile_command(&compile),
         Command::Ir(ir) => ir_command(&ir),
+        Command::List(list) => list_command(&list),
     }
 }
 
@@ -43,57 +39,50 @@ fn ir_command(args: &IrArgs) -> Result<(), Error> {
     let mtlx = mtlx_options(&args.models, args.constants);
     let ir = to_ir(&text, Some(&args.file), args.material.as_deref(), &mtlx)?;
     let dag = if args.no_optimize { ir.dag } else { optimize(&ir.dag) };
-    print!("{}", dag.dump());
+    if args.json {
+        let text = serde_json::to_string(&shadewire::export::export(&dag)).map_err(|e| Error::Io(e.to_string()))?;
+        println!("{text}");
+    } else {
+        print!("{}", dag.dump());
+    }
     Ok(())
 }
 
-fn target(lang: Lang) -> Target {
-    match lang {
-        Lang::Wgsl => Target::Wgsl,
-        Lang::Hlsl => Target::Hlsl(HlslShaderModel::Sm6_0),
-        Lang::Glsl => Target::Glsl(GlslVersion::Desktop(450)),
-        Lang::GlslEs => Target::Glsl(GlslVersion::Es(300)),
-        Lang::Msl => Target::Msl(MslVersion { major: 2, minor: 1 }),
-        Lang::Spirv => Target::SpirV,
+fn list_command(args: &ListArgs) -> Result<(), Error> {
+    let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
+    for name in material_names(&text, Some(&args.file))? {
+        println!("{name}");
     }
+    Ok(())
 }
 
-/// The language as typed after `--lang`, such as `glsl-es`.
-fn lang_name(lang: Lang) -> String {
-    lang.to_possible_value().map_or_else(String::new, |v| v.get_name().to_string())
-}
-
-/// The text or bytes to write: generated WGSL as is, or the linked module translated.
-fn render(compiled: &Compiled, lang: Lang) -> Result<Vec<u8>, Error> {
-    if lang == Lang::Wgsl {
-        return Ok(compiled.wgsl.clone().into_bytes());
+/// Compiles with the back end of `--lang`.
+fn compile(ir: &shadewire_mtlx::MaterialIr, args: &CompileArgs) -> Result<Compiled, Error> {
+    let options = compile_options(args);
+    let (dag, source) = (&ir.dag, &ir.source);
+    match args.lang {
+        Lang::Wgsl => shadewire_wgsl::compile(dag, source, &options),
+        Lang::Glsl | Lang::GlslEs => {
+            let version = shadewire_glsl::Version::new(args.lang == Lang::GlslEs, args.glsl_version);
+            shadewire_glsl::compile(dag, source, &options, version)
+        }
+        Lang::Hlsl => shadewire_hlsl::compile(dag, source, &options),
+        Lang::Msl => shadewire_msl::compile(dag, source, &options),
     }
-    eprintln!("note: {} output links the reference host, which supplies the entry point", lang_name(lang));
-    let prelude = reference_host::prelude(&compiled.reflection, &model_struct_name(&compiled.reflection.model));
-    let linked = link(&compiled.wgsl, &prelude)?;
-    Ok(match translate(&linked, target(lang))? {
-        Output::Text(text) => text.into_bytes(),
-        Output::Words(words) => words.iter().flat_map(|w| w.to_le_bytes()).collect(),
-    })
 }
 
 fn compile_command(args: &CompileArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
     let mtlx = mtlx_options(&args.models, args.constants);
     let ir = to_ir(&text, Some(&args.file), args.material.as_deref(), &mtlx)?;
-    let compiled = compile(&ir.dag, &ir.source, &compile_options(args))?;
-    let bytes = render(&compiled, args.lang)?;
-    if args.output.is_none() && args.lang == Lang::Spirv {
-        return Err(Error::Io("SPIR-V is binary: give -o".to_string()));
-    }
-    // Only a shader that rendered gets a reflection file, so the two always match.
+    let compiled = compile(&ir, args)?;
     if let Some(path) = &args.reflection {
         let json = serde_json::to_string_pretty(&compiled.reflection).map_err(|e| Error::Io(e.to_string()))?;
         std::fs::write(path, json).map_err(|e| io(e, path))?;
     }
     match &args.output {
-        Some(path) => std::fs::write(path, bytes).map_err(|e| io(e, path))?,
-        None => print!("{}", String::from_utf8_lossy(&bytes)),
+        Some(path) => std::fs::write(path, &compiled.code).map_err(|e| io(e, path))?,
+        None => print!("{}", compiled.code),
     }
     Ok(())
 }

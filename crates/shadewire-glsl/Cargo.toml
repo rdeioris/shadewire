@@ -1,0 +1,16 @@
+[package]
+name = "shadewire-glsl"
+description = "Shadewire GLSL back end: material IR to a GLSL library and reflection"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme = "README.md"
+homepage.workspace = true
+keywords = ["materialx", "shader", "glsl", "opengl", "webgl"]
+categories = ["graphics", "rendering"]
+
+[dependencies]
+shadewire.workspace = true

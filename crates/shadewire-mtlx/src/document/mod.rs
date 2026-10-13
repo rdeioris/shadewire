@@ -27,6 +27,10 @@ pub struct Document {
     pub outputs: Vec<Output>,
     pub unitdefs: Vec<UnitDef>,
     pub geompropdefs: Vec<GeomPropDef>,
+    /// `<implementation nodedef="..." nodegraph="..."/>`: nodedefs implemented by a graph that names another
+    /// nodedef (`ND_standard_surface_surfaceshader` by `NG_standard_surface_surfaceshader_100`), as
+    /// `(nodedef, nodegraph)`.
+    pub graph_implementations: Vec<(String, String)>,
 }
 
 impl Document {
@@ -40,6 +44,7 @@ impl Document {
             outputs: Vec::new(),
             unitdefs: Vec::new(),
             geompropdefs: Vec::new(),
+            graph_implementations: Vec::new(),
         }
     }
 }

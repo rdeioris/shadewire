@@ -1,11 +1,13 @@
 Shadewire
-Copyright (c) 2026 Roberto De Ioris (MIT, see LICENSE)
+Copyright (c) 2026 Roberto De Ioris (MIT, see LICENSE), except the Blender add-on in blender/shadewire_mtlx, which is
+licensed GPL-3.0-or-later (see blender/shadewire_mtlx/LICENSE)
 
 This product includes files from MaterialX (https://github.com/AcademySoftwareFoundation/MaterialX),
 Copyright Contributors to the MaterialX Project, licensed under the Apache License 2.0
-(vendor/materialx/LICENSE):
-- vendor/materialx/**: selected files from tag v1.39.5 (see vendor/materialx/UPSTREAM), line endings normalised
-- crates/shadewire-wgsl/lib/*.wgsl and crates/shadewire/src/ops/noise/*.rs, color.rs:
+(vendor/materialx/LICENSE, crates/shadewire-mtlx/materialx/LICENSE):
+- vendor/materialx/** and crates/shadewire-mtlx/materialx/**: selected files from tag v1.39.5 (see their UPSTREAM),
+  line endings normalised
+- crates/shadewire/src/shader/lib/*.wgsl and crates/shadewire/src/ops/noise/*.rs, color.rs:
   ports of libraries/stdlib/genglsl/lib/*.glsl (normal.wgsl: libraries/stdlib/genglsl/mx_normalmap.glsl,
   vector.wgsl: libraries/stdlib/genglsl/mx_rotate_vector2.glsl)
 - crates/shadewire/src/ops/normal.rs: port of libraries/stdlib/genglsl/mx_normalmap.glsl
@@ -15,10 +17,10 @@ Copyright Contributors to the MaterialX Project, licensed under the Apache Licen
 - crates/shadewire-mtlx/src/elaborate/ramp.rs: lowering of libraries/stdlib/genglsl/mx_ramplr_*.glsl and
   mx_ramptb_*.glsl
 
-crates/shadewire/src/ops/noise/*.rs and crates/shadewire-wgsl/lib/noise_*.wgsl derive from
+crates/shadewire/src/ops/noise/*.rs and crates/shadewire/src/shader/lib/noise_*.wgsl derive from
 the Open Shading Language noise library (github.com/imageworks/OpenShadingLanguage,
 src/include/OSL/oslnoise.h) by way of MaterialX genglsl/lib/mx_noise.glsl, and
-crates/shadewire/src/ops/color.rs and crates/shadewire-wgsl/lib/color.wgsl derive from OSL
+crates/shadewire/src/ops/color.rs and crates/shadewire/src/shader/lib/color.wgsl derive from OSL
 src/liboslexec/opcolor.cpp by way of MaterialX genglsl/lib/mx_hsv.glsl. Both are also subject to
 the following BSD-3-Clause notice, reproduced as it appears in mx_noise.glsl and mx_hsv.glsl:
 

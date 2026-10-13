@@ -69,7 +69,7 @@ fn location_of(error: &shadewire::Error) -> Option<&shadewire::Location> {
         | Error::AmbiguousMaterial { .. }
         | Error::UnknownMaterial { .. }
         | Error::Io(_)
-        | Error::Naga(_) => None,
+        | Error::UnsupportedTarget(_) => None,
     }
 }
 
@@ -153,8 +153,7 @@ pub unsafe extern "C" fn shadewire_error_file(err: *const shadewire_error) -> *c
     }
 }
 
-/// The 1-based document line of `err`, or 0 when it has none (or `err` is NULL). SHADEWIRE_ERROR_SHADER errors
-/// (from naga) carry their line inside the message text, and this is 0 for them.
+/// The 1-based document line of `err`, or 0 when it has none (or `err` is NULL).
 ///
 /// # Safety
 /// `err` must be NULL or a live error handle.
@@ -297,7 +296,7 @@ mod tests {
         for e in &located {
             assert_eq!(location_of(e), Some(&at()), "{e}");
         }
-        let unlocated = [Error::NoMaterial, Error::Io("x".into()), Error::Naga("x".into())];
+        let unlocated = [Error::NoMaterial, Error::Io("x".into())];
         for e in &unlocated {
             assert_eq!(location_of(e), None, "{e}");
         }

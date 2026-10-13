@@ -47,6 +47,7 @@ pub enum Error {
     UnknownMaterial { name: String },
     #[error("{0}")]
     Io(String),
-    #[error("naga: {0}")]
-    Naga(String),
+    /// A back end asked for a language version it cannot print, such as GLSL 300 (desktop) or ES 330.
+    #[error("unsupported target: {0}")]
+    UnsupportedTarget(String),
 }

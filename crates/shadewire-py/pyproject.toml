@@ -1,0 +1,47 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "shadewire"
+description = "Compile MaterialX materials to WGSL, GLSL, HLSL and Metal shader code, with reflection"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT AND Apache-2.0 AND BSD-3-Clause"
+license-files = ["LICENSE", "LICENSE-APACHE", "NOTICE"]
+authors = [{ name = "Roberto De Ioris" }]
+keywords = ["materialx", "shader", "glsl", "hlsl", "wgsl", "metal", "pbr", "rendering"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Multimedia :: Graphics :: 3D Rendering",
+    "Topic :: Software Development :: Compilers",
+    "Typing :: Typed",
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/rdeioris/shadewire"
+Repository = "https://github.com/rdeioris/shadewire"
+Changelog = "https://github.com/rdeioris/shadewire/blob/main/CHANGELOG.md"
+Issues = "https://github.com/rdeioris/shadewire/issues"
+
+[tool.maturin]
+# A Python package (`python/shadewire`: the re-exports and the type stubs) around the native `shadewire._native`.
+python-source = "python"
+module-name = "shadewire._native"
+features = ["pyo3/extension-module"]

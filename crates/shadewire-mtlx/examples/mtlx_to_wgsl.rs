@@ -23,6 +23,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let compiled = compile(&ir.dag, &ir.source, &CompileOptions::default())?;
 
     println!("// model: {}", compiled.reflection.model);
-    println!("{}", compiled.wgsl);
+    println!("{}", compiled.code);
     Ok(())
 }

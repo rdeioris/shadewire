@@ -7,6 +7,9 @@ use crate::document::{NodeDef, PortType};
 /// Shading models a surface can be compiled as without translation.
 pub const PHASE_ONE_MODELS: [&str; 4] = ["open_pbr_surface", "standard_surface", "gltf_pbr", "surface_unlit"];
 
+/// The model of a pbrlib `surface` node: its fields are the values of its closure tree.
+pub const CLOSURE_MODEL: &str = "surface";
+
 /// The WGSL struct name of a model; the one rule lives in the IR crate.
 pub use shadewire::model_struct_name as struct_name;
 

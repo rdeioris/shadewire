@@ -1,0 +1,16 @@
+[package]
+name = "shadewire-msl"
+description = "Shadewire MSL back end: material IR to a Metal Shading Language library and reflection"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme = "README.md"
+homepage.workspace = true
+keywords = ["materialx", "shader", "metal", "msl", "apple"]
+categories = ["graphics", "rendering"]
+
+[dependencies]
+shadewire.workspace = true

@@ -1,4 +1,4 @@
-use crate::{NodeId, Type};
+use crate::{ClosureGraph, NodeId, Type};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SurfaceField {
@@ -11,6 +11,8 @@ pub struct SurfaceField {
 pub struct Surface {
     pub model: String,
     pub fields: Vec<SurfaceField>,
+    /// The closure tree of a `surface` model, whose fields are the tree's values; `None` for every other model.
+    pub closure: Option<ClosureGraph>,
 }
 
 /// The WGSL struct name of a shading model: split on `_`, capitalise each part, join.
