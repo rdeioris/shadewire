@@ -26,6 +26,7 @@ Front ends and back ends never depend on each other; they share only the core, a
 | `shadewire-cli` | the `shadewire` command | all of the above |
 | `shadewire-capi` | C API (`shadewire.h`): MaterialX → code in any back end's language + reflection | `shadewire`, `shadewire-mtlx`, the back ends |
 | `shadewire-bevy` | Bevy 0.20: MaterialX → a `StandardMaterial` extension with a generated fragment shader (`ShadewirePlugin`, `FromMtlx`) | `shadewire`, `shadewire-mtlx`, `shadewire-wgsl`, `bevy` |
+| `shadewire-godot` | Godot 4.4+ extension (gdext; its own workspace, Rust 1.94): `.mtlx` → `ShaderMaterial` at runtime (`Shadewire`, `load()`) and on import | `shadewire`, `shadewire-mtlx`, `shadewire-gdshader`, `godot` |
 
 Each back end is a printer of the shared shader tree: everything they have in common (the material's code, the
 support libraries, operator precedence, declaration order, identifiers valid in every language) lives in the core.
@@ -39,6 +40,7 @@ Planned: a glTF front end, more back ends.
 | Evaluate a material on the CPU (tests, baking, thumbnails) | `shadewire`, `shadewire-mtlx` | — |
 | MaterialX → WGSL + reflection (wgpu, Bevy, WebGPU) | `shadewire-mtlx`, `shadewire-wgsl` | — |
 | MaterialX → a Godot 4 shader (for a `ShaderMaterial`) | `shadewire-mtlx`, `shadewire-gdshader` | — |
+| MaterialX materials in a Godot project or game | the `shadewire-godot` addon ([its README](crates/shadewire-godot/README.md)) | — |
 | MaterialX → GLSL, GLSL ES, HLSL or MSL | `shadewire-mtlx`, `shadewire-glsl` / `-hlsl` / `-msl` | — |
 | Your own IR (any source) → any of them | `shadewire` and the back end | — |
 | A command-line tool | `shadewire-cli` (the `shadewire` binary) | — |
@@ -208,5 +210,7 @@ glslangValidator for GLSL, dxc for HLSL (found on PATH, in `$VULKAN_SDK/Bin`, or
 ## Development
 
 The Godot check compiles and draws every shader the Godot back end generates for the vendored examples (four ways each) and its tests with Godot's own renderer (a GPU is needed; Godot's headless renderer accepts code the real ones refuse): `python -I tools/godot_check/check_gdshader.py <path to a Godot 4.x binary>`.
+
+The Godot extension's smoke test imports and loads materials in a Godot project and saves a screenshot: `python -I crates/shadewire-godot/tests/smoke/run.py <path to a Godot 4.4+ binary>`.
 
 The GPU parity test (interpreter vs WGSL on a real adapter, about three minutes) is ignored by default: run it with `cargo test -p shadewire-wgsl --test gpu_parity -- --ignored`. It skips when no adapter exists; `SHADEWIRE_REQUIRE_GPU=1` makes that a failure.
