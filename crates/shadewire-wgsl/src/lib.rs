@@ -3,6 +3,8 @@
 pub mod compile;
 pub mod compile_options;
 pub mod emit;
+#[cfg(feature = "translate")]
+pub mod glsl_library;
 pub mod leaf_library;
 #[cfg(feature = "translate")]
 pub mod link;
@@ -15,6 +17,8 @@ pub mod translate;
 pub use compile::{Compiled, compile};
 pub use compile_options::CompileOptions;
 pub use emit::{EmitOptions, emit};
+#[cfg(feature = "translate")]
+pub use glsl_library::glsl_library;
 #[cfg(feature = "translate")]
 pub use link::link;
 #[cfg(feature = "translate")]

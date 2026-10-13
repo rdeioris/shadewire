@@ -199,6 +199,17 @@ fn reference_prelude(compiled: &PyCompiled) -> String {
     shadewire_wgsl::reference_host::prelude(&compiled.reflection, &model_struct_name(&compiled.reflection.model))
 }
 
+/// The compiled material as a GLSL library, for hosts written in GLSL: the surface struct, the uniform block and
+/// samplers (at binding points `32 * group + binding`), `shadewire_eval_surface()`, and a prototype for each host
+/// function it calls, under the reflection's names. Append the host's GLSL (the host functions, lighting, `main`)
+/// and compile the whole as a fragment shader. `version`: GLSL 420..460 (GLSL ES 310 or 320 with `es`).
+#[pyfunction]
+#[pyo3(signature = (compiled, version=420, es=false))]
+fn glsl_library(py: Python<'_>, compiled: &PyCompiled, version: u16, es: bool) -> PyResult<String> {
+    let version = if es { GlslVersion::Es(version) } else { GlslVersion::Desktop(version) };
+    py.detach(|| shadewire_wgsl::glsl_library(&compiled.wgsl, &compiled.reflection, version)).map_err(error)
+}
+
 fn target(name: &str, version: Option<u32>) -> PyResult<Target> {
     let hlsl = |v: u32| match v {
         50 => Some(HlslShaderModel::Sm5_0),
@@ -297,5 +308,6 @@ fn shadewire_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     wgsl.add_function(wrap_pyfunction!(link, &wgsl)?)?;
     wgsl.add_function(wrap_pyfunction!(reference_prelude, &wgsl)?)?;
     wgsl.add_function(wrap_pyfunction!(translate, &wgsl)?)?;
+    wgsl.add_function(wrap_pyfunction!(glsl_library, &wgsl)?)?;
     Ok(())
 }

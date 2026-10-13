@@ -3,18 +3,20 @@
     pip install shadewire pygame PyOpenGL pillow
     python gl_cube.py material.mtlx [--material NAME] [--size 800] [--frames N --screenshot out.png]
 
-Shadewire compiles the material to WGSL: `shadewire_eval_surface()` computes the values of its lobes, and the
-reflection lists the host functions the code calls, the closure tree over the lobes, and the resources to bind.
-This file is the host:
+Shadewire compiles the material and hands it over as a GLSL library (`shadewire.wgsl.glsl_library`): the struct
+of the material's values, its uniform block and samplers, `Surface shadewire_eval_surface()`, and a prototype
+for each host function the material calls (`vec3 shadewire_host_normal_world();`...). The reflection says the
+rest: which host functions, the closure tree over the material's lobes, and the resources to bind.
 
-1. the host functions (`shadewire_host_normal_world()`...), filled from the vertex shader's outputs;
-2. the lobes and the tree over them, written as WGSL from the reflection, for one directional light;
-3. a vertex and a fragment entry point.
+Everything else is this file's GLSL: the vertex shader, and after the library in the fragment shader
 
-`shadewire.wgsl.link` validates the whole module, and `shadewire.wgsl.translate` writes each stage as GLSL 4.20
-core. GLSL has no bind groups: `@group(g) @binding(b)` becomes binding point `32 * g + b`, so the scene's
-uniform blocks sit at 0 and 1 and the material's resources (group 1) from 32 on; each texture combines with its
-sampler into one `sampler2D` at the texture's binding point. Escape or closing the window quits.
+1. the host functions, reading the vertex shader's outputs;
+2. the lobes and the closure tree over them, written from the reflection, for one directional light;
+3. `main`.
+
+GLSL has no bind groups: the library puts the material's resources (WGSL group 1) at binding points
+`32 + binding`, and each texture combines with its sampler into one `sampler2D` at the texture's point. The scene's
+uniform blocks use 0 and 1. Escape or closing the window quits.
 """
 
 import argparse
@@ -32,49 +34,88 @@ from PIL import Image
 import shadewire
 from shadewire import mtlx, wgsl
 
-MATERIAL_GROUP = 1  # the material's uniform block, textures and samplers; the scene owns group 0
-GLSL_VERSION = 420
+MATERIAL_GROUP = 1
+GLSL_TYPE = {"float": "float", "integer": "int", "boolean": "bool", "vector2": "vec2", "vector3": "vec3",
+             "color3": "vec3", "vector4": "vec4", "color4": "vec4"}
 
-WGSL_TYPE = {
-    "float": "f32", "integer": "i32", "boolean": "bool",
-    "vector2": "vec2<f32>", "vector3": "vec3<f32>", "color3": "vec3<f32>",
-    "vector4": "vec4<f32>", "color4": "vec4<f32>",
+VERTEX_SHADER = """#version 420 core
+layout(std140, binding = 1) uniform Camera { mat4 view_proj; } camera;
+
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 normal;
+layout(location = 2) in vec3 tangent;
+layout(location = 3) in vec2 uv;
+
+out vec3 v_position;
+out vec3 v_normal;
+out vec3 v_tangent;
+out vec2 v_uv;
+
+void main() {
+    // The cube sits at the origin unrotated: object space is world space.
+    gl_Position = camera.view_proj * vec4(position, 1.0);
+    v_position = position;
+    v_normal = normal;
+    v_tangent = tangent;
+    v_uv = uv;
 }
+"""
 
 # ---------------------------------------------------------------------------------------------------- 1. host functions
 
-# Where the fragment keeps each context read, by reflection name.
-FRAGMENT_VALUE = {
-    "position_world": "frag.position_world",
-    "normal_world": "frag.normal_world",
-    "tangent_world": "frag.tangent_world",
-    "bitangent_world": "cross(frag.normal_world, frag.tangent_world)",
-    "texcoord_0": "frag.uv",
-    "view_direction_world": "normalize(frag.position_world - scene.camera_position)",
+SCENE = """
+layout(std140, binding = 0) uniform Scene {
+    vec3 camera_position;
+    vec3 light_direction;  // toward the light
+    vec3 light_color;
+    vec3 ambient;
+} scene;
+
+in vec3 v_position;
+in vec3 v_normal;
+in vec3 v_tangent;
+in vec2 v_uv;
+layout(location = 0) out vec4 frag_color;
+"""
+
+# What this renderer gives each context read, by reflection name: (GLSL expression, its type).
+CONTEXT = {
+    "position_world": ("v_position", "vector3"),
+    "position_object": ("v_position", "vector3"),
+    "normal_world": ("normalize(v_normal)", "vector3"),
+    "normal_object": ("normalize(v_normal)", "vector3"),
+    "tangent_world": ("normalize(v_tangent)", "vector3"),
+    "tangent_object": ("normalize(v_tangent)", "vector3"),
+    "bitangent_world": ("cross(normalize(v_normal), normalize(v_tangent))", "vector3"),
+    "bitangent_object": ("cross(normalize(v_normal), normalize(v_tangent))", "vector3"),
+    "texcoord_0": ("v_uv", "vector2"),
+    "view_direction_world": ("normalize(v_position - scene.camera_position)", "vector3"),
 }
 
 
+def convert(expression, have, want):
+    """`expression` of MaterialX type `have` as type `want` (texture coordinates read as a vector3, say)."""
+    if have == want or GLSL_TYPE[have] == GLSL_TYPE[want]:
+        return expression
+    if want == "vector3" and have == "vector2":
+        return f"vec3({expression}, 0.0)"
+    return f"{GLSL_TYPE[want]}(0)"
+
+
 def host_functions(reflection):
-    """One private variable and one function per context read the material makes; `host_set_context` fills
-    them per fragment. Reads the fragment does not give stay zero."""
+    """A definition for each host function the library declares; reads this renderer lacks are zero."""
     context = reflection["context"]
-    out, sets = [], []
+    out = []
     for entry in context["varyings"] + context["derived"] + context["globals"]:
-        ty = WGSL_TYPE[entry["type"]]
-        var = f"host_{entry['name']}"
-        out.append(f"var<private> {var}: {ty};")
-        out.append(f"fn shadewire_host_{entry['name']}() -> {ty} {{ return {var}; }}")
-        if entry["name"] in FRAGMENT_VALUE:
-            sets.append(f"    {var} = {FRAGMENT_VALUE[entry['name']]};")
+        ty = GLSL_TYPE[entry["type"]]
+        expression, have = CONTEXT.get(entry["name"], (f"{ty}(0)", entry["type"]))
+        out.append(f"{ty} shadewire_host_{entry['name']}() {{ return {convert(expression, have, entry['type'])}; }}")
     for g in context["geomprops"]:
-        ty = WGSL_TYPE[g["type"]]
-        out.append(f"fn {g['function']}() -> {ty} {{ return {ty}(); }}")
+        ty = GLSL_TYPE[g["type"]]
+        out.append(f"{ty} {g['function']}() {{ return {ty}(0); }}")
     for t in context["transforms"]:
-        # The cube sits at the origin unrotated: object and world space are the same.
-        out.append(f"fn shadewire_host_{t}(v: vec3<f32>) -> vec3<f32> {{ return v; }}")
-    out.append("fn host_set_context(frag: Fragment) {")
-    out += sets
-    out.append("}")
+        # Object and world space are the same here.
+        out.append(f"vec3 shadewire_host_{t}(vec3 v) {{ return v; }}")
     return "\n".join(out)
 
 
@@ -86,7 +127,7 @@ LOBE_CODE = {
     "oren_nayar_diffuse_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
     "burley_diffuse_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
     "subsurface_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
-    "translucent_bsdf": ("vec3<f32>(0.0)", "vec3<f32>(0.0)"),
+    "translucent_bsdf": ("vec3(0.0)", "vec3(0.0)"),
     "sheen_bsdf": ("$weight * $color * sheen(L, $normal, $roughness)", "$weight * $color * 0.2"),
     "dielectric_bsdf": ("$weight * $tint * dielectric(L, $normal, $ior, $roughness)",
                         "$weight * $tint * fresnel_ior(dot($normal, V), $ior)"),
@@ -97,47 +138,46 @@ LOBE_CODE = {
 }
 
 LOBE_LIBRARY = """
-const PI: f32 = 3.14159265;
-// The shading point: the geometric normal and the direction to the viewer.
-var<private> N: vec3<f32>;
-var<private> V: vec3<f32>;
+const float PI = 3.14159265;
+vec3 N;  // the geometric normal
+vec3 V;  // toward the viewer
 
-fn ggx(L: vec3<f32>, n_in: vec3<f32>, alpha2: vec2<f32>) -> f32 {
-    let n = normalize(n_in);
-    let a = max(0.5 * (alpha2.x + alpha2.y), 1e-3);
-    let H = normalize(L + V);
-    let nh = max(dot(n, H), 0.0);
-    let nl = max(dot(n, L), 0.0);
-    let nv = max(dot(n, V), 1e-4);
-    let d = a * a / (PI * pow(nh * nh * (a * a - 1.0) + 1.0, 2.0));
-    let k = a * 0.5;
-    let g = nl / (nl * (1.0 - k) + k) * nv / (nv * (1.0 - k) + k);
+float ggx(vec3 L, vec3 n, vec2 alpha2) {
+    n = normalize(n);
+    float a = max(0.5 * (alpha2.x + alpha2.y), 1e-3);
+    vec3 H = normalize(L + V);
+    float nh = max(dot(n, H), 0.0);
+    float nl = max(dot(n, L), 0.0);
+    float nv = max(dot(n, V), 1e-4);
+    float d = a * a / (PI * pow(nh * nh * (a * a - 1.0) + 1.0, 2.0));
+    float k = a * 0.5;
+    float g = nl / (nl * (1.0 - k) + k) * nv / (nv * (1.0 - k) + k);
     return d * g / (4.0 * nv);  // times cos(L): the light's projected solid angle
 }
-fn fresnel_ior(c: f32, ior: f32) -> f32 {
-    let f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
+float fresnel_ior(float c, float ior) {
+    float f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
     return f0 + (1.0 - f0) * pow(1.0 - clamp(c, 0.0, 1.0), 5.0);
 }
-fn diffuse(L: vec3<f32>, n: vec3<f32>) -> f32 { return max(dot(normalize(n), L), 0.0) / PI; }
-fn sheen(L: vec3<f32>, n: vec3<f32>, r: f32) -> f32 {
+float diffuse(vec3 L, vec3 n) { return max(dot(normalize(n), L), 0.0) / PI; }
+float sheen(vec3 L, vec3 n, float r) {
     return max(dot(normalize(n), L), 0.0) * 0.25 * pow(1.0 - max(dot(normalize(n), V), 0.0), 2.0 / max(r, 0.05));
 }
-fn dielectric(L: vec3<f32>, n: vec3<f32>, ior: f32, alpha: vec2<f32>) -> f32 {
+float dielectric(vec3 L, vec3 n, float ior, vec2 alpha) {
     return ggx(L, n, alpha) * fresnel_ior(dot(normalize(L + V), V), ior);
 }
-fn conductor_f0(ior: vec3<f32>, k: vec3<f32>) -> vec3<f32> {
+vec3 conductor_f0(vec3 ior, vec3 k) {
     return ((ior - 1.0) * (ior - 1.0) + k * k) / ((ior + 1.0) * (ior + 1.0) + k * k);
 }
-fn conductor(L: vec3<f32>, n: vec3<f32>, ior: vec3<f32>, k: vec3<f32>, alpha: vec2<f32>) -> vec3<f32> {
-    let f0 = conductor_f0(ior, k);
+vec3 conductor(vec3 L, vec3 n, vec3 ior, vec3 k, vec2 alpha) {
+    vec3 f0 = conductor_f0(ior, k);
     return ggx(L, n, alpha) * (f0 + (1.0 - f0) * pow(1.0 - dot(normalize(L + V), V), 5.0));
 }
-fn schlick(L: vec3<f32>, n: vec3<f32>, c0: vec3<f32>, c90: vec3<f32>, e: f32, alpha: vec2<f32>) -> vec3<f32> {
+vec3 schlick(vec3 L, vec3 n, vec3 c0, vec3 c90, float e, vec2 alpha) {
     return ggx(L, n, alpha) * mix(c0, c90, pow(1.0 - dot(normalize(L + V), V), e));
 }
 """
 
-ZERO = "vec3<f32>(0.0)"
+ZERO = "vec3(0.0)"
 
 
 def closure_code(closure, model_struct):
@@ -161,7 +201,7 @@ def closure_code(closure, model_struct):
     def layer(node):
         top, top_albedo = bsdf(node["top"])
         base, base_albedo = bsdf(node["base"])
-        rest = f"max(vec3<f32>(1.0) - ({top_albedo}), vec3<f32>(0.0))"  # what the top lets through to the base
+        rest = f"max(vec3(1.0) - ({top_albedo}), vec3(0.0))"  # what the top lets through to the base
         return f"({top} + {rest} * ({base}))", f"({top_albedo} + {rest} * ({base_albedo}))"
 
     def mix(node):
@@ -173,7 +213,7 @@ def closure_code(closure, model_struct):
         return f"({a} + {b})", f"({a_albedo} + {b_albedo})"
 
     def multiply(node):
-        (c, c_albedo), w = bsdf(node["in1"]), f"vec3<f32>(s.{node['in2']})"
+        (c, c_albedo), w = bsdf(node["in1"]), f"vec3(s.{node['in2']})"
         return f"({c} * {w})", f"({c_albedo} * {w})"
 
     closure_ops = {"lobe": lobe, "layer": layer, "mix": mix, "add": add, "multiply": multiply}
@@ -198,7 +238,7 @@ def closure_code(closure, model_struct):
         "mix": lambda n: f"mix({emission(n['bg'])}, {emission(n['fg'])}, s.{n['mix']})",
         "add": lambda n: f"({emission(n['in1'])} + {emission(n['in2'])})",
         "layer": lambda n: f"({emission(n['top'])} + {emission(n['base'])})",
-        "multiply": lambda n: f"({emission(n['in1'])} * vec3<f32>(s.{n['in2']}))",
+        "multiply": lambda n: f"({emission(n['in1'])} * vec3(s.{n['in2']}))",
     }
 
     def emission(index):
@@ -208,69 +248,29 @@ def closure_code(closure, model_struct):
     response, albedo = bsdf(closure["bsdf"]) if closure.get("bsdf") is not None else (ZERO, ZERO)
     emitted = emission(closure["edf"]) if closure.get("edf") is not None else ZERO
     code = (
-        f"fn host_bsdf(s: {model_struct}, L: vec3<f32>) -> vec3<f32> {{\n    return {response};\n}}\n"
-        f"fn host_albedo(s: {model_struct}) -> vec3<f32> {{\n    return {albedo};\n}}\n"
-        f"fn host_emission(s: {model_struct}) -> vec3<f32> {{\n    return {emitted};\n}}\n"
+        f"vec3 host_bsdf({model_struct} s, vec3 L) {{\n    return {response};\n}}\n"
+        f"vec3 host_albedo({model_struct} s) {{\n    return {albedo};\n}}\n"
+        f"vec3 host_emission({model_struct} s) {{\n    return {emitted};\n}}\n"
     )
     return code, unsupported
 
 
-# ---------------------------------------------------------------------------------------------------- 3. entry points
+# ---------------------------------------------------------------------------------------------------- 3. main
 
-ENTRY_POINTS = """
-struct Scene {
-    camera_position: vec3<f32>,
-    light_direction: vec3<f32>,  // toward the light
-    light_color: vec3<f32>,
-    ambient: vec3<f32>,
-}
-struct Camera {
-    view_proj: mat4x4<f32>,
-}
-@group(0) @binding(0) var<uniform> scene: Scene;
-@group(0) @binding(1) var<uniform> camera: Camera;
-
-struct Vertex {
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) tangent: vec3<f32>,
-    @location(3) uv: vec2<f32>,
-}
-struct Fragment {
-    @builtin(position) clip: vec4<f32>,
-    @location(0) position_world: vec3<f32>,
-    @location(1) normal_world: vec3<f32>,
-    @location(2) tangent_world: vec3<f32>,
-    @location(3) uv: vec2<f32>,
-}
-
-@vertex
-fn vs_main(v: Vertex) -> Fragment {
-    // The cube sits at the origin unrotated: object space is world space.
-    var out: Fragment;
-    out.clip = camera.view_proj * vec4<f32>(v.position, 1.0);
-    out.position_world = v.position;
-    out.normal_world = v.normal;
-    out.tangent_world = v.tangent;
-    out.uv = v.uv;
-    return out;
-}
-
-@fragment
-fn fs_main(frag: Fragment) -> @location(0) vec4<f32> {
-    host_set_context(frag);
-    let s = shadewire_eval_surface();
-    N = normalize(frag.normal_world);
-    V = normalize(scene.camera_position - frag.position_world);
+MAIN = """
+void main() {
+    Surface s = shadewire_eval_surface();
+    N = normalize(v_normal);
+    V = normalize(scene.camera_position - v_position);
     // The light through the lobes; uniform ambient light reflected by their albedo.
-    let lit = host_bsdf(s, normalize(scene.light_direction)) * scene.light_color + host_albedo(s) * scene.ambient;
-    return vec4<f32>(lit + host_emission(s), 1.0);  // linear: GL_FRAMEBUFFER_SRGB encodes it
+    vec3 lit = host_bsdf(s, normalize(scene.light_direction)) * scene.light_color + host_albedo(s) * scene.ambient;
+    frag_color = vec4(lit + host_emission(s), 1.0);  // linear: GL_FRAMEBUFFER_SRGB encodes it
 }
 """
 
 
 def glsl_program(mtlx_path, material):
-    """The material compiled, joined with the host, validated, and written as a GLSL program; the reflection."""
+    """The program: the vertex shader, and Shadewire's GLSL library with this host after it. Also the reflection."""
     text = open(mtlx_path, encoding="utf-8").read()
     ir = mtlx.to_ir(text, path=mtlx_path, material=material, models=["surface"])
     compiled = wgsl.compile(ir, group=MATERIAL_GROUP)
@@ -280,9 +280,9 @@ def glsl_program(mtlx_path, material):
         print("lobes this host does not shade:", ", ".join(sorted(unsupported)))
     print(f"{ir.model}: {len(reflection['closure']['nodes'])} closure nodes, "
           f"{len(reflection['uniforms'])} uniforms, {len(reflection['textures'])} textures")
-    linked = wgsl.link(compiled.wgsl, "\n".join([host_functions(reflection), LOBE_LIBRARY, closures, ENTRY_POINTS]))
-    stages = [compileShader(wgsl.translate(linked, "glsl", GLSL_VERSION, entry_point=entry), kind)
-              for entry, kind in (("vs_main", GL.GL_VERTEX_SHADER), ("fs_main", GL.GL_FRAGMENT_SHADER))]
+    fragment = "\n".join([wgsl.glsl_library(compiled, 420), SCENE, host_functions(reflection), LOBE_LIBRARY,
+                          closures, MAIN])
+    stages = [compileShader(VERTEX_SHADER, GL.GL_VERTEX_SHADER), compileShader(fragment, GL.GL_FRAGMENT_SHADER)]
     return compileProgram(*stages, validate=False), reflection
 
 
@@ -303,20 +303,19 @@ def dot(a, b):
 
 
 def view_proj(eye, fov_y=math.radians(35), near=0.1, far=100.0):
-    """Perspective (WebGPU's 0..1 depth: Shadewire's GLSL maps it to OpenGL's) times a look-at the origin, Y up.
-    Column-major, as GLSL's `mat4` and WGSL's `mat4x4`."""
+    """OpenGL perspective (depth -1..1) times a look-at the origin, Y up. Column-major, as GLSL's `mat4`."""
     f = normalize([-e for e in eye])
     s = normalize(cross(f, [0, 1, 0]))
     u = cross(s, f)
     view = [s[0], u[0], -f[0], 0, s[1], u[1], -f[1], 0, s[2], u[2], -f[2], 0, -dot(s, eye), -dot(u, eye), dot(f, eye), 1]
     t = 1.0 / math.tan(fov_y / 2.0)
-    proj = [t, 0, 0, 0, 0, t, 0, 0, 0, 0, far / (near - far), -1, 0, 0, near * far / (near - far), 0]
+    proj = [t, 0, 0, 0, 0, t, 0, 0, 0, 0, (far + near) / (near - far), -1, 0, 0, 2 * far * near / (near - far), 0]
     return [sum(proj[k * 4 + r] * view[c * 4 + k] for k in range(4)) for c in range(4) for r in range(4)]
 
 
 def scene_blocks(angle):
     """The `Scene` and `Camera` uniform blocks for the camera at `angle` around the cube (std140: each vec3
-    padded to 16 bytes, as WGSL's uniform layout)."""
+    padded to 16 bytes)."""
     eye = [5.6 * math.sin(angle), 2.4, 5.6 * math.cos(angle)]
     light = normalize([0.6, 1.0, 0.8])
     scene = struct.pack("<16f", *eye, 0, *light, 0, 3.0, 2.9, 2.7, 0, 0.35, 0.38, 0.45, 0)
@@ -451,7 +450,7 @@ def main():
     vao, index_count = cube_vao()
     angle = 0.6
     scene, camera = scene_blocks(angle)
-    scene_buffer, camera_buffer = uniform_buffer(scene, gl_binding(0, 0)), uniform_buffer(camera, gl_binding(0, 1))
+    scene_buffer, camera_buffer = uniform_buffer(scene, 0), uniform_buffer(camera, 1)
     bind_material(reflection, os.path.dirname(args.mtlx))
 
     GL.glEnable(GL.GL_DEPTH_TEST)
