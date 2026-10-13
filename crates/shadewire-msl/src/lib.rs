@@ -9,7 +9,7 @@
 
 use std::collections::HashSet;
 
-use shadewire::shader::print::{Field, Printer, Syntax, float, padded, visit_exprs};
+use shadewire::shader::print::{Printer, Syntax, c_scalar, float, padded_struct, visit_exprs};
 use shadewire::shader::*;
 use shadewire::{Dag, Error, SourceInfo, Type};
 
@@ -17,19 +17,6 @@ pub use shadewire::shader::{CompileOptions, Compiled};
 
 /// The MSL syntax.
 pub struct Msl;
-
-fn scalar(s: Scalar) -> &'static str {
-    match s {
-        Scalar::Bool => "bool",
-        Scalar::I32 => "int",
-        Scalar::U32 => "uint",
-        Scalar::F32 => "float",
-    }
-}
-
-fn resources(module: &Module) -> Vec<&Resource> {
-    module.items.iter().filter_map(|i| if let Item::Resource(r) = i { Some(r) } else { None }).collect()
-}
 
 /// The resources a function reads, in declaration order.
 fn resources_read<'m>(f: &Function, module: &'m Module) -> Vec<&'m Resource> {
@@ -40,14 +27,14 @@ fn resources_read<'m>(f: &Function, module: &'m Module) -> Vec<&'m Resource> {
             names.insert(n.clone());
         }
     });
-    resources(module).into_iter().filter(|r| names.contains(&r.name)).collect()
+    module.resources().filter(|r| names.contains(&r.name)).collect()
 }
 
 impl Syntax for Msl {
     fn ty(&self, ty: &Ty) -> String {
         match ty {
-            Ty::Scalar(s) => scalar(*s).into(),
-            Ty::Vector(n, s) => format!("{}{n}", scalar(*s)),
+            Ty::Scalar(s) => c_scalar(*s).into(),
+            Ty::Vector(n, s) => format!("{}{n}", c_scalar(*s)),
             Ty::Matrix(c, r) => format!("float{c}x{r}"),
             Ty::Struct(name) => name.clone(),
             Ty::Ptr(t) => self.ty(t),
@@ -137,24 +124,10 @@ impl Syntax for Msl {
 
     /// A host-filled struct is padded to its offsets, its vectors of three packed.
     fn structure(&self, s: &Struct) -> String {
-        let mut out = format!("struct {} {{\n", s.name);
-        let mut pad = 0;
-        for field in padded(s) {
-            match field {
-                Field::Member(m, Ty::Vector(3, Scalar::F32)) if s.layout.is_some() => {
-                    out.push_str(&format!("    packed_float3 {m};\n"))
-                }
-                Field::Member(m, t) => out.push_str(&format!("    {} {m};\n", self.ty(t))),
-                Field::Pad(words) => {
-                    for _ in 0..words {
-                        out.push_str(&format!("    uint shadewire_pad{pad};\n"));
-                        pad += 1;
-                    }
-                }
-            }
-        }
-        out.push_str("};\n");
-        out
+        padded_struct(s, |m, t| match t {
+            Ty::Vector(3, Scalar::F32) if s.layout.is_some() => format!("packed_float3 {m}"),
+            t => format!("{} {m}", self.ty(t)),
+        })
     }
 
     /// Metal has no global resources: they are parameters (see the module doc).
@@ -164,7 +137,7 @@ impl Syntax for Msl {
 
     fn prelude(&self, module: &Module) -> String {
         let mut out = String::from("#include <metal_stdlib>\nusing namespace metal;\n\n");
-        let names: Vec<String> = resources(module).iter().map(|r| r.name.clone()).collect();
+        let names: Vec<String> = module.resources().map(|r| r.name.clone()).collect();
         if !names.is_empty() {
             out.push_str(&format!(
                 "// The material's resources are parameters of the functions that read them: {}.\n\n",

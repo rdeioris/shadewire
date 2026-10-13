@@ -518,4 +518,8 @@ impl Module {
     pub fn structs(&self) -> impl Iterator<Item = &Struct> {
         self.items.iter().filter_map(|i| if let Item::Struct(s) = i { Some(s) } else { None })
     }
+
+    pub fn resources(&self) -> impl Iterator<Item = &Resource> {
+        self.items.iter().filter_map(|i| if let Item::Resource(r) = i { Some(r) } else { None })
+    }
 }

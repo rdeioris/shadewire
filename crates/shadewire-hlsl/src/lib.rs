@@ -6,7 +6,7 @@
 //! texture `t` at `register(t{t.binding}, space{group})` and its sampler at `register(s{t.sampler_binding},
 //! space{group})`. The uniform block is padded to reflection's offsets.
 
-use shadewire::shader::print::{Field, Printer, Syntax, padded, visit_exprs};
+use shadewire::shader::print::{Printer, Syntax, c_scalar, padded_struct, select_helpers};
 use shadewire::shader::*;
 use shadewire::{Dag, Error, SourceInfo, Type};
 
@@ -14,30 +14,6 @@ pub use shadewire::shader::{CompileOptions, Compiled};
 
 /// The HLSL syntax.
 pub struct Hlsl;
-
-fn scalar(s: Scalar) -> &'static str {
-    match s {
-        Scalar::Bool => "bool",
-        Scalar::I32 => "int",
-        Scalar::U32 => "uint",
-        Scalar::F32 => "float",
-    }
-}
-
-/// The selects a module makes, as (value type, condition type) pairs: each becomes a `shadewire_select`
-/// overload, which evaluates both values as WGSL's `select` does (HLSL 2021's `?:` evaluates one).
-fn selects(module: &Module) -> Vec<(Ty, Ty)> {
-    let mut out: Vec<(Ty, Ty)> = Vec::new();
-    visit_exprs(module, &mut |e| {
-        if let ExprKind::Builtin { builtin: Builtin::Select, args } = &e.kind {
-            let pair = (args[0].ty.clone(), args[2].ty.clone());
-            if !out.contains(&pair) {
-                out.push(pair);
-            }
-        }
-    });
-    out
-}
 
 fn is_matrix(e: &Expr) -> bool {
     matches!(e.ty, Ty::Matrix(..))
@@ -48,8 +24,8 @@ impl Syntax for Hlsl {
     /// constructing one from columns reads as written and `m[i]` is column `i`; products swap accordingly.
     fn ty(&self, ty: &Ty) -> String {
         match ty {
-            Ty::Scalar(s) => scalar(*s).into(),
-            Ty::Vector(n, s) => format!("{}{n}", scalar(*s)),
+            Ty::Scalar(s) => c_scalar(*s).into(),
+            Ty::Vector(n, s) => format!("{}{n}", c_scalar(*s)),
             Ty::Matrix(c, r) => format!("float{c}x{r}"),
             Ty::Struct(name) => name.clone(),
             Ty::Ptr(t) => self.ty(t),
@@ -126,20 +102,7 @@ impl Syntax for Hlsl {
     /// The struct, then a function constructing it (HLSL has no struct constructors). A host-filled struct is
     /// padded to its offsets.
     fn structure(&self, s: &Struct) -> String {
-        let mut out = format!("struct {} {{\n", s.name);
-        let mut pad = 0;
-        for field in padded(s) {
-            match field {
-                Field::Member(m, t) => out.push_str(&format!("    {} {m};\n", self.ty(t))),
-                Field::Pad(words) => {
-                    for _ in 0..words {
-                        out.push_str(&format!("    uint shadewire_pad{pad};\n"));
-                        pad += 1;
-                    }
-                }
-            }
-        }
-        out.push_str("};\n");
+        let mut out = padded_struct(s, |m, t| format!("{} {m}", self.ty(t)));
         if s.layout.is_none() {
             let params: Vec<String> = s.members.iter().map(|(m, t)| format!("{} {m}", self.ty(t))).collect();
             out.push_str(&format!(
@@ -167,20 +130,7 @@ impl Syntax for Hlsl {
     }
 
     fn prelude(&self, module: &Module) -> String {
-        let mut out = String::new();
-        for (value, cond) in selects(module) {
-            let (v, c) = (self.ty(&value), self.ty(&cond));
-            let body = match cond.width() {
-                Some(n) if n > 1 => {
-                    let parts: Vec<String> =
-                        "xyzw"[..n as usize].chars().map(|k| format!("c.{k} ? t.{k} : f.{k}")).collect();
-                    format!("{v}({})", parts.join(", "))
-                }
-                _ => "c ? t : f".to_string(),
-            };
-            out.push_str(&format!("{v} shadewire_select({v} f, {v} t, {c} c) {{\n    return {body};\n}}\n\n"));
-        }
-        out
+        select_helpers(self, module)
     }
 }
 

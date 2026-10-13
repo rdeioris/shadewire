@@ -174,6 +174,71 @@ pub fn padded(s: &Struct) -> Vec<Field<'_>> {
     out
 }
 
+/// A scalar type as the C family (GLSL, HLSL, MSL) names it.
+pub fn c_scalar(s: Scalar) -> &'static str {
+    match s {
+        Scalar::Bool => "bool",
+        Scalar::I32 => "int",
+        Scalar::U32 => "uint",
+        Scalar::F32 => "float",
+    }
+}
+
+/// A host-filled struct with padding words so each member sits at its reflected offset (see [`padded`]),
+/// spelling each member with `member`.
+pub fn padded_struct(s: &Struct, member: impl Fn(&str, &Ty) -> String) -> String {
+    let mut out = format!("struct {} {{\n", s.name);
+    let mut pad = 0;
+    for field in padded(s) {
+        match field {
+            Field::Member(m, t) => out.push_str(&format!("    {};\n", member(m, t))),
+            Field::Pad(words) => {
+                for _ in 0..words {
+                    out.push_str(&format!("    uint shadewire_pad{pad};\n"));
+                    pad += 1;
+                }
+            }
+        }
+    }
+    out.push_str("};\n");
+    out
+}
+
+/// The selects a module makes, as (value type, condition type) pairs, for languages that print `select` as a
+/// call of a `shadewire_select` overload (see [`select_helpers`]).
+pub fn selects(module: &Module) -> Vec<(Ty, Ty)> {
+    let mut out: Vec<(Ty, Ty)> = Vec::new();
+    visit_exprs(module, &mut |e| {
+        if let ExprKind::Builtin { builtin: Builtin::Select, args } = &e.kind {
+            let pair = (args[0].ty.clone(), args[2].ty.clone());
+            if !out.contains(&pair) {
+                out.push(pair);
+            }
+        }
+    });
+    out
+}
+
+/// One `shadewire_select(f, t, cond)` overload per select the module makes, in a C-family syntax. A call evaluates
+/// both values, as WGSL's `select` does, so a texture sample in one stays in uniform control flow (a `?:` evaluates
+/// one side); a vector condition picks componentwise.
+pub fn select_helpers<S: Syntax>(syntax: &S, module: &Module) -> String {
+    let mut out = String::new();
+    for (value, cond) in selects(module) {
+        let (v, c) = (syntax.ty(&value), syntax.ty(&cond));
+        let body = match cond.width() {
+            Some(n) if n > 1 => {
+                let parts: Vec<String> =
+                    "xyzw"[..n as usize].chars().map(|k| format!("c.{k} ? t.{k} : f.{k}")).collect();
+                format!("{v}({})", parts.join(", "))
+            }
+            _ => "c ? t : f".to_string(),
+        };
+        out.push_str(&format!("{v} shadewire_select({v} f, {v} t, {c} c) {{\n    return {body};\n}}\n\n"));
+    }
+    out
+}
+
 /// Binding strength of an expression, for parentheses.
 fn precedence(e: &Expr) -> u8 {
     match &e.kind {

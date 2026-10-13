@@ -6,7 +6,7 @@
 //! ES 310 the uniform block sits at binding point `uniform_binding` and texture `t` at unit `t.binding`
 //! (reflection's numbers); before, the host binds them by name (`MaterialUniforms`, `shadewire_t{index}`).
 
-use shadewire::shader::print::{Printer, Syntax, visit_exprs};
+use shadewire::shader::print::{Printer, Syntax, c_scalar, select_helpers};
 use shadewire::shader::*;
 use shadewire::{Dag, Error, SourceInfo, Type};
 
@@ -49,15 +49,6 @@ pub struct Glsl {
     pub version: Version,
 }
 
-fn scalar(s: Scalar) -> &'static str {
-    match s {
-        Scalar::Bool => "bool",
-        Scalar::I32 => "int",
-        Scalar::U32 => "uint",
-        Scalar::F32 => "float",
-    }
-}
-
 fn vector_prefix(s: Scalar) -> &'static str {
     match s {
         Scalar::Bool => "b",
@@ -67,26 +58,10 @@ fn vector_prefix(s: Scalar) -> &'static str {
     }
 }
 
-/// The selects a module makes, as (value type, condition type) pairs. Each becomes a `shadewire_select`
-/// overload: a call evaluates both values, as WGSL's `select` does, so a texture sample in one stays in uniform
-/// control flow (a `?:` would evaluate one side); and GLSL has no componentwise select before 4.50 and ES 3.10.
-fn selects(module: &Module) -> Vec<(Ty, Ty)> {
-    let mut out: Vec<(Ty, Ty)> = Vec::new();
-    visit_exprs(module, &mut |e| {
-        if let ExprKind::Builtin { builtin: Builtin::Select, args } = &e.kind {
-            let pair = (args[0].ty.clone(), args[2].ty.clone());
-            if !out.contains(&pair) {
-                out.push(pair);
-            }
-        }
-    });
-    out
-}
-
 impl Syntax for Glsl {
     fn ty(&self, ty: &Ty) -> String {
         match ty {
-            Ty::Scalar(s) => scalar(*s).into(),
+            Ty::Scalar(s) => c_scalar(*s).into(),
             Ty::Vector(n, s) => format!("{}vec{n}", vector_prefix(*s)),
             Ty::Matrix(c, r) if c == r => format!("mat{c}"),
             Ty::Matrix(c, r) => format!("mat{c}x{r}"),
@@ -221,18 +196,7 @@ impl Syntax for Glsl {
             Version::Es(v) => format!("#version {v} es\nprecision highp float;\nprecision highp int;\n"),
         };
         out.push('\n');
-        for (value, cond) in selects(module) {
-            let (v, c) = (self.ty(&value), self.ty(&cond));
-            let body = match cond.width() {
-                Some(n) if n > 1 => {
-                    let parts: Vec<String> =
-                        "xyzw"[..n as usize].chars().map(|k| format!("c.{k} ? t.{k} : f.{k}")).collect();
-                    format!("{v}({})", parts.join(", "))
-                }
-                _ => "c ? t : f".to_string(),
-            };
-            out.push_str(&format!("{v} shadewire_select({v} f, {v} t, {c} c) {{\n    return {body};\n}}\n\n"));
-        }
+        out.push_str(&select_helpers(self, module));
         out
     }
 }

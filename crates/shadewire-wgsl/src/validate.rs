@@ -3,12 +3,11 @@
 //! sampling. For tests (feature `validate`).
 
 use shadewire::Reflection;
-use shadewire::shader::fixtures::host_stubs;
-use shadewire::shader::print::Printer;
-use shadewire::shader::{Module, Ty};
+use shadewire::shader::Ty;
+use shadewire::shader::fixtures::host_stub_text;
+use shadewire::shader::print::Syntax;
 
 use crate::Wgsl;
-use shadewire::shader::print::Syntax;
 
 /// Parses and validates a whole module (all flags, all capabilities).
 pub fn naga(text: &str) -> Result<(), String> {
@@ -21,9 +20,7 @@ pub fn naga(text: &str) -> Result<(), String> {
 
 /// `code` completed with stub host functions and a fragment entry, as one module.
 pub fn whole_shader(code: &str, reflection: &Reflection) -> String {
-    let empty = Module::default();
-    let printer = Printer::new(&Wgsl);
-    let stubs: String = host_stubs(reflection).iter().map(|s| printer.item(s, &empty)).collect();
+    let stubs = host_stub_text(&Wgsl, reflection);
     let z = Wgsl.ty(&Ty::vec(3));
     let calls = if code.contains("fn shadewire_eval_bsdf(") {
         format!(

@@ -317,6 +317,42 @@ fn zero_scalar(ty: &crate::shader::Ty) -> crate::shader::Expr {
     }
 }
 
+/// The definitions of [`host_stubs`] printed in a back end's syntax.
+pub fn host_stub_text<S: crate::shader::print::Syntax>(syntax: &S, reflection: &Reflection) -> String {
+    let printer = crate::shader::print::Printer::new(syntax);
+    let empty = crate::shader::Module::default();
+    host_stubs(reflection).iter().map(|s| printer.item(s, &empty)).collect()
+}
+
+/// Runs an external compiler on `text`, written to `<temp>/shadewire-check/<file>` (`args`, then the file, then
+/// `extra` after it): `Ok(false)` when the tool is not installed (see [`tool`]), the tool's output and the
+/// numbered text when it fails.
+pub fn run_tool(name: &str, file: &str, text: &str, args: &[&str], extra: &[&str]) -> Result<bool, String> {
+    let Some(exe) = tool(name) else {
+        return Ok(false);
+    };
+    let dir = std::env::temp_dir().join("shadewire-check");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(file);
+    std::fs::write(&path, text).map_err(|e| e.to_string())?;
+    let out = std::process::Command::new(exe)
+        .args(args)
+        .arg(&path)
+        .args(extra.iter().map(|a| a.replace("{dir}", &dir.to_string_lossy())))
+        .output()
+        .map_err(|e| e.to_string())?;
+    if out.status.success() {
+        return Ok(true);
+    }
+    let numbered: Vec<String> = text.lines().enumerate().map(|(i, l)| format!("{:4} {l}", i + 1)).collect();
+    Err(format!(
+        "{name} {args:?}:\n{}{}\n\n{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr),
+        numbered.join("\n")
+    ))
+}
+
 /// An external compiler for a back end's tests: `$SHADEWIRE_<NAME>` (the name upper-cased), else on PATH, else in
 /// the Vulkan SDK's `Bin`. `None` when absent, and the test skips; with `SHADEWIRE_REQUIRE_TOOLS` set a missing
 /// tool panics instead.
