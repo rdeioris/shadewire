@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use crate::{ClosureGraph, Dag, Error, NodeKind, Type, Value, structure_hash};
+use crate::{ClosureGraph, Dag, Error, NodeKind, Type, UiHints, Value, structure_hash};
 
 pub use context::{ContextEntry, ContextReflection, GeomPropReflection};
 pub use params::ParamReflection;
@@ -37,6 +37,9 @@ pub struct UniformReflection {
     pub offset: u32,
     pub size: u32,
     pub default: Value,
+    /// MaterialX `uimin`, `uimax`, `uisoftmin`, `uisoftmax`, `uifolder`, each only when authored.
+    #[serde(flatten)]
+    pub ui: UiHints,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -86,6 +89,7 @@ pub fn reflect(dag: &Dag, bindings: &BindingOptions, source: &SourceInfo) -> Res
             offset: *offset,
             size: uniforms::wgsl_layout(*ty).1,
             default,
+            ui: dag.uniform_ui.get(name).cloned().unwrap_or_default(),
         })
         .collect();
     let has_uniforms = !uniform_list.is_empty();

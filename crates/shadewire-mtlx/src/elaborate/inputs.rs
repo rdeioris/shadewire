@@ -113,7 +113,7 @@ impl<'a> Elaborator<'a> {
             return Ok(None);
         }
         if let Some(text) = &input.value {
-            return self.authored_value(scope, &input.name, ty, text, uniform_eligible, at).map(Some);
+            return self.authored_value(&input.name, ty, text, &input.ui.or(&port.ui), uniform_eligible, at).map(Some);
         }
         Ok(None)
     }

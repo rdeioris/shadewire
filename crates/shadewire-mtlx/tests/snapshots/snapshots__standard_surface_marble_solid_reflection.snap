@@ -1,5 +1,5 @@
 ---
-source: crates/shadewire/tests/snapshots.rs
+source: crates/shadewire-mtlx/tests/snapshots.rs
 expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
 ---
 {
@@ -7,7 +7,7 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
   "source": "mtlx",
   "mtlx_version": "1.39",
   "model": "standard_surface",
-  "structure_hash": "bfd4c089888f4bdd",
+  "structure_hash": "64b9083a955eda6e",
   "params": {
     "base": {
       "type": "float",
@@ -300,7 +300,10 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
       "type": "float",
       "offset": 0,
       "size": 4,
-      "default": 1.0
+      "default": 1.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Base"
     },
     {
       "name": "base_color_1",
@@ -311,7 +314,8 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         0.8,
         0.8,
         0.8
-      ]
+      ],
+      "uifolder": "Marble Color"
     },
     {
       "name": "base_color_2",
@@ -322,49 +326,68 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         0.1,
         0.1,
         0.3
-      ]
+      ],
+      "uifolder": "Marble Color"
     },
     {
       "name": "noise_scale_1",
       "type": "float",
       "offset": 44,
       "size": 4,
-      "default": 6.0
+      "default": 6.0,
+      "uisoftmin": 1.0,
+      "uisoftmax": 10.0,
+      "uifolder": "Marble Noise"
     },
     {
       "name": "noise_scale_2",
       "type": "float",
       "offset": 48,
       "size": 4,
-      "default": 4.0
+      "default": 4.0,
+      "uisoftmin": 1.0,
+      "uisoftmax": 10.0,
+      "uifolder": "Marble Noise"
     },
     {
       "name": "noise_power",
       "type": "float",
       "offset": 52,
       "size": 4,
-      "default": 3.0
+      "default": 3.0,
+      "uisoftmin": 1.0,
+      "uisoftmax": 10.0,
+      "uifolder": "Marble Noise"
     },
     {
       "name": "noise_octaves",
       "type": "integer",
       "offset": 56,
       "size": 4,
-      "default": 3
+      "default": 3,
+      "uisoftmin": 1,
+      "uisoftmax": 8,
+      "uifolder": "Marble Noise"
     },
     {
       "name": "specular_roughness",
       "type": "float",
       "offset": 60,
       "size": 4,
-      "default": 0.1
+      "default": 0.1,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Specular"
     },
     {
       "name": "subsurface",
       "type": "float",
       "offset": 64,
       "size": 4,
-      "default": 0.4
+      "default": 0.4,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Subsurface"
     }
   ],
   "uniform_block_size": 80,

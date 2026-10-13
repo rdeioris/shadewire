@@ -31,7 +31,8 @@ def main():
     env = dict(os.environ, SHADEWIRE_GDSHADER_OUT=str(shaders))
     subprocess.run(["cargo", "test", "-q", "-p", "shadewire-gdshader"], env=env, cwd=ROOT, check=True)
     subprocess.run(["cargo", "build", "-q", "-p", "shadewire-cli"], cwd=ROOT, check=True)
-    cli = str(ROOT / "target" / "debug" / "shadewire")
+    target = ROOT / os.environ.get("CARGO_TARGET_DIR", "target")
+    cli = str(target / "debug" / "shadewire")
     for path in sorted(EXAMPLES.glob("*/*.mtlx")):
         if path.name in SKIP:
             continue

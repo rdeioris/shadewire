@@ -13,6 +13,7 @@ impl Rebuilder {
         new.textures = old.textures.clone();
         new.approximations = old.approximations.clone();
         new.geomprop_defaults = old.geomprop_defaults.clone();
+        new.uniform_ui = old.uniform_ui.clone();
         new.surface.closure = old.surface.closure.clone();
         Rebuilder { new, map: Vec::with_capacity(old.nodes.len()) }
     }

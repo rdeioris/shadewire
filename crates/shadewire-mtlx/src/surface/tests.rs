@@ -227,3 +227,43 @@ fn geomprop_defaults_reach_the_dag() {
     let dag = compile(&doc, None, &KNOWN_MODELS).unwrap();
     assert_eq!(dag.geomprop_defaults.get("tintprop"), Some(&Value::Color3([1.0, 1.0, 1.0])));
 }
+
+#[test]
+fn ui_attributes_reach_the_dag_from_the_input_or_its_nodedef_port() {
+    let doc = inline(
+        r#"
+        <standard_surface name="s" type="surfaceshader">
+          <input name="base" type="float" value="0.5" uisoftmin="0.2" uimax="0.9" uifolder="Mine/Sub"/>
+          <input name="base_color" type="color3" value="1, 0, 0"/>
+          <input name="specular" type="float" value="1" uimin="low"/>
+        </standard_surface>
+        <surfacematerial name="m" type="material">
+          <input name="surfaceshader" type="surfaceshader" nodename="s"/>
+        </surfacematerial>"#,
+    );
+    let dag = compile(&doc, None, &KNOWN_MODELS).unwrap();
+    // The input's own attributes win; the rest come from ND_standard_surface_surfaceshader.
+    let base = &dag.uniform_ui["base"];
+    assert_eq!(base.min, Some(Value::Float(0.0)));
+    assert_eq!(base.max, Some(Value::Float(0.9)));
+    assert_eq!(base.soft_min, Some(Value::Float(0.2)));
+    assert_eq!(base.soft_max, None);
+    assert_eq!(base.folder.as_deref(), Some("Mine/Sub"));
+    let color = &dag.uniform_ui["base_color"];
+    assert_eq!(color.max, Some(Value::Color3([1.0, 1.0, 1.0])));
+    assert_eq!(color.folder.as_deref(), Some("Base"));
+    // A limit that is not a float is dropped; the nodedef's limit stays out too, as the input authored one.
+    assert_eq!(dag.uniform_ui["specular"].min, None);
+}
+
+#[test]
+fn ui_attributes_of_top_level_interface_inputs() {
+    let doc = load("StandardSurface/standard_surface_marble_solid.mtlx");
+    let dag = compile(&doc, None, &KNOWN_MODELS).unwrap();
+    let octaves = &dag.uniform_ui["noise_octaves"];
+    assert_eq!(
+        (octaves.soft_min.clone(), octaves.soft_max.clone()),
+        (Some(Value::Integer(1)), Some(Value::Integer(8)))
+    );
+    assert_eq!(octaves.folder.as_deref(), Some("Marble Noise"));
+}
