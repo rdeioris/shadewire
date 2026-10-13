@@ -1,7 +1,7 @@
 use shadewire::optimize::optimize;
 use shadewire::{ClosureNode, ClosureType, Dag, Error};
 
-use super::models::PHASE_ONE_MODELS;
+use super::models::KNOWN_MODELS;
 use crate::document::Document;
 use crate::document::build::build;
 use crate::library::standard;
@@ -74,7 +74,7 @@ fn lobe_kinds(dag: &Dag) -> Vec<String> {
 #[test]
 fn a_surface_node_is_unsupported_unless_the_host_accepts_closures() {
     let doc = inline("1.38", PORCELAIN);
-    let err = compile(&doc, None, &PHASE_ONE_MODELS).unwrap_err();
+    let err = compile(&doc, None, &KNOWN_MODELS).unwrap_err();
     assert!(err.to_string().contains("not a known shading model"), "{err}");
 }
 

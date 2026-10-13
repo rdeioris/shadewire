@@ -21,10 +21,11 @@ pub struct TextureReflection {
 fn used(dag: &Dag, live: &[bool]) -> Vec<usize> {
     let mut used: Vec<usize> = Vec::new();
     for (i, node) in dag.nodes.iter().enumerate() {
-        if let NodeKind::Sample { texture, .. } = &node.kind {
-            if live[i] && !used.contains(texture) {
-                used.push(*texture);
-            }
+        if let NodeKind::Sample { texture, .. } = &node.kind
+            && live[i]
+            && !used.contains(texture)
+        {
+            used.push(*texture);
         }
     }
     used.sort();

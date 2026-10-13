@@ -7,9 +7,10 @@ use shadewire::{Error, Location, NodeId, Type};
 
 use super::{Binding, Elaborator};
 
-/// True when `name` asks for no conversion.
+/// True when `name` asks for no conversion: empty, MaterialX's `none`, or `raw`, the OCIO/USD
+/// name for data that is not color (normal maps, roughness), common in USD-exported documents.
 fn is_no_colorspace(name: &str) -> bool {
-    name.is_empty() || name == "none"
+    name.is_empty() || name == "none" || name == "raw"
 }
 
 impl<'a> Elaborator<'a> {

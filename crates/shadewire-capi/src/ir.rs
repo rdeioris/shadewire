@@ -4,7 +4,6 @@
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::panic::AssertUnwindSafe;
-use std::path::Path;
 use std::sync::OnceLock;
 
 use shadewire_mtlx::MaterialIr;
@@ -91,7 +90,7 @@ pub unsafe extern "C" fn shadewire_mtlx_to_ir(
                 let path = opt_cstr(path)?;
                 let material = opt_cstr(material)?;
                 let options = read_mtlx(options)?;
-                let ir = shadewire_mtlx::to_ir(text, path.map(Path::new), material, &options)?;
+                let ir = shadewire_mtlx::to_ir(text, path, material, &options)?;
                 *out = Box::into_raw(Box::new(shadewire_ir::new(ir)));
                 Ok(())
             }),

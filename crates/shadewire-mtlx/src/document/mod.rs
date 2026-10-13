@@ -8,6 +8,7 @@ pub mod node;
 pub mod nodedef;
 pub mod nodegraph;
 pub mod port_type;
+pub mod ui;
 pub mod unitdef;
 
 pub use geompropdef::GeomPropDef;
@@ -15,6 +16,7 @@ pub use node::{Input, Node};
 pub use nodedef::{NodeDef, PortDef};
 pub use nodegraph::{NodeGraph, Output};
 pub use port_type::PortType;
+pub use ui::UiAttrs;
 pub use unitdef::UnitDef;
 
 #[derive(Clone, Debug, PartialEq)]

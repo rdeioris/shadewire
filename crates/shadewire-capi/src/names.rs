@@ -3,7 +3,6 @@
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::panic::AssertUnwindSafe;
-use std::path::Path;
 
 use crate::error::{CapiError, shadewire_error};
 use crate::guard::guarded;
@@ -37,7 +36,7 @@ pub unsafe extern "C" fn shadewire_mtlx_material_names(
                 }
                 let text = text_arg(text, len)?;
                 let path = opt_cstr(path)?;
-                let names = shadewire_mtlx::material_names(text, path.map(Path::new))?;
+                let names = shadewire_mtlx::material_names(text, path, &shadewire_mtlx::Resolver::default())?;
                 *out = Box::into_raw(Box::new(shadewire_strings { items: names.into_iter().map(c_string).collect() }));
                 Ok(())
             }),

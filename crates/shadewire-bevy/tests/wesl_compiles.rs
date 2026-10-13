@@ -134,7 +134,7 @@ fn bevy_roots() -> HashMap<String, PathBuf> {
 fn compile_in_bevy(file: &str, defs: &[&str]) -> (String, naga::Module) {
     let path = Path::new(WORKSPACE).join(file);
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    let ir = to_ir(&text, Some(&path), None, &MtlxOptions::default()).unwrap();
+    let ir = to_ir(&text, path.to_str(), None, &MtlxOptions::default()).unwrap();
     let compiled = compile(&ir.dag, &ir.source, &compile_options()).unwrap();
     let main = shadewire_bevy::shader::module(&compiled).unwrap();
     let wgsl = wesl_to_wgsl(&main, defs).unwrap_or_else(|e| panic!("{file}: wesl:\n{e}\n\nmodule:\n{main}"));

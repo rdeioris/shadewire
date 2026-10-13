@@ -13,4 +13,4 @@ mod diamond_tests;
 mod tests;
 
 pub use find::{MixInput, SurfaceSource};
-pub use models::{CLOSURE_MODEL, PHASE_ONE_MODELS, fields, struct_name};
+pub use models::{CLOSURE_MODEL, KNOWN_MODELS, fields, struct_name};

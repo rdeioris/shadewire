@@ -3834,11 +3834,20 @@ dependencies = [
  "clap",
  "serde_json",
  "shadewire",
+ "shadewire-gdshader",
  "shadewire-glsl",
  "shadewire-hlsl",
  "shadewire-msl",
  "shadewire-mtlx",
  "shadewire-wgsl",
+]
+
+[[package]]
+name = "shadewire-gdshader"
+version = "0.1.0"
+dependencies = [
+ "shadewire",
+ "shadewire-mtlx",
 ]
 
 [[package]]

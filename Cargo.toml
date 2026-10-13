@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["crates/shadewire", "crates/shadewire-wgsl", "crates/shadewire-glsl", "crates/shadewire-hlsl", "crates/shadewire-msl", "crates/shadewire-mtlx", "crates/shadewire-cli", "crates/shadewire-capi", "crates/shadewire-capi-ctest", "crates/shadewire-bevy", "crates/shadewire-py"]
+members = ["crates/shadewire", "crates/shadewire-wgsl", "crates/shadewire-glsl", "crates/shadewire-gdshader", "crates/shadewire-hlsl", "crates/shadewire-msl", "crates/shadewire-mtlx", "crates/shadewire-cli", "crates/shadewire-capi", "crates/shadewire-capi-ctest", "crates/shadewire-bevy", "crates/shadewire-py"]
+# Its own workspace: gdext needs a newer Rust (see its Cargo.toml).
+exclude = ["crates/shadewire-godot"]
 
 [workspace.package]
 version = "0.1.0"
@@ -17,6 +19,7 @@ shadewire-mtlx = { path = "crates/shadewire-mtlx", version = "0.1.0" }
 shadewire-capi = { path = "crates/shadewire-capi", version = "0.1.0" }
 shadewire-wgsl = { path = "crates/shadewire-wgsl", version = "0.1.0", default-features = false }
 shadewire-glsl = { path = "crates/shadewire-glsl", version = "0.1.0" }
+shadewire-gdshader = { path = "crates/shadewire-gdshader", version = "0.1.0" }
 shadewire-hlsl = { path = "crates/shadewire-hlsl", version = "0.1.0" }
 shadewire-msl = { path = "crates/shadewire-msl", version = "0.1.0" }
 naga = { version = "30", features = ["wgsl-in", "wgsl-out", "hlsl-out", "glsl-out", "msl-out", "spv-out"] }

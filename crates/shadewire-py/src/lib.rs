@@ -14,7 +14,7 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use shadewire::shader::CompileOptions;
 use shadewire::{Dag, SourceInfo, model_struct_name};
-use shadewire_mtlx::MtlxOptions;
+use shadewire_mtlx::{MtlxOptions, Resolver};
 
 create_exception!(shadewire, ShadewireError, PyException, "A document Shadewire cannot read or compile.");
 
@@ -90,17 +90,17 @@ impl PyIr {
 
 // ---------------------------------------------------------------------------------------------------- mtlx
 
-/// MaterialX text to the IR (not optimized). `path` names the document, for messages and relative includes;
-/// `material` picks one (None: the document's only one); `models` are the shading models the caller accepts
-/// (None: `open_pbr_surface`, `standard_surface`, `gltf_pbr`, `surface_unlit`; add `surface` for closure
+/// MaterialX text to the IR (not optimized). `location` names the document (an OS path), for messages and
+/// relative includes; `material` picks one (None: the document's only one); `models` are the shading models the
+/// caller accepts (None: `open_pbr_surface`, `standard_surface`, `gltf_pbr`, `surface_unlit`; add `surface` for closure
 /// trees, which also opens the named models not listed); `values_as_uniforms` keeps authored values as
 /// uniforms (False bakes them in, so the optimizer can prune by them).
 #[pyfunction]
-#[pyo3(signature = (text, path=None, material=None, models=None, working_colorspace=None, values_as_uniforms=true))]
+#[pyo3(signature = (text, location=None, material=None, models=None, working_colorspace=None, values_as_uniforms=true))]
 fn to_ir(
     py: Python<'_>,
     text: String,
-    path: Option<std::path::PathBuf>,
+    location: Option<String>,
     material: Option<String>,
     models: Option<Vec<String>>,
     working_colorspace: Option<String>,
@@ -113,16 +113,17 @@ fn to_ir(
     if let Some(colorspace) = working_colorspace {
         options.working_colorspace = colorspace;
     }
-    let ir =
-        py.detach(|| shadewire_mtlx::to_ir(&text, path.as_deref(), material.as_deref(), &options)).map_err(error)?;
+    let ir = py
+        .detach(|| shadewire_mtlx::to_ir(&text, location.as_deref(), material.as_deref(), &options))
+        .map_err(error)?;
     Ok(PyIr { dag: ir.dag, source: ir.source })
 }
 
 /// The names of a MaterialX document's materials, in document order.
 #[pyfunction]
-#[pyo3(signature = (text, path=None))]
-fn material_names(py: Python<'_>, text: String, path: Option<std::path::PathBuf>) -> PyResult<Vec<String>> {
-    py.detach(|| shadewire_mtlx::material_names(&text, path.as_deref())).map_err(error)
+#[pyo3(signature = (text, location=None))]
+fn material_names(py: Python<'_>, text: String, location: Option<String>) -> PyResult<Vec<String>> {
+    py.detach(|| shadewire_mtlx::material_names(&text, location.as_deref(), &Resolver::default())).map_err(error)
 }
 
 // ---------------------------------------------------------------------------------------------------- back ends

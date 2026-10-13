@@ -67,12 +67,12 @@ fn apply_scope(nodes: &mut Vec<Node>) {
     let mut result: Vec<Node> = Vec::with_capacity(nodes.len());
     let original = std::mem::take(nodes);
     for mut node in original {
-        if node.category == "swizzle" {
-            if let Some((source, dest)) = swizzle_types(&node) {
-                let mut helpers = Vec::new();
-                convert(&mut node, source, dest, &result, &mut helpers);
-                result.extend(helpers);
-            }
+        if node.category == "swizzle"
+            && let Some((source, dest)) = swizzle_types(&node)
+        {
+            let mut helpers = Vec::new();
+            convert(&mut node, source, dest, &result, &mut helpers);
+            result.extend(helpers);
         }
         result.push(node);
     }
@@ -84,10 +84,11 @@ fn convert(node: &mut Node, source: Type, dest: Type, before: &[Node], helpers: 
     let letters: Vec<char> = channels.chars().collect();
     let dest_count = dest.component_count();
     let mut source_input = take_input(node, "in");
-    if let Some(input) = &mut source_input {
-        if input.value.is_some() && is_connected(input) {
-            input.value = None;
-        }
+    if let Some(input) = &mut source_input
+        && input.value.is_some()
+        && is_connected(input)
+    {
+        input.value = None;
     }
     let all_constant = (0..dest_count).all(|i| letters.get(i).is_some_and(|l| channel_constant(*l).is_some()));
     let constant = source_input.as_ref().is_none_or(|i| i.value.is_some()) || all_constant;

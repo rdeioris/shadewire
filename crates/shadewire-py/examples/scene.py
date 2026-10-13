@@ -144,7 +144,7 @@ def compile_material(path, material=None):
     """The material compiled to WGSL with its reflection, and the whole shader (generated module, host, vertex
     stage) linked and validated."""
     text = open(path, encoding="utf-8").read()
-    ir = mtlx.to_ir(text, path=path, material=material, models=["surface"])
+    ir = mtlx.to_ir(text, location=str(path), material=material, models=["surface"])
     compiled = wgsl.compile(ir, group=MATERIAL_GROUP)
     reflection = compiled.reflection
     host = "\n".join([host_functions(reflection), ENTRY, VERTEX])

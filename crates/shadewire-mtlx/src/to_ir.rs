@@ -1,12 +1,10 @@
 //! The MaterialX front end in one call: text to the IR.
 
-use std::path::Path;
-
-use shadewire::{Dag, Error, Location, SourceInfo};
+use shadewire::{Dag, Error, SourceInfo};
 
 use crate::document::build::build;
 use crate::elaborate::{ElaborateOptions, elaborate};
-use crate::include::resolve_includes;
+use crate::include::{Resolver, resolve_includes};
 use crate::library::standard;
 use crate::parse::parse_str;
 use crate::upgrade::upgrade;
@@ -14,11 +12,15 @@ use crate::upgrade::upgrade;
 /// What the front end decides: which models the host accepts and how values are read.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MtlxOptions {
-    /// Surface models the host accepts; a material of another model is `NoTranslation`.
+    /// Surface models the host accepts; a material of another model is `NoTranslation`. The default is the four
+    /// models most hosts map; `surface::KNOWN_MODELS` also has `UsdPreviewSurface` and `disney_principled`, and
+    /// `surface::CLOSURE_MODEL` opens every model not listed into its closure tree.
     pub models: Vec<String>,
     pub working_colorspace: String,
     /// Authored surface values and top-level interface values become uniforms.
     pub values_as_uniforms: bool,
+    /// Joins and reads `xi:include`s; the default reads the file system.
+    pub resolver: Resolver,
 }
 
 impl Default for MtlxOptions {
@@ -30,6 +32,7 @@ impl Default for MtlxOptions {
                 .collect(),
             working_colorspace: "lin_rec709".to_string(),
             values_as_uniforms: true,
+            resolver: Resolver::default(),
         }
     }
 }
@@ -42,23 +45,17 @@ pub struct MaterialIr {
 }
 
 /// MaterialX text to the IR: parse, includes, build, upgrade, elaborate. Not optimized.
-/// `file` names the document (for messages and as the base of relative includes).
+/// `location` names the document (in messages, and as the base `options.resolver` joins includes to): an OS path,
+/// or any string the resolver understands.
 pub fn to_ir(
     text: &str,
-    file: Option<&Path>,
+    location: Option<&str>,
     material: Option<&str>,
     options: &MtlxOptions,
 ) -> Result<MaterialIr, Error> {
-    let name = file.map(|f| f.display().to_string());
-    let root = parse_str(text, name.as_deref())?;
-    if file.is_none() {
-        if let Some(include) = root.children.iter().find(|c| c.category == "xi:include") {
-            let at = Location { file: None, line: include.line, path: String::new() };
-            return Err(Error::Parse { at, message: "includes need a file path to resolve against".to_string() });
-        }
-    }
-    let root = resolve_includes(root, file.and_then(Path::parent), name.as_deref())?;
-    let document = build(&root, name.as_deref())?;
+    let root = parse_str(text, location)?;
+    let root = resolve_includes(root, location, &options.resolver)?;
+    let document = build(&root, location)?;
     let (major, minor) = document.version;
     let document = upgrade(document)?;
 
@@ -73,11 +70,10 @@ pub fn to_ir(
 }
 
 /// The names of the document's materials (`surfacematerial` nodes), in document order.
-pub fn material_names(text: &str, file: Option<&Path>) -> Result<Vec<String>, Error> {
-    let name = file.map(|f| f.display().to_string());
-    let root = parse_str(text, name.as_deref())?;
-    let root = resolve_includes(root, file.and_then(Path::parent), name.as_deref())?;
-    let document = build(&root, name.as_deref())?;
+pub fn material_names(text: &str, location: Option<&str>, resolver: &Resolver) -> Result<Vec<String>, Error> {
+    let root = parse_str(text, location)?;
+    let root = resolve_includes(root, location, resolver)?;
+    let document = build(&root, location)?;
     Ok(document.nodes.iter().filter(|n| n.category == "surfacematerial").map(|n| n.name.clone()).collect())
 }
 
@@ -92,9 +88,8 @@ mod tests {
 
     #[test]
     fn an_example_lowers_to_a_printable_dag() {
-        let path = Path::new(DEFAULT);
-        let text = std::fs::read_to_string(path).unwrap();
-        let ir = to_ir(&text, Some(path), None, &MtlxOptions::default()).unwrap();
+        let text = std::fs::read_to_string(DEFAULT).unwrap();
+        let ir = to_ir(&text, Some(DEFAULT), None, &MtlxOptions::default()).unwrap();
         assert_eq!(ir.dag.surface.model, "standard_surface");
         assert_eq!(ir.source.mtlx_version, "1.39");
         assert!(ir.dag.dump().starts_with("model standard_surface\n"), "{}", ir.dag.dump());
@@ -104,13 +99,13 @@ mod tests {
     fn material_names_are_listed_in_document_order() {
         let text = r#"<materialx version="1.39">
           <surfacematerial name="b" type="material"/><surfacematerial name="a" type="material"/></materialx>"#;
-        assert_eq!(material_names(text, None).unwrap(), ["b", "a"]);
+        assert_eq!(material_names(text, None, &Resolver::default()).unwrap(), ["b", "a"]);
     }
 
     #[test]
     fn includes_without_a_file_are_an_error() {
         let text = r#"<materialx version="1.39"><xi:include href="other.mtlx"/></materialx>"#;
         let err = to_ir(text, None, None, &MtlxOptions::default()).unwrap_err();
-        assert!(err.to_string().contains("includes need a file path"), "{err}");
+        assert!(err.to_string().contains("includes need a document location"), "{err}");
     }
 }

@@ -1,6 +1,7 @@
 use super::port_type::PortType;
 
 use crate::document::inherit::{Inherit, own};
+use crate::document::ui::UiAttrs;
 use crate::element::Element;
 
 /// A port of a nodedef or a nodegraph interface.
@@ -17,6 +18,7 @@ pub struct PortDef {
     pub unit: Option<String>,
     pub unittype: Option<String>,
     pub enum_values: Option<String>,
+    pub ui: UiAttrs,
     pub line: u32,
 }
 
@@ -49,6 +51,7 @@ pub fn build_port_def(element: &Element, inherit: &Inherit) -> PortDef {
         unit: own(element.attr("unit")),
         unittype: own(element.attr("unittype")),
         enum_values: own(element.attr("enum")),
+        ui: UiAttrs::read(element),
         line: element.line,
     }
 }

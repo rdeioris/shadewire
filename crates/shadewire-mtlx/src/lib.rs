@@ -1,5 +1,6 @@
 //! MaterialX document reader and graph lowering for Shadewire
 
+pub mod dependencies;
 pub mod document;
 pub mod elaborate;
 pub mod element;
@@ -13,9 +14,11 @@ pub mod to_ir;
 pub mod upgrade;
 pub mod version;
 
+pub use dependencies::{Dependencies, list_dependencies};
 pub use document::Document;
 pub use elaborate::{ElaborateOptions, elaborate};
 pub use element::Element;
+pub use include::{ResolveFn, Resolved, Resolver};
 pub use index::Index;
 pub use library::Library;
 pub use resolve_nodedef::resolve_nodedef;

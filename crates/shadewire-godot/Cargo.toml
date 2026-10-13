@@ -1,0 +1,25 @@
+# Outside the main workspace: gdext needs a newer Rust than the core crates (rust-version 1.94).
+[workspace]
+
+[package]
+name = "shadewire-godot"
+description = "Shadewire for Godot 4: load MaterialX (.mtlx) documents as ShaderMaterials, at runtime and on import"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+license = "MIT"
+authors = ["Roberto De Ioris"]
+repository = "https://github.com/rdeioris/shadewire"
+homepage = "https://github.com/rdeioris/shadewire"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# experimental-threads: Godot calls the loader and the importer from worker threads (threaded loads and imports).
+godot = { version = "0.5.5", features = ["api-4-4", "experimental-threads"] }
+shadewire = { path = "../shadewire" }
+shadewire-mtlx = { path = "../shadewire-mtlx" }
+shadewire-gdshader = { path = "../shadewire-gdshader" }
+serde_json = "1"

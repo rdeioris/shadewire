@@ -143,7 +143,7 @@ void main() {
 def glsl_program(mtlx_path, material):
     """The program: the vertex shader, and Shadewire's GLSL library with this host after it. Also the reflection."""
     text = open(mtlx_path, encoding="utf-8").read()
-    ir = mtlx.to_ir(text, path=mtlx_path, material=material, models=["surface"])
+    ir = mtlx.to_ir(text, location=mtlx_path, material=material, models=["surface"])
     compiled = glsl.compile(ir, version=420, first_binding=FIRST_BINDING)
     reflection = compiled.reflection
     print(f"{ir.model}: {len(reflection['closure']['nodes'])} closure nodes, "

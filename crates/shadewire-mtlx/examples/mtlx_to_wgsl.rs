@@ -2,8 +2,6 @@
 //!
 //! cargo run -p shadewire-mtlx --example mtlx_to_wgsl -- path/to/material.mtlx
 
-use std::path::Path;
-
 use shadewire_mtlx::{MtlxOptions, to_ir};
 use shadewire_wgsl::{CompileOptions, compile};
 
@@ -14,8 +12,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. Front end: MaterialX -> IR (a typed DAG computing the material's surface parameters).
     let ir = to_ir(
         &text,
-        Some(Path::new(&path)), // names the file in errors; base for relative includes
-        None,                   // material name, when the document has several
+        Some(&path), // names the file in errors; base for relative includes
+        None,        // material name, when the document has several
         &MtlxOptions::default(),
     )?;
 

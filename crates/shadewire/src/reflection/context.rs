@@ -98,15 +98,15 @@ pub fn context(dag: &Dag, live: &[bool]) -> Result<ContextReflection, Error> {
                     ContextClass::Derived => derived.push(entry),
                     ContextClass::Global => globals.push(entry),
                     ContextClass::GeomProp => {
-                        if let ContextRead::GeomProp { name, ty } = read {
-                            if !geomprops.iter().any(|g| g.name == *name) {
-                                geomprops.push(GeomPropReflection {
-                                    name: name.clone(),
-                                    ty: *ty,
-                                    function: read.function_name(),
-                                    default: dag.geomprop_defaults.get(name).cloned(),
-                                });
-                            }
+                        if let ContextRead::GeomProp { name, ty } = read
+                            && !geomprops.iter().any(|g| g.name == *name)
+                        {
+                            geomprops.push(GeomPropReflection {
+                                name: name.clone(),
+                                ty: *ty,
+                                function: read.function_name(),
+                                default: dag.geomprop_defaults.get(name).cloned(),
+                            });
                         }
                     }
                 }

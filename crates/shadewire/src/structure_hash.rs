@@ -120,6 +120,20 @@ pub fn structure_hash(dag: &Dag) -> String {
             h.value(value);
         }
     }
+    if !dag.uniform_ui.is_empty() {
+        h.byte(7);
+        h.number(dag.uniform_ui.len() as u64);
+        for (name, ui) in &dag.uniform_ui {
+            h.text(name);
+            for limit in [&ui.min, &ui.max, &ui.soft_min, &ui.soft_max] {
+                match limit {
+                    Some(value) => h.value(value),
+                    None => h.byte(0),
+                }
+            }
+            h.text(ui.folder.as_deref().unwrap_or(""));
+        }
+    }
     if let Some(closure) = &dag.surface.closure {
         h.byte(6);
         h.text(&closure.dump());

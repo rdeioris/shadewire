@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!-- Included by textured.mtlx. The texture file resolves against the including document. -->
+<materialx version="1.39">
+  <nodegraph name="NG_grid">
+    <image name="grid" type="color3">
+      <input name="file" type="filename" value="textures/grid.png" colorspace="srgb_texture" />
+    </image>
+    <output name="out" type="color3" nodename="grid" />
+  </nodegraph>
+</materialx>

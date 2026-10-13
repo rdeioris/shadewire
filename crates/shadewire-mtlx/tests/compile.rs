@@ -19,7 +19,7 @@ fn example(relative: &str) -> (String, std::path::PathBuf) {
 #[test]
 fn compile_without_the_optimizer_keeps_the_raw_dag() {
     let (text, path) = example("StandardSurface/standard_surface_default.mtlx");
-    let ir = to_ir(&text, Some(&path), None, &MtlxOptions::default()).unwrap();
+    let ir = to_ir(&text, path.to_str(), None, &MtlxOptions::default()).unwrap();
     let raw = CompileOptions { optimize: false, ..CompileOptions::default() };
     assert_eq!(compile(&ir.dag, &ir.source, &raw).unwrap().dag.nodes.len(), ir.dag.nodes.len());
     let optimized = compile(&ir.dag, &ir.source, &CompileOptions::default()).unwrap();
