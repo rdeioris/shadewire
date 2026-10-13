@@ -48,5 +48,6 @@ latest) and a throwaway profile, as `blender/README.md` shows (`smoke_test.py --
 
 One zip with the wheel of every platform Blender ships for (the Linux ARM64 wheel is PyPI's only). Upload it on
 extensions.blender.org (Upload Extension), with `assets/logo/png/shadewire-mark-256.png` as the icon and
-`assets/logo/png/shadewire-blender-featured-1920x1080.png` as the featured image. The add-on is GPL-3.0-or-later, as the platform requires
+`assets/logo/png/shadewire-blender-featured-1920x1080.png` as the featured image. The preview image renders with the extension
+installed (same throwaway profile): `blender -b -P blender/render_preview.py -- preview-1920x1080.png`. The add-on is GPL-3.0-or-later, as the platform requires
 (`blender/shadewire/LICENSE`, the manifest's `license` and `copyright`).
