@@ -11,8 +11,8 @@ use shadewire::shader::{CompileOptions, Compiled};
 
 use crate::error::{CapiError, shadewire_error};
 use crate::guard::guarded;
-use crate::ir::{borrow as borrow_ir, lower, shadewire_ir};
-use crate::options::{read_compile, shadewire_compile_options, shadewire_mtlx_options};
+use crate::ir::{borrow as borrow_ir, shadewire_ir};
+use crate::options::{read_compile, shadewire_compile_options};
 use crate::status::shadewire_status;
 use crate::strings::{c_string, cached_out, null_str, out_str};
 use crate::target::{Backend, backend, shadewire_target};
@@ -78,41 +78,6 @@ pub unsafe extern "C" fn shadewire_compile(
                 let target = backend(target)?;
                 let options = read_compile(options)?;
                 *out = Box::into_raw(Box::new(build(&ir.dag, &ir.source, &options, target)?));
-                Ok(())
-            }),
-        )
-    }
-}
-
-/// `shadewire_mtlx_to_ir` then `shadewire_compile` in one call, with one handle out. `text` is `len` bytes of
-/// UTF-8 and must be non-NULL (NULL is SHADEWIRE_ERROR_INVALID_ARGUMENT); `mtlx` and `options` may be NULL for the
-/// defaults. `*out` is written only on success.
-///
-/// # Safety
-/// The union of the safety requirements of `shadewire_mtlx_to_ir` and `shadewire_compile`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn shadewire_compile_mtlx(
-    text: *const c_char,
-    len: usize,
-    path: *const c_char,
-    material: *const c_char,
-    mtlx: *const shadewire_mtlx_options,
-    target: shadewire_target,
-    options: *const shadewire_compile_options,
-    out: *mut *mut shadewire_compiled,
-    error: *mut *mut shadewire_error,
-) -> shadewire_status {
-    unsafe {
-        guarded(
-            error,
-            AssertUnwindSafe(|| {
-                if out.is_null() {
-                    return Err(CapiError::Argument("out is NULL".to_string()));
-                }
-                let target = backend(target)?;
-                let ir = lower(text, len, path, material, mtlx)?;
-                let options = read_compile(options)?;
-                *out = Box::into_raw(Box::new(build(&ir.ir.dag, &ir.ir.source, &options, target)?));
                 Ok(())
             }),
         )

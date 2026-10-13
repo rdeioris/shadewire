@@ -13,8 +13,7 @@
 //!   (`shadewire_compiled_language`, `_code`, `_reflection_json`, `_model_struct`, `_ir_dump`);
 //! - `IR_FORMAT_VERSION`, `version()`, `ShadewireError`: `SHADEWIRE_IR_FORMAT_VERSION`, `shadewire_version_string`,
 //!   `shadewire_error`.
-//!
-//! `shadewire_compile_mtlx` (to the IR and compiled in one call) is C's own.
+
 //!
 //! Every fallible function takes an `error` out-parameter: it is written only on failure and left untouched on
 //! success (callers initialise it to NULL), and may itself be NULL to ignore the error object.
@@ -40,7 +39,7 @@ mod threads;
 mod version;
 
 pub use compiled::{
-    shadewire_compile, shadewire_compile_mtlx, shadewire_compiled, shadewire_compiled_code, shadewire_compiled_free,
+    shadewire_compile, shadewire_compiled, shadewire_compiled_code, shadewire_compiled_free,
     shadewire_compiled_ir_dump, shadewire_compiled_language, shadewire_compiled_model_struct,
     shadewire_compiled_reflection_json,
 };

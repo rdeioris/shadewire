@@ -16,10 +16,14 @@ fn default_example() -> String {
 }
 
 fn to_ir(text: &str) -> *mut shadewire_ir {
+    to_ir_with(text, null())
+}
+
+fn to_ir_with(text: &str, options: *const shadewire_mtlx_options) -> *mut shadewire_ir {
     let mut ir = null_mut();
     let mut error = null_mut();
     let status =
-        unsafe { shadewire_mtlx_to_ir(text.as_ptr().cast(), text.len(), null(), null(), null(), &mut ir, &mut error) };
+        unsafe { shadewire_mtlx_to_ir(text.as_ptr().cast(), text.len(), null(), null(), options, &mut ir, &mut error) };
     assert_eq!(status, shadewire_status::SHADEWIRE_OK);
     assert!(error.is_null());
     ir
@@ -111,36 +115,6 @@ fn the_default_example_compiles() {
 }
 
 #[test]
-fn compile_mtlx_matches_the_two_step_path() {
-    let example = default_example();
-    let ir = to_ir(&example);
-    let two_step = compile(ir, null());
-    let mut one_step = null_mut();
-    let mut error = null_mut();
-    let status = unsafe {
-        shadewire_compile_mtlx(
-            example.as_ptr().cast(),
-            example.len(),
-            null(),
-            null(),
-            null(),
-            WGSL,
-            null(),
-            &mut one_step,
-            &mut error,
-        )
-    };
-    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
-    assert_eq!(
-        text(unsafe { shadewire_compiled_code(one_step, null_mut()) }),
-        text(unsafe { shadewire_compiled_code(two_step, null_mut()) })
-    );
-    unsafe { shadewire_compiled_free(one_step) };
-    unsafe { shadewire_compiled_free(two_step) };
-    unsafe { shadewire_ir_free(ir) };
-}
-
-#[test]
 fn compile_options_reach_the_reflection() {
     let ir = to_ir(&default_example());
     let mut options = std::mem::MaybeUninit::<shadewire_compile_options>::uninit();
@@ -173,28 +147,14 @@ fn reserve_uniform_binding_moves_the_textures_past_the_uniform_slot() {
     unsafe { shadewire_mtlx_options_default(mtlx.as_mut_ptr()) };
     let mut mtlx = unsafe { mtlx.assume_init() };
     mtlx.values_as_uniforms = false;
+    let ir = to_ir_with(document, &mtlx);
     let texture_binding = |reserve: bool| {
         let mut options = std::mem::MaybeUninit::<shadewire_compile_options>::uninit();
         unsafe { shadewire_compile_options_default(options.as_mut_ptr()) };
         let mut options = unsafe { options.assume_init() };
         options.first_binding = 10;
         options.reserve_uniform_binding = reserve;
-        let mut compiled = null_mut();
-        let mut error = null_mut();
-        let status = unsafe {
-            shadewire_compile_mtlx(
-                document.as_ptr().cast(),
-                document.len(),
-                null(),
-                null(),
-                &mtlx,
-                WGSL,
-                &options,
-                &mut compiled,
-                &mut error,
-            )
-        };
-        assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+        let compiled = compile(ir, &options);
         let json: serde_json::Value =
             serde_json::from_str(&text(unsafe { shadewire_compiled_reflection_json(compiled, null_mut()) })).unwrap();
         unsafe { shadewire_compiled_free(compiled) };
@@ -202,6 +162,7 @@ fn reserve_uniform_binding_moves_the_textures_past_the_uniform_slot() {
         json["textures"][0]["binding"].as_u64().unwrap()
     };
     assert_eq!((texture_binding(false), texture_binding(true)), (10, 11));
+    unsafe { shadewire_ir_free(ir) };
 }
 
 #[test]
@@ -236,36 +197,19 @@ fn error_is_untouched_on_success() {
         shadewire_status::SHADEWIRE_OK
     );
     assert_eq!(error, marker);
-    let mut one = null_mut();
-    let status = unsafe {
-        shadewire_compile_mtlx(
-            example.as_ptr().cast(),
-            example.len(),
-            null(),
-            null(),
-            null(),
-            WGSL,
-            null(),
-            &mut one,
-            &mut error,
-        )
-    };
-    assert_eq!((status, error), (shadewire_status::SHADEWIRE_OK, marker));
-    unsafe { shadewire_compiled_free(one) };
     unsafe { shadewire_compiled_free(compiled) };
     unsafe { shadewire_ir_free(ir) };
 }
 
 #[test]
-fn compile_mtlx_failures_leave_out_untouched() {
-    let marker = sentinel::<shadewire_compiled>();
+fn to_ir_failures_leave_out_untouched() {
+    let marker = sentinel::<shadewire_ir>();
     let bad_utf8 = [0xffu8, 0xfe];
     let parse = "<materialx><nodegraph></materialx>";
     for (ptr, len) in [(bad_utf8.as_ptr().cast(), 2usize), (parse.as_ptr().cast(), parse.len())] {
         let mut out = marker;
         let mut error = null_mut();
-        let status =
-            unsafe { shadewire_compile_mtlx(ptr, len, null(), null(), null(), WGSL, null(), &mut out, &mut error) };
+        let status = unsafe { shadewire_mtlx_to_ir(ptr, len, null(), null(), null(), &mut out, &mut error) };
         assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
         assert_eq!(out, marker);
         assert!(!error.is_null());
@@ -276,20 +220,12 @@ fn compile_mtlx_failures_leave_out_untouched() {
 #[test]
 fn null_text_is_an_invalid_argument() {
     let mut ir = null_mut();
-    let mut compiled = null_mut();
-    let mut errors = [null_mut(), null_mut()];
-    let statuses = unsafe {
-        [
-            shadewire_mtlx_to_ir(null(), 5, null(), null(), null(), &mut ir, &mut errors[0]),
-            shadewire_compile_mtlx(null(), 5, null(), null(), null(), WGSL, null(), &mut compiled, &mut errors[1]),
-        ]
-    };
-    assert_eq!(statuses, [shadewire_status::SHADEWIRE_ERROR; 2]);
-    assert!(ir.is_null() && compiled.is_null());
-    for error in errors {
-        assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
-        unsafe { shadewire_error_free(error) };
-    }
+    let mut error = null_mut();
+    let status = unsafe { shadewire_mtlx_to_ir(null(), 5, null(), null(), null(), &mut ir, &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
+    assert!(ir.is_null());
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
+    unsafe { shadewire_error_free(error) };
 }
 
 #[test]
@@ -322,23 +258,13 @@ fn getters_on_null_return_null_with_zero_len() {
     }
 }
 
-fn compile_to(compiled_text: &str, kind: shadewire_target_kind, version: u32) -> Result<String, *mut shadewire_error> {
+fn compile_to(document: &str, kind: shadewire_target_kind, version: u32) -> Result<String, *mut shadewire_error> {
+    let ir = to_ir(document);
     let mut compiled = null_mut();
     let mut error = null_mut();
     let target = shadewire_target { kind, version };
-    let status = unsafe {
-        shadewire_compile_mtlx(
-            compiled_text.as_ptr().cast(),
-            compiled_text.len(),
-            null(),
-            null(),
-            null(),
-            target,
-            null(),
-            &mut compiled,
-            &mut error,
-        )
-    };
+    let status = unsafe { shadewire_compile(ir, target, null(), &mut compiled, &mut error) };
+    unsafe { shadewire_ir_free(ir) };
     if status != shadewire_status::SHADEWIRE_OK {
         return Err(error);
     }

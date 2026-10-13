@@ -160,22 +160,6 @@ shadewire_status shadewire_compile(const struct shadewire_ir *ir,
                                    struct shadewire_compiled **out,
                                    struct shadewire_error **error);
 
-// `shadewire_mtlx_to_ir` then `shadewire_compile` in one call, with one handle out. `text` is `len` bytes of
-// UTF-8 and must be non-NULL (NULL is SHADEWIRE_ERROR_INVALID_ARGUMENT); `mtlx` and `options` may be NULL for the
-// defaults. `*out` is written only on success.
-//
-// # Safety
-// The union of the safety requirements of `shadewire_mtlx_to_ir` and `shadewire_compile`.
-shadewire_status shadewire_compile_mtlx(const char *text,
-                                        size_t len,
-                                        const char *path,
-                                        const char *material,
-                                        const struct shadewire_mtlx_options *mtlx,
-                                        struct shadewire_target target,
-                                        const struct shadewire_compile_options *options,
-                                        struct shadewire_compiled **out,
-                                        struct shadewire_error **error);
-
 // The language of the code: "wgsl", "glsl" (GLSL ES too), "hlsl" or "msl"; static. NULL when `c` is NULL.
 //
 // # Safety

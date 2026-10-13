@@ -87,31 +87,16 @@ pub unsafe extern "C" fn shadewire_mtlx_to_ir(
                 if out.is_null() {
                     return Err(CapiError::Argument("out is NULL".to_string()));
                 }
-                let handle = lower(text, len, path, material, options)?;
-                *out = Box::into_raw(Box::new(handle));
+                let text = text_arg(text, len)?;
+                let path = opt_cstr(path)?;
+                let material = opt_cstr(material)?;
+                let options = read_mtlx(options)?;
+                let ir = shadewire_mtlx::to_ir(text, path.map(Path::new), material, &options)?;
+                *out = Box::into_raw(Box::new(shadewire_ir::new(ir)));
                 Ok(())
             }),
         )
     }
-}
-
-/// The shared body of `shadewire_mtlx_to_ir` and `shadewire_compile_mtlx`.
-///
-/// # Safety
-/// As `shadewire_mtlx_to_ir`, except that NULL `text` is reported as an error.
-pub(crate) unsafe fn lower(
-    text: *const c_char,
-    len: usize,
-    path: *const c_char,
-    material: *const c_char,
-    options: *const shadewire_mtlx_options,
-) -> Result<shadewire_ir, CapiError> {
-    let text = unsafe { text_arg(text, len) }?;
-    let path = unsafe { opt_cstr(path) }?;
-    let material = unsafe { opt_cstr(material) }?;
-    let options = unsafe { read_mtlx(options) }?;
-    let ir = shadewire_mtlx::to_ir(text, path.map(Path::new), material, &options)?;
-    Ok(shadewire_ir::new(ir))
 }
 
 /// The IR with Shadewire's optimizer run over it (constants folded, identities removed, equal nodes shared, closures

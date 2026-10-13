@@ -99,18 +99,21 @@ The header is `crates/shadewire-capi/include/shadewire.h`. Every handle and erro
 
 /* Compiles `len` bytes of MaterialX `text` and prints it as an HLSL library; returns 0 on success. */
 int print_hlsl(const char *text, size_t len) {
+    shadewire_ir *ir = NULL;
     shadewire_compiled *compiled = NULL;
     shadewire_error *err = NULL;
     shadewire_target target = {SHADEWIRE_TARGET_HLSL, 0};
     int result = 1;
 
-    if (shadewire_compile_mtlx(text, len, "material.mtlx", NULL, NULL, target, NULL, &compiled, &err) == SHADEWIRE_OK) {
+    if (shadewire_mtlx_to_ir(text, len, "material.mtlx", NULL, NULL, &ir, &err) == SHADEWIRE_OK &&
+        shadewire_compile(ir, target, NULL, &compiled, &err) == SHADEWIRE_OK) {
         puts(shadewire_compiled_code(compiled, NULL));
         result = 0;
     } else {
         fprintf(stderr, "error: %s\n", shadewire_error_message(err, NULL));
     }
     shadewire_compiled_free(compiled);
+    shadewire_ir_free(ir);
     shadewire_error_free(err);
     return result;
 }
@@ -129,8 +132,7 @@ The C API follows the Python module name for name:
 | `Compiled.ir` | `shadewire_compiled_ir_dump` (the IR the code was printed from) |
 | `IR_FORMAT_VERSION`, `version()` | `SHADEWIRE_IR_FORMAT_VERSION`, `shadewire_version_string()` |
 
-`shadewire_compile_mtlx` does `shadewire_mtlx_to_ir` and `shadewire_compile` in one call. The target is
-`SHADEWIRE_TARGET_WGSL`, `_GLSL` (`#version` 330, 400 to 460; 0 for 420), `_GLSL_ES` (300 to 320; 0 for 300),
+The target is `SHADEWIRE_TARGET_WGSL`, `_GLSL` (`#version` 330, 400 to 460; 0 for 420), `_GLSL_ES` (300 to 320; 0 for 300),
 `_HLSL` or `_MSL`. `shadewire_compile_options` holds the back ends' keyword arguments (`group`, `first_binding`,
 `reserve_uniform_binding`, `flip_v`, `optimize`, `implicit_derivatives`); `shadewire_*_options_default` fills them.
 `crates/shadewire-capi-ctest` builds the same calls as a C99 (C11 on MSVC) test.

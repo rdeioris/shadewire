@@ -26,8 +26,8 @@ No compatibility shims: old names are gone.
 - **CLI:** `--lang` is `wgsl|glsl|glsl-es|hlsl|msl` and picks the back end; `--glsl-version N` sets the GLSL
   version. No SPIR-V, and no reference host linked in.
 - **C API:** `shadewire_compile(ir, target, options, ...)` replaces `shadewire_wgsl_compile`;
-  `shadewire_compile_mtlx` takes a `shadewire_target`; `shadewire_compiled_code` replaces
-  `shadewire_compiled_wgsl`. `shadewire_translate`, the blob type, `SHADEWIRE_TARGET_SPIRV`, `_WEBGL2` and HLSL
+  `shadewire_compile_mtlx` is gone (`shadewire_mtlx_to_ir`, then `shadewire_compile`); `shadewire_compiled_code`
+  replaces `shadewire_compiled_wgsl`. `shadewire_translate`, the blob type, `SHADEWIRE_TARGET_SPIRV`, `_WEBGL2` and HLSL
   shader model versions are gone; target kinds are renumbered (WGSL 0, GLSL 1, GLSL ES 2, HLSL 3, MSL 4).
   `SHADEWIRE_ERROR_SHADER` is gone and the error kinds after it are renumbered (IO 6, PANIC 7).
 - **Generated code:** WGSL comes from the shared tree: typed `let`s, minimal parentheses, library functions in

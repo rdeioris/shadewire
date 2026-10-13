@@ -41,6 +41,7 @@ static char *read_file(const char *path, size_t *len) {
 static int compile_to(const char *text, size_t len, const char *path, shadewire_target_kind kind, const char *expect,
                       int first_step, char *report, size_t report_len) {
     shadewire_compile_options options;
+    shadewire_ir *ir = NULL;
     shadewire_compiled *compiled = NULL;
     shadewire_error *err = NULL;
     shadewire_target target;
@@ -51,8 +52,9 @@ static int compile_to(const char *text, size_t len, const char *path, shadewire_
     options.implicit_derivatives = true;
     target.kind = kind;
     target.version = 0;
-    if (shadewire_compile_mtlx(text, len, path, NULL, NULL, target, &options, &compiled, &err) != SHADEWIRE_OK) {
-        step = fail(report, report_len, first_step, "shadewire_compile_mtlx failed", err);
+    if (shadewire_mtlx_to_ir(text, len, path, NULL, NULL, &ir, &err) != SHADEWIRE_OK ||
+        shadewire_compile(ir, target, &options, &compiled, &err) != SHADEWIRE_OK) {
+        step = fail(report, report_len, first_step, "lowering or compiling failed", err);
         goto done;
     }
     code = shadewire_compiled_code(compiled, NULL);
@@ -64,6 +66,7 @@ static int compile_to(const char *text, size_t len, const char *path, shadewire_
 
 done:
     shadewire_compiled_free(compiled);
+    shadewire_ir_free(ir);
     shadewire_error_free(err);
     return step;
 }
