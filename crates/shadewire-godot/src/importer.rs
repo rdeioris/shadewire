@@ -1,6 +1,8 @@
 //! The editor side: `.mtlx` files in the project import as `ShaderMaterial`s, with the same compile core as the
 //! runtime. Their textures are ordinary project files, imported by Godot first.
 
+use std::sync::Arc;
+
 use godot::classes::file_access::ModeFlags;
 use godot::classes::{
     ConfigFile, EditorImportPlugin, EditorPlugin, FileAccess, IEditorImportPlugin, IEditorPlugin, ResourceSaver,
@@ -14,7 +16,7 @@ use shadewire_mtlx::material_names;
 use crate::compile::{compile, reference};
 use crate::io::{load_texture, read_text, resolver};
 use crate::material::build;
-use crate::options::{Limits, LoadOptions, TRANSPARENCY};
+use crate::options::{Budget, Limits, LoadOptions, TRANSPARENCY};
 use crate::runtime::options_from;
 
 #[derive(GodotClass)]
@@ -43,13 +45,14 @@ fn import(
     let write_gdshader = options.remove("write_gdshader").is_some_and(|v| v.try_to::<bool>().unwrap_or(false));
     // The project's own files: no limits for untrusted documents.
     let options = LoadOptions { limits: Limits::NONE, ..options_from(&options)? };
-    let text = read_text(source)?;
+    let budget = Arc::new(Budget::default());
+    let text = read_text(source, &budget)?;
     // A document of definitions or node graphs only (an include): an empty material, so the import succeeds.
-    if material_names(&text, Some(source), &resolver()).map_err(|e| e.to_string())?.is_empty() {
+    if material_names(&text, Some(source), &resolver(budget.clone())).map_err(|e| e.to_string())?.is_empty() {
         return save(&ShaderMaterial::new_gd(), save_path);
     }
-    let out = compile(&text, Some(source), &options, resolver())?;
-    let built = build(&out, Some(source), options.strict_textures, false, load_texture)?;
+    let out = compile(&text, Some(source), &options, resolver(budget.clone()))?;
+    let built = build(&out, Some(source), options.strict_textures, false, |path| load_texture(path, &budget, None))?;
     let without_mipmaps = out.reflection.textures.iter().filter_map(|t| reference(Some(source), &t.file).ok());
     let without_mipmaps = without_mipmaps.filter(|path| !imports_mipmaps(path)).map(|path| {
         format!(
@@ -139,8 +142,9 @@ impl IEditorImportPlugin for ShadewireMtlxImporter {
 
     fn get_import_options(&self, path: GString, _preset_index: i32) -> Array<AnyDictionary> {
         let path = path.to_string();
-        let names = read_text(&path)
-            .and_then(|text| material_names(&text, Some(&path), &resolver()).map_err(|e| e.to_string()))
+        let budget = Arc::new(Budget::default());
+        let names = read_text(&path, &budget)
+            .and_then(|text| material_names(&text, Some(&path), &resolver(budget.clone())).map_err(|e| e.to_string()))
             .unwrap_or_default();
         let first = names.first().cloned().unwrap_or_default();
         let defaults = LoadOptions::default();

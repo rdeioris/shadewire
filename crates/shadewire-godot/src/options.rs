@@ -1,5 +1,8 @@
 //! The options the runtime API, the resource loader and the importer share.
 
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use shadewire_gdshader::{GdshaderOptions, LOBE_MODELS, MODELS, Transparency};
 use shadewire_mtlx::{MtlxOptions, Resolver};
 
@@ -39,11 +42,62 @@ pub struct Limits {
     pub max_textures: Option<usize>,
     /// Iterations of each loop whose count the document controls (fractal noise octaves): clamped in the shader.
     pub max_loop_iterations: Option<u32>,
+    /// Bytes the material may read: the document, its includes and its texture files together, local or remote.
+    pub max_material_bytes: Option<u64>,
+    /// Pixels of each texture (width times height), checked against the file's header before decoding and against
+    /// the decoded image.
+    pub max_texture_pixels: Option<u64>,
 }
 
 impl Limits {
-    pub const RUNTIME: Limits = Limits { max_nodes: Some(4096), max_textures: Some(16), max_loop_iterations: Some(16) };
-    pub const NONE: Limits = Limits { max_nodes: None, max_textures: None, max_loop_iterations: None };
+    pub const RUNTIME: Limits = Limits {
+        max_nodes: Some(4096),
+        max_textures: Some(16),
+        max_loop_iterations: Some(16),
+        max_material_bytes: Some(256 * 1024 * 1024),
+        max_texture_pixels: Some(4096 * 4096),
+    };
+    pub const NONE: Limits = Limits {
+        max_nodes: None,
+        max_textures: None,
+        max_loop_iterations: None,
+        max_material_bytes: None,
+        max_texture_pixels: None,
+    };
+}
+
+/// The bytes one material has read so far, from every source, against `max_material_bytes`. Shared by the threads
+/// of a `load_material_async` request.
+#[derive(Debug, Default)]
+pub struct Budget {
+    max: Option<u64>,
+    used: AtomicU64,
+}
+
+impl Budget {
+    pub fn new(max: Option<u64>) -> Arc<Budget> {
+        Arc::new(Budget { max, used: AtomicU64::new(0) })
+    }
+
+    /// Counts `bytes` read from `name`; an error once the material's total passes the cap. Called before reading
+    /// wherever the size is known up front.
+    pub fn charge(&self, name: &str, bytes: u64) -> Result<(), String> {
+        let used = self.used.fetch_add(bytes, Ordering::Relaxed).saturating_add(bytes);
+        match self.max {
+            Some(max) if used > max => Err(format!("{name}: the material exceeds max_material_bytes ({max} bytes)")),
+            _ => Ok(()),
+        }
+    }
+}
+
+/// A `width` by `height` texture from `name` against `max_texture_pixels`.
+pub fn check_pixels(name: &str, width: u64, height: u64, max: Option<u64>) -> Result<(), String> {
+    match max {
+        Some(max) if width.saturating_mul(height) > max => {
+            Err(format!("{name}: {width}x{height} pixels, more than max_texture_pixels ({max})"))
+        }
+        _ => Ok(()),
+    }
 }
 
 impl Default for Limits {
@@ -145,6 +199,31 @@ mod tests {
         assert_eq!(LoadOptions::default().limits, Limits::RUNTIME);
         assert!(Limits::RUNTIME.max_nodes.is_some() && Limits::RUNTIME.max_textures.is_some());
         assert!(Limits::RUNTIME.max_loop_iterations.is_some());
+        assert!(Limits::RUNTIME.max_material_bytes.is_some() && Limits::RUNTIME.max_texture_pixels.is_some());
+        assert_eq!(limit::<u64>(256 << 20), Some(Some(256 << 20)));
+    }
+
+    #[test]
+    fn a_budget_is_one_total_per_material() {
+        let budget = Budget::new(Some(10));
+        budget.charge("a.mtlx", 6).unwrap();
+        budget.charge("b.mtlx", 4).unwrap();
+        assert_eq!(budget.charge("t.png", 1).unwrap_err(), "t.png: the material exceeds max_material_bytes (10 bytes)");
+        assert!(Budget::new(Some(10)).charge("huge", u64::MAX).is_err());
+        let unlimited = Budget::new(None);
+        unlimited.charge("a", u64::MAX).unwrap();
+        unlimited.charge("b", u64::MAX).unwrap();
+    }
+
+    #[test]
+    fn texture_pixels_are_capped() {
+        check_pixels("t.png", 4096, 4096, Limits::RUNTIME.max_texture_pixels).unwrap();
+        assert_eq!(
+            check_pixels("t.png", 4097, 4096, Some(4096 * 4096)).unwrap_err(),
+            "t.png: 4097x4096 pixels, more than max_texture_pixels (16777216)"
+        );
+        assert!(check_pixels("t.png", u64::MAX, 2, Some(1)).is_err());
+        check_pixels("t.png", 1 << 20, 1 << 20, None).unwrap();
     }
 
     #[test]

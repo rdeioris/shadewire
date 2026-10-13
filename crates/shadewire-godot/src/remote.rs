@@ -19,10 +19,10 @@ use crate::headers::{Header, HeaderRules};
 use crate::http::GodotHttp;
 use crate::io::read_text;
 use crate::location::is_url;
-use crate::options::LoadOptions;
+use crate::options::{Budget, LoadOptions};
 
 /// The options only `load_material_async` takes.
-pub const NETWORK_OPTIONS: [&str; 10] = [
+pub const NETWORK_OPTIONS: [&str; 9] = [
     "allow_http",
     "headers",
     "headers_all_hosts",
@@ -32,7 +32,6 @@ pub const NETWORK_OPTIONS: [&str; 10] = [
     "timeout",
     "max_redirects",
     "max_response_bytes",
-    "max_material_bytes",
 ];
 
 /// The network options out of `dictionary`, and what is left for `options_from`.
@@ -67,7 +66,6 @@ pub fn fetch_options_from(dictionary: &VarDictionary) -> Result<(VarDictionary, 
                 options.max_redirects = value.try_to::<u32>().map_err(|_| bad("a count"))?;
             }
             "max_response_bytes" => options.max_response_bytes = bytes(&value)? as u64,
-            "max_material_bytes" => options.max_material_bytes = bytes(&value)? as u64,
             _ => unreachable!("listed in NETWORK_OPTIONS"),
         }
     }
@@ -99,6 +97,8 @@ pub struct Fetched {
     pub options: LoadOptions,
     /// By texture location: the bytes, or why they could not be fetched.
     pub textures: HashMap<String, Result<Vec<u8>, String>>,
+    /// What the worker read; local textures, read on the main thread, are charged to it too.
+    pub budget: Arc<Budget>,
 }
 
 pub struct Job {
@@ -151,6 +151,8 @@ fn run(job: Job, events: &Sender<Event>) -> Result<Box<Fetched>, String> {
     let mut session = Session::new(Arc::new(GodotHttp), rules, fetch);
     session.cache = cache;
     session.cancelled = cancelled.clone();
+    let budget = Budget::new(options.limits.max_material_bytes);
+    session.budget = budget.clone();
     let progress = events.clone();
     session.progress = Some(Arc::new(move |done, total| {
         let _ = progress.send(Event::Progress { id, done, total });
@@ -164,12 +166,13 @@ fn run(job: Job, events: &Sender<Event>) -> Result<Box<Fetched>, String> {
         session.set_document(&source);
         session.fetch_text(&source)?
     } else {
-        read_text(&source)?
+        read_text(&source, &budget)?
     };
     let includes = session.clone();
+    let local = budget.clone();
     let resolver = Resolver::new(move |base, href| {
         let location = reference(Some(base), href)?;
-        let text = if is_url(&location) { includes.fetch_text(&location)? } else { read_text(&location)? };
+        let text = if is_url(&location) { includes.fetch_text(&location)? } else { read_text(&location, &local)? };
         Ok(Resolved { location, text })
     });
     let out = compile(&text, Some(&source), &options, resolver)?;
@@ -190,5 +193,5 @@ fn run(job: Job, events: &Sender<Event>) -> Result<Box<Fetched>, String> {
         let fetches: Vec<_> = urls.into_iter().map(|url| scope.spawn(move || (session.fetch(&url), url))).collect();
         fetches.into_iter().map(|f| f.join().expect("a texture fetch panicked")).map(|(r, u)| (u, r)).collect()
     });
-    Ok(Box::new(Fetched { out, location: source, options, textures }))
+    Ok(Box::new(Fetched { out, location: source, options, textures, budget }))
 }

@@ -53,13 +53,23 @@ Options (a dictionary for the runtime API; the importer's options in the Import 
 | `max_nodes` (runtime only) | IR nodes the material may elaborate to; over it the load fails | `4096` |
 | `max_textures` (runtime only) | textures the shader may sample; over it the load fails | `16` |
 | `max_loop_iterations` (runtime only) | iterations of each loop whose count the document controls (fractal noise octaves, also when they are a uniform), clamped in the shader | `16` |
+| `max_material_bytes` (runtime only) | bytes the material may read: the document, its includes and its texture files together, local or remote; over it the load fails | 256 MiB |
+| `max_texture_pixels` (runtime only) | pixels (width times height) of each texture; over it the texture fails like an unreadable one | 4096 x 4096 |
 
 The `max_*` options are limits for untrusted documents (mods, downloads), on for every runtime load:
 `load_material`, `load_material_async`, `compile_string` and the resource loader (which always uses the defaults).
 `0` turns one off. Imports in the editor are the project's own files and have none. The largest vendored and
 matlib materials need about 550 nodes and 7 textures. The node limit is checked while the graph is built, so
 nodegraphs instanced inside one another cannot grow it exponentially first. Loops with a fixed count (Worley
-noise's neighbours, thin-film terms) are not clamped. Error messages never quote an included file: an include that
+noise's neighbours, thin-film terms) are not clamped.
+
+`max_material_bytes` is one total per material, whatever the source: through `load_material_async` a local
+document can mix local and remote includes and textures, and separate local and remote caps would let it spend both. A local file is charged its length before it is read, so an oversized one fails without
+being loaded (`compile_string` charges its text). `max_texture_pixels` bounds what decoding costs, which a byte cap
+cannot: a small PNG can declare an image of gigabytes. A file's header is checked before decoding, the decoded image
+after, and an imported `res://` texture by its size. A texture over the cap warns and leaves Godot's default bound,
+or fails the load with `strict_textures`. 4096 x 4096 is about 90 MB of RGBA with mipmaps; set it to `0` or higher
+for 8K textures. Error messages never quote an included file: an include that
 is not a well-formed `<materialx>` document fails with its location only.
 
 Network options, for `load_material_async` only (`load_material` refuses them):
@@ -75,7 +85,6 @@ Network options, for `load_material_async` only (`load_material` refuses them):
 | `timeout` | seconds per request, redirects included | `60` |
 | `max_redirects` | redirects followed per request | `5` |
 | `max_response_bytes` | bytes per response | 64 MiB |
-| `max_material_bytes` | bytes per material: document, includes and textures | 256 MiB |
 
 ## Remote sources
 
@@ -142,7 +151,7 @@ Things to know:
 
 `cargo test` runs the parts that do not need Godot: locations, URLs, host patterns and header merging, the cache
 index and LRU, the fetch rules (redirects, header scoping, caps, cache policies) over a fake transport, and the
-limits for untrusted documents. The
+limits for untrusted documents (the byte budget, image header sizes, the pixel cap). The
 smoke test needs a Godot binary and a GPU: it builds the extension, assembles a project, imports it with the editor,
 then loads materials through the importer, the runtime API, `compile_string` and the resource loader, draws them
 with the real renderer and saves a screenshot. For `load_material_async` it serves a document from two local HTTP
@@ -165,4 +174,3 @@ From the plan in `docs/specs/2026-10-12-godot-analysis.md` (Sections 4.1, 4.3, 5
 - Threaded import (`can_import_threaded` is false: loading the textures from an import worker thread hung the
   headless import in Godot 4.7.2), setting texture import options from the importer, the `Shadewire.cs` wrapper,
   Linux and macOS libraries, CI.
-- Limits: a byte cap on local documents (only remote ones have `max_material_bytes`), and a texture-size cap.

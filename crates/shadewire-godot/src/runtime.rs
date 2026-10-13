@@ -14,13 +14,14 @@ use crate::fetch::CANCELLED;
 use crate::headers::{Header, HeaderRules};
 use crate::io::{load_texture, read_text, resolver, texture_from_bytes};
 use crate::material::{Built, build};
-use crate::options::{LoadOptions, Models, limit, models, transparency};
+use crate::options::{Budget, Limits, LoadOptions, Models, limit, models, transparency};
 use crate::remote::{Event, Fetched, Job, NETWORK_OPTIONS, fetch_options_from, spawn};
 use crate::url::without_fragment;
 
 /// Options from a GDScript dictionary: `material`, `models` (`"mapped"`, `"lobes"` or an array of model names),
 /// `bake_constants`, `optimize`, `transparency`, `emission_scale`, `strict_textures`, and the limits `max_nodes`,
-/// `max_textures`, `max_loop_iterations` (0 turns one off). Unknown keys are errors.
+/// `max_textures`, `max_loop_iterations`, `max_material_bytes`, `max_texture_pixels` (0 turns one off). Unknown keys
+/// are errors.
 pub fn options_from(dictionary: &VarDictionary) -> Result<LoadOptions, String> {
     let mut options = LoadOptions::default();
     for (key, value) in dictionary.iter_shared() {
@@ -55,12 +56,15 @@ pub fn options_from(dictionary: &VarDictionary) -> Result<LoadOptions, String> {
             "emission_scale" => {
                 options.emission_scale = value.try_to::<f64>().map_err(|_| bad("a number"))? as f32;
             }
-            "max_nodes" | "max_textures" | "max_loop_iterations" => {
+            "max_nodes" | "max_textures" | "max_loop_iterations" | "max_material_bytes" | "max_texture_pixels" => {
                 let n = value.try_to::<i64>().map_err(|_| bad("a count, 0 for none"))?;
+                let limits = &mut options.limits;
                 let parsed = match key.as_str() {
-                    "max_nodes" => limit(n).map(|l| options.limits.max_nodes = l),
-                    "max_textures" => limit(n).map(|l| options.limits.max_textures = l),
-                    _ => limit(n).map(|l| options.limits.max_loop_iterations = l),
+                    "max_nodes" => limit(n).map(|l| limits.max_nodes = l),
+                    "max_textures" => limit(n).map(|l| limits.max_textures = l),
+                    "max_loop_iterations" => limit(n).map(|l| limits.max_loop_iterations = l),
+                    "max_material_bytes" => limit(n).map(|l| limits.max_material_bytes = l),
+                    _ => limit(n).map(|l| limits.max_texture_pixels = l),
                 };
                 parsed.ok_or_else(|| bad("a count, 0 for none"))?;
             }
@@ -73,11 +77,17 @@ pub fn options_from(dictionary: &VarDictionary) -> Result<LoadOptions, String> {
     Ok(options)
 }
 
-/// Compile `text`, named by `location`, into a material. Texture failures that are not fatal are pushed as
-/// warnings.
-pub fn load_text(text: &str, location: Option<&str>, options: &LoadOptions) -> Result<Gd<ShaderMaterial>, String> {
-    let out = compile(text, location, options, resolver())?;
-    let built = build(&out, location, options.strict_textures, true, load_texture)?;
+/// Compile `text`, named by `location`, into a material; its includes and textures are charged to `budget`.
+/// Texture failures that are not fatal are pushed as warnings.
+pub fn load_text(
+    text: &str,
+    location: Option<&str>,
+    options: &LoadOptions,
+    budget: Arc<Budget>,
+) -> Result<Gd<ShaderMaterial>, String> {
+    let out = compile(text, location, options, resolver(budget.clone()))?;
+    let pixels = options.limits.max_texture_pixels;
+    let built = build(&out, location, options.strict_textures, true, |path| load_texture(path, &budget, pixels))?;
     Ok(warn(built, location.unwrap_or("<string>")))
 }
 
@@ -89,17 +99,19 @@ fn warn(built: Built, name: &str) -> Gd<ShaderMaterial> {
 }
 
 pub fn load_path(path: &str, options: &LoadOptions) -> Result<Gd<ShaderMaterial>, String> {
-    let text = read_text(path)?;
-    load_text(&text, Some(path), options)
+    let budget = Budget::new(options.limits.max_material_bytes);
+    let text = read_text(path, &budget)?;
+    load_text(&text, Some(path), options, budget)
 }
 
 /// The main thread's half of `load_material_async`: the resources, from the fetched texture bytes.
 fn finish_fetched(fetched: Box<Fetched>) -> Result<Gd<ShaderMaterial>, String> {
-    let Fetched { out, location, options, textures } = *fetched;
+    let Fetched { out, location, options, textures, budget } = *fetched;
+    let pixels = options.limits.max_texture_pixels;
     let texture = |path: &str| match textures.get(path) {
-        Some(Ok(bytes)) => texture_from_bytes(path, &PackedByteArray::from(bytes.as_slice())),
+        Some(Ok(bytes)) => texture_from_bytes(path, &PackedByteArray::from(bytes.as_slice()), pixels),
         Some(Err(e)) => Err(e.clone()),
-        None => load_texture(path),
+        None => load_texture(path, &budget, pixels),
     };
     let built = build(&out, Some(&location), options.strict_textures, true, texture)?;
     Ok(warn(built, &location))
@@ -269,7 +281,7 @@ impl Shadewire {
     /// as `material_ready` or `material_failed`, with `material_progress` meanwhile. Keep this object alive until
     /// then. Options: the `load_material` ones plus the network ones (`allow_http`, `headers`,
     /// `headers_all_hosts`, `cache_policy`, `cache_authenticated`, `connect_timeout`, `timeout`, `max_redirects`,
-    /// `max_response_bytes`, `max_material_bytes`).
+    /// `max_response_bytes`); `max_material_bytes` counts remote and local sources together.
     #[func]
     fn load_material_async(&mut self, source: GString, #[opt(default = Options::default())] options: Options) -> i64 {
         let id = self.next_id;
@@ -413,7 +425,12 @@ impl Shadewire {
             base.push('/');
         }
         let location = (!base.is_empty()).then_some(base.as_str());
-        let result = options_from(&options.0).and_then(|options| load_text(&text.to_string(), location, &options));
+        let text = text.to_string();
+        let result = options_from(&options.0).and_then(|options| {
+            let budget = Budget::new(options.limits.max_material_bytes);
+            budget.charge("the document", text.len() as u64)?;
+            load_text(&text, location, &options, budget)
+        });
         self.finish(result)
     }
 
@@ -421,8 +438,9 @@ impl Shadewire {
     #[func]
     fn material_names(&mut self, path: GString) -> PackedStringArray {
         let path = path.to_string();
-        let result = read_text(&path).and_then(|text| {
-            shadewire_mtlx::material_names(&text, Some(&path), &resolver()).map_err(|e| e.to_string())
+        let budget = Budget::new(Limits::RUNTIME.max_material_bytes);
+        let result = read_text(&path, &budget).and_then(|text| {
+            shadewire_mtlx::material_names(&text, Some(&path), &resolver(budget)).map_err(|e| e.to_string())
         });
         let names = self.finish(result).unwrap_or_default();
         names.iter().map(|n| GString::from(n.as_str())).collect()

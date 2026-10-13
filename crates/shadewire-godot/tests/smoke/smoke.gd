@@ -107,7 +107,63 @@ func limits() -> Material:
 	var error := "" if sw.load_material("user://limits/mod.mtlx") else sw.get_last_error()
 	check("not a MaterialX document" in error and not "s3cr3t" in error and not "key" in error,
 		"an included file is never quoted: " + error)
+	sizes()
 	return fractal
+
+
+const ONE_TEXTURE := """<materialx version="1.39">
+	<image name="i" type="color3"><input name="file" type="filename" value="%s"/></image>
+	<standard_surface name="SR" type="surfaceshader"><input name="base_color" type="color3" nodename="i"/></standard_surface>
+	<surfacematerial name="M" type="material"><input name="surfaceshader" type="surfaceshader" nodename="SR"/></surfacematerial>
+	</materialx>"""
+
+
+# Byte and pixel caps, on by default at runtime. No error may quote a file.
+func sizes() -> void:
+	# A document past the default 256 MiB (sparse: a seek, then one byte) fails on its length, before it is read.
+	var huge := FileAccess.open("user://limits/huge.mtlx", FileAccess.WRITE)
+	huge.seek(256 * 1024 * 1024)
+	huge.store_8(0)
+	huge.close()
+	var started := Time.get_ticks_msec()
+	check(sw.load_material("user://limits/huge.mtlx") == null and sw.get_last_error()
+		== "user://limits/huge.mtlx: the material exceeds max_material_bytes (268435456 bytes)",
+		"load_material: a 256 MiB document fails on max_material_bytes: " + sw.get_last_error())
+	check(Time.get_ticks_msec() - started < 1000, "without reading it (%d ms)" % (Time.get_ticks_msec() - started))
+	check(load("user://limits/huge.mtlx") == null, "the resource loader applies max_material_bytes")
+	DirAccess.remove_absolute("user://limits/huge.mtlx")
+
+	# One total per material: the document and its include together.
+	var padding := "<!-- %s -->" % "x".repeat(2000)
+	write("user://limits/padded.mtlx", """<materialx version="1.39">%s</materialx>""" % padding)
+	write("user://limits/includer.mtlx", """<materialx version="1.39"><xi:include href="padded.mtlx"/></materialx>""")
+	var error := "" if sw.load_material("user://limits/includer.mtlx", {"max_material_bytes": 1500}) else sw.get_last_error()
+	check(error.ends_with(": user://limits/padded.mtlx: the material exceeds max_material_bytes (1500 bytes)"),
+		"an include counts toward max_material_bytes: " + error)
+	check(sw.material_names("user://limits/includer.mtlx").is_empty() and sw.get_last_error() == "",
+		"under the default cap it loads")
+	check(sw.compile_string(padding, "", {"max_material_bytes": 100}) == null
+		and sw.get_last_error() == "the document: the material exceeds max_material_bytes (100 bytes)",
+		"compile_string counts its text: " + sw.get_last_error())
+
+	# A texture past the default 4096 x 4096 pixels: refused from its header, warned, Godot's default bound.
+	var big := Image.create_empty(4097, 4097, false, Image.FORMAT_L8)
+	check(big.save_png("user://limits/big.png") == OK, "wrote a 4097x4097 PNG")
+	write("user://limits/big_texture.mtlx", ONE_TEXTURE % "big.png")
+	var unbound = sw.load_material("user://limits/big_texture.mtlx")
+	check(unbound is ShaderMaterial and unbound.get_shader_parameter("shadewire_t0") == null,
+		"an oversized texture warns and leaves the default bound: " + sw.get_last_error())
+	error = "" if sw.load_material("user://limits/big_texture.mtlx", {"strict_textures": true}) else sw.get_last_error()
+	check(error == "user://limits/big.png: 4097x4097 pixels, more than max_texture_pixels (16777216)",
+		"strict_textures: an oversized texture fails: " + error)
+	check(textured(sw.load_material("user://limits/big_texture.mtlx", {"max_texture_pixels": 0})),
+		"max_texture_pixels 0 is no cap: " + sw.get_last_error())
+	# An imported project texture (grid.png, 640 x 640) is checked too.
+	error = "" if sw.load_material("res://smoke/textured.mtlx", {"max_texture_pixels": 1000, "strict_textures": true}) \
+		else sw.get_last_error()
+	check(error == "res://smoke/textures/grid.png: 640x640 pixels, more than max_texture_pixels (1000)",
+		"an imported texture is checked: " + error)
+	check(textured(sw.load_material("res://smoke/textured.mtlx")), "it loads under the default cap")
 
 
 func _initialize() -> void:
