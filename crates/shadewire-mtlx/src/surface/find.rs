@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use shadewire::{Error, Location};
 
-use super::models::{CLOSURE_MODEL, PHASE_ONE_MODELS};
+use super::models::{CLOSURE_MODEL, KNOWN_MODELS};
 use crate::document::{Document, Input, Node, NodeDef, PortType};
 use crate::elaborate::{Elaborator, Scope};
 use crate::resolve_nodedef::resolve_nodedef;
@@ -190,7 +190,7 @@ impl<'a> Elaborator<'a> {
     fn find_surface_at(&mut self, scope: &Scope<'a>, node: &'a Node, depth: u32) -> Result<SurfaceSource<'a>, Error> {
         let at = self.at(scope, node.line, scope.origin(&node.name));
         let is_shader = node.port_type == PortType::SurfaceShader;
-        if PHASE_ONE_MODELS.contains(&node.category.as_str()) {
+        if KNOWN_MODELS.contains(&node.category.as_str()) {
             let nodedef = self.shader_nodedef(node, &at)?;
             let opens = self.accepts_closures
                 && !self.accepted_models.contains(&node.category)

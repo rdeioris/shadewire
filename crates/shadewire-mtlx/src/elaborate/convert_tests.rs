@@ -59,8 +59,8 @@ fn srgb_texture_color4_keeps_alpha() {
 }
 
 #[test]
-fn working_colorspace_and_none_are_unchanged() {
-    for colorspace in ["lin_rec709", "none"] {
+fn working_colorspace_none_and_raw_are_unchanged() {
+    for colorspace in ["lin_rec709", "none", "raw"] {
         let dag = elaborate_output(&constant_in("color3", "0.5,0.5,0.5", colorspace), "g", "out").unwrap();
         assert_eq!(
             dag.node(dag.surface.fields[0].node).kind,

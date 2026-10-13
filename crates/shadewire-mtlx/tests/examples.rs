@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use shadewire::Error;
-use shadewire_mtlx::include::resolve_includes;
+use shadewire_mtlx::include::{Resolver, resolve_includes};
 use shadewire_mtlx::parse::parse_str;
 mod common;
 
@@ -28,7 +28,7 @@ fn examples() -> PathBuf {
 fn materials(text: &str, path: &Path) -> Result<Vec<String>, Error> {
     let name = path.display().to_string();
     let root = parse_str(text, Some(&name))?;
-    let root = resolve_includes(root, path.parent(), Some(&name))?;
+    let root = resolve_includes(root, Some(&name), &Resolver::default())?;
     Ok(root.children.iter().filter(|c| c.category == "surfacematerial").map(|c| c.name().to_string()).collect())
 }
 
@@ -46,7 +46,7 @@ fn check(text: &str, path: &Path, material: &str) -> Result<(), Error> {
     let name = format!("{}_{material}", path.file_stem().unwrap_or_default().to_string_lossy());
     let fail = |language: &str, e: String| -> ! { panic!("{name}: the {language} does not validate:\n{e}") };
     shadewire_wgsl::validate::check(&compiled.code, &compiled.reflection).unwrap_or_else(|e| fail("WGSL", e));
-    let ir = shadewire_mtlx::to_ir(text, Some(path), Some(material), &MtlxOptions::default())?;
+    let ir = shadewire_mtlx::to_ir(text, path.to_str(), Some(material), &MtlxOptions::default())?;
     let version = shadewire_glsl::Version::Desktop(420);
     let glsl = shadewire_glsl::compile(&ir.dag, &ir.source, &options, version)?;
     shadewire_glsl::validate::check(&name, &glsl.code, &glsl.reflection, version).unwrap_or_else(|e| fail("GLSL", e));

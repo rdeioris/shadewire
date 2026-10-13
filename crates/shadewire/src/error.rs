@@ -45,6 +45,10 @@ pub enum Error {
     AmbiguousMaterial { names: Vec<String> },
     #[error("unknown material {name}")]
     UnknownMaterial { name: String },
+    /// Over a host-set limit for untrusted documents (node count, texture count); the message names the limit,
+    /// never document content.
+    #[error("{0}")]
+    Limit(String),
     #[error("{0}")]
     Io(String),
     /// A back end asked for a language version it cannot print, such as GLSL 300 (desktop) or ES 330.

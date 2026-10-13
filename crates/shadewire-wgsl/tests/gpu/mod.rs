@@ -156,7 +156,9 @@ async fn run(source: &str, count: usize) -> Option<Vec<[f32; 4]>> {
     receiver.recv().expect("map callback").expect("map");
     let values: Vec<[f32; 4]> = {
         let view = staging.get_mapped_range(..).expect("mapped range");
-        view.chunks_exact(16)
+        view.as_chunks::<16>()
+            .0
+            .iter()
             .map(|c| {
                 let f = |i: usize| f32::from_le_bytes(c[i * 4..i * 4 + 4].try_into().expect("4 bytes"));
                 [f(0), f(1), f(2), f(3)]

@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!-- An include, a texture and a material: what the smoke test loads through the importer and at runtime. -->
+<materialx version="1.39">
+  <xi:include href="lib/grid_graph.mtlx" />
+  <standard_surface name="SR_grid" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_grid" output="out" />
+    <input name="specular_roughness" type="float" value="0.35" />
+  </standard_surface>
+  <surfacematerial name="M_grid" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_grid" />
+  </surfacematerial>
+</materialx>

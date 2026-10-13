@@ -15,6 +15,6 @@ pub fn compile_mtlx(
     mtlx: &MtlxOptions,
     options: &CompileOptions,
 ) -> Result<Compiled, Error> {
-    let ir = to_ir(text, file, material, mtlx)?;
+    let ir = to_ir(text, file.and_then(Path::to_str), material, mtlx)?;
     compile(&ir.dag, &ir.source, options)
 }

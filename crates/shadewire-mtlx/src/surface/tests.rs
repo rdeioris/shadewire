@@ -3,10 +3,10 @@ use std::path::Path;
 use shadewire::interpret::{ContextSource, NoTextures, eval_surface};
 use shadewire::{ContextRead, Dag, Error, NodeKind, Op, Space, TransformKind, Type, Value};
 
-use super::models::{PHASE_ONE_MODELS, fields};
+use super::models::{KNOWN_MODELS, fields};
 use crate::document::Document;
 use crate::document::build::build;
-use crate::include::resolve_includes;
+use crate::include::{Resolver, resolve_includes};
 use crate::index::Index;
 use crate::library::standard;
 use crate::parse::parse_str;
@@ -20,7 +20,7 @@ fn load(relative: &str) -> Document {
     let text = std::fs::read_to_string(&path).unwrap();
     let file = path.to_string_lossy().to_string();
     let root = parse_str(&text, Some(&file)).unwrap();
-    let root = resolve_includes(root, path.parent(), Some(&file)).unwrap();
+    let root = resolve_includes(root, Some(&file), &Resolver::default()).unwrap();
     upgrade(build(&root, Some(&file)).unwrap()).unwrap()
 }
 
@@ -57,7 +57,7 @@ fn field_value(dag: &Dag, name: &str) -> Value {
 #[test]
 fn open_pbr_default_has_every_field() {
     let doc = load("OpenPbr/open_pbr_default.mtlx");
-    let dag = compile(&doc, None, &PHASE_ONE_MODELS).unwrap();
+    let dag = compile(&doc, None, &KNOWN_MODELS).unwrap();
     assert_eq!(dag.surface.model, "open_pbr_surface");
     assert_eq!(dag.surface.fields.len(), field_count("ND_open_pbr_surface_surfaceshader"));
     assert_eq!(dag.surface.fields[1].name, "base_color");
@@ -71,7 +71,7 @@ fn open_pbr_default_has_every_field() {
 #[test]
 fn gltf_pbr_default_compiles() {
     let doc = load("GltfPbr/gltf_pbr_default.mtlx");
-    let dag = compile(&doc, None, &PHASE_ONE_MODELS).unwrap();
+    let dag = compile(&doc, None, &KNOWN_MODELS).unwrap();
     assert_eq!(dag.surface.model, "gltf_pbr");
     assert_eq!(dag.surface.fields.len(), field_count("ND_gltf_pbr_surfaceshader"));
 }
@@ -94,17 +94,17 @@ const TWO_MATERIALS: &str = r#"
 #[test]
 fn several_materials_need_a_name() {
     let doc = inline(TWO_MATERIALS);
-    let err = compile(&doc, None, &PHASE_ONE_MODELS).unwrap_err();
+    let err = compile(&doc, None, &KNOWN_MODELS).unwrap_err();
     assert_eq!(err, Error::AmbiguousMaterial { names: vec!["first".to_string(), "second".to_string()] });
-    assert_eq!(compile(&doc, Some("second"), &PHASE_ONE_MODELS).unwrap().surface.model, "standard_surface");
-    let err = compile(&doc, Some("third"), &PHASE_ONE_MODELS).unwrap_err();
+    assert_eq!(compile(&doc, Some("second"), &KNOWN_MODELS).unwrap().surface.model, "standard_surface");
+    let err = compile(&doc, Some("third"), &KNOWN_MODELS).unwrap_err();
     assert_eq!(err, Error::UnknownMaterial { name: "third".to_string() });
 }
 
 #[test]
 fn no_material_is_an_error() {
     let doc = inline(r#"<standard_surface name="s1" type="surfaceshader"/>"#);
-    assert_eq!(compile(&doc, None, &PHASE_ONE_MODELS).unwrap_err(), Error::NoMaterial);
+    assert_eq!(compile(&doc, None, &KNOWN_MODELS).unwrap_err(), Error::NoMaterial);
 }
 
 const MIX: &str = r#"
@@ -124,7 +124,7 @@ const MIX: &str = r#"
 
 #[test]
 fn same_model_mix_lerps_and_is_flagged() {
-    let dag = compile(&inline(MIX), None, &PHASE_ONE_MODELS).unwrap();
+    let dag = compile(&inline(MIX), None, &KNOWN_MODELS).unwrap();
     assert_eq!(dag.surface.model, "standard_surface");
     assert_eq!(dag.surface.fields.len(), field_count("ND_standard_surface_surfaceshader"));
     assert_eq!(dag.approximations, ["surface_mix"]);
@@ -142,7 +142,7 @@ fn mix_of_different_models_is_unsupported() {
     </standard_surface>"#;
     assert!(MIX.contains(blue));
     let doc = inline(&MIX.replace(blue, r#"<open_pbr_surface name="blue" type="surfaceshader"/>"#));
-    let err = compile(&doc, None, &PHASE_ONE_MODELS).unwrap_err();
+    let err = compile(&doc, None, &KNOWN_MODELS).unwrap_err();
     assert!(matches!(&err, Error::UnsupportedSurface { reason, .. } if reason == "mix of different models"), "{err:?}");
 }
 
@@ -157,7 +157,7 @@ fn follows_dot_and_user_nodegraph_outputs() {
         <dot name="pass" type="surfaceshader"><input name="in" type="surfaceshader" nodegraph="shading" output="out"/></dot>
         <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="pass"/></surfacematerial>"#,
     );
-    let dag = compile(&doc, None, &PHASE_ONE_MODELS).unwrap();
+    let dag = compile(&doc, None, &KNOWN_MODELS).unwrap();
     assert_eq!(dag.surface.model, "gltf_pbr");
     assert_eq!(field_value(&dag, "metallic"), Value::Float(0.5));
 }
@@ -180,7 +180,7 @@ fn follows_a_nodegraph_implemented_shader_nodedef() {
         <shiny name="gold" type="surfaceshader"><input name="tint" type="color3" value="1, 0.8, 0.2"/></shiny>
         <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="gold"/></surfacematerial>"#,
     );
-    let dag = compile(&doc, None, &PHASE_ONE_MODELS).unwrap();
+    let dag = compile(&doc, None, &KNOWN_MODELS).unwrap();
     assert_eq!(dag.surface.model, "standard_surface");
     assert_eq!(field_value(&dag, "base_color"), Value::Color3([1.0, 0.8, 0.2]));
     let metalness = dag.surface.fields.iter().find(|f| f.name == "metalness").unwrap();
@@ -195,7 +195,7 @@ fn other_shaders_are_not_a_known_shading_model() {
         <surface name="surf" type="surfaceshader"><input name="bsdf" type="BSDF" nodename="bsdf"/></surface>
         <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="surf"/></surfacematerial>"#,
     );
-    let err = compile(&doc, None, &PHASE_ONE_MODELS).unwrap_err();
+    let err = compile(&doc, None, &KNOWN_MODELS).unwrap_err();
     let known = matches!(&err, Error::UnsupportedSurface { node, reason, .. } if node == "surf" && reason == "not a known shading model");
     assert!(known, "{err:?}");
 }
@@ -204,9 +204,9 @@ fn other_shaders_are_not_a_known_shading_model() {
 fn standard_surface_versions_read_their_own_defaults() {
     let material = r#"<surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s"/></surfacematerial>"#;
     let current = inline(&format!(r#"<standard_surface name="s" type="surfaceshader"/>{material}"#));
-    assert_eq!(field_value(&compile(&current, None, &PHASE_ONE_MODELS).unwrap(), "base"), Value::Float(1.0));
+    assert_eq!(field_value(&compile(&current, None, &KNOWN_MODELS).unwrap(), "base"), Value::Float(1.0));
     let old = inline(&format!(r#"<standard_surface name="s" type="surfaceshader" version="1.0.0"/>{material}"#));
-    assert_eq!(field_value(&compile(&old, None, &PHASE_ONE_MODELS).unwrap(), "base"), Value::Float(0.8));
+    assert_eq!(field_value(&compile(&old, None, &KNOWN_MODELS).unwrap(), "base"), Value::Float(0.8));
 }
 
 #[test]
@@ -224,6 +224,6 @@ fn geomprop_defaults_reach_the_dag() {
           <input name="surfaceshader" type="surfaceshader" nodename="s"/>
         </surfacematerial>"#,
     );
-    let dag = compile(&doc, None, &PHASE_ONE_MODELS).unwrap();
+    let dag = compile(&doc, None, &KNOWN_MODELS).unwrap();
     assert_eq!(dag.geomprop_defaults.get("tintprop"), Some(&Value::Color3([1.0, 1.0, 1.0])));
 }

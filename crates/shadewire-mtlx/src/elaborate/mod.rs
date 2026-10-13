@@ -30,6 +30,8 @@ mod geomprop_tests;
 #[cfg(test)]
 mod image_tests;
 #[cfg(test)]
+mod limit_tests;
+#[cfg(test)]
 mod param_tests;
 #[cfg(test)]
 mod special_tests;
@@ -54,11 +56,13 @@ pub struct ElaborateOptions {
     pub working_colorspace: String,
     /// Surface-node values and top-level nodegraph interface values become uniforms.
     pub values_as_uniforms: bool,
+    /// The most nodes the DAG may grow to (`MtlxOptions::max_nodes`).
+    pub max_nodes: Option<usize>,
 }
 
 impl Default for ElaborateOptions {
     fn default() -> ElaborateOptions {
-        ElaborateOptions { working_colorspace: "lin_rec709".to_string(), values_as_uniforms: true }
+        ElaborateOptions { working_colorspace: "lin_rec709".to_string(), values_as_uniforms: true, max_nodes: None }
     }
 }
 
@@ -140,6 +144,16 @@ impl<'a> Elaborator<'a> {
             other => Err(Error::UnsupportedType { at: at.clone(), ty: format!("{other:?}") }),
         }
     }
+
+    /// `Error::Limit` once the DAG has grown past `options.max_nodes`.
+    pub fn check_node_limit(&self) -> Result<(), Error> {
+        match self.options.max_nodes {
+            Some(max) if self.dag.nodes.len() > max => {
+                Err(Error::Limit(format!("the material needs more than {max} nodes (max_nodes)")))
+            }
+            _ => Ok(()),
+        }
+    }
 }
 
 /// Compiles the document's material into a DAG for one of `models`.
@@ -188,6 +202,7 @@ fn elaborate_here(
     } else {
         elaborator.dag.surface.fields = elaborator.surface_fields(&source)?;
     }
+    elaborator.check_node_limit()?;
     elaborator.dag.surface.model = model;
     elaborator.dag.geomprop_defaults = elaborator.geomprop_defaults.drain().collect();
     Ok(elaborator.dag)

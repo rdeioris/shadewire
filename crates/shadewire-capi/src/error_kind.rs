@@ -12,7 +12,7 @@ pub enum shadewire_error_kind {
     SHADEWIRE_ERROR_UNSUPPORTED = 3,
     /// The document has no usable material, or the named one does not exist.
     SHADEWIRE_ERROR_MATERIAL = 4,
-    /// The node graph is invalid.
+    /// The node graph is invalid, or over a limit the host set.
     SHADEWIRE_ERROR_GRAPH = 5,
     /// Reading or writing failed.
     SHADEWIRE_ERROR_IO = 6,
@@ -38,7 +38,8 @@ pub(crate) fn kind_of(error: &shadewire::Error) -> shadewire_error_kind {
         | Error::TypeMismatch { .. }
         | Error::Cycle { .. }
         | Error::MissingLeafImpl { .. }
-        | Error::BadValue { .. } => shadewire_error_kind::SHADEWIRE_ERROR_GRAPH,
+        | Error::BadValue { .. }
+        | Error::Limit(_) => shadewire_error_kind::SHADEWIRE_ERROR_GRAPH,
         Error::Io(_) => shadewire_error_kind::SHADEWIRE_ERROR_IO,
         Error::UnsupportedTarget(_) => shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT,
     }
@@ -94,6 +95,7 @@ mod tests {
             Error::Cycle { at: at(), node: "n".into() },
             Error::MissingLeafImpl { at: at(), nodedef: "d".into() },
             Error::BadValue { at: at(), message: "m".into() },
+            Error::Limit("l".into()),
         ];
         for e in &all {
             assert_eq!(kind_of(e), K::SHADEWIRE_ERROR_GRAPH, "{e}");

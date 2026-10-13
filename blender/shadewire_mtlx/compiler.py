@@ -53,7 +53,7 @@ class ModuleBackend:
 
     def material_names(self, mtlx):
         try:
-            return self.module.mtlx.material_names(self.read(mtlx), path=mtlx)
+            return self.module.mtlx.material_names(self.read(mtlx), location=mtlx)
         except self.module.ShadewireError as e:
             raise CompileError(str(e)) from e
 
@@ -64,7 +64,7 @@ class ModuleBackend:
     def compile_text(self, text, path, material, editable, mode="PRINCIPLED"):
         """`compile` of a document's text; `path` (None for none) anchors its includes."""
         try:
-            ir = self.module.mtlx.to_ir(text, path=path, material=material, models=MODES[mode],
+            ir = self.module.mtlx.to_ir(text, location=path, material=material, models=MODES[mode],
                                         values_as_uniforms=editable)
             doc = ir.optimize().to_dict()
         except self.module.ShadewireError as e:
