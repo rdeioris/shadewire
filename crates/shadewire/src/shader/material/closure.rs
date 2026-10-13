@@ -8,6 +8,12 @@
 //! vec3 shadewire_eval_emission(Model surface, vec3 to_viewer, vec3 shading_normal)
 //! ```
 //!
+//! [`ambient_items`] adds `shadewire_eval_ambient`, for a back end that needs the albedo split into diffuse and
+//! specular; the others do not print it.
+//!
+//! [`ambient_items`] adds `shadewire_eval_ambient`, for a back end that needs the albedo split into diffuse and
+//! specular; the others do not print it.
+//!
 //! The directions are unit vectors from the shaded point; the shading normal is what a lobe without a normal
 //! input uses, and what `generalized_schlick_edf` reads. A lobe the library lacks scatters and emits nothing.
 
@@ -394,6 +400,170 @@ pub fn closure_items(dag: &Dag) -> Vec<Item> {
             params: vec![param(SURFACE, model), param(TO_VIEWER, v3()), param(SHADING_NORMAL, v3())],
             ret: v3(),
             body: emission_body(&walk, graph),
+        }),
+    ]
+}
+
+pub const AMBIENT_STRUCT: &str = "ShadewireAmbient";
+
+/// Rec. 709 luminance, the weight of a color in the effective roughness.
+fn luminance(color: Expr) -> Expr {
+    let weights = Expr::construct(Ty::vec(3), vec![Expr::f32(0.2126), Expr::f32(0.7152), Expr::f32(0.0722)]);
+    Expr::builtin(Builtin::Dot, vec![color, weights], Ty::F32)
+}
+
+/// The albedo split into what diffuse lobes and what specular lobes reflect: one `let` per node for its albedo
+/// (`c`), its diffuse part (`d`; the rest of the response is specular) and its specular lobes' perceptual
+/// roughness weighted by their albedo's luminance, with the weight (`r`, a sum and its weight).
+fn ambient_body(walk: &Walk, graph: &ClosureGraph) -> Vec<Stmt> {
+    let v2 = || Ty::vec(2);
+    let v3 = || Ty::vec(3);
+    let ambient = Ty::Struct(AMBIENT_STRUCT.into());
+    let zero = |ty: Ty| Expr::construct(ty, vec![Expr::f32(0.0)]);
+    let Some(root) = graph.bsdf else {
+        return vec![Stmt::Return(Some(Expr::construct(ambient, vec![zero(v3()), zero(v3()), Expr::f32(1.0)])))];
+    };
+    let live = reachable(graph, root);
+    let mut body = Vec::new();
+    let named = |prefix: &str, id: usize, ty: Ty| Expr::name(format!("{prefix}{id}"), ty);
+    let c = |i: ClosureId| named("c", i as usize, bsdf());
+    let d = |i: ClosureId| named("d", i as usize, v3());
+    let r = |i: ClosureId| named("r", i as usize, v2());
+    let mul = |a: Expr, b: Expr, ty: Ty| Expr::binary(BinaryOp::Mul, a, b, ty);
+    let add = |a: Expr, b: Expr, ty: Ty| Expr::binary(BinaryOp::Add, a, b, ty);
+    let response = |e: Expr| e.member("response", v3());
+    for (id, node) in graph.nodes.iter().enumerate().filter(|(id, _)| live[*id]) {
+        let id_c = id as ClosureId;
+        let (albedo, diffuse, rough, comment) = match node {
+            ClosureNode::Lobe { kind, ty: ClosureType::Bsdf, inputs, settings, .. } => match bsdf_lobe(kind) {
+                Some(lobe) => {
+                    let mut args = vec![Expr::name(TO_VIEWER, v3())];
+                    args.extend(walk.lobe_args(&lobe, inputs, settings));
+                    let albedo = Expr::call(format!("shadewire_{kind}_albedo"), args, bsdf());
+                    if lobe.file == "closure_specular" {
+                        let alpha = walk.input(inputs, "roughness", ROUGHNESS);
+                        let alpha = Expr::builtin(
+                            Builtin::Clamp,
+                            vec![alpha, zero(v2()), Expr::construct(v2(), vec![Expr::f32(1.0)])],
+                            v2(),
+                        );
+                        let perceptual = Expr::builtin(
+                            Builtin::Sqrt,
+                            vec![Expr::call("shadewire_mx_average_alpha", vec![alpha], Ty::F32)],
+                            Ty::F32,
+                        );
+                        let weight = luminance(response(c(id_c)));
+                        let rough = Expr::construct(v2(), vec![mul(weight.clone(), perceptual, Ty::F32), weight]);
+                        (albedo, zero(v3()), rough, None)
+                    } else {
+                        (albedo, response(c(id_c)), zero(v2()), None)
+                    }
+                }
+                None => (none(), zero(v3()), zero(v2()), Some(format!("{kind}: not evaluated"))),
+            },
+            ClosureNode::Lobe { kind, .. } => (none(), zero(v3()), zero(v2()), Some(format!("{kind}: not a BSDF"))),
+            ClosureNode::Layer { top, base } => {
+                let through = c(*top).member("throughput", v3());
+                (
+                    Expr::call("shadewire_layer_bsdf", vec![c(*top), c(*base)], bsdf()),
+                    add(d(*top), mul(d(*base), through.clone(), v3()), v3()),
+                    add(r(*top), mul(r(*base), luminance(through), v2()), v2()),
+                    None,
+                )
+            }
+            ClosureNode::Mix { fg, bg, mix } => {
+                let m = walk.field(mix);
+                (
+                    Expr::call("shadewire_mix_bsdf", vec![c(*fg), c(*bg), m.clone()], bsdf()),
+                    Expr::builtin(Builtin::Mix, vec![d(*bg), d(*fg), cast(m.clone(), &v3())], v3()),
+                    Expr::builtin(Builtin::Mix, vec![r(*bg), r(*fg), cast(m, &v2())], v2()),
+                    None,
+                )
+            }
+            ClosureNode::Add { in1, in2 } => (
+                Expr::call("shadewire_add_bsdf", vec![c(*in1), c(*in2)], bsdf()),
+                add(d(*in1), d(*in2), v3()),
+                add(r(*in1), r(*in2), v2()),
+                None,
+            ),
+            ClosureNode::Multiply { in1, in2 } => {
+                let w = Expr::builtin(
+                    Builtin::Clamp,
+                    vec![walk.color_field(in2), zero(v3()), Expr::construct(v3(), vec![Expr::f32(1.0)])],
+                    v3(),
+                );
+                (
+                    Expr::call("shadewire_multiply_bsdf", vec![c(*in1), walk.color_field(in2)], bsdf()),
+                    mul(d(*in1), w.clone(), v3()),
+                    mul(r(*in1), luminance(w), v2()),
+                    None,
+                )
+            }
+        };
+        body.extend(let_(id, albedo, comment));
+        for (prefix, value) in [("d", diffuse), ("r", rough)] {
+            body.push(Stmt::Let {
+                name: format!("{prefix}{id}"),
+                ty: value.ty.clone(),
+                value: Some(value),
+                mutable: false,
+            });
+        }
+    }
+    let specular = Expr::binary(BinaryOp::Sub, response(c(root)), d(root), v3());
+    let weight = r(root).swizzle("y");
+    let roughness = Expr::builtin(
+        Builtin::Select,
+        vec![
+            Expr::f32(1.0),
+            Expr::binary(
+                BinaryOp::Div,
+                r(root).swizzle("x"),
+                Expr::builtin(Builtin::Max, vec![weight.clone(), Expr::f32(1e-8)], Ty::F32),
+                Ty::F32,
+            ),
+            Expr::binary(BinaryOp::Gt, weight, Expr::f32(0.0), Ty::BOOL),
+        ],
+        Ty::F32,
+    );
+    body.push(Stmt::Return(Some(Expr::construct(ambient, vec![d(root), specular, roughness]))));
+    body
+}
+
+/// `shadewire_eval_ambient`, for a back end that lights the environment with a BRDF of its own: the closure
+/// tree's albedo split into its diffuse lobes' and its specular lobes' part, and the specular lobes' perceptual
+/// roughness (√α) weighted by their albedo. Sheen counts as diffuse. Back ends that want it add these items after
+/// the material's; empty without a closure tree.
+///
+/// ```text
+/// struct ShadewireAmbient { diffuse: vec3, specular: vec3, roughness: float }
+/// ShadewireAmbient shadewire_eval_ambient(Model surface, vec3 to_viewer, vec3 shading_normal)
+/// ```
+pub fn ambient_items(dag: &Dag) -> Vec<Item> {
+    let Some(graph) = &dag.surface.closure else {
+        return Vec::new();
+    };
+    let model = Ty::Struct(struct_name(&dag.surface.model));
+    let walk = Walk {
+        fields: dag.surface.fields.iter().map(|f| (f.name.as_str(), Ty::of(f.ty))).collect(),
+        model: model.clone(),
+    };
+    let param = |name: &str, ty: Ty| (name.to_string(), ty);
+    vec![
+        Item::Struct(Struct {
+            name: AMBIENT_STRUCT.into(),
+            members: vec![
+                ("diffuse".into(), Ty::vec(3)),
+                ("specular".into(), Ty::vec(3)),
+                ("roughness".into(), Ty::F32),
+            ],
+            layout: None,
+        }),
+        Item::Function(Function {
+            name: "shadewire_eval_ambient".into(),
+            params: vec![param(SURFACE, model), param(TO_VIEWER, Ty::vec(3)), param(SHADING_NORMAL, Ty::vec(3))],
+            ret: Ty::Struct(AMBIENT_STRUCT.into()),
+            body: ambient_body(&walk, graph),
         }),
     ]
 }

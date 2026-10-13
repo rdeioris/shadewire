@@ -102,14 +102,17 @@ const SURFACE: &str = r#"<?xml version="1.0"?>
 fn a_closure_tree_is_lit_by_its_lobes_in_light() {
     let out = compile_text("surface", SURFACE, &MODELS, &GdshaderOptions::default());
     let code = &out.code;
-    for f in ["shadewire_eval_bsdf(", "shadewire_eval_albedo(", "shadewire_eval_emission("] {
+    for f in ["shadewire_eval_bsdf(", "shadewire_eval_ambient(", "shadewire_eval_emission(", "shadewire_godot_ambient("]
+    {
         assert!(code.contains(f), "{f} not in\n{code}");
     }
     let fragment = fragment_of(code);
     for line in [
-        "ALBEDO = shadewire_eval_albedo(s, shadewire_v, shadewire_n);",
-        "METALLIC = 0.0;",
-        "SPECULAR = 0.0;",
+        "ShadewireAmbient shadewire_a = shadewire_eval_ambient(s, shadewire_v, shadewire_n);",
+        "ALBEDO = shadewire_albedo;",
+        "METALLIC = shadewire_metallic;",
+        "SPECULAR = shadewire_level;",
+        "ROUGHNESS = shadewire_a.roughness;",
         "EMISSION = shadewire_eval_emission(s, shadewire_v, shadewire_n);",
     ] {
         assert!(fragment.contains(line), "{line} not in\n{fragment}");
@@ -125,6 +128,16 @@ fn a_closure_tree_is_lit_by_its_lobes_in_light() {
     // The colors and roughness are uniforms: light() reads them, only the normals travel.
     assert!(light.contains("color"), "{light}");
     assert!(out.reflection.approximations.contains(&crate::lobes::AMBIENT.to_string()));
+    // The ambient split: the diffuse lobe's albedo is diffuse, the dielectric's roughness weighs in.
+    let ambient = &code[code.find("ShadewireAmbient shadewire_eval_ambient(").expect("ambient")..];
+    let ambient = &ambient[..ambient
+        .find(
+            "
+}",
+        )
+        .unwrap()];
+    assert!(ambient.contains("shadewire_mx_average_alpha("), "{ambient}");
+    assert!(ambient.contains(".response"), "{ambient}");
 }
 
 /// Only what varies per fragment travels to light(), each DAG value once.

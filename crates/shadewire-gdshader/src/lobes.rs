@@ -4,10 +4,15 @@
 //! color × energy × π and a MaterialX response carries the lobe's 1/π (Lambert is `albedo · cos / π`), so a white
 //! Lambert lobe lights as Godot's own Lambert does.
 //!
-//! Ambient light and reflection probes still go through Godot's model: `fragment()` sets `ALBEDO` to the closure
-//! tree's albedo (its response to a uniform white environment, `shadewire_eval_albedo`), with no metallic and no
-//! specular, so the environment lights the surface as a diffuse one of that albedo. `EMISSION` is
-//! `shadewire_eval_emission`. The directions are world-space, like the surface's normals and tangents.
+//! Ambient light and reflection probes still go through Godot's model, so `fragment()` derives Godot's inputs from
+//! the closure tree: `shadewire_eval_ambient` splits its albedo (its response to a uniform white environment) into
+//! what its diffuse and its specular lobes reflect, with the specular lobes' roughness weighted by their albedo.
+//! `ROUGHNESS` is that roughness; the specular albedo, divided through Godot's environment BRDF (with its multiscatter compensation) at that roughness,
+//! is the F0 Godot needs; and `ALBEDO`, `METALLIC` and `SPECULAR` are chosen so Godot's diffuse `ALBEDO × (1 −
+//! METALLIC)` and F0 `mix(0.16 SPECULAR², ALBEDO, METALLIC)` reproduce both: exactly for a dielectric (white F0)
+//! and for a metal (no diffuse), with the color errors shared between them when a tinted F0 meets a diffuse part.
+//! `EMISSION` is `shadewire_eval_emission`. The directions are world-space, like the surface's normals and
+//! tangents.
 
 use std::collections::HashMap;
 
@@ -18,8 +23,43 @@ use shadewire::{Dag, NodeId, NodeKind, Reflection, Type, Value};
 use crate::names::{SURFACE, member};
 use crate::types::{cast, gd_type, is_constant_literal, literal};
 
-/// What ambient light and reflections lose: the specular part of the closure tree.
-pub const AMBIENT: &str = "godot: ambient light and reflections see the closure tree's albedo as diffuse (no specular)";
+/// What ambient light and reflections lose: one roughness for every specular lobe, Godot's environment BRDF for
+/// theirs, and the hue of a tinted F0 over a diffuse part.
+pub const AMBIENT: &str = "godot: ambient light and reflections see the closure tree as one Godot BRDF (its                            albedo split into diffuse and specular, one roughness for every specular lobe)";
+
+/// Godot's inputs from a split albedo. Godot 4.7's ambient specular is `E · (F0 · A + F90 · B)`: the split-sum
+/// scale and bias from its DFG table (a texture a shader cannot read; `shadewire_env_brdf` is Karis's analytic fit
+/// of the same terms, kept non-negative as the table is), F90 `clamp(50 F0.g, METALLIC, 1)` and the multiscatter
+/// compensation `E = 1 + F0 · (1 / (A + B) − 1)`. Inverted per channel (F90 from each channel's F0: the larger root
+/// of the quadratic with F90 = 1 and of the one with F90 = 50 F0), then split: the gray part of F0 (up to Godot's
+/// dielectric 0.16) is `SPECULAR`'s, and `1 − METALLIC` solves `(1 − m) · ALBEDO = diffuse` in luminance with
+/// `ALBEDO = diffuse + F0 − (1 − m) · gray` (the root in [0, 1] of a quadratic).
+pub const HELPERS: &str = "vec2 shadewire_env_brdf(float shadewire_roughness, float shadewire_n_dot_v) {
+    vec4 shadewire_r = shadewire_roughness * vec4(-1.0, -0.0275, -0.572, 0.022) + vec4(1.0, 0.0425, 1.04, -0.04);
+    float shadewire_a004 = min(shadewire_r.x * shadewire_r.x, exp2(-9.28 * shadewire_n_dot_v)) * shadewire_r.x + shadewire_r.y;
+    return max(vec2(-1.04, 1.04) * shadewire_a004 + shadewire_r.zw, vec2(0.0));
+}
+
+void shadewire_godot_ambient(vec3 shadewire_diffuse, vec3 shadewire_specular, float shadewire_roughness, float shadewire_n_dot_v, out vec3 shadewire_albedo, out float shadewire_metallic, out float shadewire_level) {
+    vec2 shadewire_env = shadewire_env_brdf(shadewire_roughness, shadewire_n_dot_v);
+    float shadewire_k = 1.0 / max(shadewire_env.x + shadewire_env.y, 1e-4) - 1.0;
+    float shadewire_q = shadewire_env.x + shadewire_k * shadewire_env.y;
+    vec3 shadewire_s = shadewire_specular - shadewire_env.y;
+    vec3 shadewire_hi = 2.0 * shadewire_s / max(shadewire_q + sqrt(max(shadewire_q * shadewire_q + 4.0 * shadewire_k * shadewire_env.x * shadewire_s, 0.0)), 1e-8);
+    float shadewire_c = shadewire_env.x + 50.0 * shadewire_env.y;
+    vec3 shadewire_lo = 2.0 * shadewire_specular / max(shadewire_c + sqrt(max(shadewire_c * shadewire_c + 4.0 * shadewire_k * shadewire_c * shadewire_specular, 0.0)), 1e-8);
+    vec3 shadewire_f0 = max(max(shadewire_hi, shadewire_lo), vec3(0.0));
+    vec3 shadewire_y = vec3(0.2126, 0.7152, 0.0722);
+    float shadewire_gray = min(min(min(shadewire_f0.r, shadewire_f0.g), shadewire_f0.b), 0.16);
+    float shadewire_ld = dot(max(shadewire_diffuse, vec3(0.0)), shadewire_y);
+    float shadewire_sum = shadewire_ld + dot(shadewire_f0, shadewire_y);
+    float shadewire_disc = sqrt(max(shadewire_sum * shadewire_sum - 4.0 * shadewire_gray * shadewire_ld, 0.0));
+    float shadewire_u = shadewire_sum > 1e-6 ? clamp(2.0 * shadewire_ld / (shadewire_sum + shadewire_disc), 0.0, 1.0) : 1.0;
+    shadewire_metallic = 1.0 - shadewire_u;
+    shadewire_albedo = max(shadewire_diffuse + shadewire_f0 - shadewire_u * shadewire_gray, vec3(0.0));
+    shadewire_level = sqrt(shadewire_gray / 0.16);
+}
+";
 
 /// Where `light()` finds a surface field: a constant written in, a uniform (a global), or the value `fragment()`
 /// computed, passed through a varying.
@@ -96,10 +136,18 @@ impl Plan {
     /// The lines `fragment()` runs after evaluating the surface into `s`.
     pub fn fragment_lines(&self, emission_scale: f32) -> Vec<String> {
         let mut out = directions().to_vec();
-        out.push(format!("ALBEDO = shadewire_eval_albedo({SURFACE}, shadewire_v, shadewire_n);"));
-        out.push("METALLIC = 0.0;".into());
-        out.push("SPECULAR = 0.0;".into());
-        out.push("ROUGHNESS = 1.0;".into());
+        out.extend([
+            format!("ShadewireAmbient shadewire_a = shadewire_eval_ambient({SURFACE}, shadewire_v, shadewire_n);"),
+            "vec3 shadewire_albedo;".into(),
+            "float shadewire_metallic;".into(),
+            "float shadewire_level;".into(),
+            "shadewire_godot_ambient(shadewire_a.diffuse, shadewire_a.specular, shadewire_a.roughness,              clamp(dot(shadewire_n, shadewire_v), 0.0, 1.0), shadewire_albedo, shadewire_metallic, shadewire_level);"
+                .into(),
+            "ALBEDO = shadewire_albedo;".into(),
+            "METALLIC = shadewire_metallic;".into(),
+            "SPECULAR = shadewire_level;".into(),
+            "ROUGHNESS = shadewire_a.roughness;".into(),
+        ]);
         let scale = if emission_scale == 1.0 {
             String::new()
         } else {

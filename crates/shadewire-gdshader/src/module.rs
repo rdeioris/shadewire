@@ -1,3 +1,4 @@
+use shadewire::shader::material::closure::ambient_items;
 use shadewire::shader::names::struct_name;
 use shadewire::shader::{CompileOptions, lower};
 use shadewire::{AddressMode, Dag, Error, SourceInfo};
@@ -28,6 +29,7 @@ pub fn compile(dag: &Dag, source: &SourceInfo, options: &GdshaderOptions) -> Res
         implicit_derivatives: true,
     };
     let (mut module, mut reflection, dag) = lower(dag, source, &shared)?;
+    module.items.extend(ambient_items(&dag));
     limits::check_textures(reflection.textures.len(), options.max_textures)?;
     if let Some(max) = options.max_loop_iterations {
         limits::clamp_loops(&mut module, max)?;
@@ -50,6 +52,7 @@ pub fn compile(dag: &Dag, source: &SourceInfo, options: &GdshaderOptions) -> Res
     sections.push(ctx.struct_text());
     sections.push(print(&module, &reflection.textures));
     if let Some(plan) = &plan {
+        sections.push(lobes::HELPERS.to_string());
         sections.push(plan.varyings());
     }
     sections.push(ctx.vertex_text());
