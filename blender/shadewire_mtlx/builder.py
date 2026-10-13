@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Roberto De Ioris
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Builds a Blender material node tree from a Shadewire IR document (`shadewire ir --json`).
 
 Values are lists of components; a component is a Python float (a constant, folded on the spot) or a node

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Roberto De Ioris
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Shadewire MaterialX: MaterialX materials as Blender material node trees, for Cycles and EEVEE.
 
 Shadewire compiles each material to its IR; this add-on turns the IR into nodes. The pattern graph becomes Math,

@@ -13,6 +13,13 @@ UV and Attribute nodes for what the material reads of the mesh, and then the sha
   Sheen, Subsurface, Translucent or Emission node each, combined with Mix and Add Shader as MaterialX layers and
   mixes them. Closest to MaterialX, in Cycles; EEVEE evaluates only a few BSDF nodes per material.
 
+## License
+
+The add-on (`shadewire_mtlx`, the Python code that drives Blender) is licensed GPL-3.0-or-later (see
+`shadewire_mtlx/LICENSE`), as extensions.blender.org requires of add-ons. The `shadewire` module it bundles, like the
+rest of Shadewire, is MIT, with parts under Apache-2.0 and BSD-3-Clause (see the repository's NOTICE); all three are
+compatible with the GPL.
+
 ## Install
 
 The extension bundles the compiler as the `shadewire` Python module (`crates/shadewire-py`): one wheel per

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Roberto De Ioris
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Compiles MaterialX materials to the Shadewire IR document.
 
 Two backends with one interface: the `shadewire` Python module (the wheels this extension bundles, which

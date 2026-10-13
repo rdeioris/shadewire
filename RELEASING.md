@@ -44,5 +44,5 @@ blender --command extension validate dist/blender/shadewire_mtlx-0.1.0-windows_x
 ```
 
 One zip per platform, each with its wheel. Upload them on extensions.blender.org (Upload Extension, then one file per
-platform under the same version). The platform requires add-ons to be licensed GPL-3.0-or-later (the manifest's
-`license`) with a `copyright` line.
+platform under the same version). The add-on is GPL-3.0-or-later, as the platform requires
+(`blender/shadewire_mtlx/LICENSE`, the manifest's `license` and `copyright`).

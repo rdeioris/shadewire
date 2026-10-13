@@ -6,7 +6,8 @@ description into Shadewire's IR, a typed DAG that computes the material's surfac
 the host must bind. The host keeps its own lighting (BRDFs); Shadewire only fills the parameters of
 a shading model (`open_pbr_surface`, `standard_surface`, `gltf_pbr`, `surface_unlit`).
 
-Licensed under MIT; vendored MaterialX files are Apache-2.0 (see NOTICE). Work in progress.
+Licensed under MIT; vendored MaterialX files are Apache-2.0 (see NOTICE). The Blender add-on
+(`blender/shadewire_mtlx`) is GPL-3.0-or-later, as extensions.blender.org requires. Work in progress.
 
 ## Crates
 

@@ -89,6 +89,7 @@ No compatibility shims: old names are gone.
   Lobes**: every material as its lobes, one BSDF node each, layered and mixed as MaterialX defines them.
 - Uses the `shadewire` Python module (or the CLI); ships one extension zip per platform with its wheels
   (`blender/build_extension.py`).
+- Licensed GPL-3.0-or-later, as extensions.blender.org requires of add-ons; everything else stays MIT.
 
 ### Python (`shadewire`, new)
 
