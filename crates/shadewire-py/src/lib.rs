@@ -240,22 +240,20 @@ fn target(name: &str, version: Option<u32>) -> PyResult<Target> {
 /// `spirv` (bytes) or `wgsl` (naga's rewrite).
 ///
 /// `entry_point` picks the entry point to write (GLSL, HLSL and SPIR-V write one; None: the first fragment
-/// entry point). GLSL 4.20 / ES 3.10 put `@group(g) @binding(b)` at binding point `32 * g + b` (a texture and
-/// its sampler combine into one `sampler2D` at the texture's point). `flip_y` (GLSL) negates `gl_Position.y`
-/// as wgpu's GL backend expects; pass False to draw with OpenGL directly (depth maps to -1..1 either way).
+/// entry point). GLSL follows OpenGL's conventions: clip-space depth from -1 to 1, and `@group(g)
+/// @binding(b)` at binding point `32 * g + b` (GLSL 4.20 / ES 3.10; a texture and its sampler combine into one
+/// `sampler2D` at the texture's point).
 #[pyfunction]
-#[pyo3(signature = (linked, target_name, version=None, entry_point=None, flip_y=true))]
+#[pyo3(signature = (linked, target_name, version=None, entry_point=None))]
 fn translate(
     py: Python<'_>,
     linked: String,
     target_name: &str,
     version: Option<u32>,
     entry_point: Option<String>,
-    flip_y: bool,
 ) -> PyResult<Py<PyAny>> {
     let target = target(target_name, version)?;
-    let options = shadewire_wgsl::TranslateOptions { entry_point, glsl_flip_y: flip_y };
-    match py.detach(|| shadewire_wgsl::translate_with(&linked, target, &options)).map_err(error)? {
+    match py.detach(|| shadewire_wgsl::translate(&linked, target, entry_point.as_deref())).map_err(error)? {
         Output::Text(text) => Ok(text.into_pyobject(py)?.into_any().unbind()),
         Output::Words(words) => {
             let bytes: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();

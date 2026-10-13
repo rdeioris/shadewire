@@ -56,7 +56,7 @@ fn check(text: &str, path: &Path, material: &str) -> Result<(), Error> {
     let model = shadewire::model_struct_name(&compiled.reflection.model);
     let linked = link(&compiled.wgsl, &reference_host::prelude(&compiled.reflection, &model))?;
     for target in targets() {
-        translate(&linked, target)?;
+        translate(&linked, target, None)?;
     }
     Ok(())
 }

@@ -28,5 +28,4 @@ def translate(
     target_name: str,
     version: Optional[int] = None,
     entry_point: Optional[str] = None,
-    flip_y: bool = True,
 ) -> Union[str, bytes]: ...

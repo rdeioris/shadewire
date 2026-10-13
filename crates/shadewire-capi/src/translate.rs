@@ -57,7 +57,7 @@ fn run(handle: &shadewire_compiled, prelude: Option<&str>, target: Target) -> Re
     if target == Target::Wgsl {
         return Ok(shadewire_blob::text(linked));
     }
-    Ok(match translate(&linked, target)? {
+    Ok(match translate(&linked, target, None)? {
         Output::Text(text) => shadewire_blob::text(text),
         Output::Words(words) => shadewire_blob::words(&words),
     })

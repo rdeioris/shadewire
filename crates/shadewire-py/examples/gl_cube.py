@@ -35,10 +35,10 @@ def gl_binding(group, binding):
 
 
 def program(linked):
-    """The linked WGSL as a GLSL program: Shadewire writes each stage (no Y flip: OpenGL draws it directly)."""
+    """The linked WGSL as a GLSL program, Shadewire writing each stage."""
     stages = []
     for entry, kind in (("vs_main", GL.GL_VERTEX_SHADER), ("fs_main", GL.GL_FRAGMENT_SHADER)):
-        source = wgsl.translate(linked, "glsl", GLSL_VERSION, entry_point=entry, flip_y=False)
+        source = wgsl.translate(linked, "glsl", GLSL_VERSION, entry_point=entry)
         stages.append(compileShader(source, kind))
     return compileProgram(*stages, validate=False)
 

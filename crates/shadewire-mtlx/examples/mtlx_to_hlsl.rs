@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let linked = link(&compiled.wgsl, &prelude)?;
 
     // 3. WGSL -> HLSL through naga.
-    let Output::Text(hlsl) = translate(&linked, Target::Hlsl(HlslShaderModel::Sm6_0))? else {
+    let Output::Text(hlsl) = translate(&linked, Target::Hlsl(HlslShaderModel::Sm6_0), None)? else {
         unreachable!("HLSL is text");
     };
     println!("{hlsl}");

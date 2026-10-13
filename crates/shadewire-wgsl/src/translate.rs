@@ -12,23 +12,6 @@ pub enum Output {
     Words(Vec<u32>),
 }
 
-/// How `translate_with` writes a module.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TranslateOptions {
-    /// The entry point to write (GLSL, HLSL and SPIR-V write one); None takes the first fragment entry point,
-    /// else the first.
-    pub entry_point: Option<String>,
-    /// GLSL only: negate `gl_Position.y`, as wgpu's GL backend expects (it renders upside down and flips on
-    /// present). Depth always maps from WebGPU's 0..1 to OpenGL's -1..1. Off for drawing with OpenGL directly.
-    pub glsl_flip_y: bool,
-}
-
-impl Default for TranslateOptions {
-    fn default() -> TranslateOptions {
-        TranslateOptions { entry_point: None, glsl_flip_y: true }
-    }
-}
-
 /// The OpenGL binding point of WGSL `@group(g) @binding(b)`: `32 * g + b`, so the groups never collide. GLSL
 /// 4.20 and ES 3.10 write it as `layout(binding = ...)`; a texture and its sampler combine into one `sampler2D`
 /// at the texture's binding point.
@@ -36,23 +19,22 @@ pub fn glsl_binding(group: u32, binding: u32) -> Option<u8> {
     u8::try_from(32 * group + binding).ok().filter(|_| binding < 32)
 }
 
-/// What naga writes for `ADJUST_COORDINATE_SPACE`, and its depth-only form.
+/// What naga writes for `ADJUST_COORDINATE_SPACE` (Y negated for wgpu's GL backend, depth to -1..1), and the
+/// depth remap alone, which is what drawing with OpenGL directly needs.
 const GLSL_FLIP: &str = "gl_Position.yz = vec2(-gl_Position.y, gl_Position.z * 2.0 - gl_Position.w);";
 const GLSL_DEPTH_ONLY: &str = "gl_Position.z = gl_Position.z * 2.0 - gl_Position.w;";
 
-/// `translate_with` and the default options.
-pub fn translate(linked: &str, target: Target) -> Result<Output, Error> {
-    translate_with(linked, target, &TranslateOptions::default())
-}
-
-pub fn translate_with(linked: &str, target: Target, options: &TranslateOptions) -> Result<Output, Error> {
+/// A linked module in `target`. `entry_point` names the entry point to write (GLSL, HLSL and SPIR-V write one);
+/// None takes the first fragment entry point, else the first. GLSL follows OpenGL's conventions: clip-space
+/// depth from -1 to 1 (WGSL's is 0 to 1), and resources at `glsl_binding` points.
+pub fn translate(linked: &str, target: Target, entry_point: Option<&str>) -> Result<Output, Error> {
     let (module, info) = parse_and_validate(linked)?;
-    let chosen = match &options.entry_point {
+    let chosen = match entry_point {
         Some(name) => Some(
             module
                 .entry_points
                 .iter()
-                .find(|e| &e.name == name)
+                .find(|e| e.name == name)
                 .ok_or_else(|| Error::Naga(format!("no entry point {name}")))?,
         ),
         None => module
@@ -112,10 +94,7 @@ pub fn translate_with(linked: &str, target: Target, options: &TranslateOptions) 
             )
             .and_then(|mut w| w.write().map(|_| ()))
             .map_err(|e| Error::Naga(e.to_string()))?;
-            if !options.glsl_flip_y {
-                out = out.replace(GLSL_FLIP, GLSL_DEPTH_ONLY);
-            }
-            Ok(Output::Text(out))
+            Ok(Output::Text(out.replace(GLSL_FLIP, GLSL_DEPTH_ONLY)))
         }
         Target::Msl(version) => {
             // Phase 1: resource slots follow declaration order.
@@ -209,7 +188,7 @@ mod tests {
     }
 
     fn text(target: Target) -> String {
-        match translate(&linked(), target).unwrap() {
+        match translate(&linked(), target, None).unwrap() {
             Output::Text(t) => t,
             Output::Words(_) => panic!("expected text"),
         }
@@ -217,7 +196,8 @@ mod tests {
 
     #[test]
     fn glsl_420_places_each_group_at_its_own_binding_points() {
-        let Output::Text(text) = translate(&linked_at(2), Target::Glsl(GlslVersion::Desktop(450))).unwrap() else {
+        let Output::Text(text) = translate(&linked_at(2), Target::Glsl(GlslVersion::Desktop(450)), None).unwrap()
+        else {
             panic!("text")
         };
         // Group 2: the uniform block at binding 0, the texture (combined with its sampler) at binding 1.
@@ -231,23 +211,19 @@ mod tests {
     }
 
     #[test]
-    fn an_entry_point_is_picked_by_name_and_y_flips_only_when_asked() {
+    fn an_entry_point_is_picked_by_name_and_glsl_keeps_opengl_conventions() {
         let linked = format!(
             "{}
 @vertex fn vs_main(@location(0) p: vec3<f32>) -> @builtin(position) vec4<f32> {{ return vec4<f32>(p, 1.0); }}
 ",
             linked()
         );
-        let options = |flip| TranslateOptions { entry_point: Some("vs_main".into()), glsl_flip_y: flip };
-        let glsl =
-            |flip| match translate_with(&linked, Target::Glsl(GlslVersion::Desktop(420)), &options(flip)).unwrap() {
-                Output::Text(text) => text,
-                Output::Words(_) => panic!("text"),
-            };
-        assert!(glsl(true).contains(GLSL_FLIP), "{}", glsl(true));
-        assert!(glsl(false).contains(GLSL_DEPTH_ONLY) && !glsl(false).contains(GLSL_FLIP), "{}", glsl(false));
-        let missing = TranslateOptions { entry_point: Some("nope".into()), glsl_flip_y: true };
-        assert!(translate_with(&linked, Target::Glsl(GlslVersion::Desktop(420)), &missing).is_err());
+        let Output::Text(glsl) = translate(&linked, Target::Glsl(GlslVersion::Desktop(420)), Some("vs_main")).unwrap()
+        else {
+            panic!("text")
+        };
+        assert!(glsl.contains(GLSL_DEPTH_ONLY) && !glsl.contains(GLSL_FLIP), "{glsl}");
+        assert!(translate(&linked, Target::Glsl(GlslVersion::Desktop(420)), Some("nope")).is_err());
     }
 
     #[test]
@@ -265,7 +241,7 @@ mod tests {
         let webgl = text(Target::Glsl(GlslVersion::WebGl2));
         assert!(webgl.contains("#version 300 es"), "{webgl}");
         assert!(!text(Target::Msl(MslVersion { major: 2, minor: 1 })).is_empty());
-        match translate(&linked(), Target::SpirV).unwrap() {
+        match translate(&linked(), Target::SpirV, None).unwrap() {
             Output::Words(w) => assert_eq!(w[0], 0x0723_0203),
             Output::Text(_) => panic!("expected words"),
         }
@@ -274,8 +250,8 @@ mod tests {
     #[test]
     fn a_group_past_255_has_no_hlsl_space() {
         let hlsl = Target::Hlsl(HlslShaderModel::Sm6_0);
-        assert!(translate(&linked_at(255), hlsl).is_ok());
-        match translate(&linked_at(256), hlsl) {
+        assert!(translate(&linked_at(255), hlsl, None).is_ok());
+        match translate(&linked_at(256), hlsl, None) {
             Err(Error::Naga(message)) => assert_eq!(message, "bind group too large for HLSL space: 256"),
             other => panic!("expected a naga error, got {other:?}"),
         }
@@ -283,7 +259,7 @@ mod tests {
 
     #[test]
     fn bad_wgsl_is_a_naga_error() {
-        assert!(matches!(translate("fn (", Target::Wgsl), Err(Error::Naga(_))));
+        assert!(matches!(translate("fn (", Target::Wgsl, None), Err(Error::Naga(_))));
         assert!(matches!(link("fn (", ""), Err(Error::Naga(_))));
     }
 }

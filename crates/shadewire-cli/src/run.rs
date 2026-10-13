@@ -85,7 +85,7 @@ fn render(compiled: &Compiled, lang: Lang) -> Result<Vec<u8>, Error> {
     eprintln!("note: {} output links the reference host, which supplies the entry point", lang_name(lang));
     let prelude = reference_host::prelude(&compiled.reflection, &model_struct_name(&compiled.reflection.model));
     let linked = link(&compiled.wgsl, &prelude)?;
-    Ok(match translate(&linked, target(lang))? {
+    Ok(match translate(&linked, target(lang), None)? {
         Output::Text(text) => text.into_bytes(),
         Output::Words(words) => words.iter().flat_map(|w| w.to_le_bytes()).collect(),
     })

@@ -20,4 +20,4 @@ pub use link::link;
 #[cfg(feature = "translate")]
 pub use target::{GlslVersion, HlslShaderModel, MslVersion, Target};
 #[cfg(feature = "translate")]
-pub use translate::{Output, TranslateOptions, glsl_binding, translate, translate_with};
+pub use translate::{Output, glsl_binding, translate};
