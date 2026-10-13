@@ -66,28 +66,33 @@ def host_functions(reflection):
 
 # How each lobe scatters the light: (light response, top albedo for layering). `$name` is the lobe's input.
 LOBE_CODE = {
-    "oren_nayar_diffuse_bsdf": ("$weight * $color * diffuse(L)", "$weight * $color"),
-    "burley_diffuse_bsdf": ("$weight * $color * diffuse(L)", "$weight * $color"),
-    "subsurface_bsdf": ("$weight * $color * diffuse(L)", "$weight * $color"),
+    "oren_nayar_diffuse_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
+    "burley_diffuse_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
+    "subsurface_bsdf": ("$weight * $color * diffuse(L, $normal)", "$weight * $color"),
     "translucent_bsdf": ("vec3<f32>(0.0)", "vec3<f32>(0.0)"),
-    "sheen_bsdf": ("$weight * $color * sheen(L, $roughness)", "$weight * $color * 0.2"),
-    "dielectric_bsdf": ("$weight * $tint * dielectric(L, $ior, $roughness)", "$weight * $tint * fresnel_ior(dot(N, V), $ior)"),
-    "conductor_bsdf": ("$weight * conductor(L, $ior, $extinction, $roughness)", "vec3<f32>($weight)"),
-    "generalized_schlick_bsdf": ("$weight * schlick(L, $color0, $color90, $exponent, $roughness)", "$weight * $color0"),
+    "sheen_bsdf": ("$weight * $color * sheen(L, $normal, $roughness)", "$weight * $color * 0.2"),
+    "dielectric_bsdf": ("$weight * $tint * dielectric(L, $normal, $ior, $roughness)",
+                        "$weight * $tint * fresnel_ior(dot($normal, V), $ior)"),
+    "conductor_bsdf": ("$weight * conductor(L, $normal, $ior, $extinction, $roughness)",
+                       "$weight * conductor_f0($ior, $extinction)"),
+    "generalized_schlick_bsdf": ("$weight * schlick(L, $normal, $color0, $color90, $exponent, $roughness)",
+                                 "$weight * $color0"),
 }
 
 LOBE_LIBRARY = """
 const PI: f32 = 3.14159265;
-// The shading point, set once per fragment.
+// The shading point, set once per fragment: the geometric normal and the direction to the viewer. Each lobe
+// shades with its own normal input (`n`), where a normal map arrives.
 var<private> N: vec3<f32>;
 var<private> V: vec3<f32>;
 
-fn ggx(L: vec3<f32>, alpha2: vec2<f32>) -> f32 {
+fn ggx(L: vec3<f32>, n_in: vec3<f32>, alpha2: vec2<f32>) -> f32 {
+    let n = normalize(n_in);
     let a = max(0.5 * (alpha2.x + alpha2.y), 1e-3);
     let H = normalize(L + V);
-    let nh = max(dot(N, H), 0.0);
-    let nl = max(dot(N, L), 0.0);
-    let nv = max(dot(N, V), 1e-4);
+    let nh = max(dot(n, H), 0.0);
+    let nl = max(dot(n, L), 0.0);
+    let nv = max(dot(n, V), 1e-4);
     let d = a * a / (PI * pow(nh * nh * (a * a - 1.0) + 1.0, 2.0));
     let k = a * 0.5;
     let g = nl / (nl * (1.0 - k) + k) * nv / (nv * (1.0 - k) + k);
@@ -97,18 +102,23 @@ fn fresnel_ior(c: f32, ior: f32) -> f32 {
     let f0 = pow((ior - 1.0) / (ior + 1.0), 2.0);
     return f0 + (1.0 - f0) * pow(1.0 - clamp(c, 0.0, 1.0), 5.0);
 }
-fn diffuse(L: vec3<f32>) -> f32 { return max(dot(N, L), 0.0) / PI; }
-fn sheen(L: vec3<f32>, r: f32) -> f32 { return max(dot(N, L), 0.0) * 0.25 * pow(1.0 - max(dot(N, V), 0.0), 2.0 / max(r, 0.05)); }
-fn dielectric(L: vec3<f32>, ior: f32, alpha: vec2<f32>) -> f32 {
-    return ggx(L, alpha) * fresnel_ior(dot(normalize(L + V), V), ior);
+fn diffuse(L: vec3<f32>, n: vec3<f32>) -> f32 { return max(dot(normalize(n), L), 0.0) / PI; }
+fn sheen(L: vec3<f32>, n: vec3<f32>, r: f32) -> f32 {
+    return max(dot(normalize(n), L), 0.0) * 0.25 * pow(1.0 - max(dot(normalize(n), V), 0.0), 2.0 / max(r, 0.05));
 }
-fn conductor(L: vec3<f32>, ior: vec3<f32>, k: vec3<f32>, alpha: vec2<f32>) -> vec3<f32> {
-    let f0 = ((ior - 1.0) * (ior - 1.0) + k * k) / ((ior + 1.0) * (ior + 1.0) + k * k);
+fn dielectric(L: vec3<f32>, n: vec3<f32>, ior: f32, alpha: vec2<f32>) -> f32 {
+    return ggx(L, n, alpha) * fresnel_ior(dot(normalize(L + V), V), ior);
+}
+fn conductor_f0(ior: vec3<f32>, k: vec3<f32>) -> vec3<f32> {
+    return ((ior - 1.0) * (ior - 1.0) + k * k) / ((ior + 1.0) * (ior + 1.0) + k * k);
+}
+fn conductor(L: vec3<f32>, n: vec3<f32>, ior: vec3<f32>, k: vec3<f32>, alpha: vec2<f32>) -> vec3<f32> {
+    let f0 = conductor_f0(ior, k);
     let c = dot(normalize(L + V), V);
-    return ggx(L, alpha) * (f0 + (1.0 - f0) * pow(1.0 - c, 5.0));
+    return ggx(L, n, alpha) * (f0 + (1.0 - f0) * pow(1.0 - c, 5.0));
 }
-fn schlick(L: vec3<f32>, c0: vec3<f32>, c90: vec3<f32>, e: f32, alpha: vec2<f32>) -> vec3<f32> {
-    return ggx(L, alpha) * mix(c0, c90, pow(1.0 - dot(normalize(L + V), V), e));
+fn schlick(L: vec3<f32>, n: vec3<f32>, c0: vec3<f32>, c90: vec3<f32>, e: f32, alpha: vec2<f32>) -> vec3<f32> {
+    return ggx(L, n, alpha) * mix(c0, c90, pow(1.0 - dot(normalize(L + V), V), e));
 }
 """
 
@@ -125,12 +135,14 @@ class ClosureWriter:
         return f"s.{name}"
 
     def lobe(self, node):
-        """The lobe's (response, albedo) expressions, its inputs substituted."""
+        """The lobe's (response, albedo) expressions, its inputs substituted (no normal input: the geometric N)."""
         code = LOBE_CODE.get(node["kind"])
         if code is None:
             self.unsupported.add(node["kind"])
             return "vec3<f32>(0.0)", "vec3<f32>(0.0)"
         response, albedo = code
+        if "normal" not in node["inputs"]:
+            response, albedo = response.replace("$normal", "N"), albedo.replace("$normal", "N")
         for key, field in sorted(node["inputs"].items(), key=lambda kv: -len(kv[0])):
             response = response.replace(f"${key}", self.field(field))
             albedo = albedo.replace(f"${key}", self.field(field))
@@ -167,8 +179,13 @@ class ClosureWriter:
         node = self.closure["nodes"][index]
         op = node["op"]
         if op == "lobe":
+            inputs = node["inputs"]
             if node["kind"] == "uniform_edf":
-                return self.field(node["inputs"]["color"])
+                return self.field(inputs["color"])
+            if node["kind"] == "generalized_schlick_edf":
+                base = self.emission(node["closures"]["base"]) if "base" in node.get("closures", {}) else "vec3<f32>(0.0)"
+                c0, c90, e = (self.field(inputs[k]) for k in ("color0", "color90", "exponent"))
+                return f"({base} * mix({c0}, {c90}, pow(1.0 - max(dot(N, V), 0.0), {e})))"
             self.unsupported.add(node["kind"])
             return "vec3<f32>(0.0)"
         if op == "mix":
@@ -179,10 +196,12 @@ class ClosureWriter:
         return f"({self.emission(node['in1'])} * vec3<f32>({self.field(node['in2'])}))"
 
     def write(self):
-        bsdf = self.bsdf(self.closure["bsdf"])[0] if self.closure.get("bsdf") is not None else "vec3<f32>(0.0)"
+        zero = ("vec3<f32>(0.0)", "vec3<f32>(0.0)")
+        bsdf, albedo = self.bsdf(self.closure["bsdf"]) if self.closure.get("bsdf") is not None else zero
         edf = self.emission(self.closure["edf"]) if self.closure.get("edf") is not None else "vec3<f32>(0.0)"
         return (
             f"fn host_bsdf(s: {self.model_struct}, L: vec3<f32>) -> vec3<f32> {{\n    return {bsdf};\n}}\n"
+            f"fn host_albedo(s: {self.model_struct}) -> vec3<f32> {{\n    return {albedo};\n}}\n"
             f"fn host_emission(s: {self.model_struct}) -> vec3<f32> {{\n    return {edf};\n}}\n"
         )
 
@@ -211,7 +230,8 @@ fn fs_main(frag: Fragment) -> @location(0) vec4<f32> {
     N = normalize(frag.normal_world);
     V = normalize(scene.camera_position - frag.position_world);
     let L = normalize(scene.light_direction);
-    let lit = host_bsdf(s, L) * scene.light_color + host_bsdf(s, N) * scene.ambient;
+    // The light through the lobes; uniform ambient light reflected by their albedo.
+    let lit = host_bsdf(s, L) * scene.light_color + host_albedo(s) * scene.ambient;
     return vec4<f32>(lit + host_emission(s), 1.0);
 }
 """
