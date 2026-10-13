@@ -7,7 +7,7 @@
 //! Ambient light and reflection probes still go through Godot's model, so `fragment()` derives Godot's inputs from
 //! the closure tree: `shadewire_eval_ambient` splits its albedo (its response to a uniform white environment) into
 //! what its diffuse and its specular lobes reflect, with the specular lobes' roughness weighted by their albedo.
-//! `ROUGHNESS` is that roughness; the specular albedo, divided through Godot's environment BRDF at that roughness,
+//! `ROUGHNESS` is that roughness; the specular albedo, divided through Godot's environment BRDF (with its multiscatter compensation) at that roughness,
 //! is the F0 Godot needs; and `ALBEDO`, `METALLIC` and `SPECULAR` are chosen so Godot's diffuse `ALBEDO × (1 −
 //! METALLIC)` and F0 `mix(0.16 SPECULAR², ALBEDO, METALLIC)` reproduce both: exactly for a dielectric (white F0)
 //! and for a metal (no diffuse), with the color errors shared between them when a tinted F0 meets a diffuse part.
@@ -27,22 +27,28 @@ use crate::types::{cast, gd_type, is_constant_literal, literal};
 /// theirs, and the hue of a tinted F0 over a diffuse part.
 pub const AMBIENT: &str = "godot: ambient light and reflections see the closure tree as one Godot BRDF (its                            albedo split into diffuse and specular, one roughness for every specular lobe)";
 
-/// Godot's inputs from a split albedo. `shadewire_env_brdf` is Godot's environment BRDF (Lazarov's fit, as
-/// Godot's scene shader): a specular albedo of `F0 · x + F90 · y`, with F90 `clamp(50 F0.g, METALLIC, 1)`.
-/// Inverted per channel (F90 from each channel's F0), then split: the gray part of F0 (up to Godot's dielectric
-/// 0.16) is `SPECULAR`'s, and `1 − METALLIC` solves `(1 − m) · ALBEDO = diffuse` in luminance with `ALBEDO =
-/// diffuse + F0 − (1 − m) · gray` (the root in [0, 1] of a quadratic).
+/// Godot's inputs from a split albedo. Godot 4.7's ambient specular is `E · (F0 · A + F90 · B)`: the split-sum
+/// scale and bias from its DFG table (a texture a shader cannot read; `shadewire_env_brdf` is Karis's analytic fit
+/// of the same terms, kept non-negative as the table is), F90 `clamp(50 F0.g, METALLIC, 1)` and the multiscatter
+/// compensation `E = 1 + F0 · (1 / (A + B) − 1)`. Inverted per channel (F90 from each channel's F0: the larger root
+/// of the quadratic with F90 = 1 and of the one with F90 = 50 F0), then split: the gray part of F0 (up to Godot's
+/// dielectric 0.16) is `SPECULAR`'s, and `1 − METALLIC` solves `(1 − m) · ALBEDO = diffuse` in luminance with
+/// `ALBEDO = diffuse + F0 − (1 − m) · gray` (the root in [0, 1] of a quadratic).
 pub const HELPERS: &str = "vec2 shadewire_env_brdf(float shadewire_roughness, float shadewire_n_dot_v) {
     vec4 shadewire_r = shadewire_roughness * vec4(-1.0, -0.0275, -0.572, 0.022) + vec4(1.0, 0.0425, 1.04, -0.04);
     float shadewire_a004 = min(shadewire_r.x * shadewire_r.x, exp2(-9.28 * shadewire_n_dot_v)) * shadewire_r.x + shadewire_r.y;
-    return vec2(-1.04, 1.04) * shadewire_a004 + shadewire_r.zw;
+    return max(vec2(-1.04, 1.04) * shadewire_a004 + shadewire_r.zw, vec2(0.0));
 }
 
 void shadewire_godot_ambient(vec3 shadewire_diffuse, vec3 shadewire_specular, float shadewire_roughness, float shadewire_n_dot_v, out vec3 shadewire_albedo, out float shadewire_metallic, out float shadewire_level) {
     vec2 shadewire_env = shadewire_env_brdf(shadewire_roughness, shadewire_n_dot_v);
-    vec3 shadewire_f0 = max(shadewire_specular / max(shadewire_env.x + 50.0 * shadewire_env.y, 1e-4),
-                            (shadewire_specular - shadewire_env.y) / max(shadewire_env.x, 1e-4));
-    shadewire_f0 = max(shadewire_f0, vec3(0.0));
+    float shadewire_k = 1.0 / max(shadewire_env.x + shadewire_env.y, 1e-4) - 1.0;
+    float shadewire_q = shadewire_env.x + shadewire_k * shadewire_env.y;
+    vec3 shadewire_s = shadewire_specular - shadewire_env.y;
+    vec3 shadewire_hi = 2.0 * shadewire_s / max(shadewire_q + sqrt(max(shadewire_q * shadewire_q + 4.0 * shadewire_k * shadewire_env.x * shadewire_s, 0.0)), 1e-8);
+    float shadewire_c = shadewire_env.x + 50.0 * shadewire_env.y;
+    vec3 shadewire_lo = 2.0 * shadewire_specular / max(shadewire_c + sqrt(max(shadewire_c * shadewire_c + 4.0 * shadewire_k * shadewire_c * shadewire_specular, 0.0)), 1e-8);
+    vec3 shadewire_f0 = max(max(shadewire_hi, shadewire_lo), vec3(0.0));
     vec3 shadewire_y = vec3(0.2126, 0.7152, 0.0722);
     float shadewire_gray = min(min(min(shadewire_f0.r, shadewire_f0.g), shadewire_f0.b), 0.16);
     float shadewire_ld = dot(max(shadewire_diffuse, vec3(0.0)), shadewire_y);
