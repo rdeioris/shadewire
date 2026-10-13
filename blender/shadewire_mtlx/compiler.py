@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 
 # The models each import mode accepts. PRINCIPLED keeps the named models (one Principled BSDF each) and takes the
 # rest, raw BSDF graphs included, as Shadewire's closure model; LOBES opens every material into its lobes.
@@ -58,8 +59,12 @@ class ModuleBackend:
 
     def compile(self, mtlx, material, editable, mode="PRINCIPLED"):
         """The MaterialX front end, the optimizer, the IR as a document."""
+        return self.compile_text(self.read(mtlx), mtlx, material, editable, mode)
+
+    def compile_text(self, text, path, material, editable, mode="PRINCIPLED"):
+        """`compile` of a document's text; `path` (None for none) anchors its includes."""
         try:
-            ir = self.module.mtlx.to_ir(self.read(mtlx), path=mtlx, material=material, models=MODES[mode],
+            ir = self.module.mtlx.to_ir(text, path=path, material=material, models=MODES[mode],
                                         values_as_uniforms=editable)
             doc = ir.optimize().to_dict()
         except self.module.ShadewireError as e:
@@ -93,6 +98,18 @@ class ExecutableBackend:
         if not editable:
             args.append("--constants")
         return checked(json.loads(self.run(args)))
+
+    def compile_text(self, text, path, material, editable, mode="PRINCIPLED"):
+        """`compile` of a document's text, through a file next to `path` (its includes resolve from there) or in
+        the temporary folder."""
+        folder = os.path.dirname(path) if path and os.path.isdir(os.path.dirname(path)) else None
+        fd, temporary = tempfile.mkstemp(suffix=".mtlx", dir=folder)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(text)
+            return self.compile(temporary, material, editable, mode)
+        finally:
+            os.remove(temporary)
 
 
 def find_executable(configured=""):

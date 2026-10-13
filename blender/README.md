@@ -40,10 +40,16 @@ From a source checkout, without the module, the add-on falls back to the `shadew
 - **File > Import > MaterialX (Shadewire)** creates one Blender material per material of a `.mtlx` document.
   "Shading" picks Principled BSDF or MaterialX Lobes. "Editable Values" keeps authored values as Value and RGB
   nodes; off, they are baked in and the lobes they turn off are left out.
+- **File > Import > Universal Scene Description** (Blender 4.4 or later) builds the scene's MaterialX materials
+  as it imports them: the add-on's USD hook claims every material with a MaterialX (`mtlx`) surface, which
+  Blender's importer would leave empty. A material referenced whole from a `.mtlx` file
+  (`references = @./scene.mtlx@</MaterialX>`) compiles from that document, read through USD's resolver, so a
+  `.mtlx` packed in a `.usdz` works too; a MaterialX network authored in the USD (or a `.mtlx` material that USD
+  layers override) is written back as a MaterialX document first. Textures come through the importer, which
+  unpacks them from a `.usdz`. The add-on's preferences turn it off and pick its Shading and Editable Values.
 - **Fill Materials from MaterialX** (Object menu, and the Material properties panel) rebuilds the materials
-  already in the file whose names match the document's materials. Blender's USD importer makes an empty
-  material for every binding into a `.mtlx` reference (`references = @./scene.mtlx@</MaterialX>`), so import
-  the USD, then fill from the `.mtlx`.
+  already in the file whose names match the document's materials: for scenes imported without the hook (Blender
+  4.2 and 4.3, or the hook turned off).
 - **Rebuild from MaterialX** (Material properties) compiles a material again from its document, in the mode it
   was built with.
 
@@ -51,10 +57,12 @@ From a source checkout, without the module, the add-on falls back to the `shadew
 
 - `python blender/build_extension.py --blender <blender>` builds the six wheels and the six extension zips.
 
-- `blender -b -P blender/render_usd.py -- scene.usd materials.mtlx out.png --samples 1024 [--mode LOBES]` renders
-  a USD scene with Cycles after filling its materials (with `shadewire` importable, or `--shadewire <executable>`).
-- `blender -b -P blender/smoke_test.py -- [--shadewire PATH] [--mode LOBES] [file.mtlx ...]` builds every material
-  of the given documents (default: the vendored MaterialX examples) and reports failures.
+- `blender -b -P blender/render_usd.py -- scene.usd out.png --samples 1024 [--engine EEVEE] [--mode LOBES]` renders
+  a USD scene, its materials built by the USD hook (with `shadewire` importable, or `--shadewire <executable>`).
+- `blender -b -P blender/smoke_test.py -- [--shadewire PATH] [--mode LOBES] [--flatten] [file.mtlx|scene.usd ...]`
+  builds every material of the given documents (default: the vendored MaterialX examples) and reports failures.
+  USD scenes are imported through the USD hook: every MaterialX material must arrive built and every texture
+  load; `--flatten` also imports each scene flattened, its MaterialX inline.
 
 ## Approximations
 

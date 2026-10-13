@@ -81,9 +81,12 @@ No compatibility shims: old names are gone.
 
 ### Blender add-on (`blender/shadewire_mtlx`, new)
 
-- File > Import > MaterialX builds Blender material node trees (rendered by Cycles and EEVEE) through Shadewire;
-  "Fill Materials from MaterialX" rebuilds the placeholders Blender's USD importer makes for `.mtlx` bindings.
+- File > Import > MaterialX builds Blender material node trees (rendered by Cycles and EEVEE) through Shadewire.
   Every vendored example builds, in both shading modes.
+- USD import (Blender 4.4 or later): a `USDHook` builds the MaterialX materials of a USD scene as Blender imports
+  it, from the referenced `.mtlx` (also inside a `.usdz`) or from the MaterialX network authored in the USD,
+  textures unpacked by the importer. "Fill Materials from MaterialX" rebuilds materials by name for scenes
+  imported without it.
 - Shading **Principled BSDF** (the default): a `standard_surface`, `open_pbr_surface` or `gltf_pbr` material drives
   one Principled BSDF from its parameters; other models and raw BSDF graphs become their lobes. **MaterialX
   Lobes**: every material as its lobes, one BSDF node each, layered and mixed as MaterialX defines them.

@@ -80,10 +80,10 @@ class Lobe:
 
 
 class Builder:
-    def __init__(self, material, doc, base_dir):
+    def __init__(self, material, doc, base_dir, resolve=None):
         self.material = material
         self.doc = doc
-        self.base_dir = base_dir
+        self.resolve = resolve or (lambda file: os.path.join(base_dir, file))
         material.use_nodes = True
         self.tree = material.node_tree
         self.tree.nodes.clear()
@@ -287,7 +287,7 @@ class Builder:
         uv = self.values[node["uv"]]
         img = self.node("ShaderNodeTexImage", [("Vector", self.vector(uv[:2]))])
         img.hide = False
-        path = os.path.join(self.base_dir, desc["file"])
+        path = self.resolve(desc["file"])
         try:
             image = bpy.data.images.load(path, check_existing=True)
             # Shadewire's ops convert from the authored colorspace: the texels must stay raw.
@@ -1137,6 +1137,7 @@ def fold(op, a):
         return None
 
 
-def build_material(material, doc, base_dir):
-    """Replaces `material`'s node tree with the IR document `doc`; returns the warnings."""
-    return Builder(material, doc, base_dir).build()
+def build_material(material, doc, base_dir, resolve=None):
+    """Replaces `material`'s node tree with the IR document `doc`; returns the warnings. A texture's file is
+    `resolve(file)` when given, else joined to `base_dir`."""
+    return Builder(material, doc, base_dir, resolve).build()

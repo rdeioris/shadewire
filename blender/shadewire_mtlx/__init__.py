@@ -8,8 +8,9 @@ texture and geometry nodes. Then, by default (Principled BSDF), a named model (s
 glTF PBR) drives one Principled BSDF and a raw BSDF graph becomes one BSDF node per lobe; with MaterialX Lobes
 every material opens into its lobes, as MaterialX defines them. File > Import > MaterialX
 creates the document's materials; "Fill Materials from MaterialX" (Material properties, and the 3D view's
-Object menu) rebuilds the materials already in the file whose names match the document's, such as the empty
-ones Blender's USD importer makes for materials bound from a `.mtlx` reference.
+Object menu) rebuilds the materials already in the file whose names match the document's. Blender's USD importer
+calls the add-on for the MaterialX materials of a scene (`usd.py`), so they arrive built; Fill is for scenes
+imported without it.
 """
 
 import os
@@ -18,27 +19,13 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
-from . import builder, compiler
+from . import builder, compiler, usd
 
 
 def configured_executable(context):
     """The compiler path from the preferences; empty when unset or when the add-on is not installed."""
     addon = context.preferences.addons.get(__package__)
     return addon.preferences.executable if addon else ""
-
-
-class ShadewirePreferences(bpy.types.AddonPreferences):
-    bl_idname = __package__
-
-    executable: StringProperty(
-        name="shadewire executable",
-        description="A shadewire command-line compiler to use instead of the bundled shadewire module (the "
-        "module is used when this is empty and it is installed; else the add-on's bin folder, then PATH)",
-        subtype="FILE_PATH",
-    )
-
-    def draw(self, context):
-        self.layout.prop(self, "executable")
 
 
 MODES = [
@@ -51,6 +38,38 @@ MODES = [
 
 def mode_property():
     return EnumProperty(name="Shading", items=MODES, default="PRINCIPLED")
+
+
+class ShadewirePreferences(bpy.types.AddonPreferences):
+    bl_idname = __package__
+
+    executable: StringProperty(
+        name="shadewire executable",
+        description="A shadewire command-line compiler to use instead of the bundled shadewire module (the "
+        "module is used when this is empty and it is installed; else the add-on's bin folder, then PATH)",
+        subtype="FILE_PATH",
+    )
+
+    usd_import: BoolProperty(
+        name="Build MaterialX materials of USD imports",
+        description="Blender's USD importer hands the add-on the materials it imports with a MaterialX surface, "
+        "which it builds as File > Import > MaterialX does",
+        default=True,
+    )
+    usd_mode: mode_property()
+    usd_editable: BoolProperty(
+        name="Editable Values",
+        description="Keep the USD materials' authored values as Value and RGB nodes",
+        default=False,
+    )
+
+    def draw(self, context):
+        self.layout.prop(self, "executable")
+        self.layout.prop(self, "usd_import")
+        row = self.layout.row()
+        row.active = self.usd_import
+        row.prop(self, "usd_mode")
+        row.prop(self, "usd_editable")
 
 
 def build(operator, context, mtlx, name, material, editable, mode):
@@ -181,7 +200,8 @@ def menu_object(self, context):
     self.layout.operator(SHADEWIRE_OT_fill.bl_idname)
 
 
-CLASSES = (ShadewirePreferences, SHADEWIRE_OT_import, SHADEWIRE_OT_fill, SHADEWIRE_OT_rebuild, SHADEWIRE_PT_material)
+CLASSES = (ShadewirePreferences, SHADEWIRE_OT_import, SHADEWIRE_OT_fill, SHADEWIRE_OT_rebuild, SHADEWIRE_PT_material,
+           usd.ShadewireUSDHook)
 
 
 def register():
