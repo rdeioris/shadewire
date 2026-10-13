@@ -1,5 +1,5 @@
 //! Acceptance: every material of the upstream Examples compiles with every back end, and the code validates (WGSL
-//! in naga; GLSL in glslangValidator and HLSL in dxc when installed), or is allow-listed with a reason the spec puts
+//! in naga; GLSL in glslangValidator, HLSL in dxc and MSL in Apple's Metal compiler when installed), or is allow-listed with a reason the spec puts
 //! out of phase 1.
 
 use std::collections::BTreeSet;
@@ -52,7 +52,8 @@ fn check(text: &str, path: &Path, material: &str) -> Result<(), Error> {
     shadewire_glsl::validate::check(&name, &glsl.code, &glsl.reflection, version).unwrap_or_else(|e| fail("GLSL", e));
     let hlsl = shadewire_hlsl::compile(&ir.dag, &ir.source, &options)?;
     shadewire_hlsl::validate::check(&name, &hlsl.code, &hlsl.reflection).unwrap_or_else(|e| fail("HLSL", e));
-    shadewire_msl::compile(&ir.dag, &ir.source, &options)?;
+    let msl = shadewire_msl::compile(&ir.dag, &ir.source, &options)?;
+    shadewire_msl::validate::check(&name, &msl.code, &msl.reflection).unwrap_or_else(|e| fail("MSL", e));
     Ok(())
 }
 

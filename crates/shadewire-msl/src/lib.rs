@@ -163,6 +163,8 @@ pub fn msl_type(ty: Type) -> String {
     Msl.ty(&Ty::of(ty))
 }
 
+pub mod validate;
+
 #[cfg(test)]
 mod tests {
     use shadewire::shader::fixtures::{self, reflection};
@@ -173,6 +175,28 @@ mod tests {
     fn msl(dag: &Dag) -> String {
         let r = reflection(dag);
         print(&material(dag, &r, &MaterialOptions::default()))
+    }
+
+    /// Every fixture compiles in Apple's Metal compiler, as a library and with a fragment entry, with and without
+    /// implicit derivatives (skipped without the compiler).
+    #[test]
+    fn every_fixture_compiles() {
+        for (name, dag) in fixtures::all() {
+            let r = reflection(&dag);
+            for implicit_derivatives in [true, false] {
+                let options = MaterialOptions { implicit_derivatives, ..MaterialOptions::default() };
+                let code = print(&material(&dag, &r, &options));
+                let tag = format!("{name}_{implicit_derivatives}");
+                if !crate::validate::check(&tag, &code, &r).unwrap_or_else(|e| {
+                    panic!(
+                        "{tag}:
+{e}"
+                    )
+                }) {
+                    eprintln!("xcrun metal not found: {tag} not compiled");
+                }
+            }
+        }
     }
 
     #[test]
