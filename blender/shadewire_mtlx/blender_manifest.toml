@@ -10,6 +10,7 @@ website = "https://github.com/rdeioris/shadewire"
 tags = ["Material", "Import-Export"]
 blender_version_min = "4.2.0"
 license = ["SPDX:MIT"]
+copyright = ["2026 Roberto De Ioris"]
 
 # Every platform Blender ships for. Each wheel is the `shadewire` module for Python's stable ABI from 3.8
 # (one per platform serves every Blender); `blender/build_extension.py` builds them into `wheels/`.

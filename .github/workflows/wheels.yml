@@ -1,5 +1,6 @@
 # The `shadewire` Python module: one stable-ABI (abi3, Python >= 3.8) wheel per platform Blender ships for,
-# each built and imported on its own OS, under the oldest and the newest Python.
+# each built and imported on its own OS, under the oldest and the newest Python; and the sdist. A version tag also
+# publishes them to PyPI (the `pypi` job).
 name: wheels
 
 on:
@@ -45,3 +46,33 @@ jobs:
         with:
           name: wheel-${{ matrix.target }}
           path: wheels/*.whl
+
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          working-directory: crates/shadewire-py
+          command: sdist
+          args: --out ${{ github.workspace }}/wheels
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: wheels/*.tar.gz
+
+  # A version tag (v*) publishes the six wheels and the sdist to PyPI with trusted publishing: on pypi.org, give the
+  # `shadewire` project a trusted publisher for this repository, workflow `wheels.yml`, environment `pypi`.
+  pypi:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [wheel, sdist]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@release/v1

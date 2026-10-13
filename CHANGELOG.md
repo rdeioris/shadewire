@@ -107,6 +107,13 @@ No compatibility shims: old names are gone.
 - `shadewire list` prints a document's materials; `shadewire ir --json` writes the IR document.
 - `--reserve-uniform-binding` in the CLI, `reserve_uniform_binding` in the C API's compile options.
 
+### Packaging
+
+- Ready for crates.io (eight crates, `cargo publish --workspace`), PyPI (six abi3 wheels and the sdist, published by
+  a version tag through trusted publishing) and extensions.blender.org (one zip per platform): see `RELEASING.md`.
+- `shadewire-mtlx` embeds MaterialX's libraries from its own folder (`crates/shadewire-mtlx/materialx`).
+- `rust-version` is 1.88; `shadewire-bevy` needs 1.97.
+
 ### Testing
 
 - Every back end compiles the shared test materials with the real compiler when installed: naga (WGSL),
@@ -122,4 +129,3 @@ No compatibility shims: old names are gone.
 - No translation between named models: a host gets a material only in its authored model (a `standard_surface`
   material is refused by a host that accepts only `gltf_pbr`).
 - No SPIR-V output.
-- `rust-version` says 1.85; the core needs 1.88 (let chains) and the Bevy crate 1.97.
