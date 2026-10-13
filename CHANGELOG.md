@@ -123,6 +123,10 @@ No compatibility shims: old names are gone.
   `shadewire_resolution_set` / `_fail`) and `resolve_user_data`; `shadewire_mtlx_list_dependencies` lists a
   document's includes and texture files (`shadewire_dependencies`). Breaking: the `path` parameters are `location`,
   and `shadewire_mtlx_material_names` takes the MaterialX options (for the resolver) after it.
+- Python includes through the host, as in C: `shadewire.mtlx.to_ir` and `material_names` take `resolver`, a
+  callable `(base, href) -> (location, text)` that raises to fail (called with the GIL; the exception's message is
+  the error), and `shadewire.mtlx.list_dependencies(text, location=None)` returns `{"includes", "files"}`. Tests in
+  `crates/shadewire-py/tests` (pytest, against an installed module).
 
 ### Packaging
 

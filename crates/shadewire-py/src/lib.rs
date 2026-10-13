@@ -1,6 +1,7 @@
 //! The `shadewire` Python module, laid out like the Rust crates:
 //!
-//! - `shadewire.mtlx` (`shadewire_mtlx`): the MaterialX front end, `to_ir` and `material_names`;
+//! - `shadewire.mtlx` (`shadewire_mtlx`): the MaterialX front end, `to_ir`, `material_names` and
+//!   `list_dependencies`, with includes read by a Python `resolver`;
 //! - `shadewire.Ir` (`shadewire::Dag` and its `SourceInfo`): the IR, with `optimize`, `dump` and `to_dict`
 //!   (the document `shadewire::export` writes);
 //! - `shadewire.wgsl`, `shadewire.glsl`, `shadewire.hlsl`, `shadewire.msl` (`shadewire_wgsl` ...): the back ends,
@@ -14,7 +15,7 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use shadewire::shader::CompileOptions;
 use shadewire::{Dag, SourceInfo, model_struct_name};
-use shadewire_mtlx::{MtlxOptions, Resolver};
+use shadewire_mtlx::{MtlxOptions, Resolved, Resolver};
 
 create_exception!(shadewire, ShadewireError, PyException, "A document Shadewire cannot read or compile.");
 
@@ -90,13 +91,30 @@ impl PyIr {
 
 // ---------------------------------------------------------------------------------------------------- mtlx
 
-/// MaterialX text to the IR (not optimized). `location` names the document (an OS path), for messages and
-/// relative includes; `material` picks one (None: the document's only one); `models` are the shading models the
-/// caller accepts (None: `open_pbr_surface`, `standard_surface`, `gltf_pbr`, `surface_unlit`; add `surface` for closure
-/// trees, which also opens the named models not listed); `values_as_uniforms` keeps authored values as
+/// A Python `resolver(base, href) -> (location, text)` as the front end's `Resolver` (None: the file system). The
+/// front end runs with the GIL released, so each call takes it back; an exception's message is the error.
+fn resolver(callable: Option<Py<PyAny>>) -> Resolver {
+    let Some(callable) = callable else {
+        return Resolver::default();
+    };
+    Resolver::new(move |base, href| {
+        Python::attach(|py| {
+            let answer = callable.bind(py).call1((base, href)).and_then(|r| r.extract::<(String, String)>());
+            answer.map(|(location, text)| Resolved { location, text }).map_err(|e| e.value(py).to_string())
+        })
+    })
+}
+
+/// MaterialX text to the IR (not optimized). `location` names the document, for messages and as the base its
+/// includes resolve against: an OS path for the default resolver, any string `resolver` understands otherwise.
+/// `resolver(base, href)` returns an include's `(location, text)` and raises to fail (None reads the file system
+/// relative to `base`). `material` picks one (None: the document's only one); `models` are the shading models the
+/// caller accepts (None: `open_pbr_surface`, `standard_surface`, `gltf_pbr`, `surface_unlit`; add `surface` for
+/// closure trees, which also opens the named models not listed); `values_as_uniforms` keeps authored values as
 /// uniforms (False bakes them in, so the optimizer can prune by them).
 #[pyfunction]
-#[pyo3(signature = (text, location=None, material=None, models=None, working_colorspace=None, values_as_uniforms=true))]
+#[pyo3(signature = (text, location=None, material=None, models=None, working_colorspace=None, values_as_uniforms=true, resolver=None))]
+#[allow(clippy::too_many_arguments)]
 fn to_ir(
     py: Python<'_>,
     text: String,
@@ -105,8 +123,9 @@ fn to_ir(
     models: Option<Vec<String>>,
     working_colorspace: Option<String>,
     values_as_uniforms: bool,
+    resolver: Option<Py<PyAny>>,
 ) -> PyResult<PyIr> {
-    let mut options = MtlxOptions { values_as_uniforms, ..MtlxOptions::default() };
+    let mut options = MtlxOptions { values_as_uniforms, resolver: self::resolver(resolver), ..MtlxOptions::default() };
     if let Some(models) = models {
         options.models = models;
     }
@@ -119,11 +138,31 @@ fn to_ir(
     Ok(PyIr { dag: ir.dag, source: ir.source })
 }
 
-/// The names of a MaterialX document's materials, in document order.
+/// The names of a MaterialX document's materials, in document order. `location` and `resolver` as `to_ir`'s.
+#[pyfunction]
+#[pyo3(signature = (text, location=None, resolver=None))]
+fn material_names(
+    py: Python<'_>,
+    text: String,
+    location: Option<String>,
+    resolver: Option<Py<PyAny>>,
+) -> PyResult<Vec<String>> {
+    let resolver = self::resolver(resolver);
+    py.detach(|| shadewire_mtlx::material_names(&text, location.as_deref(), &resolver)).map_err(error)
+}
+
+/// What a document reads besides itself, unresolved and in document order: `{"includes": [...], "files": [...]}`,
+/// the `xi:include` hrefs (not followed: list each included document again once fetched) and the `filename` input
+/// values with `fileprefix` applied. A host with its own I/O fetches them all, then compiles with a `resolver`
+/// serving them from memory. `location` only names the document in errors.
 #[pyfunction]
 #[pyo3(signature = (text, location=None))]
-fn material_names(py: Python<'_>, text: String, location: Option<String>) -> PyResult<Vec<String>> {
-    py.detach(|| shadewire_mtlx::material_names(&text, location.as_deref(), &Resolver::default())).map_err(error)
+fn list_dependencies(py: Python<'_>, text: String, location: Option<String>) -> PyResult<Py<PyAny>> {
+    let deps = py.detach(|| shadewire_mtlx::list_dependencies(&text, location.as_deref())).map_err(error)?;
+    let dict = pyo3::types::PyDict::new(py);
+    dict.set_item("includes", deps.includes)?;
+    dict.set_item("files", deps.files)?;
+    Ok(dict.into_any().unbind())
 }
 
 // ---------------------------------------------------------------------------------------------------- back ends
@@ -319,6 +358,7 @@ fn shadewire_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let mtlx = submodule(m, "mtlx")?;
     mtlx.add_function(wrap_pyfunction!(to_ir, &mtlx)?)?;
     mtlx.add_function(wrap_pyfunction!(material_names, &mtlx)?)?;
+    mtlx.add_function(wrap_pyfunction!(list_dependencies, &mtlx)?)?;
 
     m.add_class::<PyCompiled>()?;
     let wgsl = submodule(m, "wgsl")?;
