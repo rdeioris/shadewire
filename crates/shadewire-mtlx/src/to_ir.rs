@@ -21,6 +21,9 @@ pub struct MtlxOptions {
     pub values_as_uniforms: bool,
     /// Joins and reads `xi:include`s; the default reads the file system.
     pub resolver: Resolver,
+    /// For untrusted documents: the most IR nodes elaboration may create before it fails with `Error::Limit`.
+    /// Checked as the graph grows, so nodegraphs instanced inside one another cannot blow up first.
+    pub max_nodes: Option<usize>,
 }
 
 impl Default for MtlxOptions {
@@ -33,6 +36,7 @@ impl Default for MtlxOptions {
             working_colorspace: "lin_rec709".to_string(),
             values_as_uniforms: true,
             resolver: Resolver::default(),
+            max_nodes: None,
         }
     }
 }
@@ -62,6 +66,7 @@ pub fn to_ir(
     let elaborate_options = ElaborateOptions {
         working_colorspace: options.working_colorspace.clone(),
         values_as_uniforms: options.values_as_uniforms,
+        max_nodes: options.max_nodes,
     };
     let models: Vec<&str> = options.models.iter().map(String::as_str).collect();
     let dag = elaborate(&document, standard(), &elaborate_options, material, &models)?;

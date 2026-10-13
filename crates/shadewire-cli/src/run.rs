@@ -92,6 +92,7 @@ fn gdshader_options(args: &CompileArgs) -> shadewire_gdshader::GdshaderOptions {
         optimize: !args.no_optimize,
         transparency,
         emission_scale: args.emission_scale,
+        ..shadewire_gdshader::GdshaderOptions::default()
     }
 }
 

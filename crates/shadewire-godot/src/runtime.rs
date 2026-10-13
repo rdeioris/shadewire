@@ -14,12 +14,13 @@ use crate::fetch::CANCELLED;
 use crate::headers::{Header, HeaderRules};
 use crate::io::{load_texture, read_text, resolver, texture_from_bytes};
 use crate::material::{Built, build};
-use crate::options::{LoadOptions, Models, models, transparency};
+use crate::options::{LoadOptions, Models, limit, models, transparency};
 use crate::remote::{Event, Fetched, Job, NETWORK_OPTIONS, fetch_options_from, spawn};
 use crate::url::without_fragment;
 
 /// Options from a GDScript dictionary: `material`, `models` (`"mapped"`, `"lobes"` or an array of model names),
-/// `bake_constants`, `optimize`, `transparency`, `emission_scale`, `strict_textures`. Unknown keys are errors.
+/// `bake_constants`, `optimize`, `transparency`, `emission_scale`, `strict_textures`, and the limits `max_nodes`,
+/// `max_textures`, `max_loop_iterations` (0 turns one off). Unknown keys are errors.
 pub fn options_from(dictionary: &VarDictionary) -> Result<LoadOptions, String> {
     let mut options = LoadOptions::default();
     for (key, value) in dictionary.iter_shared() {
@@ -53,6 +54,15 @@ pub fn options_from(dictionary: &VarDictionary) -> Result<LoadOptions, String> {
             }
             "emission_scale" => {
                 options.emission_scale = value.try_to::<f64>().map_err(|_| bad("a number"))? as f32;
+            }
+            "max_nodes" | "max_textures" | "max_loop_iterations" => {
+                let n = value.try_to::<i64>().map_err(|_| bad("a count, 0 for none"))?;
+                let parsed = match key.as_str() {
+                    "max_nodes" => limit(n).map(|l| options.limits.max_nodes = l),
+                    "max_textures" => limit(n).map(|l| options.limits.max_textures = l),
+                    _ => limit(n).map(|l| options.limits.max_loop_iterations = l),
+                };
+                parsed.ok_or_else(|| bad("a count, 0 for none"))?;
             }
             _ if NETWORK_OPTIONS.contains(&key.as_str()) => {
                 return Err(format!("option {key} applies to load_material_async only"));

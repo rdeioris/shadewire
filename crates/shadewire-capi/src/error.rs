@@ -68,6 +68,7 @@ fn location_of(error: &shadewire::Error) -> Option<&shadewire::Location> {
         | Error::NoMaterial
         | Error::AmbiguousMaterial { .. }
         | Error::UnknownMaterial { .. }
+        | Error::Limit(_)
         | Error::Io(_) => None,
     }
 }
@@ -295,7 +296,7 @@ mod tests {
         for e in &located {
             assert_eq!(location_of(e), Some(&at()), "{e}");
         }
-        let unlocated = [Error::NoMaterial, Error::Io("x".into())];
+        let unlocated = [Error::NoMaterial, Error::Limit("x".into()), Error::Io("x".into())];
         for e in &unlocated {
             assert_eq!(location_of(e), None, "{e}");
         }

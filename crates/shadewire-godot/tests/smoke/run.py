@@ -6,7 +6,9 @@ Run from anywhere, with a Godot 4.4+ binary (the console build on Windows) and a
 It builds the extension, assembles a project in crates/shadewire-godot/target/smoke (this folder, the addon with
 the library, and the vendored grid.png), imports it with the editor (the importer runs), then runs smoke.gd, which
 loads materials through the importer, the runtime API and the resource loader, draws them and saves a screenshot
-(default target/smoke/smoke.png). Exits 1 on a failed check or any shader error.
+(default target/smoke/smoke.png). Exits 1 on a failed check or any shader error. It also checks the limits for
+untrusted documents: a graph past max_nodes fails cleanly through every runtime entry point, fractal noise octaves
+are clamped in a drawn shader, and a remote load past max_textures fails.
 
 For load_material_async it serves a remote document from two local HTTP servers, host A (127.0.0.1) and host B
 (localhost), on free ports, over plain http (smoke.gd passes the allow_http option). The document on A has a
@@ -180,7 +182,7 @@ def check_requests(log):
     b_ok = [r["path"] for r in b if r["status"] == 200]
     expect(sorted(b_ok) == ["/t/redirected.png", "/t/white.png"] and len(b) == 4,
            f"B served each texture once, then 304s ({[(r['path'], r['status']) for r in b]})")
-    expect(not phase(3), "a cache_policy \"use\" load made no request")
+    expect(not phase(3) and not phase(4), "cache_policy \"use\" loads made no request")
     return failures
 
 
@@ -236,7 +238,9 @@ def main():
     requests = a.log + b.log
     (http_work / "requests.json").write_text(json.dumps(requests, indent=1))
     failures = check_requests(requests)
-    errors = [line for line in log.splitlines() if "SHADER ERROR" in line or "ERROR:" in line]
+    # The resource loader reports the document over max_nodes (smoke.gd checks that it fails) as an error.
+    errors = [line for line in log.splitlines()
+              if ("SHADER ERROR" in line or "ERROR:" in line) and "user://limits/over_limit.mtlx" not in line]
     if code != 0 or errors or "FAILURES 0" not in log or failures:
         sys.exit(f"smoke test failed (exit {code}, {len(errors)} error lines, {len(failures)} server checks)")
     print(f"smoke test passed; screenshot {screenshot}")

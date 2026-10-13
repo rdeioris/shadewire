@@ -274,9 +274,12 @@ fn models_are_ones_the_front_end_knows() {
     }
 }
 
-/// Every material of the vendored examples compiles both ways, values as uniforms and baked in.
+/// Every material of the vendored examples compiles both ways, values as uniforms and baked in, within the limits
+/// a runtime host sets for untrusted documents.
 #[test]
 fn every_vendored_example_compiles_mapped_and_with_lobes() {
+    let limited =
+        GdshaderOptions { max_textures: Some(16), max_loop_iterations: Some(16), ..GdshaderOptions::default() };
     let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../vendor/materialx/resources/Materials/Examples");
     let mut count = 0;
     let mut lobes = 0;
@@ -294,7 +297,7 @@ fn every_vendored_example_compiles_mapped_and_with_lobes() {
                     for values_as_uniforms in [true, false] {
                         let ir = to_ir(&text, path.to_str(), Some(&material), &options(models, values_as_uniforms))
                             .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-                        let out = compile(&ir.dag, &ir.source, &GdshaderOptions::default())
+                        let out = compile(&ir.dag, &ir.source, &limited)
                             .unwrap_or_else(|e| panic!("{} {material}: {e}", path.display()));
                         assert_eq!(out.uniform_names.len(), out.reflection.uniforms.len());
                         // Godot allows 32 varyings.
@@ -310,4 +313,54 @@ fn every_vendored_example_compiles_mapped_and_with_lobes() {
     }
     assert!(count > 200, "{count} shaders");
     assert!(lobes > 100, "{lobes} with lobes");
+}
+
+const FRACTAL: &str = r#"<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <input name="octaves" type="integer" value="3" />
+    <fractal3d name="f" type="float">
+      <input name="octaves" type="integer" interfacename="octaves" />
+    </fractal3d>
+    <output name="out" type="float" nodename="f" />
+  </nodegraph>
+  <standard_surface name="SR" type="surfaceshader">
+    <input name="base" type="float" nodegraph="NG" output="out" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR" />
+  </surfacematerial>
+</materialx>"#;
+
+#[test]
+fn fractal_octaves_from_a_uniform_are_clamped() {
+    let unlimited = compile_text("fractal", FRACTAL, &MODELS, &GdshaderOptions::default());
+    assert!(unlimited.code.contains("i < octaves;"), "{}", unlimited.code);
+    let options = GdshaderOptions { max_loop_iterations: Some(12), ..GdshaderOptions::default() };
+    let limited = compile_text("fractal_limited", FRACTAL, &MODELS, &options);
+    assert!(limited.code.contains("i < min(octaves, 12);"), "{}", limited.code);
+    assert!(!limited.code.contains("i < octaves;"), "{}", limited.code);
+}
+
+#[test]
+fn textures_over_the_limit_fail() {
+    let mut text = String::from(r#"<materialx version="1.39"><nodegraph name="NG">"#);
+    for i in 0..3 {
+        text.push_str(&format!(
+            r#"<image name="i{i}" type="float"><input name="file" type="filename" value="t{i}.png" /></image>"#
+        ));
+    }
+    text.push_str(
+        r#"<add name="a" type="float"><input name="in1" type="float" nodename="i0" /><input name="in2" type="float" nodename="i1" /></add>
+      <add name="b" type="float"><input name="in1" type="float" nodename="a" /><input name="in2" type="float" nodename="i2" /></add>
+      <output name="out" type="float" nodename="b" /></nodegraph>
+      <standard_surface name="SR" type="surfaceshader"><input name="base" type="float" nodegraph="NG" output="out" /></standard_surface>
+      <surfacematerial name="M" type="material"><input name="surfaceshader" type="surfaceshader" nodename="SR" /></surfacematerial>
+    </materialx>"#,
+    );
+    let ir = to_ir(&text, None, None, &options(&MODELS, true)).unwrap();
+    let at =
+        |max| compile(&ir.dag, &ir.source, &GdshaderOptions { max_textures: Some(max), ..GdshaderOptions::default() });
+    assert_eq!(at(3).unwrap().reflection.textures.len(), 3);
+    assert_eq!(at(2).unwrap_err().to_string(), "the material samples 3 textures, more than 2 (max_textures)");
 }

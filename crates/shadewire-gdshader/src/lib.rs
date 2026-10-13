@@ -13,6 +13,7 @@
 //! Every field or effect Godot cannot represent is listed in `reflection.approximations`.
 
 pub mod context;
+pub mod limits;
 pub mod lobes;
 mod module;
 pub mod names;

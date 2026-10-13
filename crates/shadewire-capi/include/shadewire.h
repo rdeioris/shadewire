@@ -51,7 +51,7 @@ enum shadewire_error_kind
   SHADEWIRE_ERROR_UNSUPPORTED = 3,
   // The document has no usable material, or the named one does not exist.
   SHADEWIRE_ERROR_MATERIAL = 4,
-  // The node graph is invalid.
+  // The node graph is invalid, or over a limit the host set.
   SHADEWIRE_ERROR_GRAPH = 5,
   // Reading or writing failed.
   SHADEWIRE_ERROR_IO = 6,

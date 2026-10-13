@@ -55,6 +55,8 @@ pub fn image_format(bytes: &[u8]) -> Option<ImageFormat> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::options::Limits;
+    use shadewire_mtlx::Resolved;
 
     const EXAMPLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/resources/Materials/Examples");
 
@@ -85,5 +87,60 @@ mod tests {
         assert_eq!(image_format(&[0xff, 0xd8, 0xff, 0xe0]), Some(ImageFormat::Jpeg));
         assert_eq!(image_format(b"RIFF\0\0\0\0WEBPVP8 "), Some(ImageFormat::Webp));
         assert_eq!(image_format(b"#?RADIANCE\n"), None);
+    }
+
+    /// A material sampling `count` textures, each `t<i>.png`.
+    fn textures(count: usize) -> String {
+        let mut text =
+            String::from(r#"<materialx version="1.39"><nodegraph name="NG"><constant name="c0" type="float"/>"#);
+        for i in 0..count {
+            text.push_str(&format!(
+                r#"<image name="i{i}" type="float"><input name="file" type="filename" value="t{i}.png"/></image>
+                <add name="c{}" type="float"><input name="in1" type="float" nodename="c{i}"/><input name="in2" type="float" nodename="i{i}"/></add>"#,
+                i + 1
+            ));
+        }
+        text.push_str(&format!(
+            r#"<output name="out" type="float" nodename="c{count}"/></nodegraph>
+            <standard_surface name="SR" type="surfaceshader"><input name="base" type="float" nodegraph="NG" output="out"/></standard_surface>
+            <surfacematerial name="M" type="material"><input name="surfaceshader" type="surfaceshader" nodename="SR"/></surfacematerial>
+            </materialx>"#
+        ));
+        text
+    }
+
+    #[test]
+    fn runtime_loads_are_limited_by_default() {
+        let options = LoadOptions::default();
+        assert_eq!(compile(&textures(16), None, &options, Resolver::default()).unwrap().reflection.textures.len(), 16);
+        let err = compile(&textures(17), None, &options, Resolver::default()).unwrap_err();
+        assert_eq!(err, "the material samples 17 textures, more than 16 (max_textures)");
+        let options = LoadOptions { limits: Limits { max_nodes: Some(40), ..Limits::NONE }, ..LoadOptions::default() };
+        let err = compile(&textures(17), None, &options, Resolver::default()).unwrap_err();
+        assert_eq!(err, "the material needs more than 40 nodes (max_nodes)");
+        let unlimited = LoadOptions { limits: Limits::NONE, ..LoadOptions::default() };
+        assert!(compile(&textures(17), None, &unlimited, Resolver::default()).is_ok());
+    }
+
+    #[test]
+    fn fractal_octaves_are_clamped_in_the_shader() {
+        let text = r#"<materialx version="1.39">
+          <fractal3d name="f" type="float"><input name="octaves" type="integer" value="1000000"/></fractal3d>
+          <standard_surface name="SR" type="surfaceshader"><input name="base" type="float" nodename="f"/></standard_surface>
+          <surfacematerial name="M" type="material"><input name="surfaceshader" type="surfaceshader" nodename="SR"/></surfacematerial>
+        </materialx>"#;
+        let options = LoadOptions { optimize: false, ..LoadOptions::default() };
+        let out = compile(text, None, &options, Resolver::default()).unwrap();
+        assert!(out.code.contains("i < min(octaves, 16);"), "{}", out.code);
+    }
+
+    #[test]
+    fn an_included_file_is_never_quoted() {
+        let resolver = Resolver::new(|_, href| {
+            Ok(Resolved { location: format!("user://{href}"), text: "<keys><key value=\"s3cr3t\"/></keys>".into() })
+        });
+        let text = r#"<materialx version="1.39"><xi:include href="../../secret"/></materialx>"#;
+        let err = compile(text, Some("user://mods/m.mtlx"), &LoadOptions::default(), resolver).unwrap_err();
+        assert_eq!(err, "user://../../secret:1 (): parse error: not a MaterialX document");
     }
 }

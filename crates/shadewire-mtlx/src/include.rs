@@ -87,9 +87,24 @@ fn resolve(mut root: Element, location: Option<&str>, resolver: &Resolver, depth
         };
         let href = child.attr("href").unwrap_or("");
         let resolved = resolver.resolve(base, href).map_err(|message| fail(location, child.line, message))?;
-        let included = parse_str(&resolved.text, Some(&resolved.location))?;
+        let included = parse_included(&resolved)?;
         let included = resolve(included, Some(&resolved.location), resolver, depth + 1)?;
         root.children.extend(included.children);
+    }
+    Ok(root)
+}
+
+/// An included document's tree. An include can name any file the resolver reaches, so its errors never quote the
+/// file (the XML parser's messages name tags and attributes) and anything but a `<materialx>` root is refused before
+/// its elements could reach a message.
+fn parse_included(resolved: &Resolved) -> Result<Element, Error> {
+    let location = Some(resolved.location.as_str());
+    let root = parse_str(&resolved.text, location).map_err(|e| match e {
+        Error::Parse { at, .. } => Error::Parse { at, message: "not well-formed XML".into() },
+        other => other,
+    })?;
+    if root.category != "materialx" {
+        return Err(fail(location, root.line, "not a MaterialX document".into()));
     }
     Ok(root)
 }
@@ -143,5 +158,26 @@ mod tests {
         let bad = parse_str(r#"<materialx><xi:include href="x.mtlx"/></materialx>"#, None).unwrap();
         let err = resolve_includes(bad, Some("mem://lib/top.mtlx"), &resolver).unwrap_err();
         assert!(err.to_string().contains("no mem://lib/x.mtlx"), "{err}");
+    }
+
+    #[test]
+    fn errors_in_an_included_file_do_not_quote_it() {
+        let resolver = Resolver::new(|_, href| {
+            let text = match href {
+                "tags.xml" => "<config><password value=\"hunter2\"/></config>",
+                "broken.xml" => {
+                    "<config>
+<hunter2></password></config>"
+                }
+                _ => "password=hunter2",
+            };
+            Ok(Resolved { location: format!("mem://{href}"), text: text.to_string() })
+        });
+        for href in ["tags.xml", "broken.xml", "secret.txt"] {
+            let root = parse_str(&format!(r#"<materialx><xi:include href="{href}"/></materialx>"#), None).unwrap();
+            let err = resolve_includes(root, Some("mem://top.mtlx"), &resolver).unwrap_err().to_string();
+            assert!(err.starts_with(&format!("mem://{href}:")), "{err}");
+            assert!(!err.contains("hunter2") && !err.contains("password") && !err.contains("config"), "{err}");
+        }
     }
 }

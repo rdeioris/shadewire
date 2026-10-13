@@ -38,6 +38,78 @@ func textured(material: Variant, count := 1) -> bool:
 	return true
 
 
+# Level k of a nodegraph chain adds two instances of level k - 1: about 2^levels nodes.
+func doubling(levels: int) -> String:
+	var text := """<materialx version="1.39">
+		<nodedef name="ND_l0_float" node="l0"><input name="in" type="float" value="0"/><output name="out" type="float"/></nodedef>
+		<nodegraph name="NG_l0_float" nodedef="ND_l0_float">
+		<add name="a" type="float"><input name="in1" type="float" interfacename="in"/><input name="in2" type="float" value="1"/></add>
+		<output name="out" type="float" nodename="a"/></nodegraph>"""
+	for k in range(1, levels + 1):
+		text += """<nodedef name="ND_l{k}_float" node="l{k}"><input name="in" type="float" value="0"/><output name="out" type="float"/></nodedef>
+			<nodegraph name="NG_l{k}_float" nodedef="ND_l{k}_float">
+			<l{p} name="x" type="float"><input name="in" type="float" interfacename="in"/></l{p}>
+			<l{p} name="y" type="float"><input name="in" type="float" nodename="x"/></l{p}>
+			<add name="a" type="float"><input name="in1" type="float" nodename="x"/><input name="in2" type="float" nodename="y"/></add>
+			<output name="out" type="float" nodename="a"/></nodegraph>""".format({"k": k, "p": k - 1})
+	text += """<l{n} name="top" type="float"/>
+		<standard_surface name="SR" type="surfaceshader"><input name="base" type="float" nodename="top"/></standard_surface>
+		<surfacematerial name="M" type="material"><input name="surfaceshader" type="surfaceshader" nodename="SR"/></surfacematerial>
+		</materialx>""".format({"n": levels})
+	return text
+
+
+const FRACTAL := """<materialx version="1.39">
+	<nodegraph name="NG">
+		<input name="octaves" type="integer" value="1000000"/>
+		<fractal3d name="f" type="color3"><input name="octaves" type="integer" interfacename="octaves"/></fractal3d>
+		<output name="out" type="color3" nodename="f"/>
+	</nodegraph>
+	<standard_surface name="SR" type="surfaceshader"><input name="base_color" type="color3" nodegraph="NG" output="out"/></standard_surface>
+	<surfacematerial name="M" type="material"><input name="surfaceshader" type="surfaceshader" nodename="SR"/></surfacematerial>
+	</materialx>"""
+
+
+func write(path: String, text: String) -> void:
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	file.store_string(text)
+	file.close()
+
+
+# Limits for untrusted documents, on by default for every runtime load. Returns a material to draw.
+func limits() -> Material:
+	var over := doubling(30)
+	var started := Time.get_ticks_msec()
+	check(sw.compile_string(over) == null and sw.get_last_error() == "the material needs more than 4096 nodes (max_nodes)",
+		"compile_string: a 2^30-node graph stops at max_nodes: " + sw.get_last_error())
+	check(Time.get_ticks_msec() - started < 10000, "max_nodes stopped it in %d ms" % (Time.get_ticks_msec() - started))
+	write("user://limits/over_limit.mtlx", over)
+	check(sw.load_material("user://limits/over_limit.mtlx") == null and "(max_nodes)" in sw.get_last_error(),
+		"load_material: max_nodes: " + sw.get_last_error())
+	check(load("user://limits/over_limit.mtlx") == null, "the resource loader applies max_nodes")
+	check(sw.compile_string(doubling(3), "", {"max_nodes": 0}) is ShaderMaterial, "max_nodes 0 is no limit")
+	check(sw.compile_string(doubling(3), "", {"max_nodes": -1}) == null
+		and sw.get_last_error().begins_with("option max_nodes: expected a count, 0 for none"),
+		"a bad limit fails: " + sw.get_last_error())
+
+	var fractal = sw.compile_string(FRACTAL)
+	check(fractal is ShaderMaterial and "i < min(octaves, 16);" in fractal.shader.code,
+		"fractal octaves clamped to 16 by default: " + sw.get_last_error())
+	var four = sw.compile_string(FRACTAL, "", {"max_loop_iterations": 4})
+	check(four is ShaderMaterial and "i < min(octaves, 4);" in four.shader.code, "max_loop_iterations 4")
+	var free = sw.compile_string(FRACTAL, "", {"max_loop_iterations": 0})
+	check(free is ShaderMaterial and not "min(octaves" in free.shader.code, "max_loop_iterations 0 is no clamp")
+
+	# An include that names a non-MaterialX file fails without quoting it.
+	write("user://limits/secret.txt", "<keys><key value=\"s3cr3t\"/></keys>")
+	write("user://limits/mod.mtlx", """<materialx version="1.39"><xi:include href="secret.txt"/></materialx>""")
+	var error := "" if sw.load_material("user://limits/mod.mtlx") else sw.get_last_error()
+	check("not a MaterialX document" in error and not "s3cr3t" in error and not "key" in error,
+		"an included file is never quoted: " + error)
+	return fractal
+
+
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var vendored: String = args[0]
@@ -70,9 +142,9 @@ func _initialize() -> void:
 	check(sw.load_material(args[2] + "/m/remote.mtlx") == null and "load_material_async" in sw.get_last_error(),
 		"load_material refuses URLs: " + sw.get_last_error())
 
-	var materials: Array = [imported, runtime, example, lobes]
+	var materials: Array = [imported, runtime, example, lobes, limits()]
 	for i in materials.size():
-		sphere((i - 2) * 1.2, materials[i])
+		sphere((i - 3) * 1.2, materials[i])
 	var camera := Camera3D.new()
 	camera.fov = 30
 	camera.position = Vector3(0, 0, 6)
@@ -130,6 +202,9 @@ func remote(a: String, b: String, cache_dir: String, token: String) -> void:
 	check(textured(second, 3), "a second load, revalidated against the cache: %s" % second)
 	var third = await remote_load(url, 3, {"cache_policy": "use"})
 	check(textured(third, 3), "a cache_policy \"use\" load: %s" % third)
+	var capped = await remote_load(url, 4, {"cache_policy": "use", "max_textures": 2})
+	check(capped is String and capped == "the material samples 3 textures, more than 2 (max_textures)",
+		"load_material_async applies max_textures: %s" % capped)
 
 	var refused = await wait(sw.load_material_async(url))
 	check(refused is String and "plain http is refused" in refused, "https only by default: %s" % refused)
@@ -154,7 +229,7 @@ func remote(a: String, b: String, cache_dir: String, token: String) -> void:
 	check(sw.get_cache_size() == 0 and files.call() == 0, "cache_max_bytes = 0 empties the cache")
 	sw.cache_max_bytes = 256 * 1024 * 1024
 
-	sphere(2 * 1.2, first)
+	sphere(3 * 1.2, first)
 	remote_done = true
 
 

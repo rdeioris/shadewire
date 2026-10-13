@@ -14,7 +14,7 @@ use shadewire_mtlx::material_names;
 use crate::compile::{compile, reference};
 use crate::io::{load_texture, read_text, resolver};
 use crate::material::build;
-use crate::options::{LoadOptions, TRANSPARENCY};
+use crate::options::{Limits, LoadOptions, TRANSPARENCY};
 use crate::runtime::options_from;
 
 #[derive(GodotClass)]
@@ -41,7 +41,8 @@ fn import(
 ) -> Result<(), String> {
     let mut options = options.duplicate_shallow();
     let write_gdshader = options.remove("write_gdshader").is_some_and(|v| v.try_to::<bool>().unwrap_or(false));
-    let options = options_from(&options)?;
+    // The project's own files: no limits for untrusted documents.
+    let options = LoadOptions { limits: Limits::NONE, ..options_from(&options)? };
     let text = read_text(source)?;
     // A document of definitions or node graphs only (an include): an empty material, so the import succeeds.
     if material_names(&text, Some(source), &resolver()).map_err(|e| e.to_string())?.is_empty() {

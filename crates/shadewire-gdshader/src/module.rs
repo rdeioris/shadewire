@@ -9,7 +9,7 @@ use crate::rewrite::{declared_names, for_godot};
 use crate::surface::{HELPERS, Mapping, closure_mapping, map};
 use crate::syntax::{print, repeats};
 use crate::uniforms::uniform_block;
-use crate::{GdshaderOutput, lobes};
+use crate::{GdshaderOutput, limits, lobes};
 
 fn header(mapping: &Mapping) -> String {
     format!("shader_type spatial;\nrender_mode {};\n", mapping.render_modes.join(", "))
@@ -28,6 +28,10 @@ pub fn compile(dag: &Dag, source: &SourceInfo, options: &GdshaderOptions) -> Res
         implicit_derivatives: true,
     };
     let (mut module, mut reflection, dag) = lower(dag, source, &shared)?;
+    limits::check_textures(reflection.textures.len(), options.max_textures)?;
+    if let Some(max) = options.max_loop_iterations {
+        limits::clamp_loops(&mut module, max)?;
+    }
     let ctx = context(&dag, &reflection);
     let names = uniform_names(&reflection, &declared_names(&module));
     for_godot(&mut module, &reflection, &names, &host_members(&reflection), !ctx.members.is_empty());

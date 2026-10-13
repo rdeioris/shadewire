@@ -40,6 +40,7 @@ impl<'a> Elaborator<'a> {
         self.depth -= 1;
         self.in_progress.remove(&key);
         let id = result?;
+        self.check_node_limit()?;
         self.memo.insert(key, id);
         Ok(id)
     }

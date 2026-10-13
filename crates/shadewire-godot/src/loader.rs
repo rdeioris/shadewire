@@ -30,10 +30,11 @@ impl IResourceFormatLoader for ShadewireMtlxLoader {
     }
 
     fn load(&self, path: GString, _original_path: GString, _use_sub_threads: bool, _cache_mode: i32) -> Variant {
-        match load_path(&path.to_string(), &LoadOptions::default()) {
+        let path = path.to_string();
+        match load_path(&path, &LoadOptions::default()) {
             Ok(material) => material.to_variant(),
             Err(e) => {
-                godot_error!("shadewire: {e}");
+                godot_error!("shadewire: {path}: {e}");
                 GdError::ERR_PARSE_ERROR.to_variant()
             }
         }
