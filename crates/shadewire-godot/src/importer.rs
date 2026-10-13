@@ -12,7 +12,7 @@ use godot::register::info::PropertyHint;
 use shadewire_mtlx::material_names;
 
 use crate::compile::{compile, reference};
-use crate::io::{read_text, resolver};
+use crate::io::{load_texture, read_text, resolver};
 use crate::material::build;
 use crate::options::{LoadOptions, TRANSPARENCY};
 use crate::runtime::options_from;
@@ -48,7 +48,7 @@ fn import(
         return save(&ShaderMaterial::new_gd(), save_path);
     }
     let out = compile(&text, Some(source), &options, resolver())?;
-    let built = build(&out, Some(source), options.strict_textures, false)?;
+    let built = build(&out, Some(source), options.strict_textures, false, load_texture)?;
     let without_mipmaps = out.reflection.textures.iter().filter_map(|t| reference(Some(source), &t.file).ok());
     let without_mipmaps = without_mipmaps.filter(|path| !imports_mipmaps(path)).map(|path| {
         format!(

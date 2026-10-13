@@ -4,13 +4,12 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use godot::classes::{Json, Shader, ShaderMaterial};
+use godot::classes::{Json, Shader, ShaderMaterial, Texture2D};
 use godot::prelude::*;
 use shadewire::Value;
 use shadewire_gdshader::GdshaderOutput;
 
 use crate::compile::reference;
-use crate::io::load_texture;
 
 thread_local! {
     /// Shaders by code: materials with the same graph and different values share one `Shader`, so Godot compiles
@@ -57,14 +56,15 @@ pub struct Built {
     pub warnings: Vec<String>,
 }
 
-/// `location` is the document's, the base of relative texture files. `shared_shader` takes the shader from the
-/// cache (the runtime); the importer saves its own. A texture that cannot load leaves Godot's default bound and
-/// warns, or fails the build when `strict_textures`.
+/// `location` is the document's, the base of relative texture files; `texture` loads the texture at a location.
+/// `shared_shader` takes the shader from the cache (the runtime); the importer saves its own. A texture that cannot
+/// load leaves Godot's default bound and warns, or fails the build when `strict_textures`.
 pub fn build(
     out: &GdshaderOutput,
     location: Option<&str>,
     strict_textures: bool,
     shared_shader: bool,
+    texture: impl Fn(&str) -> Result<Gd<Texture2D>, String>,
 ) -> Result<Built, String> {
     let mut material = ShaderMaterial::new_gd();
     material.set_shader(&shader(&out.code, shared_shader));
@@ -73,7 +73,7 @@ pub fn build(
     }
     let mut warnings = out.reflection.approximations.clone();
     for t in &out.reflection.textures {
-        match reference(location, &t.file).and_then(|path| load_texture(&path)) {
+        match reference(location, &t.file).and_then(|path| texture(&path)) {
             Ok(texture) => material.set_shader_parameter(&format!("shadewire_t{}", t.index), &texture.to_variant()),
             Err(e) if strict_textures => return Err(e),
             Err(e) => warnings.push(format!("texture {}: {e}", t.file)),

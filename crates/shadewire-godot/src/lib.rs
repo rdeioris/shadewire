@@ -1,20 +1,28 @@
 //! Shadewire for Godot 4: MaterialX documents as `ShaderMaterial`s, compiled in-process by `shadewire-mtlx` and
 //! `shadewire-gdshader`.
 //!
-//! - Runtime: the `Shadewire` class (`load_material`, `compile_string`, `material_names`) and a resource loader,
+//! - Runtime: the `Shadewire` class (`load_material`, `compile_string`, `material_names`, and
+//!   `load_material_async` for `http(s)://` URLs, with host-scoped headers and a disk cache) and a resource loader,
 //!   so `load("user://x.mtlx")` or `load("D:/assets/x.mtlx")` returns a `ShaderMaterial`.
 //! - Editor: an import plugin, so `.mtlx` files in the project import as `ShaderMaterial` resources.
 //!
-//! Sources are `res://`, `user://` and OS paths; includes and textures resolve against the document's location.
+//! Sources are `res://`, `user://`, OS paths and (asynchronously) URLs; includes and textures resolve against the
+//! document's location.
 
+pub mod cache;
 pub mod compile;
+pub mod fetch;
+pub mod headers;
+pub mod http;
 pub mod importer;
 pub mod io;
 pub mod loader;
 pub mod location;
 pub mod material;
 pub mod options;
+pub mod remote;
 pub mod runtime;
+pub mod url;
 
 use std::cell::RefCell;
 

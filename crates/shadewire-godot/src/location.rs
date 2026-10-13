@@ -71,6 +71,16 @@ fn remove_dot_segments(path: &str) -> String {
 /// `/`, and a URL's query and fragment do not count as directories.
 pub fn join(base: &str, href: &str) -> String {
     let href = href.replace('\\', "/");
+    // From a URL, `/path` keeps the scheme and authority and `//host/path` keeps the scheme.
+    if is_url(base) && href.starts_with('/') {
+        let base = base.replace('\\', "/");
+        let (root, _) = split_root(&base);
+        if href.starts_with("//") {
+            let scheme = &root[..root.find("://").map_or(0, |i| i + 1)];
+            return join("", &format!("{scheme}{href}"));
+        }
+        return format!("{root}{}", remove_dot_segments(&href));
+    }
     if is_absolute(&href) {
         let (root, path) = split_root(&href);
         return format!("{root}{}", remove_dot_segments(path));
@@ -104,6 +114,11 @@ mod tests {
         assert_eq!(join("https://cdn.example.com/m/doc.mtlx", "../../a.png"), "https://cdn.example.com/a.png");
         assert_eq!(join("https://cdn.example.com", "a.png"), "https://cdn.example.com/a.png");
         assert_eq!(join("https://cdn.example.com/materials/", "a.mtlx"), "https://cdn.example.com/materials/a.mtlx");
+        assert_eq!(
+            join("https://cdn.example.com:8443/m/doc.mtlx", "/t/../a.png"),
+            "https://cdn.example.com:8443/a.png"
+        );
+        assert_eq!(join("http://cdn.example.com/m/doc.mtlx", "//other.org/a.png"), "http://other.org/a.png");
     }
 
     #[test]

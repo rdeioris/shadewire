@@ -30,8 +30,9 @@ var names := sw.material_names("user://mods/metal/metal.mtlx")
 var mat3: ShaderMaterial = load("user://mods/metal/metal.mtlx")
 ```
 
-Sources are `res://`, `user://` and OS paths, read with `FileAccess`; `xi:include`s and texture files resolve
-against the location of the document that names them. Textures from imported project files load as the imported
+Sources are `res://`, `user://` and OS paths, read with `FileAccess`, and with `load_material_async` also
+`http(s)://` URLs (below); `xi:include`s and texture files resolve against the location of the document that names
+them. Textures from imported project files load as the imported
 texture; anything else is decoded from its bytes: PNG, JPEG and WebP. A texture that cannot load leaves Godot's
 default bound and warns, or fails the load with `strict_textures`. Materials with the same generated code share one
 `Shader`. Each material carries its reflection as the `shadewire_reflection` metadata (params, uniforms, textures,
@@ -49,6 +50,65 @@ Options (a dictionary for the runtime API; the importer's options in the Import 
 | `emission_scale` | multiplies emission | `1.0` |
 | `strict_textures` | a texture that cannot load fails the load | `false` |
 | `write_gdshader` (importer only) | also write the shader next to the `.mtlx` | `false` |
+
+Network options, for `load_material_async` only (`load_material` refuses them):
+
+| Option | Values | Default |
+|---|---|---|
+| `allow_http` | allow plain `http://` (HTTPS only otherwise) | `false` |
+| `headers` | `PackedStringArray` of `"Name: value"`, sent to the document's own host | none |
+| `headers_all_hosts` | send `headers` to every host the document names | `false` |
+| `cache_policy` | `use` (serve cached copies as they are), `revalidate`, `bypass` (do not read the cache; the fresh response replaces it), `offline` (cache only) | `revalidate` |
+| `cache_authenticated` | cache responses fetched with headers | `true` |
+| `connect_timeout` | seconds to resolve and connect | `10` |
+| `timeout` | seconds per request, redirects included | `60` |
+| `max_redirects` | redirects followed per request | `5` |
+| `max_response_bytes` | bytes per response | 64 MiB |
+| `max_material_bytes` | bytes per material: document, includes and textures | 256 MiB |
+
+## Remote sources
+
+```gdscript
+var sw := Shadewire.new()  # keep it alive until the request ends
+sw.material_ready.connect(func(id, mat): $Mesh.material_override = mat)
+sw.material_failed.connect(func(id, message): push_error(message))
+sw.material_progress.connect(func(id, done_bytes, total_bytes): pass)
+var id := sw.load_material_async("https://cdn.example.com/materials/rusty_metal.mtlx", {"material": "Rust"})
+sw.cancel(id)  # optional: ends with material_failed(id, "cancelled")
+
+# Headers scoped to hosts: exact, *.domain (subdomains only), optionally :port. An empty array removes a pattern.
+sw.set_http_headers("cdn.example.com", PackedStringArray(["Authorization: Bearer " + token]))
+sw.set_http_headers("*.assets.example.org", PackedStringArray(["X-Api-Key: " + key]))
+sw.http_headers_callback = func(url: String) -> PackedStringArray: return my_signer.sign(url)
+
+sw.cache_max_bytes = 512 * 1024 * 1024  # default 256 MiB; 0 turns the cache off
+sw.cache_dir = "user://shadewire_cache"  # default
+sw.get_cache_size()
+sw.evict_cache(url)
+sw.clear_cache()
+```
+
+`load_material_async` takes a URL or a local path. A worker thread fetches the document, its includes (as the
+front end meets them) and then all remote textures in parallel, and compiles; the main thread creates the
+`Shader`, decodes the textures and emits the signal. Events reach the main thread through the scene tree's
+`process_frame`, so the main loop must be a `SceneTree`. `load_material` stays local: given a URL it fails, so the
+main thread never waits on the network.
+
+- **Fetching**: Godot's `HTTPClient` on the worker thread, polled every millisecond (it follows the project's TLS
+  certificate bundle; no proxy support yet). One connection per request.
+- **Where references go**: includes and textures resolve against the document's URL (RFC 3986: `t.png`, `../t.png`,
+  `/t.png`, `//host/t.png`), and may name any host. A remote document cannot reference local files.
+- **Headers**: every `set_http_headers` pattern matching the request's host applies; on a name clash the most specific
+  wins (exact over wildcard, longer over shorter, with a port over without). The callback runs on the main thread
+  for each request (the worker waits for it) and its headers come last. Per-request `headers` go to the document's
+  host only, unless `headers_all_hosts`. Each redirect hop is matched again: a redirect to another host gets that
+  host's headers, never the original host's, nor the per-request ones. Header values never appear in errors, logs
+  or cache keys.
+- **Cache**: one file per URL plus `index.json` under `cache_dir`, keyed by the URL the document names (without the
+  fragment, never with headers), with its `ETag` / `Last-Modified`. `revalidate` asks with `If-None-Match` /
+  `If-Modified-Since` and serves the copy on `304`. Responses with `Cache-Control: no-store` are not written. Least
+  recently used entries go after each write and when the cap is lowered; entries an in-flight request uses wait for
+  it. The cache belongs to its directory: `Shadewire` objects using the same directory share it and its cap.
 
 ## Editor
 
@@ -69,9 +129,15 @@ Things to know:
 
 ## Tests
 
-`cargo test` runs the parts that do not need Godot. The smoke test needs a Godot binary and a GPU: it builds the
-extension, assembles a project, imports it with the editor, then loads materials through the importer, the runtime
-API, `compile_string` and the resource loader, draws them with the real renderer and saves a screenshot.
+`cargo test` runs the parts that do not need Godot: locations, URLs, host patterns and header merging, the cache
+index and LRU, and the fetch rules (redirects, header scoping, caps, cache policies) over a fake transport. The
+smoke test needs a Godot binary and a GPU: it builds the extension, assembles a project, imports it with the editor,
+then loads materials through the importer, the runtime API, `compile_string` and the resource loader, draws them
+with the real renderer and saves a screenshot. For `load_material_async` it serves a document from two local HTTP
+servers (`127.0.0.1` and `localhost`, plain http through `allow_http`) and checks that the document's relative
+include and textures load, that a texture on the second host and one redirected there load, that the second load is
+revalidated from the cache (`304`s) and a `use` load makes no request, that the auth header scoped to the first host
+never reaches the second, and that lowering `cache_max_bytes` evicts down to the cap.
 
 ```bash
 python -I tests/smoke/run.py <path to a Godot 4.4+ binary>
@@ -81,10 +147,8 @@ python -I tests/smoke/run.py <path to a Godot 4.4+ binary>
 
 From the plan in `docs/specs/2026-10-12-godot-analysis.md` (Sections 4.1, 4.3, 5, Phase 2):
 
-- `http(s)://` sources: `load_material_async` with the `material_ready` / `material_failed` /
-  `material_progress` signals, `HTTPClient` fetching on a worker thread, host-scoped auth headers and the callback,
-  the disk cache (`cache_max_bytes`, LRU eviction, `evict_cache`, `clear_cache`). URLs are refused today, and a
-  remote document already cannot reference local files.
+- Network: proxies, keep-alive connection reuse, includes fetched in parallel (they are fetched one by one as
+  the front end reads them; textures are parallel).
 - `list_dependencies` (prefetching) in `shadewire-mtlx`, and MaterialX `ui*` hints in reflection.
 - Threaded import (`can_import_threaded` is false: loading the textures from an import worker thread hung the
   headless import in Godot 4.7.2), setting texture import options from the importer, the `Shadewire.cs` wrapper,

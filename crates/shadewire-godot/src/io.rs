@@ -9,7 +9,7 @@ use shadewire_mtlx::{Resolved, Resolver};
 use crate::compile::{ImageFormat, image_format, reference};
 use crate::location::is_url;
 
-const NO_URLS: &str = "http(s) sources are not supported yet";
+const NO_URLS: &str = "http(s) sources load with load_material_async only";
 
 pub fn read_bytes(location: &str) -> Result<PackedByteArray, String> {
     if is_url(location) {
@@ -48,12 +48,16 @@ pub fn load_texture(location: &str) -> Result<Gd<Texture2D>, String> {
             .and_then(|r| r.try_cast::<Texture2D>().ok())
             .ok_or_else(|| format!("cannot load {location}"));
     }
-    let bytes = read_bytes(location)?;
+    texture_from_bytes(location, &read_bytes(location)?)
+}
+
+/// A texture decoded from the bytes of the file at `location` (PNG, JPEG or WebP), with mipmaps.
+pub fn texture_from_bytes(location: &str, bytes: &PackedByteArray) -> Result<Gd<Texture2D>, String> {
     let mut image = Image::new_gd();
     let status = match image_format(bytes.as_slice()) {
-        Some(ImageFormat::Png) => image.load_png_from_buffer(&bytes),
-        Some(ImageFormat::Jpeg) => image.load_jpg_from_buffer(&bytes),
-        Some(ImageFormat::Webp) => image.load_webp_from_buffer(&bytes),
+        Some(ImageFormat::Png) => image.load_png_from_buffer(bytes),
+        Some(ImageFormat::Jpeg) => image.load_jpg_from_buffer(bytes),
+        Some(ImageFormat::Webp) => image.load_webp_from_buffer(bytes),
         None => return Err(format!("{location}: unsupported runtime format (PNG, JPEG and WebP load at runtime)")),
     };
     if status != GdError::OK {
