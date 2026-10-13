@@ -6,15 +6,15 @@ from `crates/shadewire-py/Cargo.toml` and the Blender extension from `blender/sh
 
 ## crates.io
 
-Eight crates, published together (Cargo orders them by their dependencies):
+Nine crates, published together (Cargo orders them by their dependencies):
 
 ```
 cargo publish --workspace --exclude shadewire-capi --exclude shadewire-capi-ctest --exclude shadewire-py --dry-run
 cargo publish --workspace --exclude shadewire-capi --exclude shadewire-capi-ctest --exclude shadewire-py
 ```
 
-`shadewire`, `shadewire-mtlx`, `shadewire-wgsl`, `shadewire-glsl`, `shadewire-hlsl`, `shadewire-msl`, `shadewire-cli`
-and `shadewire-bevy`. The C API and the Python module are `publish = false`: they ship as binaries and on PyPI.
+`shadewire`, `shadewire-mtlx`, `shadewire-wgsl`, `shadewire-glsl`, `shadewire-hlsl`, `shadewire-msl`,
+`shadewire-gdshader`, `shadewire-cli` and `shadewire-bevy`. The C API and the Python module are `publish = false`: they ship as binaries and on PyPI.
 Publishing needs a crates.io token (`cargo login`). Rust 1.88 builds all but `shadewire-bevy` (1.97, Bevy's minimum).
 
 ## PyPI
@@ -33,19 +33,20 @@ before it exists): this repository, workflow `wheels.yml`, environment `pypi`; a
 the repository's settings (optionally with required reviewers, so a tag waits for approval).
 
 Without CI, the same files build locally (`python blender/build_extension.py ...` builds the wheels into
-`blender/shadewire/wheels`, and `maturin sdist` in `crates/shadewire-py` the sdist), then
+`<out>/wheels`, and `maturin sdist` in `crates/shadewire-py` the sdist), then
 `twine check dist/*` and `twine upload dist/*`.
 
 ## Blender extensions (extensions.blender.org)
 
 ```
 python blender/build_extension.py --blender <blender 4.3 or later> --out dist/blender
-blender --command extension validate dist/blender/shadewire-0.1.0-windows_x64.zip
+blender --command extension validate dist/blender/shadewire-0.1.0.zip
 ```
 
-Then test each zip as users get it, on its platform, with a portable Blender (the oldest supported, 4.3, and the
+Then test the zip as users get it, on each platform, with a portable Blender (the oldest supported, 4.3, and the
 latest) and a throwaway profile, as `blender/README.md` shows (`smoke_test.py --installed`).
 
-One zip per platform, each with its wheel. Upload them on extensions.blender.org (Upload Extension, then one file per
-platform under the same version). The add-on is GPL-3.0-or-later, as the platform requires
+One zip with the wheel of every platform Blender ships for (the Linux ARM64 wheel is PyPI's only). Upload it on
+extensions.blender.org (Upload Extension), with `assets/logo/png/shadewire-mark-256.png` as the icon and
+`assets/logo/png/shadewire-blender-featured-1920x1080.png` as the featured image. The add-on is GPL-3.0-or-later, as the platform requires
 (`blender/shadewire/LICENSE`, the manifest's `license` and `copyright`).

@@ -131,8 +131,8 @@ No compatibility shims: old names are gone.
 
 ### Packaging
 
-- Ready for crates.io (eight crates, `cargo publish --workspace`), PyPI (six abi3 wheels and the sdist, published by
-  a version tag through trusted publishing) and extensions.blender.org (one zip per platform): see `RELEASING.md`.
+- Ready for crates.io (nine crates, `cargo publish --workspace`), PyPI (six abi3 wheels and the sdist) and
+  extensions.blender.org (one zip holding the wheel of every platform Blender ships for): see `RELEASING.md`.
 - `shadewire-mtlx` embeds MaterialX's libraries from its own folder (`crates/shadewire-mtlx/materialx`).
 - `rust-version` is 1.88; `shadewire-bevy` needs 1.97.
 

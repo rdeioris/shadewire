@@ -1,4 +1,6 @@
-"""Builds the `shadewire` wheels for every platform Blender ships for, then one extension zip per platform.
+"""Builds the six `shadewire` wheels (the PyPI set, into <out>/wheels), then the extension zip: one file for every
+platform Blender ships for, holding the manifest's `wheels` (copied into shadewire/wheels); Blender installs the one
+for its platform. Blender has no Linux ARM64 build, so that wheel is for PyPI only.
 
 python blender/build_extension.py --blender <blender executable> [--out DIR] [--skip-wheels]
 
@@ -14,6 +16,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tomllib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CRATE = os.path.join(HERE, "..", "crates", "shadewire-py")
@@ -51,19 +54,29 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--blender", required=True, help="the Blender executable (4.3 or later)")
     parser.add_argument("--out", default=os.path.join(HERE, "..", "target", "extension"))
-    parser.add_argument("--skip-wheels", action="store_true", help="use the wheels already in shadewire/wheels")
+    parser.add_argument("--skip-wheels", action="store_true", help="use the wheels already in <out>/wheels")
     args = parser.parse_args()
 
-    wheels = os.path.join(ADDON, "wheels")
+    built = os.path.join(args.out, "wheels")
     if not args.skip_wheels:
-        if os.path.isdir(wheels):
-            shutil.rmtree(wheels)
-        os.makedirs(wheels)
-        build_wheels(wheels)
-    print("wheels:", *sorted(os.path.basename(w) for w in glob.glob(os.path.join(wheels, "*.whl"))), sep="\n  ")
-    os.makedirs(args.out, exist_ok=True)
-    subprocess.run([args.blender, "--command", "extension", "build", "--split-platforms", "--source-dir", ADDON,
-                    "--output-dir", args.out], check=True)
+        if os.path.isdir(built):
+            shutil.rmtree(built)
+        os.makedirs(built)
+        build_wheels(built)
+    print("wheels:", *sorted(os.path.basename(w) for w in glob.glob(os.path.join(built, "*.whl"))), sep="\n  ")
+
+    # The add-on gets exactly the wheels its manifest lists.
+    with open(os.path.join(ADDON, "blender_manifest.toml"), "rb") as f:
+        listed = [os.path.basename(w) for w in tomllib.load(f)["wheels"]]
+    wheels = os.path.join(ADDON, "wheels")
+    if os.path.isdir(wheels):
+        shutil.rmtree(wheels)
+    os.makedirs(wheels)
+    for name in listed:
+        shutil.copy(os.path.join(built, name), wheels)
+
+    subprocess.run([args.blender, "--command", "extension", "build", "--source-dir", ADDON, "--output-dir", args.out],
+                   check=True)
 
 
 if __name__ == "__main__":

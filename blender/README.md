@@ -24,9 +24,10 @@ compatible with the GPL.
 ## Install
 
 The extension bundles the compiler as the `shadewire` Python module (`crates/shadewire-py`): one wheel per
-platform, built for Python's stable ABI from 3.8, so it loads in every Blender from 4.3 on. Each platform has
-its own extension zip (Windows x64 and ARM64, macOS Intel and Apple Silicon, Linux x64 and ARM64); install it
-from Preferences > Get Extensions > Install from Disk.
+platform, built for Python's stable ABI from 3.8, so it loads in every Blender from 4.3 on. One extension zip
+holds the wheels of every platform Blender ships for (Windows x64 and ARM64, macOS Intel and Apple Silicon, Linux
+x64; there is no Linux ARM64 Blender), and Blender installs its own; install it from Preferences > Get Extensions >
+Install from Disk.
 
 Build the wheels and the zips with `python blender/build_extension.py --blender <blender executable>` (it needs
 `pip install maturin ziglang` and the Rust targets it lists). CI builds and tests the wheels on native runners
@@ -56,7 +57,8 @@ From a source checkout, without the module, the add-on falls back to the `shadew
 
 ## Scripts
 
-- `python blender/build_extension.py --blender <blender>` builds the six wheels and the six extension zips.
+- `python blender/build_extension.py --blender <blender>` builds the six wheels (the PyPI set, in
+  `<out>/wheels`) and the extension zip.
 
 - `blender -b -P blender/render_usd.py -- scene.usd out.png --samples 1024 [--engine EEVEE] [--mode LOBES]` renders
   a USD scene, its materials built by the USD hook (with `shadewire` importable, or `--shadewire <executable>`).
@@ -72,7 +74,7 @@ wheel included:
 
 ```bash
 export BLENDER_USER_RESOURCES=/tmp/shadewire-profile
-blender -b --command extension install-file -r user_default -e shadewire-0.1.0-linux_x64.zip
+blender -b --command extension install-file -r user_default -e shadewire-0.1.0.zip
 blender -b -P blender/smoke_test.py -- --installed
 ```
 
