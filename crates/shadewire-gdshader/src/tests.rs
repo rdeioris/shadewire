@@ -377,3 +377,37 @@ fn textures_over_the_limit_fail() {
     assert_eq!(at(3).unwrap().reflection.textures.len(), 3);
     assert_eq!(at(2).unwrap_err().to_string(), "the material samples 3 textures, more than 2 (max_textures)");
 }
+
+#[test]
+fn ui_limits_become_ranges_and_folders_groups() {
+    let text = r#"<?xml version="1.0"?>
+<materialx version="1.39">
+  <standard_surface name="SR" type="surfaceshader">
+    <input name="base" type="float" value="0.5" uisoftmax="0.8" uifolder="Look/Base Layer/Deep" />
+    <input name="specular_roughness" type="float" value="0.3" uisoftmin="0.6" uisoftmax="0.4" uifolder="" />
+    <input name="base_color" type="color3" value="0.8, 0.2, 0.1" />
+    <input name="coat" type="float" value="0.1" uimin="0" uimax="1" uifolder="float" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR" />
+  </surfacematerial>
+</materialx>"#;
+    let out = compile_text("ui_hints", text, &MODELS, &GdshaderOptions::default());
+    let code = &out.code;
+    // Every uniform has a folder (an empty one falls back to the nodedef's) and there are no textures.
+    assert!(!code.contains("group_uniforms material;"), "{code}");
+    // Soft limits out of order give no range rather than the hard ones.
+    assert!(code.contains("group_uniforms Specular;\nuniform float specular_roughness = 0.3;\n"), "{code}");
+    // The soft max wins over the nodedef's uimax; the min falls back to the nodedef's uimin.
+    assert!(
+        code.contains("group_uniforms Look.Base_Layer_Deep;\nuniform float base : hint_range(0.0, 0.8) = 0.5;\n"),
+        "{code}"
+    );
+    // A color keeps its picker in its folder; a reserved folder name moves.
+    assert!(
+        code.contains("group_uniforms Base;\nuniform vec3 base_color : source_color, color_conversion_disabled"),
+        "{code}"
+    );
+    assert!(code.contains("group_uniforms float_;\nuniform float coat : hint_range(0.0, 1.0) = 0.1;\n"), "{code}");
+    assert!(code.contains("group_uniforms;\n"), "{code}");
+}

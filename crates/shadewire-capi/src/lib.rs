@@ -5,6 +5,9 @@
 //!
 //! - `shadewire.mtlx.to_ir`, `.material_names`: `shadewire_mtlx_to_ir`, `shadewire_mtlx_material_names` (a
 //!   `shadewire_strings`);
+//! - `shadewire_mtlx::list_dependencies` and `MtlxOptions::resolver`: `shadewire_mtlx_list_dependencies` (a
+//!   `shadewire_dependencies`) and `shadewire_mtlx_options::resolve` (a `shadewire_resolve_fn` answering through
+//!   `shadewire_resolution_set` / `_fail`);
 //! - `shadewire.Ir` (`.optimize()`, `.dump()`, `.to_dict()`, `.model`, `.source`, `.structure_hash`): `shadewire_ir`
 //!   (`shadewire_ir_optimize`, `_dump`, `_json`, `_model`, `_source` and `_source_version`, `_structure_hash`);
 //! - `shadewire.wgsl.compile`, `.glsl`, `.hlsl`, `.msl` and their keyword arguments: `shadewire_compile` with a
@@ -23,19 +26,23 @@
 //!
 //! Threads: handles are immutable once returned, so any number of threads may call the accessors and
 //! `shadewire_compile` on the same handle at once (lazily built texts such as the IR dump
-//! are built once, safely). Free a handle exactly once, after every reader is done with it.
+//! are built once, safely). Free a handle exactly once, after every reader is done with it. A `resolve` callback is
+//! called only on the thread of the call whose options name it, and only during that call; it needs locking only for
+//! `user_data` the host shares between calls running at once.
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
     html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
 )]
 
 mod compiled;
+mod dependencies;
 mod error;
 mod error_kind;
 mod guard;
 mod ir;
 mod names;
 mod options;
+mod resolver;
 mod status;
 mod strings;
 mod target;
@@ -46,6 +53,11 @@ pub use compiled::{
     shadewire_compile, shadewire_compiled, shadewire_compiled_code, shadewire_compiled_free,
     shadewire_compiled_ir_dump, shadewire_compiled_language, shadewire_compiled_model_struct,
     shadewire_compiled_reflection_json,
+};
+pub use dependencies::{
+    shadewire_dependencies, shadewire_dependencies_file, shadewire_dependencies_file_count,
+    shadewire_dependencies_free, shadewire_dependencies_include, shadewire_dependencies_include_count,
+    shadewire_mtlx_list_dependencies,
 };
 pub use error::{
     shadewire_error, shadewire_error_file, shadewire_error_free, shadewire_error_get_kind, shadewire_error_line,
@@ -65,6 +77,7 @@ pub use options::{
     shadewire_compile_options, shadewire_compile_options_default, shadewire_mtlx_options,
     shadewire_mtlx_options_default,
 };
+pub use resolver::{shadewire_resolution, shadewire_resolution_fail, shadewire_resolution_set, shadewire_resolve_fn};
 pub use status::shadewire_status;
 pub use target::{
     SHADEWIRE_TARGET_GLSL, SHADEWIRE_TARGET_GLSL_ES, SHADEWIRE_TARGET_HLSL, SHADEWIRE_TARGET_MSL,

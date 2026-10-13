@@ -7,7 +7,7 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
   "source": "mtlx",
   "mtlx_version": "1.39",
   "model": "standard_surface",
-  "structure_hash": "67c514c2bf8cf3c9",
+  "structure_hash": "0c8a8fb835911aa6",
   "params": {
     "base": {
       "type": "float",
@@ -300,7 +300,10 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
       "type": "float",
       "offset": 0,
       "size": 4,
-      "default": 1.0
+      "default": 1.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Base"
     },
     {
       "name": "base_color",
@@ -311,28 +314,48 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Base"
     },
     {
       "name": "metalness",
       "type": "float",
       "offset": 28,
       "size": 4,
-      "default": 1.0
+      "default": 1.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Base"
     },
     {
       "name": "specular",
       "type": "float",
       "offset": 32,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Specular"
     },
     {
       "name": "coat",
       "type": "float",
       "offset": 36,
       "size": 4,
-      "default": 1.0
+      "default": 1.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Coat"
     }
   ],
   "uniform_block_size": 48,

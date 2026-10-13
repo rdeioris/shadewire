@@ -1,6 +1,7 @@
 use super::port_type::PortType;
 
 use crate::document::inherit::{Inherit, own};
+use crate::document::ui::UiAttrs;
 use crate::element::Element;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -16,6 +17,7 @@ pub struct Input {
     pub colorspace: Option<String>,
     pub unit: Option<String>,
     pub unittype: Option<String>,
+    pub ui: UiAttrs,
     pub line: u32,
 }
 
@@ -47,6 +49,7 @@ pub fn build_input(element: &Element, inherit: &Inherit) -> Input {
         colorspace,
         unit: own(element.attr("unit")),
         unittype: own(element.attr("unittype")),
+        ui: UiAttrs::read(element),
         line: element.line,
     }
 }

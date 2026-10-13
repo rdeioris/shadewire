@@ -363,8 +363,9 @@ fn material_names_lists_the_document_s_materials() {
 </materialx>"#;
     let mut names = null_mut();
     let mut error = null_mut();
-    let status =
-        unsafe { shadewire_mtlx_material_names(doc.as_ptr().cast(), doc.len(), null(), &mut names, &mut error) };
+    let status = unsafe {
+        shadewire_mtlx_material_names(doc.as_ptr().cast(), doc.len(), null(), null(), &mut names, &mut error)
+    };
     assert_eq!(status, shadewire_status::SHADEWIRE_OK);
     let count = unsafe { shadewire_strings_count(names) };
     let listed: Vec<String> = (0..count).map(|i| text(unsafe { shadewire_strings_get(names, i) })).collect();
@@ -393,4 +394,124 @@ fn implicit_derivatives_off_compiles_for_compute() {
     assert!(!text(unsafe { shadewire_compiled_code(compiled, null_mut()) }).is_empty());
     unsafe { shadewire_compiled_free(compiled) };
     unsafe { shadewire_ir_free(ir) };
+}
+
+/// Serves `mem://lib/a.mtlx` (which includes `b.mtlx`, a material) and fails anything else; counts its calls.
+unsafe extern "C" fn mem_resolve(
+    user_data: *mut std::ffi::c_void,
+    base: *const std::os::raw::c_char,
+    href: *const std::os::raw::c_char,
+    out: *mut shadewire_resolution,
+) {
+    unsafe { *user_data.cast::<u32>() += 1 };
+    let (base, href) = (text(base), text(href));
+    let dir = base.rsplit_once('/').map_or("", |(dir, _)| dir);
+    let location = CString::new(format!("{dir}/{href}")).unwrap();
+    let body = match location.to_str().unwrap() {
+        "mem://lib/a.mtlx" => r#"<materialx version="1.39"><xi:include href="b.mtlx"/></materialx>"#,
+        "mem://lib/b.mtlx" => {
+            r#"<materialx version="1.39">
+  <standard_surface name="SR_b" type="surfaceshader" />
+  <surfacematerial name="FromB" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SR_b" />
+  </surfacematerial>
+</materialx>"#
+        }
+        "mem://lib/silent.mtlx" => return,
+        _ => {
+            let message = CString::new(format!("no {}", location.to_str().unwrap())).unwrap();
+            unsafe { shadewire_resolution_fail(out, message.as_ptr()) };
+            return;
+        }
+    };
+    unsafe { shadewire_resolution_set(out, location.as_ptr(), body.as_ptr().cast(), body.len()) };
+}
+
+fn mem_options(calls: &mut u32) -> shadewire_mtlx_options {
+    let mut options = std::mem::MaybeUninit::uninit();
+    unsafe { shadewire_mtlx_options_default(options.as_mut_ptr()) };
+    let mut options = unsafe { options.assume_init() };
+    assert!(options.resolve.is_none());
+    options.resolve = Some(mem_resolve);
+    options.resolve_user_data = (calls as *mut u32).cast();
+    options
+}
+
+fn lower_at(doc: &str, options: &shadewire_mtlx_options) -> Result<*mut shadewire_ir, String> {
+    let location = CString::new("mem://lib/top.mtlx").unwrap();
+    let (mut ir, mut error) = (null_mut(), null_mut());
+    let status = unsafe {
+        shadewire_mtlx_to_ir(doc.as_ptr().cast(), doc.len(), location.as_ptr(), null(), options, &mut ir, &mut error)
+    };
+    if status == shadewire_status::SHADEWIRE_OK {
+        return Ok(ir);
+    }
+    let message = text(unsafe { shadewire_error_message(error, null_mut()) });
+    unsafe { shadewire_error_free(error) };
+    Err(message)
+}
+
+#[test]
+fn a_host_resolver_serves_nested_includes() {
+    let mut calls = 0;
+    let options = mem_options(&mut calls);
+    let doc = r#"<materialx version="1.39"><xi:include href="a.mtlx"/></materialx>"#;
+    let location = CString::new("mem://lib/top.mtlx").unwrap();
+    let (mut names, mut error) = (null_mut(), null_mut());
+    let status = unsafe {
+        shadewire_mtlx_material_names(
+            doc.as_ptr().cast(),
+            doc.len(),
+            location.as_ptr(),
+            &options,
+            &mut names,
+            &mut error,
+        )
+    };
+    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+    assert_eq!(text(unsafe { shadewire_strings_get(names, 0) }), "FromB");
+    unsafe { shadewire_strings_free(names) };
+
+    let ir = lower_at(doc, &options).unwrap();
+    assert_eq!(text(unsafe { shadewire_ir_model(ir) }), "standard_surface");
+    unsafe { shadewire_ir_free(ir) };
+    assert_eq!(calls, 4, "a.mtlx and b.mtlx, once per call");
+}
+
+#[test]
+fn resolver_failures_become_errors() {
+    let mut calls = 0;
+    let options = mem_options(&mut calls);
+    let err = lower_at(r#"<materialx><xi:include href="x.mtlx"/></materialx>"#, &options).unwrap_err();
+    assert!(err.contains("no mem://lib/x.mtlx"), "{err}");
+    let err = lower_at(r#"<materialx><xi:include href="silent.mtlx"/></materialx>"#, &options).unwrap_err();
+    assert!(err.contains("no answer for silent.mtlx"), "{err}");
+}
+
+#[test]
+fn list_dependencies_names_includes_and_prefixed_files() {
+    let doc = r#"<materialx version="1.39" fileprefix="tex/">
+  <xi:include href="lib/a.mtlx"/>
+  <image name="i" type="color3"><input name="file" type="filename" value="base.png"/></image>
+  <xi:include href="lib/a.mtlx"/>
+</materialx>"#;
+    let (mut deps, mut error) = (null_mut(), null_mut());
+    let status =
+        unsafe { shadewire_mtlx_list_dependencies(doc.as_ptr().cast(), doc.len(), null(), &mut deps, &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+    assert_eq!(unsafe { shadewire_dependencies_include_count(deps) }, 1);
+    assert_eq!(text(unsafe { shadewire_dependencies_include(deps, 0) }), "lib/a.mtlx");
+    assert!(unsafe { shadewire_dependencies_include(deps, 1) }.is_null());
+    assert_eq!(unsafe { shadewire_dependencies_file_count(deps) }, 1);
+    assert_eq!(text(unsafe { shadewire_dependencies_file(deps, 0) }), "tex/base.png");
+    unsafe { shadewire_dependencies_free(deps) };
+    assert_eq!(unsafe { shadewire_dependencies_file_count(null()) }, 0);
+    unsafe { shadewire_dependencies_free(null_mut()) };
+
+    let bad = "<materialx";
+    let status =
+        unsafe { shadewire_mtlx_list_dependencies(bad.as_ptr().cast(), bad.len(), null(), &mut deps, &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_PARSE);
+    unsafe { shadewire_error_free(error) };
 }

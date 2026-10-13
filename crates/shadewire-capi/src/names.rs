@@ -6,6 +6,7 @@ use std::panic::AssertUnwindSafe;
 
 use crate::error::{CapiError, shadewire_error};
 use crate::guard::guarded;
+use crate::options::{read_mtlx, shadewire_mtlx_options};
 use crate::status::shadewire_status;
 use crate::strings::{c_string, opt_cstr, text_arg};
 
@@ -14,8 +15,9 @@ pub struct shadewire_strings {
     items: Vec<CString>,
 }
 
-/// The names of a MaterialX document's materials, in document order, written to `out`. `text`, `len` and `path` as
-/// `shadewire_mtlx_to_ir`. `*out` is written only on success.
+/// The names of a MaterialX document's materials (its includes' too), in document order, written to `out`. `text`,
+/// `len` and `location` as `shadewire_mtlx_to_ir`; of `options` (NULL for the defaults) only the resolver is read.
+/// `*out` is written only on success.
 ///
 /// # Safety
 /// As `shadewire_mtlx_to_ir`.
@@ -23,7 +25,8 @@ pub struct shadewire_strings {
 pub unsafe extern "C" fn shadewire_mtlx_material_names(
     text: *const c_char,
     len: usize,
-    path: *const c_char,
+    location: *const c_char,
+    options: *const shadewire_mtlx_options,
     out: *mut *mut shadewire_strings,
     error: *mut *mut shadewire_error,
 ) -> shadewire_status {
@@ -35,8 +38,9 @@ pub unsafe extern "C" fn shadewire_mtlx_material_names(
                     return Err(CapiError::Argument("out is NULL".to_string()));
                 }
                 let text = text_arg(text, len)?;
-                let path = opt_cstr(path)?;
-                let names = shadewire_mtlx::material_names(text, path, &shadewire_mtlx::Resolver::default())?;
+                let location = opt_cstr(location)?;
+                let options = read_mtlx(options)?;
+                let names = shadewire_mtlx::material_names(text, location, &options.resolver)?;
                 *out = Box::into_raw(Box::new(shadewire_strings { items: names.into_iter().map(c_string).collect() }));
                 Ok(())
             }),

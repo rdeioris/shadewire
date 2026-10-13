@@ -90,7 +90,7 @@ shadewire ir material.mtlx               # print the IR (optimized; --no-optimiz
 
 - `--material NAME` picks the material when the document has several.
 - `--model MODEL` (repeatable) names the surface models the host accepts; by default all four. A material of another model is an error, not a translation.
-- `--lang gdshader` writes a complete Godot 4 `shader_type spatial;` file. Godot binds by name: uniforms keep their authored names, made valid identifiers clear of reserved and generated ones (`GdshaderOutput::uniform_names`); textures are `shadewire_t<index>`, bound raw since the shader converts colorspaces. By default named models (`open_pbr_surface`, `standard_surface`, `gltf_pbr`, `UsdPreviewSurface`, `disney_principled`, `surface_unlit`) are mapped onto Godot's outputs and lit by Godot's BRDF, and a pbrlib `surface` is lit by MaterialX's reference lobes in a generated `light()`; `--lobes` lights every material that way, named models opened into closure trees (ambient light and reflections then see the closure's albedo as diffuse). What Godot cannot represent is listed in the reflection's `approximations`. `--transparency auto|opaque|scissor|hash|blend` (default `auto`: opaque for a constant opacity of 1, scissor for a constant glTF MASK or USD threshold, blend otherwise) and `--emission-scale` (default 1) apply to it only.
+- `--lang gdshader` writes a complete Godot 4 `shader_type spatial;` file. Godot binds by name: uniforms keep their authored names, made valid identifiers clear of reserved and generated ones (`GdshaderOutput::uniform_names`); textures are `shadewire_t<index>`, bound raw since the shader converts colorspaces. By default named models (`open_pbr_surface`, `standard_surface`, `gltf_pbr`, `UsdPreviewSurface`, `disney_principled`, `surface_unlit`) are mapped onto Godot's outputs and lit by Godot's BRDF, and a pbrlib `surface` is lit by MaterialX's reference lobes in a generated `light()`; `--lobes` lights every material that way, named models opened into closure trees (ambient light and reflections then see the closure's albedo as diffuse). What Godot cannot represent is listed in the reflection's `approximations`. Scalar uniforms get `hint_range` from the soft limits, else the hard ones (each end separately); uniforms with a `uifolder` go in `group_uniforms` named after it (`/` becomes `.`, one subgroup level), the rest and the textures in `material`. `--transparency auto|opaque|scissor|hash|blend` (default `auto`: opaque for a constant opacity of 1, scissor for a constant glTF MASK or USD threshold, blend otherwise) and `--emission-scale` (default 1) apply to it only.
 - `--lang wgsl|glsl|glsl-es|hlsl|msl|gdshader` picks the back end; `--glsl-version N` the GLSL version (default 420, 300 for `glsl-es`).
 - `--reflection FILE` writes the reflection JSON; it is written only when the shader was produced.
 - `--no-optimize` skips constant folding, simplification and sharing.
@@ -136,8 +136,8 @@ The C API follows the Python module name for name:
 
 | Python | C |
 |---|---|
-| `shadewire.mtlx.to_ir(text, path, material, models, working_colorspace, values_as_uniforms)` | `shadewire_mtlx_to_ir(text, len, path, material, &mtlx_options, &ir, &err)` |
-| `shadewire.mtlx.material_names(text, path)` | `shadewire_mtlx_material_names(text, len, path, &strings, &err)`, then `shadewire_strings_count` / `_get` |
+| `shadewire.mtlx.to_ir(text, location, material, models, working_colorspace, values_as_uniforms)` | `shadewire_mtlx_to_ir(text, len, location, material, &mtlx_options, &ir, &err)` |
+| `shadewire.mtlx.material_names(text, location)` | `shadewire_mtlx_material_names(text, len, location, &mtlx_options, &strings, &err)`, then `shadewire_strings_count` / `_get` |
 | `Ir.optimize()`, `.dump()`, `.to_dict()` | `shadewire_ir_optimize(ir, &optimized, &err)`, `shadewire_ir_dump`, `shadewire_ir_json` |
 | `Ir.model`, `.source`, `.structure_hash` | `shadewire_ir_model`, `shadewire_ir_source` and `_source_version`, `shadewire_ir_structure_hash` |
 | `shadewire.wgsl.compile(ir, ...)` (and `glsl`, `hlsl`, `msl`) | `shadewire_compile(ir, target, &compile_options, &compiled, &err)` |
@@ -149,6 +149,38 @@ The target is `SHADEWIRE_TARGET_WGSL`, `_GLSL` (`#version` 330, 400 to 460; 0 fo
 `_HLSL` or `_MSL`. `shadewire_compile_options` holds the back ends' keyword arguments (`group`, `first_binding`,
 `reserve_uniform_binding`, `flip_v`, `optimize`, `implicit_derivatives`); `shadewire_*_options_default` fills them.
 `crates/shadewire-capi-ctest` builds the same calls as a C99 (C11 on MSVC) test.
+
+### Includes and dependencies from C
+
+By default `xi:include`s are read from the file system, relative to the document's `location`. A host with its own
+I/O (an asset database, a virtual file system, an HTTP cache) sets `resolve` in `shadewire_mtlx_options`: Shadewire
+calls it with `resolve_user_data`, the including document's location and the `href`, and the callback answers with
+`shadewire_resolution_set(out, location, text, len)` or `shadewire_resolution_fail(out, message)`. Both copy their
+arguments, so the host's buffers stay its own. The callback runs only during the call whose options name it, on that
+call's thread; locations are opaque strings (`res://…`, `mem://…`), and the location an answer gives is the base for
+that document's own includes.
+
+```c
+static void resolve(void *user_data, const char *base, const char *href, shadewire_resolution *out) {
+    const my_file *file = my_lookup(user_data, base, href); /* the host's own join and lookup */
+    if (file != NULL) {
+        shadewire_resolution_set(out, file->location, file->bytes, file->len);
+    } else {
+        shadewire_resolution_fail(out, "not found");
+    }
+}
+
+shadewire_mtlx_options options;
+shadewire_mtlx_options_default(&options);
+options.resolve = resolve;
+options.resolve_user_data = my_library;
+shadewire_mtlx_to_ir(text, len, "res://materials/brick.mtlx", NULL, &options, &ir, &err);
+```
+
+To fetch everything up front, `shadewire_mtlx_list_dependencies(text, len, location, &deps, &err)` lists the
+document's include hrefs (`shadewire_dependencies_include_count` / `_include`) and texture files with `fileprefix`
+applied (`_file_count` / `_file`), unresolved and without repeats; list each fetched include again for its own, then
+compile with a resolver that answers from memory. Free the list with `shadewire_dependencies_free`.
 
 ## Bevy
 
@@ -215,9 +247,11 @@ Each surface field in `params` has a `kind`:
 
 Each entry of `textures` names its file and the `colorspace` it was authored in. The shader converts every sample from that colorspace to the working one itself, so bind each texture through a raw view (for example `Rgba8Unorm`, never `Rgba8UnormSrgb`), or colors are decoded twice.
 
+Each entry of `uniforms` also carries the MaterialX ui attributes of the input it came from, each key only when authored on the input or on its nodedef port: `uimin`, `uimax`, `uisoftmin`, `uisoftmax` (values of the uniform's type) and `uifolder` (a `/`-separated folder path). `uiname` is not carried. A limit that does not parse as the uniform's type is dropped.
+
 In the uniform block a `boolean` uniform is a `u32` (0 or 1), since WGSL has no host-shareable `bool`; `integer` is `i32`. Offsets and sizes are in the reflection's `uniforms`.
 
-`structure_hash` covers the material's graph only: its shape, constants, textures and geomprop defaults, with uniform values left out. The code also depends on its language, the bind `group`, the first binding, the V flip and whether the uniform binding is reserved, so a shader cache keys on `(structure_hash, language, group, first_binding, flip_v, reserve_uniform_binding)`.
+`structure_hash` covers the material's graph only: its shape, constants, textures, geomprop defaults and ui attributes, with uniform values left out. The code also depends on its language, the bind `group`, the first binding, the V flip and whether the uniform binding is reserved, so a shader cache keys on `(structure_hash, language, group, first_binding, flip_v, reserve_uniform_binding)`.
 
 ## Languages
 

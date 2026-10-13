@@ -1,5 +1,5 @@
 ---
-source: crates/shadewire/tests/snapshots.rs
+source: crates/shadewire-mtlx/tests/snapshots.rs
 expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
 ---
 {
@@ -7,7 +7,7 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
   "source": "mtlx",
   "mtlx_version": "1.39",
   "model": "standard_surface",
-  "structure_hash": "bc604152e240e730",
+  "structure_hash": "f479c955a153bfc3",
   "params": {
     "base": {
       "type": "float",
@@ -268,7 +268,10 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
       "type": "float",
       "offset": 0,
       "size": 4,
-      "default": 1.0
+      "default": 1.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Base"
     },
     {
       "name": "base_color",
@@ -279,28 +282,48 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         0.8,
         0.8,
         0.8
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Base"
     },
     {
       "name": "diffuse_roughness",
       "type": "float",
       "offset": 28,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Base"
     },
     {
       "name": "metalness",
       "type": "float",
       "offset": 32,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Base"
     },
     {
       "name": "specular",
       "type": "float",
       "offset": 36,
       "size": 4,
-      "default": 1.0
+      "default": 1.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Specular"
     },
     {
       "name": "specular_color",
@@ -311,42 +334,69 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Specular"
     },
     {
       "name": "specular_roughness",
       "type": "float",
       "offset": 60,
       "size": 4,
-      "default": 0.2
+      "default": 0.2,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Specular"
     },
     {
       "name": "specular_IOR",
       "type": "float",
       "offset": 64,
       "size": 4,
-      "default": 1.5
+      "default": 1.5,
+      "uimin": 0.0,
+      "uisoftmin": 1.0,
+      "uisoftmax": 3.0,
+      "uifolder": "Specular"
     },
     {
       "name": "specular_anisotropy",
       "type": "float",
       "offset": 68,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Specular"
     },
     {
       "name": "specular_rotation",
       "type": "float",
       "offset": 72,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Specular"
     },
     {
       "name": "transmission",
       "type": "float",
       "offset": 76,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Transmission"
     },
     {
       "name": "transmission_color",
@@ -357,14 +407,28 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Transmission"
     },
     {
       "name": "transmission_depth",
       "type": "float",
       "offset": 92,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uisoftmax": 100.0,
+      "uifolder": "Transmission"
     },
     {
       "name": "transmission_scatter",
@@ -375,35 +439,59 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         0.0,
         0.0,
         0.0
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Transmission"
     },
     {
       "name": "transmission_scatter_anisotropy",
       "type": "float",
       "offset": 108,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Transmission"
     },
     {
       "name": "transmission_dispersion",
       "type": "float",
       "offset": 112,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uisoftmax": 100.0,
+      "uifolder": "Transmission"
     },
     {
       "name": "transmission_extra_roughness",
       "type": "float",
       "offset": 116,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": -1.0,
+      "uimax": 1.0,
+      "uisoftmin": 0.0,
+      "uifolder": "Transmission"
     },
     {
       "name": "subsurface",
       "type": "float",
       "offset": 120,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Subsurface"
     },
     {
       "name": "subsurface_color",
@@ -414,7 +502,18 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Subsurface"
     },
     {
       "name": "subsurface_radius",
@@ -425,28 +524,48 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Subsurface"
     },
     {
       "name": "subsurface_scale",
       "type": "float",
       "offset": 156,
       "size": 4,
-      "default": 1.0
+      "default": 1.0,
+      "uimin": 0.0,
+      "uisoftmax": 10.0,
+      "uifolder": "Subsurface"
     },
     {
       "name": "subsurface_anisotropy",
       "type": "float",
       "offset": 160,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": -1.0,
+      "uimax": 1.0,
+      "uifolder": "Subsurface"
     },
     {
       "name": "sheen",
       "type": "float",
       "offset": 164,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Sheen"
     },
     {
       "name": "sheen_color",
@@ -457,21 +576,38 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Sheen"
     },
     {
       "name": "sheen_roughness",
       "type": "float",
       "offset": 188,
       "size": 4,
-      "default": 0.3
+      "default": 0.3,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Sheen"
     },
     {
       "name": "coat",
       "type": "float",
       "offset": 192,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Coat"
     },
     {
       "name": "coat_color",
@@ -482,70 +618,110 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Coat"
     },
     {
       "name": "coat_roughness",
       "type": "float",
       "offset": 220,
       "size": 4,
-      "default": 0.1
+      "default": 0.1,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Coat"
     },
     {
       "name": "coat_anisotropy",
       "type": "float",
       "offset": 224,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Coat"
     },
     {
       "name": "coat_rotation",
       "type": "float",
       "offset": 228,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Coat"
     },
     {
       "name": "coat_IOR",
       "type": "float",
       "offset": 232,
       "size": 4,
-      "default": 1.5
+      "default": 1.5,
+      "uimin": 0.0,
+      "uisoftmin": 1.0,
+      "uisoftmax": 3.0,
+      "uifolder": "Coat"
     },
     {
       "name": "coat_affect_color",
       "type": "float",
       "offset": 236,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Coat"
     },
     {
       "name": "coat_affect_roughness",
       "type": "float",
       "offset": 240,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uimax": 1.0,
+      "uifolder": "Coat"
     },
     {
       "name": "thin_film_thickness",
       "type": "float",
       "offset": 244,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uisoftmax": 2000.0,
+      "uifolder": "Thin Film"
     },
     {
       "name": "thin_film_IOR",
       "type": "float",
       "offset": 248,
       "size": 4,
-      "default": 1.5
+      "default": 1.5,
+      "uimin": 0.0,
+      "uisoftmin": 1.0,
+      "uisoftmax": 3.0,
+      "uifolder": "Thin Film"
     },
     {
       "name": "emission",
       "type": "float",
       "offset": 252,
       "size": 4,
-      "default": 0.0
+      "default": 0.0,
+      "uimin": 0.0,
+      "uisoftmax": 1.0,
+      "uifolder": "Emission"
     },
     {
       "name": "emission_color",
@@ -556,7 +732,18 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Emission"
     },
     {
       "name": "opacity",
@@ -567,14 +754,26 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "uimin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uimax": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uifolder": "Geometry"
     },
     {
       "name": "thin_walled",
       "type": "boolean",
       "offset": 284,
       "size": 4,
-      "default": false
+      "default": false,
+      "uifolder": "Geometry"
     }
   ],
   "uniform_block_size": 288,

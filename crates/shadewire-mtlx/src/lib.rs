@@ -4,6 +4,7 @@
     html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
 )]
 
+pub mod dependencies;
 pub mod document;
 pub mod elaborate;
 pub mod element;
@@ -17,6 +18,7 @@ pub mod to_ir;
 pub mod upgrade;
 pub mod version;
 
+pub use dependencies::{Dependencies, list_dependencies};
 pub use document::Document;
 pub use elaborate::{ElaborateOptions, elaborate};
 pub use element::Element;

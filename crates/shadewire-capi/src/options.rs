@@ -4,12 +4,13 @@
 //! which fields a caller knows. Tail padding is spelled out as zero-filled `reserved` bytes, ignored on read, so no
 //! new field can land inside an old struct's size.
 
-use std::ffi::c_char;
+use std::ffi::{c_char, c_void};
 use std::mem::MaybeUninit;
 
 use shadewire_mtlx::MtlxOptions;
 use shadewire_wgsl::CompileOptions;
 
+use crate::resolver::{resolver, shadewire_resolve_fn};
 use crate::strings::{ArgError, opt_cstr};
 
 /// Options for MaterialX import. Set `struct_size` to `sizeof` the struct, or use `shadewire_mtlx_options_default`.
@@ -18,7 +19,11 @@ use crate::strings::{ArgError, opt_cstr};
 /// `model_count` NUL-terminated UTF-8 strings, and a count of 0 means no models (every material is then
 /// NoTranslation). `working_colorspace` is NULL for the default. `values_as_uniforms` is true for any non-zero byte.
 ///
-/// `reserved` fills the tail padding and must be zero; new fields are only appended after it.
+/// `reserved` fills the padding after `values_as_uniforms` and must be zero.
+///
+/// `resolve` reads `xi:include`s: NULL reads the file system relative to the including document's location (a
+/// path), non-NULL is the host's resolver (see `shadewire_resolve_fn`), called with `resolve_user_data`. A document
+/// with includes needs a location either way. New fields are only appended at the end.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct shadewire_mtlx_options {
@@ -28,6 +33,8 @@ pub struct shadewire_mtlx_options {
     pub working_colorspace: *const c_char,
     pub values_as_uniforms: bool,
     pub reserved: [u8; 7],
+    pub resolve: shadewire_resolve_fn,
+    pub resolve_user_data: *mut c_void,
 }
 
 /// Options for compilation (the keyword arguments of Python's `compile`). Set `struct_size` to `sizeof` the struct,
@@ -73,6 +80,8 @@ fn mtlx_defaults() -> shadewire_mtlx_options {
         working_colorspace: std::ptr::null(),
         values_as_uniforms: MtlxOptions::default().values_as_uniforms,
         reserved: [0; 7],
+        resolve: None,
+        resolve_user_data: std::ptr::null_mut(),
     }
 }
 
@@ -103,7 +112,8 @@ unsafe fn flag(field: *const bool) -> bool {
 ///
 /// # Safety
 /// `ptr` must be NULL or point to `struct_size` readable bytes (at least 4); `models` must hold `model_count` valid
-/// NUL-terminated strings, and `working_colorspace` must be NULL or a valid NUL-terminated string.
+/// NUL-terminated strings, and `working_colorspace` must be NULL or a valid NUL-terminated string; `resolve` must be
+/// NULL or a function as `shadewire_resolve_fn` describes.
 pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<MtlxOptions, ArgError> {
     let mut options = MtlxOptions::default();
     if ptr.is_null() {
@@ -130,6 +140,8 @@ pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<Mtl
         options.working_colorspace = space.to_string();
     }
     options.values_as_uniforms = unsafe { flag(&raw const (*raw).values_as_uniforms) };
+    let resolve = unsafe { (&raw const (*raw).resolve).read() };
+    options.resolver = resolver(resolve, unsafe { (&raw const (*raw).resolve_user_data).read() });
     Ok(options)
 }
 
@@ -214,10 +226,11 @@ mod tests {
     fn the_structs_end_without_padding() {
         let compile_end = offset_of!(shadewire_compile_options, implicit_derivatives) + 1;
         assert_eq!(size_of::<shadewire_compile_options>(), compile_end);
-        let mtlx_end = offset_of!(shadewire_mtlx_options, reserved) + 7;
+        assert_eq!(offset_of!(shadewire_mtlx_options, reserved) + 7, offset_of!(shadewire_mtlx_options, resolve));
+        let mtlx_end = offset_of!(shadewire_mtlx_options, resolve_user_data) + size_of::<*mut c_void>();
         assert_eq!(size_of::<shadewire_mtlx_options>(), mtlx_end);
         #[cfg(target_pointer_width = "64")]
-        assert_eq!((size_of::<shadewire_compile_options>(), size_of::<shadewire_mtlx_options>()), (16, 40));
+        assert_eq!((size_of::<shadewire_compile_options>(), size_of::<shadewire_mtlx_options>()), (16, 56));
     }
 
     #[test]
@@ -280,6 +293,25 @@ mod tests {
         assert!(!unsafe { read_compile(&c) }.unwrap().implicit_derivatives);
         c.struct_size = offset_of!(shadewire_compile_options, implicit_derivatives) as u32;
         assert!(unsafe { read_compile(&c) }.unwrap().implicit_derivatives, "beyond struct_size: the default");
+    }
+
+    unsafe extern "C" fn unreachable_resolve(
+        _: *mut c_void,
+        _: *const c_char,
+        _: *const c_char,
+        _: *mut crate::resolver::shadewire_resolution,
+    ) {
+        std::process::abort();
+    }
+
+    #[test]
+    fn an_old_caller_without_resolve_reads_the_file_system() {
+        let mut m = mtlx_default_struct();
+        m.resolve = Some(unreachable_resolve); // beyond struct_size: must not be read
+        m.struct_size = offset_of!(shadewire_mtlx_options, resolve) as u32;
+        let read = unsafe { read_mtlx(&m) }.unwrap();
+        let err = read.resolver.resolve("no-such-dir/top.mtlx", "missing.mtlx").unwrap_err();
+        assert!(err.contains("cannot read"), "{err}");
     }
 
     #[test]

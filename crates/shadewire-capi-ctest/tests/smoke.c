@@ -1,5 +1,5 @@
 /* C99 smoke test of the Shadewire C API: list a MaterialX file's materials, lower it to the IR and read it back as
- * JSON, compile it to WGSL and to HLSL, check a parse error. */
+ * JSON, compile it to WGSL and to HLSL, check a parse error, resolve includes from memory, list dependencies. */
 
 #include "shadewire.h"
 
@@ -81,7 +81,7 @@ static int names_and_ir(const char *text, size_t len, const char *path, char *re
     size_t json_len = 0;
     int step = 0;
 
-    if (shadewire_mtlx_material_names(text, len, path, &names, &err) != SHADEWIRE_OK) {
+    if (shadewire_mtlx_material_names(text, len, path, NULL, &names, &err) != SHADEWIRE_OK) {
         step = fail(report, report_len, 10, "shadewire_mtlx_material_names failed", err);
         goto done;
     }
@@ -139,6 +139,129 @@ static int parse_error(char *report, size_t report_len) {
     return step;
 }
 
+/* An in-memory library: the top document includes lib/a.mtlx, which includes b.mtlx (relative to lib/), which holds
+ * the material. */
+static const char mem_top[] = "<materialx version=\"1.39\"><xi:include href=\"lib/a.mtlx\"/></materialx>";
+static const char mem_a[] = "<materialx version=\"1.39\"><xi:include href=\"b.mtlx\"/></materialx>";
+static const char mem_b[] =
+    "<materialx version=\"1.39\">"
+    "<standard_surface name=\"SR_b\" type=\"surfaceshader\"/>"
+    "<surfacematerial name=\"FromB\" type=\"material\">"
+    "<input name=\"surfaceshader\" type=\"surfaceshader\" nodename=\"SR_b\"/>"
+    "</surfacematerial></materialx>";
+
+struct mem_files {
+    int calls;
+};
+
+/* Joins `href` to the directory of `base` in a stack buffer, then answers from the table above. */
+static void mem_resolve(void *user_data, const char *base, const char *href, shadewire_resolution *out) {
+    struct mem_files *files = user_data;
+    char location[256];
+    const char *slash = strrchr(base, '/');
+    size_t dir_len = slash != NULL ? (size_t)(slash - base) + 1 : 0;
+    const char *text = NULL;
+    size_t len = 0;
+
+    files->calls++;
+    if (dir_len + strlen(href) + 1 > sizeof location) {
+        shadewire_resolution_fail(out, "location too long");
+        return;
+    }
+    memcpy(location, base, dir_len);
+    strcpy(location + dir_len, href);
+    if (strcmp(location, "mem://lib/a.mtlx") == 0) {
+        text = mem_a;
+        len = sizeof mem_a - 1;
+    } else if (strcmp(location, "mem://lib/b.mtlx") == 0) {
+        text = mem_b;
+        len = sizeof mem_b - 1;
+    }
+    if (text == NULL) {
+        shadewire_resolution_fail(out, "not in the in-memory library");
+        return;
+    }
+    /* Shadewire copies `location` and `text` here, so the stack buffer may go away after the return. */
+    shadewire_resolution_set(out, location, text, len);
+}
+
+static int memory_includes(char *report, size_t report_len) {
+    static const char missing[] = "<materialx version=\"1.39\"><xi:include href=\"nope.mtlx\"/></materialx>";
+    struct mem_files files = {0};
+    shadewire_mtlx_options options;
+    shadewire_strings *names = NULL;
+    shadewire_ir *ir = NULL;
+    shadewire_error *err = NULL;
+    const char *message;
+    int step = 0;
+
+    shadewire_mtlx_options_default(&options);
+    options.resolve = mem_resolve;
+    options.resolve_user_data = &files;
+    if (shadewire_mtlx_material_names(mem_top, sizeof mem_top - 1, "mem://top.mtlx", &options, &names, &err) !=
+        SHADEWIRE_OK) {
+        step = fail(report, report_len, 20, "material names through the resolver failed", err);
+        goto done;
+    }
+    if (shadewire_strings_count(names) != 1 || strcmp(shadewire_strings_get(names, 0), "FromB") != 0) {
+        step = fail(report, report_len, 21, "the nested include's material is missing", NULL);
+        goto done;
+    }
+    if (shadewire_mtlx_to_ir(mem_top, sizeof mem_top - 1, "mem://top.mtlx", NULL, &options, &ir, &err) !=
+            SHADEWIRE_OK ||
+        strcmp(shadewire_ir_model(ir), "standard_surface") != 0 || files.calls != 4) {
+        step = fail(report, report_len, 22, "lowering through the resolver failed", err);
+        goto done;
+    }
+    if (shadewire_mtlx_to_ir(missing, sizeof missing - 1, "mem://top.mtlx", NULL, &options, &ir, &err) !=
+        SHADEWIRE_ERROR) {
+        step = fail(report, report_len, 23, "a failed include was accepted", NULL);
+        goto done;
+    }
+    message = shadewire_error_message(err, NULL);
+    if (message == NULL || strstr(message, "not in the in-memory library") == NULL) {
+        step = fail(report, report_len, 24, "the resolver's message is lost", err);
+    }
+
+done:
+    shadewire_strings_free(names);
+    shadewire_ir_free(ir);
+    shadewire_error_free(err);
+    return step;
+}
+
+static int dependencies(char *report, size_t report_len) {
+    static const char doc[] =
+        "<materialx version=\"1.39\" fileprefix=\"tex/\">"
+        "<xi:include href=\"lib/a.mtlx\"/>"
+        "<nodegraph name=\"g\" fileprefix=\"maps/\">"
+        "<image name=\"i\" type=\"color3\"><input name=\"file\" type=\"filename\" value=\"base.png\"/></image>"
+        "</nodegraph>"
+        "<tiledimage name=\"t\" type=\"float\"><input name=\"file\" type=\"filename\" value=\"rough.png\"/>"
+        "</tiledimage>"
+        "<xi:include href=\"lib/a.mtlx\"/><xi:include href=\"lib/b.mtlx\"/>"
+        "</materialx>";
+    shadewire_dependencies *deps = NULL;
+    shadewire_error *err = NULL;
+    int step = 0;
+
+    if (shadewire_mtlx_list_dependencies(doc, sizeof doc - 1, "mem://top.mtlx", &deps, &err) != SHADEWIRE_OK) {
+        step = fail(report, report_len, 30, "shadewire_mtlx_list_dependencies failed", err);
+    } else if (shadewire_dependencies_include_count(deps) != 2 ||
+               strcmp(shadewire_dependencies_include(deps, 0), "lib/a.mtlx") != 0 ||
+               strcmp(shadewire_dependencies_include(deps, 1), "lib/b.mtlx") != 0 ||
+               shadewire_dependencies_include(deps, 2) != NULL) {
+        step = fail(report, report_len, 31, "the includes are wrong", NULL);
+    } else if (shadewire_dependencies_file_count(deps) != 2 ||
+               strcmp(shadewire_dependencies_file(deps, 0), "maps/base.png") != 0 ||
+               strcmp(shadewire_dependencies_file(deps, 1), "tex/rough.png") != 0) {
+        step = fail(report, report_len, 32, "the files are wrong", NULL);
+    }
+    shadewire_dependencies_free(deps);
+    shadewire_error_free(err);
+    return step;
+}
+
 static uint32_t header_version(void) {
     return ((uint32_t)SHADEWIRE_VERSION_MAJOR << 16) | ((uint32_t)SHADEWIRE_VERSION_MINOR << 8) |
            (uint32_t)SHADEWIRE_VERSION_PATCH;
@@ -162,6 +285,12 @@ int shadewire_smoke(const char *mtlx_path, char *report, size_t report_len) {
     free(text);
     if (step == 0) {
         step = parse_error(report, report_len);
+    }
+    if (step == 0) {
+        step = memory_includes(report, report_len);
+    }
+    if (step == 0) {
+        step = dependencies(report, report_len);
     }
     if (step == 0 && shadewire_version() != header_version()) {
         step = fail(report, report_len, 9, "the header version macros differ from shadewire_version()", NULL);

@@ -40,6 +40,7 @@ pub fn value_input(name: &str, port_type: PortType, value: &str, line: u32) -> I
         colorspace: None,
         unit: None,
         unittype: None,
+        ui: Default::default(),
         line,
     }
 }

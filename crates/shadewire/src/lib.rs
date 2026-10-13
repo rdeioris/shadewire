@@ -23,6 +23,7 @@ mod structure_hash;
 mod surface;
 mod texture;
 mod types;
+mod ui;
 mod value;
 mod value_parse;
 
@@ -40,5 +41,6 @@ pub use structure_hash::structure_hash;
 pub use surface::{Surface, SurfaceField, model_struct_name};
 pub use texture::{AddressMode, FilterMode, TextureDesc};
 pub use types::Type;
+pub use ui::UiHints;
 pub use value::Value;
 pub use value_parse::ParseValueError;
