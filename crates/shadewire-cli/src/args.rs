@@ -33,6 +33,18 @@ pub enum Lang {
     GlslEs,
     Hlsl,
     Msl,
+    /// A complete Godot 4 spatial shader
+    Gdshader,
+}
+
+/// How opacity reaches Godot (`--lang gdshader`).
+#[derive(Copy, Clone, Debug, PartialEq, ValueEnum)]
+pub enum Transparency {
+    Auto,
+    Opaque,
+    Scissor,
+    Hash,
+    Blend,
 }
 
 #[derive(Parser, Debug)]
@@ -63,7 +75,8 @@ pub struct CompileArgs {
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,
-    /// Surface models the host accepts (repeatable); default: all four
+    /// Surface models the host accepts (repeatable); default: the four most hosts map, and for gdshader its
+    /// own lists (`shadewire_gdshader::MODELS`, or `LOBE_MODELS` with --lobes)
     #[arg(long = "model")]
     pub models: Vec<String>,
     #[arg(long, value_enum, default_value = "wgsl")]
@@ -86,4 +99,14 @@ pub struct CompileArgs {
     /// Keep binding 0 for the uniform block even without uniforms, so textures start at 1
     #[arg(long)]
     pub reserve_uniform_binding: bool,
+    /// gdshader: light every material with MaterialX's reference lobes in a light() function, named models
+    /// opened into closure trees, instead of mapping them onto Godot's own BRDF
+    #[arg(long)]
+    pub lobes: bool,
+    /// gdshader: how opacity reaches Godot
+    #[arg(long, value_enum, default_value = "auto")]
+    pub transparency: Transparency,
+    /// gdshader: multiplies EMISSION
+    #[arg(long, default_value_t = 1.0)]
+    pub emission_scale: f32,
 }

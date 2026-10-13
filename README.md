@@ -20,6 +20,7 @@ Front ends and back ends never depend on each other; they share only the core, a
 | `shadewire-mtlx` | front end: MaterialX 1.38/1.39 → IR (`to_ir`) | `shadewire` |
 | `shadewire-wgsl` | back end: IR → WGSL + reflection (`compile`) | `shadewire` |
 | `shadewire-glsl` | back end: IR → a GLSL library (desktop from 330, ES from 300) + reflection | `shadewire` |
+| `shadewire-gdshader` | back end: IR → a complete Godot 4 spatial shader (`.gdshader`) + reflection: named models mapped onto Godot's outputs, or closure trees lit by MaterialX's reference lobes in `light()` | `shadewire` |
 | `shadewire-hlsl` | back end: IR → an HLSL library (shader model 5.1 and up) + reflection | `shadewire` |
 | `shadewire-msl` | back end: IR → a Metal Shading Language library + reflection | `shadewire` |
 | `shadewire-cli` | the `shadewire` command | all of the above |
@@ -37,6 +38,7 @@ Planned: a glTF front end, more back ends.
 | Inspect or print a material's IR | `shadewire`, `shadewire-mtlx` | — |
 | Evaluate a material on the CPU (tests, baking, thumbnails) | `shadewire`, `shadewire-mtlx` | — |
 | MaterialX → WGSL + reflection (wgpu, Bevy, WebGPU) | `shadewire-mtlx`, `shadewire-wgsl` | — |
+| MaterialX → a Godot 4 shader (for a `ShaderMaterial`) | `shadewire-mtlx`, `shadewire-gdshader` | — |
 | MaterialX → GLSL, GLSL ES, HLSL or MSL | `shadewire-mtlx`, `shadewire-glsl` / `-hlsl` / `-msl` | — |
 | Your own IR (any source) → any of them | `shadewire` and the back end | — |
 | A command-line tool | `shadewire-cli` (the `shadewire` binary) | — |
@@ -73,12 +75,14 @@ Command line:
 ```
 shadewire compile material.mtlx --reflection material.json -o material.wgsl
 shadewire compile material.mtlx --lang hlsl -o material.hlsl
+shadewire compile material.mtlx --lang gdshader -o material.gdshader
 shadewire ir material.mtlx               # print the IR (optimized; --no-optimize for the raw graph)
 ```
 
 - `--material NAME` picks the material when the document has several.
 - `--model MODEL` (repeatable) names the surface models the host accepts; by default all four. A material of another model is an error, not a translation.
-- `--lang wgsl|glsl|glsl-es|hlsl|msl` picks the back end; `--glsl-version N` the GLSL version (default 420, 300 for `glsl-es`).
+- `--lang gdshader` writes a complete Godot 4 `shader_type spatial;` file. Godot binds by name: uniforms keep their authored names, made valid identifiers clear of reserved and generated ones (`GdshaderOutput::uniform_names`); textures are `shadewire_t<index>`, bound raw since the shader converts colorspaces. By default named models (`open_pbr_surface`, `standard_surface`, `gltf_pbr`, `UsdPreviewSurface`, `disney_principled`, `surface_unlit`) are mapped onto Godot's outputs and lit by Godot's BRDF, and a pbrlib `surface` is lit by MaterialX's reference lobes in a generated `light()`; `--lobes` lights every material that way, named models opened into closure trees (ambient light and reflections then see the closure's albedo as diffuse). What Godot cannot represent is listed in the reflection's `approximations`. `--transparency auto|opaque|scissor|hash|blend` (default `auto`: opaque for a constant opacity of 1, scissor for a constant glTF MASK or USD threshold, blend otherwise) and `--emission-scale` (default 1) apply to it only.
+- `--lang wgsl|glsl|glsl-es|hlsl|msl|gdshader` picks the back end; `--glsl-version N` the GLSL version (default 420, 300 for `glsl-es`).
 - `--reflection FILE` writes the reflection JSON; it is written only when the shader was produced.
 - `--no-optimize` skips constant folding, simplification and sharing.
 - `--constants` bakes authored values in instead of exposing them as uniforms.
@@ -202,5 +206,7 @@ glslangValidator for GLSL, dxc for HLSL (found on PATH, in `$VULKAN_SDK/Bin`, or
 `$SHADEWIRE_DXC`; `SHADEWIRE_REQUIRE_TOOLS=1` makes a missing one a failure). MSL has no such check yet.
 
 ## Development
+
+The Godot check compiles and draws every shader the Godot back end generates for the vendored examples (four ways each) and its tests with Godot's own renderer (a GPU is needed; Godot's headless renderer accepts code the real ones refuse): `python -I tools/godot_check/check_gdshader.py <path to a Godot 4.x binary>`.
 
 The GPU parity test (interpreter vs WGSL on a real adapter, about three minutes) is ignored by default: run it with `cargo test -p shadewire-wgsl --test gpu_parity -- --ignored`. It skips when no adapter exists; `SHADEWIRE_REQUIRE_GPU=1` makes that a failure.

@@ -3,7 +3,7 @@ use shadewire::optimize::optimize;
 use shadewire::shader::{CompileOptions, Compiled};
 use shadewire_mtlx::{MtlxOptions, material_names, to_ir};
 
-use crate::args::{Args, Command, CompileArgs, IrArgs, Lang, ListArgs};
+use crate::args::{Args, Command, CompileArgs, IrArgs, Lang, ListArgs, Transparency};
 
 pub fn run(args: Args) -> Result<(), Error> {
     match args.command {
@@ -72,12 +72,37 @@ fn compile(ir: &shadewire_mtlx::MaterialIr, args: &CompileArgs) -> Result<Compil
         }
         Lang::Hlsl => shadewire_hlsl::compile(dag, source, &options),
         Lang::Msl => shadewire_msl::compile(dag, source, &options),
+        Lang::Gdshader => {
+            let out = shadewire_gdshader::compile(dag, source, &gdshader_options(args))?;
+            Ok(Compiled { code: out.code, reflection: out.reflection, dag: out.dag })
+        }
+    }
+}
+
+fn gdshader_options(args: &CompileArgs) -> shadewire_gdshader::GdshaderOptions {
+    use shadewire_gdshader::Transparency as T;
+    let transparency = match args.transparency {
+        Transparency::Auto => T::Auto,
+        Transparency::Opaque => T::Opaque,
+        Transparency::Scissor => T::Scissor,
+        Transparency::Hash => T::Hash,
+        Transparency::Blend => T::Blend,
+    };
+    shadewire_gdshader::GdshaderOptions {
+        optimize: !args.no_optimize,
+        transparency,
+        emission_scale: args.emission_scale,
     }
 }
 
 fn compile_command(args: &CompileArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
-    let mtlx = mtlx_options(&args.models, args.constants);
+    let mut mtlx = mtlx_options(&args.models, args.constants);
+    // The Godot back end has its own model lists: the six it maps (and closure trees), or only closure trees.
+    if args.lang == Lang::Gdshader && args.models.is_empty() {
+        let models: &[&str] = if args.lobes { &shadewire_gdshader::LOBE_MODELS } else { &shadewire_gdshader::MODELS };
+        mtlx.models = models.iter().map(|m| m.to_string()).collect();
+    }
     let ir = to_ir(&text, Some(&args.file), args.material.as_deref(), &mtlx)?;
     let compiled = compile(&ir, args)?;
     if let Some(path) = &args.reflection {
