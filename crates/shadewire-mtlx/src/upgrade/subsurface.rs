@@ -16,18 +16,17 @@ fn apply_scope(nodes: &mut Vec<Node>) {
     let original = std::mem::take(nodes);
     let mut result: Vec<Node> = Vec::with_capacity(original.len());
     for mut node in original {
-        if node.category == "subsurface_bsdf" {
-            if let Some(radius) = node.inputs.iter_mut().find(|i| i.name == "radius" && i.port_type == VECTOR3) {
-                let connected =
-                    radius.nodename.is_some() || radius.nodegraph.is_some() || radius.interfacename.is_some();
-                if connected {
-                    let name = unique_name(&format!("{}_radius_convert", node.name), &result, &[]);
-                    let input = copy_input(radius, "in", VECTOR3);
-                    result.push(new_node("convert", &name, COLOR3, vec![input], node.line));
-                    *radius = node_input("radius", COLOR3, &name, radius.line);
-                } else {
-                    radius.port_type = COLOR3;
-                }
+        if node.category == "subsurface_bsdf"
+            && let Some(radius) = node.inputs.iter_mut().find(|i| i.name == "radius" && i.port_type == VECTOR3)
+        {
+            let connected = radius.nodename.is_some() || radius.nodegraph.is_some() || radius.interfacename.is_some();
+            if connected {
+                let name = unique_name(&format!("{}_radius_convert", node.name), &result, &[]);
+                let input = copy_input(radius, "in", VECTOR3);
+                result.push(new_node("convert", &name, COLOR3, vec![input], node.line));
+                *radius = node_input("radius", COLOR3, &name, radius.line);
+            } else {
+                radius.port_type = COLOR3;
             }
         }
         result.push(node);
