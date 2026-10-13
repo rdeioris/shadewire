@@ -1,6 +1,6 @@
 use shadewire::optimize::optimize;
 use shadewire::{Error, model_struct_name};
-use shadewire_mtlx::{MtlxOptions, to_ir};
+use shadewire_mtlx::{MtlxOptions, material_names, to_ir};
 use shadewire_wgsl::{
     CompileOptions, Compiled, GlslVersion, HlslShaderModel, MslVersion, Output, Target, compile, link, reference_host,
     translate,
@@ -8,12 +8,13 @@ use shadewire_wgsl::{
 
 use clap::ValueEnum;
 
-use crate::args::{Args, Command, CompileArgs, IrArgs, Lang};
+use crate::args::{Args, Command, CompileArgs, IrArgs, Lang, ListArgs};
 
 pub fn run(args: Args) -> Result<(), Error> {
     match args.command {
         Command::Compile(compile) => compile_command(&compile),
         Command::Ir(ir) => ir_command(&ir),
+        Command::List(list) => list_command(&list),
     }
 }
 
@@ -43,7 +44,20 @@ fn ir_command(args: &IrArgs) -> Result<(), Error> {
     let mtlx = mtlx_options(&args.models, args.constants);
     let ir = to_ir(&text, Some(&args.file), args.material.as_deref(), &mtlx)?;
     let dag = if args.no_optimize { ir.dag } else { optimize(&ir.dag) };
-    print!("{}", dag.dump());
+    if args.json {
+        let text = serde_json::to_string(&shadewire::export::export(&dag)).map_err(|e| Error::Io(e.to_string()))?;
+        println!("{text}");
+    } else {
+        print!("{}", dag.dump());
+    }
+    Ok(())
+}
+
+fn list_command(args: &ListArgs) -> Result<(), Error> {
+    let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
+    for name in material_names(&text, Some(&args.file))? {
+        println!("{name}");
+    }
     Ok(())
 }
 

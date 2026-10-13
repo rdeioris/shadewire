@@ -72,6 +72,15 @@ pub fn to_ir(
     Ok(MaterialIr { dag, source })
 }
 
+/// The names of the document's materials (`surfacematerial` nodes), in document order.
+pub fn material_names(text: &str, file: Option<&Path>) -> Result<Vec<String>, Error> {
+    let name = file.map(|f| f.display().to_string());
+    let root = parse_str(text, name.as_deref())?;
+    let root = resolve_includes(root, file.and_then(Path::parent), name.as_deref())?;
+    let document = build(&root, name.as_deref())?;
+    Ok(document.nodes.iter().filter(|n| n.category == "surfacematerial").map(|n| n.name.clone()).collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -89,6 +98,13 @@ mod tests {
         assert_eq!(ir.dag.surface.model, "standard_surface");
         assert_eq!(ir.source.mtlx_version, "1.39");
         assert!(ir.dag.dump().starts_with("model standard_surface\n"), "{}", ir.dag.dump());
+    }
+
+    #[test]
+    fn material_names_are_listed_in_document_order() {
+        let text = r#"<materialx version="1.39">
+          <surfacematerial name="b" type="material"/><surfacematerial name="a" type="material"/></materialx>"#;
+        assert_eq!(material_names(text, None).unwrap(), ["b", "a"]);
     }
 
     #[test]

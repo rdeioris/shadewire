@@ -19,4 +19,4 @@ pub use element::Element;
 pub use index::Index;
 pub use library::Library;
 pub use resolve_nodedef::resolve_nodedef;
-pub use to_ir::{MaterialIr, MtlxOptions, to_ir};
+pub use to_ir::{MaterialIr, MtlxOptions, material_names, to_ir};

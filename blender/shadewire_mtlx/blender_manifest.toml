@@ -1,0 +1,15 @@
+schema_version = "1.0.0"
+
+id = "shadewire_mtlx"
+version = "0.1.0"
+name = "Shadewire MaterialX"
+tagline = "Import MaterialX materials as Cycles node trees, compiled by Shadewire"
+maintainer = "Roberto De Ioris"
+type = "add-on"
+website = "https://github.com/rdeioris/shadewire"
+tags = ["Material", "Import-Export"]
+blender_version_min = "4.2.0"
+license = ["SPDX:MIT"]
+
+[permissions]
+files = "Reads MaterialX documents and their textures; runs the shadewire compiler"

@@ -6,6 +6,7 @@ mod context;
 pub mod dag;
 mod dump;
 mod error;
+pub mod export;
 pub mod interpret;
 mod node;
 mod op;

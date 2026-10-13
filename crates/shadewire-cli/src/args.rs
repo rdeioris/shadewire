@@ -15,6 +15,14 @@ pub enum Command {
     Compile(CompileArgs),
     /// Print the IR of a MaterialX material (the DAG the shader is emitted from)
     Ir(IrArgs),
+    /// List the materials of a MaterialX document, one name per line
+    List(ListArgs),
+}
+
+#[derive(Parser, Debug)]
+pub struct ListArgs {
+    /// The .mtlx document
+    pub file: PathBuf,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, ValueEnum)]
@@ -43,6 +51,9 @@ pub struct IrArgs {
     /// Bake authored values in as constants instead of uniforms
     #[arg(long)]
     pub constants: bool,
+    /// Print the IR as a JSON document (`shadewire::export`) instead of text
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Parser, Debug)]
