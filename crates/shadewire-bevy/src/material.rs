@@ -104,7 +104,7 @@ pub(crate) fn build(
     stores: &mut Stores,
 ) -> Result<Built<ShadewireMaterial>, ShadewireError> {
     let location = path.map(|p| p.display().to_string());
-    let ir = to_ir(text, location.as_deref(), options.material.as_deref(), &options.ir, &Resolver::default())?;
+    let ir = to_ir(text, location.as_deref(), options.material.as_deref(), &options.ir, &options.resolver)?;
     let compile_options = options.compile_options();
     let compiled = compile(&ir.dag, &ir.source, &compile_options)?;
     let source = module(&compiled)?;

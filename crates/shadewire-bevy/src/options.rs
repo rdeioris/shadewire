@@ -1,6 +1,7 @@
 //! What the builder is told: which material, the front end's options and the compile knobs the
 //! Bevy layout leaves open.
 
+use shadewire_mtlx::Resolver;
 use shadewire_nodes::IrOptions;
 use shadewire_wgsl::CompileOptions;
 
@@ -14,6 +15,8 @@ pub struct BuildOptions {
     pub material: Option<String>,
     /// The front end's options: accepted models, working colour space, `values_as_uniforms`.
     pub ir: IrOptions,
+    /// Joins and reads the document's `xi:include`s; the default reads the file system.
+    pub resolver: Resolver,
     /// Run the optimizer before reflection and emission.
     pub optimize: bool,
     /// Flip V when sampling: Bevy uploads images top row first.
@@ -23,7 +26,13 @@ pub struct BuildOptions {
 impl Default for BuildOptions {
     fn default() -> BuildOptions {
         let compile = compile_options();
-        BuildOptions { material: None, ir: IrOptions::default(), optimize: compile.optimize, flip_v: compile.flip_v }
+        BuildOptions {
+            material: None,
+            ir: IrOptions::default(),
+            resolver: Resolver::default(),
+            optimize: compile.optimize,
+            flip_v: compile.flip_v,
+        }
     }
 }
 
