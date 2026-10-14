@@ -39,7 +39,8 @@ print(compiled.reflection["textures"])           # files, colorspaces, bindings
 
 The generated code calls host functions (`shadewire_host_normal_world()`, `shadewire_host_texcoord_0()`...) that the
 renderer defines next to its lights; for a material with lobes it also evaluates them as MaterialX defines
-(`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`). The repository's
+(`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`, and `shadewire_eval_ambient`, the albedo
+split into diffuse and specular for a host with its own environment lighting). The repository's
 `crates/shadewire-py/examples` has complete renderers: OpenGL with pygame (a host lighting MaterialX's lobes, and one
 with its own PBR over the named models) and wgpu-py.
 

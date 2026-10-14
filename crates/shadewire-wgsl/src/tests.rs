@@ -110,6 +110,7 @@ fn closure_functions_call_the_lobes() {
         "fn shadewire_eval_bsdf(",
         "fn shadewire_eval_albedo(",
         "fn shadewire_eval_emission(",
+        "fn shadewire_eval_ambient(",
         "fn shadewire_mx_fresnel_airy(",
     ] {
         assert!(text.contains(f), "{f} missing: {text}");

@@ -12,7 +12,8 @@ Since `f5039f8` (readme: c example compiles).
   (`shadewire::shader`). naga no longer translates anything; it remains a test-only WGSL validator.
 - **Closure trees and MaterialX's own lobes.** A host that accepts the `surface` model gets the material as a
   closure tree (lobes under layer, mix, add and multiply), and every back end writes the functions that evaluate it
-  as MaterialX's reference GLSL does: `shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`.
+  as MaterialX's reference GLSL does: `shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`,
+  and `shadewire_eval_ambient` (the albedo split into diffuse and specular, for a host's own environment lighting).
 - **A Bevy integration**, a **Blender add-on** that imports MaterialX as Cycles node trees, and a **Python
   module** with wheels for every Blender platform.
 

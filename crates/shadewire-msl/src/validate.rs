@@ -26,7 +26,8 @@ pub fn whole_shader(code: &str, reflection: &Reflection) -> String {
     if code.contains("shadewire_eval_bsdf(") {
         calls.push_str(
             "    float3 n = float3(0.0f, 0.0f, 1.0f);\n    ShadewireBsdf b = shadewire_eval_bsdf(s, n, n, n);\n    \
-             float3 a = shadewire_eval_albedo(s, n, n);\n    float3 e = shadewire_eval_emission(s, n, n);\n",
+             float3 a = shadewire_eval_albedo(s, n, n);\n    float3 e = shadewire_eval_emission(s, n, n);\n    \
+             ShadewireAmbient m = shadewire_eval_ambient(s, n, n);\n",
         );
     }
     format!(

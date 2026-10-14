@@ -20,10 +20,11 @@ A host takes a material in one of two ways:
   `gltf_pbr`, `surface_unlit`; also `UsdPreviewSurface` and `disney_principled`) and the shader fills that
   model's struct in `shadewire_eval_surface()`, for the host to light with its own BRDFs. A material of another
   model is an error, not an approximation.
-- **As a closure tree.** A host that accepts `surface` gets every material opened into its lobes (diffuse,
-  dielectric, conductor, sheen, subsurface, emitters, under layer, mix, add and multiply) and the functions that
-  evaluate them as MaterialX's reference implementation does: `shadewire_eval_bsdf`, `shadewire_eval_albedo`,
-  `shadewire_eval_emission`. The material then looks the same in every renderer that calls them.
+- **As a closure tree.** A host that accepts `surface` gets every material opened into its lobes (diffuse, dielectric,
+  conductor, sheen, subsurface, emitters, under layer, mix, add and multiply) and the functions that evaluate them as
+  MaterialX's reference implementation does: `shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`
+  (and `shadewire_eval_ambient` for a host lighting the environment its own way). The material then looks the same in
+  every renderer that calls them.
 
 The code calls host functions for geometry and time (`shadewire_host_normal_world()`,
 `shadewire_host_texcoord_0()`, ...) that the renderer defines next to its lights and entry point; nothing in
@@ -98,7 +99,8 @@ println!("{}", out.reflection.model);
 
 Every back end writes the same library in its language: the model's struct, the uniform block and textures,
 `shadewire_eval_surface()`, and for a material with lobes the functions evaluating them as MaterialX defines
-(`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`). The code calls host functions
+(`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`, and `shadewire_eval_ambient`, the albedo
+split into diffuse and specular for a host with its own environment lighting). The code calls host functions
 (`shadewire_host_texcoord_0()`, `shadewire_host_normal_world()`, ...), declared in GLSL, HLSL and MSL, which the host
 defines in its own code next to its lights and entry point. Examples:
 `cargo run -p shadewire-mtlx --example mtlx_to_wgsl -- material.mtlx` and `--example mtlx_to_hlsl`.

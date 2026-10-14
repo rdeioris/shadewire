@@ -25,7 +25,7 @@ pub fn whole_shader(code: &str, reflection: &Reflection) -> String {
     let calls = if code.contains("fn shadewire_eval_bsdf(") {
         format!(
             "let s = shadewire_eval_surface(); let z = {z}(0.0, 0.0, 1.0); _ = shadewire_eval_bsdf(s, z, z, z); \
-             _ = shadewire_eval_albedo(s, z, z); _ = shadewire_eval_emission(s, z, z);"
+             _ = shadewire_eval_albedo(s, z, z); _ = shadewire_eval_emission(s, z, z); _ = shadewire_eval_ambient(s, z, z);"
         )
     } else {
         "_ = shadewire_eval_surface();".into()

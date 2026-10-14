@@ -121,6 +121,7 @@ pub fn material(dag: &Dag, reflection: &Reflection, options: &MaterialOptions) -
     items.extend(library::items_for(dag));
     items.push(Item::Function(eval_surface(dag, reflection, options)));
     items.extend(closure::closure_items(dag));
+    items.extend(closure::ambient_items(dag));
     Module { items }
 }
 

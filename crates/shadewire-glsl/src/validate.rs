@@ -13,7 +13,8 @@ pub fn whole_shader(code: &str, reflection: &Reflection, version: Version) -> St
     if code.contains("shadewire_eval_bsdf(") {
         calls.push_str(
             "    vec3 n = vec3(0.0, 0.0, 1.0);\n    ShadewireBsdf b = shadewire_eval_bsdf(s, n, n, n);\n    \
-             vec3 a = shadewire_eval_albedo(s, n, n);\n    vec3 e = shadewire_eval_emission(s, n, n);\n",
+             vec3 a = shadewire_eval_albedo(s, n, n);\n    vec3 e = shadewire_eval_emission(s, n, n);\n    \
+             ShadewireAmbient m = shadewire_eval_ambient(s, n, n);\n",
         );
     }
     format!(

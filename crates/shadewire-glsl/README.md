@@ -4,7 +4,8 @@ The GLSL back end of [Shadewire](https://github.com/rdeioris/shadewire): a mater
 their offsets and defaults, textures, the host functions the code calls, the closure tree).
 
 The code holds the model's struct, `shadewire_eval_surface()` filling it, and for a material with lobes the functions
-evaluating them as MaterialX defines (`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`).
+evaluating them as MaterialX defines (`shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`, and
+`shadewire_eval_ambient`, the albedo split into diffuse and specular for a host with its own environment lighting).
 The host defines the `shadewire_host_*` functions it calls (the library declares them) and lights the result.
 
 ```rust

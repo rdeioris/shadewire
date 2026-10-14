@@ -6,13 +6,11 @@
 //! ShadewireBsdf shadewire_eval_bsdf(Model surface, vec3 to_light, vec3 to_viewer, vec3 shading_normal)
 //! vec3 shadewire_eval_albedo(Model surface, vec3 to_viewer, vec3 shading_normal)
 //! vec3 shadewire_eval_emission(Model surface, vec3 to_viewer, vec3 shading_normal)
+//! ShadewireAmbient shadewire_eval_ambient(Model surface, vec3 to_viewer, vec3 shading_normal)
 //! ```
 //!
-//! [`ambient_items`] adds `shadewire_eval_ambient`, for a back end that needs the albedo split into diffuse and
-//! specular; the others do not print it.
-//!
-//! [`ambient_items`] adds `shadewire_eval_ambient`, for a back end that needs the albedo split into diffuse and
-//! specular; the others do not print it.
+//! [`ambient_items`] writes `shadewire_eval_ambient`, the albedo split into diffuse and specular, for a host that
+//! lights the environment with a BRDF of its own (Godot's, Bevy's).
 //!
 //! The directions are unit vectors from the shaded point; the shading normal is what a lobe without a normal
 //! input uses, and what `generalized_schlick_edf` reads. A lobe the library lacks scatters and emits nothing.
@@ -532,8 +530,7 @@ fn ambient_body(walk: &Walk, graph: &ClosureGraph) -> Vec<Stmt> {
 
 /// `shadewire_eval_ambient`, for a back end that lights the environment with a BRDF of its own: the closure
 /// tree's albedo split into its diffuse lobes' and its specular lobes' part, and the specular lobes' perceptual
-/// roughness (√α) weighted by their albedo. Sheen counts as diffuse. Back ends that want it add these items after
-/// the material's; empty without a closure tree.
+/// roughness (√α) weighted by their albedo. Sheen counts as diffuse. Empty without a closure tree.
 ///
 /// ```text
 /// struct ShadewireAmbient { diffuse: vec3, specular: vec3, roughness: float }
