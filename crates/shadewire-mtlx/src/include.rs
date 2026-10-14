@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use shadewire::{Error, Location};
 
-use crate::element::Element;
-use crate::parse::parse_str;
+use shadewire_nodes::element::Element;
+use shadewire_nodes::parse::parse_str;
 
 const MAX_DEPTH: u32 = 16;
 
@@ -112,8 +112,8 @@ fn parse_included(resolved: &Resolved) -> Result<Element, Error> {
 #[cfg(test)]
 mod tests {
     use super::{Resolved, Resolver, resolve_includes};
-    use crate::parse::parse_str;
     use shadewire::Error;
+    use shadewire_nodes::parse::parse_str;
 
     #[test]
     fn splices_included_children_and_reports_missing() {

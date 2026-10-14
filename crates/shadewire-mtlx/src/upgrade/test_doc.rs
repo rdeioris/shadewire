@@ -1,8 +1,8 @@
 //! Test helper: build a document from a snippet.
 
-use crate::document::Document;
-use crate::document::build::build;
-use crate::parse::parse_str;
+use shadewire_nodes::document::Document;
+use shadewire_nodes::document::build::build;
+use shadewire_nodes::parse::parse_str;
 
 pub fn doc_with_version(version: &str, body: &str) -> Document {
     let text = format!(r#"<?xml version="1.0"?><materialx version="{version}">{body}</materialx>"#);

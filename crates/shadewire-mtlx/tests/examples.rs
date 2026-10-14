@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use shadewire::Error;
 use shadewire_mtlx::include::{Resolver, resolve_includes};
-use shadewire_mtlx::parse::parse_str;
+use shadewire_nodes::parse::parse_str;
 mod common;
 
 use common::compile_mtlx;

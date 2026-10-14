@@ -5,8 +5,8 @@
 //! uses one `extract` per channel instead, so no multi-output node enters the graph.
 
 use super::scope::{copy_input, for_each_scope, is_connected, new_node, node_input, unique_name, value_input};
-use crate::document::{Document, Input, Node, PortType};
 use shadewire::Type;
+use shadewire_nodes::document::{Document, Input, Node, PortType};
 
 /// Channel letters that read a component, by position.
 fn channel_index(letter: char) -> Option<usize> {
@@ -185,14 +185,14 @@ fn to_combine(node: &mut Node, dest: Type, letters: &[char], mut component: impl
 
 #[cfg(test)]
 mod tests {
-    use crate::document::PortType;
     use crate::upgrade::test_doc::doc_138;
     use shadewire::Type;
+    use shadewire_nodes::document::PortType;
 
     const COLOR_SOURCE: &str =
         r#"<constant name="c" type="color3"><input name="value" type="color3" value="1,2,3"/></constant>"#;
 
-    fn swizzle(out_type: &str, in_type: &str, channels: &str) -> crate::document::Document {
+    fn swizzle(out_type: &str, in_type: &str, channels: &str) -> shadewire_nodes::document::Document {
         let mut doc = doc_138(&format!(
             r#"<swizzle name="s" type="{out_type}"><input name="in" type="{in_type}" nodename="c"/><input name="channels" type="string" value="{channels}"/></swizzle>
                <constant name="c" type="{in_type}"><input name="value" type="{in_type}" value="1,2,3"/></constant>"#
@@ -201,7 +201,7 @@ mod tests {
         doc
     }
 
-    fn categories(doc: &crate::document::Document) -> Vec<&str> {
+    fn categories(doc: &shadewire_nodes::document::Document) -> Vec<&str> {
         doc.nodes.iter().map(|n| n.category.as_str()).collect()
     }
 

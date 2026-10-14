@@ -3848,6 +3848,7 @@ version = "0.1.0"
 dependencies = [
  "shadewire",
  "shadewire-mtlx",
+ "shadewire-nodes",
 ]
 
 [[package]]
@@ -3875,17 +3876,24 @@ dependencies = [
 name = "shadewire-mtlx"
 version = "0.1.0"
 dependencies = [
- "include_dir",
  "insta",
  "png 0.17.16",
- "quick-xml",
  "serde_json",
  "shadewire",
  "shadewire-glsl",
  "shadewire-hlsl",
  "shadewire-msl",
+ "shadewire-nodes",
  "shadewire-wgsl",
- "thiserror 2.0.21",
+]
+
+[[package]]
+name = "shadewire-nodes"
+version = "0.1.0"
+dependencies = [
+ "include_dir",
+ "quick-xml",
+ "shadewire",
 ]
 
 [[package]]

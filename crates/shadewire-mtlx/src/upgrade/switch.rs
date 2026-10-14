@@ -2,8 +2,8 @@
 //! (Version.cpp, `nodeCategory == "switch"`).
 
 use super::scope::for_each_scope;
-use crate::document::{Document, PortType};
 use shadewire::Type;
+use shadewire_nodes::document::{Document, PortType};
 
 pub fn apply(doc: &mut Document) {
     for_each_scope(doc, |nodes| {

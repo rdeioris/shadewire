@@ -2,10 +2,10 @@
 
 use shadewire::Error;
 
-use crate::document::PortType;
-use crate::document::inherit::Inherit;
-use crate::element::Element;
-use crate::parse::parse_str;
+use shadewire_nodes::document::PortType;
+use shadewire_nodes::document::inherit::Inherit;
+use shadewire_nodes::element::Element;
+use shadewire_nodes::parse::parse_str;
 
 /// The locations one document names, unresolved and in document order without repeats.
 #[derive(Clone, Debug, Default, PartialEq)]

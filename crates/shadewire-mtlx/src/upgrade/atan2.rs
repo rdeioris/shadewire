@@ -1,7 +1,7 @@
 //! `atan2` inputs `in1`, `in2` became `iny`, `inx` (Version.cpp, `nodeCategory == "atan2"`).
 
 use super::scope::for_each_scope;
-use crate::document::{Document, Node};
+use shadewire_nodes::document::{Document, Node};
 
 pub fn apply(doc: &mut Document) {
     for_each_scope(doc, |nodes| {

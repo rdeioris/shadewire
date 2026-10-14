@@ -282,7 +282,7 @@ fn uniforms_keep_clear_of_declared_names() {
 #[test]
 fn models_are_ones_the_front_end_knows() {
     for m in MODELS.iter().chain(&LOBE_MODELS) {
-        let known = shadewire_mtlx::surface::KNOWN_MODELS.contains(m) || *m == shadewire_mtlx::surface::CLOSURE_MODEL;
+        let known = shadewire_nodes::surface::KNOWN_MODELS.contains(m) || *m == shadewire_nodes::surface::CLOSURE_MODEL;
         assert!(known, "{m}");
     }
 }

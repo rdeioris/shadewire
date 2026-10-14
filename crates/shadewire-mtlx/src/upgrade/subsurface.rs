@@ -2,8 +2,8 @@
 //! changes type, a connection goes through a `convert` from vector3.
 
 use super::scope::{copy_input, for_each_scope, new_node, node_input, unique_name};
-use crate::document::{Document, Node, PortType};
 use shadewire::Type;
+use shadewire_nodes::document::{Document, Node, PortType};
 
 const VECTOR3: PortType = PortType::Value(Type::Vector3);
 const COLOR3: PortType = PortType::Value(Type::Color3);
@@ -36,9 +36,9 @@ fn apply_scope(nodes: &mut Vec<Node>) {
 
 #[cfg(test)]
 mod tests {
-    use crate::document::PortType;
     use crate::upgrade::test_doc::doc_138;
     use shadewire::Type;
+    use shadewire_nodes::document::PortType;
 
     #[test]
     fn a_radius_value_becomes_a_color() {

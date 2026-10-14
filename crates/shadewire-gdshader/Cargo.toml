@@ -16,3 +16,4 @@ shadewire.workspace = true
 
 [dev-dependencies]
 shadewire-mtlx.workspace = true
+shadewire-nodes.workspace = true

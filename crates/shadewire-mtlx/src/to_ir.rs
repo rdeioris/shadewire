@@ -2,12 +2,12 @@
 
 use shadewire::{Dag, Error, SourceInfo};
 
-use crate::document::build::build;
-use crate::elaborate::{ElaborateOptions, elaborate};
 use crate::include::{Resolver, resolve_includes};
-use crate::library::standard;
-use crate::parse::parse_str;
 use crate::upgrade::upgrade;
+use shadewire_nodes::document::build::build;
+use shadewire_nodes::elaborate::{ElaborateOptions, elaborate};
+use shadewire_nodes::library::standard;
+use shadewire_nodes::parse::parse_str;
 
 /// What the front end decides: which models the host accepts and how values are read.
 #[derive(Clone, Debug, PartialEq)]

@@ -6,12 +6,11 @@ use crate::document::Document;
 use crate::document::build::build;
 use crate::library::standard;
 use crate::parse::parse_str;
-use crate::upgrade::upgrade;
 use crate::{ElaborateOptions, elaborate};
 
 fn inline(version: &str, body: &str) -> Document {
     let text = format!(r#"<materialx version="{version}">{body}</materialx>"#);
-    upgrade(build(&parse_str(&text, None).unwrap(), Some("test.mtlx")).unwrap()).unwrap()
+    build(&parse_str(&text, None).unwrap(), Some("test.mtlx")).unwrap()
 }
 
 fn compile(doc: &Document, material: Option<&str>, models: &[&str]) -> Result<Dag, Error> {
@@ -19,13 +18,15 @@ fn compile(doc: &Document, material: Option<&str>, models: &[&str]) -> Result<Da
 }
 
 /// The teapot's porcelain from pablode/cg-assets (CC0): a glaze layered over a diffuse and subsurface mix.
+/// Authored as 1.39 (`radius` a color3): the 1.38 original needs `shadewire-mtlx`'s upgrade, which this crate does not
+/// have.
 const PORCELAIN: &str = r#"
   <nodegraph name="NG_porcelain">
     <subsurface_bsdf name="node1" type="BSDF">
       <input name="color" type="color3" value="0.75, 0.75, 0.75" />
     </subsurface_bsdf>
     <subsurface_bsdf name="node2" type="BSDF">
-      <input name="radius" type="vector3" value="0.3, 0.3, 0.3" />
+      <input name="radius" type="color3" value="0.3, 0.3, 0.3" />
       <input name="color" type="color3" value="0.75, 0.75, 0.75" />
     </subsurface_bsdf>
     <mix name="node3" type="BSDF">
@@ -73,14 +74,14 @@ fn lobe_kinds(dag: &Dag) -> Vec<String> {
 
 #[test]
 fn a_surface_node_is_unsupported_unless_the_host_accepts_closures() {
-    let doc = inline("1.38", PORCELAIN);
+    let doc = inline("1.39", PORCELAIN);
     let err = compile(&doc, None, &KNOWN_MODELS).unwrap_err();
     assert!(err.to_string().contains("not a known shading model"), "{err}");
 }
 
 #[test]
 fn the_porcelain_compiles_to_its_closure_tree() {
-    let doc = inline("1.38", PORCELAIN);
+    let doc = inline("1.39", PORCELAIN);
     let dag = compile(&doc, None, &["surface"]).unwrap();
     assert_eq!(dag.surface.model, "surface");
     let closure = dag.surface.closure.as_ref().unwrap();

@@ -5,7 +5,6 @@ use shadewire::{Dag, NodeKind};
 use crate::document::build::build;
 use crate::library::standard;
 use crate::parse::parse_str;
-use crate::upgrade::upgrade;
 use crate::{ElaborateOptions, elaborate};
 
 /// `levels` surface mixes, each with fg = bg = the one before, over one unlit surface.
@@ -27,7 +26,7 @@ fn diamond_chain(levels: usize) -> Dag {
         r#"<surfacematerial name="mat" type="material"><input name="surfaceshader" type="surfaceshader" nodename="m{levels}"/></surfacematerial>"#
     ));
     let text = format!(r#"<materialx version="1.39">{body}</materialx>"#);
-    let doc = upgrade(build(&parse_str(&text, None).unwrap(), Some("test.mtlx")).unwrap()).unwrap();
+    let doc = build(&parse_str(&text, None).unwrap(), Some("test.mtlx")).unwrap();
     elaborate(&doc, standard(), &ElaborateOptions::default(), None, &["surface_unlit"]).unwrap()
 }
 

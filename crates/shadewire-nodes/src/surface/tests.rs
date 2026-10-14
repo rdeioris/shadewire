@@ -6,11 +6,9 @@ use shadewire::{ContextRead, Dag, Error, NodeKind, Op, Space, TransformKind, Typ
 use super::models::{KNOWN_MODELS, fields};
 use crate::document::Document;
 use crate::document::build::build;
-use crate::include::{Resolver, resolve_includes};
 use crate::index::Index;
 use crate::library::standard;
 use crate::parse::parse_str;
-use crate::upgrade::upgrade;
 use crate::{ElaborateOptions, elaborate};
 
 const EXAMPLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/resources/Materials/Examples");
@@ -19,14 +17,12 @@ fn load(relative: &str) -> Document {
     let path = Path::new(EXAMPLES).join(relative);
     let text = std::fs::read_to_string(&path).unwrap();
     let file = path.to_string_lossy().to_string();
-    let root = parse_str(&text, Some(&file)).unwrap();
-    let root = resolve_includes(root, Some(&file), &Resolver::default()).unwrap();
-    upgrade(build(&root, Some(&file)).unwrap()).unwrap()
+    build(&parse_str(&text, Some(&file)).unwrap(), Some(&file)).unwrap()
 }
 
 fn inline(body: &str) -> Document {
     let text = format!(r#"<materialx version="1.39">{body}</materialx>"#);
-    upgrade(build(&parse_str(&text, None).unwrap(), Some("test.mtlx")).unwrap()).unwrap()
+    build(&parse_str(&text, None).unwrap(), Some("test.mtlx")).unwrap()
 }
 
 fn compile(doc: &Document, material: Option<&str>, models: &[&str]) -> Result<Dag, Error> {

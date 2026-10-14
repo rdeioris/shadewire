@@ -1,6 +1,6 @@
 use shadewire::{input_names, op_for_category};
-use shadewire_mtlx::document::PortType;
-use shadewire_mtlx::{Document, Index, library};
+use shadewire_nodes::document::PortType;
+use shadewire_nodes::{Document, Index, library};
 
 #[test]
 fn library_has_the_phase_one_models() {
@@ -59,7 +59,7 @@ fn index_lookups() {
 
 #[test]
 fn user_definitions_shadow_the_library() {
-    use shadewire_mtlx::{document::build::build, parse::parse_str};
+    use shadewire_nodes::{document::build::build, parse::parse_str};
     let text = r#"<materialx version="1.39">
   <nodedef name="ND_add_float" node="add"><input name="only" type="float" value="0"/><output name="out" type="float"/></nodedef>
   <nodegraph name="NG_tiledimage_float" nodedef="ND_tiledimage_float"><output name="out" type="float"/></nodegraph>
