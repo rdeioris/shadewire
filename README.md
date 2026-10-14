@@ -7,14 +7,34 @@
 
 # Shadewire
 
-Shadewire is an open-source compiler for material graphs. A **front end** turns a material
-description into Shadewire's IR, a typed DAG that computes the material's surface parameters; a
-**back end** turns the IR into shader code a host renderer calls, plus reflection that says what
-the host must bind. The host keeps its own lighting (BRDFs); Shadewire only fills the parameters of
-a shading model (`open_pbr_surface`, `standard_surface`, `gltf_pbr`, `surface_unlit`).
+Shadewire is a compiler for material graphs. A **front end** reads a material description
+(MaterialX 1.38 and 1.39 today) into Shadewire's IR, a typed DAG that computes the material's surface; a
+**back end** prints the IR as shader code in the language a renderer speaks: WGSL, GLSL, GLSL ES, HLSL, Metal,
+or a complete Godot 4 shader. With the code comes reflection that says what the host must bind: the uniform
+block and its offsets, the textures and their colorspaces, and whether each surface parameter is a constant,
+a uniform, computed from uniforms, or varies per fragment.
 
-Licensed under MIT; vendored MaterialX files are Apache-2.0 (see NOTICE). The Blender add-on
-(`blender/shadewire`) is GPL-3.0-or-later, as extensions.blender.org requires. Work in progress.
+A host takes a material in one of two ways:
+
+- **As a shading model.** The host names the models it accepts (`open_pbr_surface`, `standard_surface`,
+  `gltf_pbr`, `surface_unlit`; also `UsdPreviewSurface` and `disney_principled`) and the shader fills that
+  model's struct in `shadewire_eval_surface()`, for the host to light with its own BRDFs. A material of another
+  model is an error, not an approximation.
+- **As a closure tree.** A host that accepts `surface` gets every material opened into its lobes (diffuse,
+  dielectric, conductor, sheen, subsurface, emitters, under layer, mix, add and multiply) and the functions that
+  evaluate them as MaterialX's reference implementation does: `shadewire_eval_bsdf`, `shadewire_eval_albedo`,
+  `shadewire_eval_emission`. The material then looks the same in every renderer that calls them.
+
+The code calls host functions for geometry and time (`shadewire_host_normal_world()`,
+`shadewire_host_texcoord_0()`, ...) that the renderer defines next to its lights and entry point; nothing in
+the generated code depends on a particular engine. On top of the Rust crates sit the `shadewire` command, a C
+API, a Python module (`pip install shadewire`), a Bevy plugin, a Godot 4 extension that loads `.mtlx` files as
+`ShaderMaterial`s, and a Blender extension that imports MaterialX (and the MaterialX materials of USD scenes)
+as Blender node trees.
+
+Licensed under MIT; vendored MaterialX files are Apache-2.0 and the noise and color code derives from Open
+Shading Language, BSD-3-Clause (see NOTICE). The Blender add-on (`blender/shadewire`) is GPL-3.0-or-later, as
+extensions.blender.org requires. Pre-release: APIs change between versions without compatibility shims.
 
 ## Crates
 
@@ -34,10 +54,12 @@ Front ends and back ends never depend on each other; they share only the core, a
 | `shadewire-capi` | C API (`shadewire.h`): MaterialX → code in any back end's language + reflection | `shadewire`, `shadewire-mtlx`, the back ends |
 | `shadewire-bevy` | Bevy 0.20: MaterialX → a `StandardMaterial` extension with a generated fragment shader (`ShadewirePlugin`, `FromMtlx`) | `shadewire`, `shadewire-mtlx`, `shadewire-wgsl`, `bevy` |
 | `shadewire-godot` | Godot 4.4+ extension (gdext; its own workspace, Rust 1.94): `.mtlx` → `ShaderMaterial` at runtime (`Shadewire`, `load()`) and on import | `shadewire`, `shadewire-mtlx`, `shadewire-gdshader`, `godot` |
+| `shadewire-py` | the `shadewire` Python module (PyO3, stable ABI from CPython 3.8): `shadewire.mtlx`, `.wgsl`, `.glsl`, `.hlsl`, `.msl` | `shadewire`, `shadewire-mtlx`, the back ends |
 
 Each back end is a printer of the shared shader tree: everything they have in common (the material's code, the
 support libraries, operator precedence, declaration order, identifiers valid in every language) lives in the core.
-Planned: a glTF front end, more back ends.
+The Blender extension (`blender/shadewire`) is Python over the `shadewire` module. Planned: a glTF front end, more
+back ends.
 
 ## What to depend on
 
@@ -52,7 +74,9 @@ Planned: a glTF front end, more back ends.
 | Your own IR (any source) → any of them | `shadewire` and the back end | — |
 | A command-line tool | `shadewire-cli` (the `shadewire` binary) | — |
 | A C/C++ host | `shadewire-capi` (shared or static library + `shadewire.h`) | — |
+| A Python host or tool | `pip install shadewire` ([its README](crates/shadewire-py/README.md)) | — |
 | A Bevy app | `shadewire-bevy` | — |
+| MaterialX materials in Blender | the Blender extension ([its README](blender/README.md)) | — |
 
 ## Usage
 
@@ -85,7 +109,8 @@ Command line:
 shadewire compile material.mtlx --reflection material.json -o material.wgsl
 shadewire compile material.mtlx --lang hlsl -o material.hlsl
 shadewire compile material.mtlx --lang gdshader -o material.gdshader
-shadewire ir material.mtlx               # print the IR (optimized; --no-optimize for the raw graph)
+shadewire ir material.mtlx               # print the IR (optimized; --no-optimize for the raw graph; --json)
+shadewire list scene.mtlx                # the document's material names
 ```
 
 - `--material NAME` picks the material when the document has several.
@@ -237,6 +262,45 @@ Limits:
 - The library enables only Bevy's rendering features (`std`, `bevy_asset`, `bevy_render`, `bevy_core_pipeline`,
   `bevy_pbr`, `png`, `jpeg`); windowing, glTF and tonemapping LUTs are the app's choice.
 
+## Python
+
+```
+pip install shadewire
+```
+
+```python
+from shadewire import mtlx, glsl
+
+text = open("material.mtlx", encoding="utf-8").read()
+ir = mtlx.to_ir(text, location="material.mtlx")  # models=, resolver= for a host's own xi:include I/O
+compiled = glsl.compile(ir, version=420)          # or shadewire.wgsl / .hlsl / .msl
+print(compiled.code, compiled.reflection["uniforms"])
+```
+
+The module mirrors the crates: `shadewire.mtlx` (`to_ir`, `material_names`, `list_dependencies`), `shadewire.Ir`
+(`optimize`, `dump`, `to_dict`, `model`, `structure_hash`) and one `compile` per back end, each returning a
+`Compiled` (`code`, `language`, `reflection`, `model_struct`). One wheel per platform serves every CPython from 3.8
+(Windows x64/ARM64, macOS x64/arm64, manylinux2014 x64/aarch64). `crates/shadewire-py/examples` has complete
+renderers: OpenGL with pygame (one lighting MaterialX's lobes, one with its own PBR over the named models) and
+wgpu-py. See [its README](crates/shadewire-py/README.md).
+
+## Godot
+
+`shadewire-godot` is a Godot 4.4+ extension that compiles `.mtlx` documents to `ShaderMaterial`s in-process, at
+runtime (`Shadewire.load_material`, `compile_string`, `load_material_async` for `http(s)://` sources, and the
+resource loader) and when the editor imports a `.mtlx` file. Named models are mapped onto Godot's outputs and lit
+by Godot's BRDF, or every material is lit by MaterialX's lobes in a generated `light()`; limits on nodes, textures,
+bytes and pixels guard untrusted documents. See [its README](crates/shadewire-godot/README.md).
+
+## Blender
+
+The Blender extension (4.3 or later) imports MaterialX materials as Blender node trees, which Cycles and EEVEE both
+render: File > Import > MaterialX, and on Blender 4.4+ a USD hook that builds the MaterialX materials of a USD scene
+as it is imported (from referenced `.mtlx` files, `.usdz` included, or from the network authored in the USD).
+Shading is either one Principled BSDF driven by a named model's parameters, or every material as its lobes, one
+BSDF node each. The extension bundles the `shadewire` Python module; `blender/build_extension.py` builds the wheels
+and the zip for extensions.blender.org. See [its README](blender/README.md).
+
 ## Reflection
 
 Each surface field in `params` has a `kind`:
@@ -266,9 +330,13 @@ Bindings follow the reflection's numbers in each language's terms:
 - MSL: Metal has no global resources, so `shadewire_eval_surface` takes them as trailing parameters (the uniform
   block, then each texture and sampler); the uniform block padded to the reflected offsets.
 
+- gdshader: a complete `shader_type spatial;` file, bound by name: uniforms keep their authored names, textures are
+  `shadewire_t{index}`.
+
 Each back end's tests compile every test material with the real compiler when it is installed: naga for WGSL,
 glslangValidator for GLSL, dxc for HLSL (found on PATH, in `$VULKAN_SDK/Bin`, or as `$SHADEWIRE_GLSLANGVALIDATOR` /
-`$SHADEWIRE_DXC`; `SHADEWIRE_REQUIRE_TOOLS=1` makes a missing one a failure). MSL has no such check yet.
+`$SHADEWIRE_DXC`), `xcrun metal` for MSL (macOS with Xcode's Metal toolchain) and Godot itself for gdshader (below).
+`SHADEWIRE_REQUIRE_TOOLS=1` makes a missing one a failure.
 
 ## Development
 
