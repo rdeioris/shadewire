@@ -15,6 +15,7 @@ impl Rebuilder {
         new.geomprop_defaults = old.geomprop_defaults.clone();
         new.uniform_ui = old.uniform_ui.clone();
         new.surface.closure = old.surface.closure.clone();
+        // compounds are left empty: after a pass their interiors may be gone.
         Rebuilder { new, map: Vec::with_capacity(old.nodes.len()) }
     }
 

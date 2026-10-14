@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::{Node, NodeId, NodeKind, Surface, TextureDesc, UiHints, Value};
+use crate::{Compound, Node, NodeId, NodeKind, Surface, TextureDesc, UiHints, Value};
 
 #[derive(Clone, Debug)]
 pub struct Dag {
@@ -12,6 +12,8 @@ pub struct Dag {
     pub geomprop_defaults: BTreeMap<String, Value>,
     /// MaterialX ui attributes by uniform name; reflection reports them on each live uniform.
     pub uniform_ui: BTreeMap<String, UiHints>,
+    /// The library nodes this dag was built from, for graph back ends; see `Compound`.
+    pub compounds: Vec<Compound>,
 }
 
 impl Dag {
@@ -23,6 +25,7 @@ impl Dag {
             approximations: Vec::new(),
             geomprop_defaults: BTreeMap::new(),
             uniform_ui: BTreeMap::new(),
+            compounds: Vec::new(),
         }
     }
 

@@ -6,6 +6,7 @@
 
 pub mod classify;
 mod closure;
+pub mod compound;
 mod context;
 pub mod dag;
 mod dump;
@@ -29,6 +30,7 @@ mod value_parse;
 
 pub use classify::ParamKind;
 pub use closure::{ClosureGraph, ClosureId, ClosureNode, ClosureType};
+pub use compound::Compound;
 pub use context::{ContextClass, ContextRead, HOST_PREFIX};
 pub use dag::Dag;
 pub use error::{Error, Location};

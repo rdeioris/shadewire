@@ -149,6 +149,15 @@ impl<'a> Elaborator<'a> {
         at: &Location,
     ) -> Result<NodeId, Error> {
         let file = self.index.graph_file(graph);
+        let bound: Vec<(String, NodeId)> = nd
+            .inputs
+            .iter()
+            .filter_map(|p| match interface.get(&p.name) {
+                Some(Binding::Node(id)) => Some((p.name.clone(), *id)),
+                _ => None,
+            })
+            .collect();
+        let origin = path.clone();
         let child = Scope {
             id: self.new_scope_id(),
             graph: Some(graph),
@@ -164,6 +173,9 @@ impl<'a> Elaborator<'a> {
         }
         let result = self.graph_output(&child, wanted, at);
         self.inlining.remove(&nd.name);
+        if let Ok(id) = result {
+            self.record_compound(&nd.name, bound, wanted.unwrap_or("out"), id, &origin);
+        }
         result
     }
 

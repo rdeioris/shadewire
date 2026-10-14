@@ -4,7 +4,8 @@
 //! Every node is an object with `kind` and `type` (MaterialX type names), in dependency order; arguments are
 //! indices into `nodes`. Ops are named in snake case (`safe_power`, `if_greater_eq`, `worley_noise3d`), with
 //! `index` on `extract`, `transform_kind`/`from`/`to` on `transform`, and `tile` on the hextile ops. Values are
-//! numbers, lists of numbers (vectors, colors), or booleans.
+//! numbers, lists of numbers (vectors, colors), or booleans. `compounds` lists the library nodes the graph was built
+//! from (`Compound`), by node index.
 
 use std::collections::BTreeMap;
 
@@ -82,6 +83,14 @@ pub struct ExportField {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct ExportCompound {
+    pub nodedef: String,
+    pub inputs: Vec<(String, u32)>,
+    pub outputs: Vec<(String, u32)>,
+    pub origin: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ExportDocument {
     pub format: &'static str,
     pub version: u32,
@@ -89,6 +98,7 @@ pub struct ExportDocument {
     pub nodes: Vec<ExportNode>,
     pub textures: Vec<TextureDesc>,
     pub fields: Vec<ExportField>,
+    pub compounds: Vec<ExportCompound>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub closure: Option<ClosureGraph>,
     pub geomprop_defaults: BTreeMap<String, ExportValue>,
@@ -215,6 +225,16 @@ pub fn export(dag: &Dag) -> ExportDocument {
             .fields
             .iter()
             .map(|f| ExportField { name: f.name.clone(), ty: f.ty, node: f.node.0 })
+            .collect(),
+        compounds: dag
+            .compounds
+            .iter()
+            .map(|c| ExportCompound {
+                nodedef: c.nodedef.clone(),
+                inputs: c.inputs.iter().map(|(name, id)| (name.clone(), id.0)).collect(),
+                outputs: c.outputs.iter().map(|(name, id)| (name.clone(), id.0)).collect(),
+                origin: c.origin.clone(),
+            })
             .collect(),
         closure: dag.surface.closure.clone(),
         geomprop_defaults: dag.geomprop_defaults.iter().map(|(k, v)| (k.clone(), v.into())).collect(),

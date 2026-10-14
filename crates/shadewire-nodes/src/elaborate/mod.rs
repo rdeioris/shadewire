@@ -18,6 +18,8 @@ pub mod units;
 pub mod values;
 
 #[cfg(test)]
+mod compound_tests;
+#[cfg(test)]
 mod connection_tests;
 #[cfg(test)]
 mod convert_tests;
@@ -40,7 +42,7 @@ mod tests;
 
 use std::collections::{HashMap, HashSet};
 
-use shadewire::{Dag, Error, Location, NodeId, SurfaceField, Type, Value};
+use shadewire::{Compound, Dag, Error, Location, NodeId, SurfaceField, Type, Value};
 
 use crate::document::{Document, PortType};
 use crate::index::Index;
@@ -128,6 +130,30 @@ impl<'a> Elaborator<'a> {
             PortType::Value(ty) => Err(Error::UnsupportedType { at: at.clone(), ty: ty.mtlx_name().to_string() }),
             other => Err(Error::UnsupportedType { at: at.clone(), ty: format!("{other:?}") }),
         }
+    }
+
+    /// Records that `node` is output `output` of an instance of `nodedef` at `origin`; a second output of the same
+    /// instance joins the compound recorded for its first.
+    pub fn record_compound(
+        &mut self,
+        nodedef: &str,
+        inputs: Vec<(String, NodeId)>,
+        output: &str,
+        node: NodeId,
+        origin: &str,
+    ) {
+        if let Some(found) = self.dag.compounds.iter_mut().find(|c| c.origin == origin && c.nodedef == nodedef) {
+            if !found.outputs.iter().any(|(name, _)| name == output) {
+                found.outputs.push((output.to_string(), node));
+            }
+            return;
+        }
+        self.dag.compounds.push(Compound {
+            nodedef: nodedef.to_string(),
+            inputs,
+            outputs: vec![(output.to_string(), node)],
+            origin: origin.to_string(),
+        });
     }
 
     /// `Error::Limit` once the DAG has grown past `options.max_nodes`.
