@@ -60,11 +60,12 @@ Library, two steps: front end, then back end.
 
 ```rust
 use shadewire::optimize::optimize;
-use shadewire_mtlx::{MtlxOptions, to_ir};
+use shadewire_mtlx::{Resolver, to_ir};
+use shadewire_nodes::LowerOptions;
 use shadewire_wgsl::{CompileOptions, compile};
 
 let text = std::fs::read_to_string("material.mtlx")?;
-let ir = to_ir(&text, Some("material.mtlx"), None, &MtlxOptions::default())?;
+let ir = to_ir(&text, Some("material.mtlx"), None, &LowerOptions::default(), &Resolver::default())?;
 print!("{}", optimize(&ir.dag).dump()); // the IR, one node per line
 
 let out = compile(&ir.dag, &ir.source, &CompileOptions::default())?;
@@ -188,7 +189,7 @@ compile with a resolver that answers from memory. Free the list with `shadewire_
 `shadewire-bevy` (Bevy 0.20) turns a MaterialX material into a `ShadewireMaterial`: a `StandardMaterial` (the base,
 which keeps its alpha mode, lighting and shadows) extended with a fragment shader generated for the graph. Identical
 graphs share one shader and pipeline whatever their values; a shader is freed once no material holds it.
-`BuildOptions` picks the material and passes `MtlxOptions` (models, working colour space, `values_as_uniforms`)
+`BuildOptions` picks the material and passes `BuildOptions.lower` (`LowerOptions`: models, working colour space, `values_as_uniforms`)
 through. The builder returns the material with its reflection, so uniforms can be set by name later
 (`ShadewireExtension::set_uniform`). Forward rendering only; up to 8 textures per material; meshes without tangents
 get a screen-space tangent frame.
