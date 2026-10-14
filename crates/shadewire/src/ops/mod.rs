@@ -61,6 +61,7 @@ pub fn eval_op(op: &Op, args: &[Value], ty: Type, ctx: &mut dyn ContextSource) -
         Op::Luminance | Op::RgbToHsv | Op::HsvToRgb => color::eval(op, args, ty),
         Op::Noise2d
         | Op::Noise3d
+        | Op::Fractal2d
         | Op::Fractal3d
         | Op::CellNoise2d
         | Op::CellNoise3d

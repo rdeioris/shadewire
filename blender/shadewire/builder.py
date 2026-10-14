@@ -525,12 +525,15 @@ class Builder:
 
         return op
 
-    def op_fractal3d(self, node, args, width):
-        self.approximate(node)
-        amplitude, octaves, lacunarity, diminish, coord = args
-        signed = self.noise_texture(coord, "3D", width, detail=self.sub(octaves[0], 1.0), roughness=diminish[0],
-                                    lacunarity=lacunarity[0])
-        return self.each(width, self.mul, signed, amplitude)
+    def fractal(dimensions):
+        def op(self, node, args, width):
+            self.approximate(node)
+            amplitude, octaves, lacunarity, diminish, coord = args
+            signed = self.noise_texture(coord, dimensions, width, detail=self.sub(octaves[0], 1.0),
+                                        roughness=diminish[0], lacunarity=lacunarity[0])
+            return self.each(width, self.mul, signed, amplitude)
+
+        return op
 
     def cell(dimensions):
         def op(self, node, args, width):
@@ -1050,7 +1053,8 @@ OPS = {
     "normal_map": Builder.op_normal_map,
     "noise2d": Builder.perlin("2D"),
     "noise3d": Builder.perlin("3D"),
-    "fractal3d": Builder.op_fractal3d,
+    "fractal2d": Builder.fractal("2D"),
+    "fractal3d": Builder.fractal("3D"),
     "cell_noise2d": Builder.cell("2D"),
     "cell_noise3d": Builder.cell("3D"),
     "worley_noise2d": Builder.worley("2D"),

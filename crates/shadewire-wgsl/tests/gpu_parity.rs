@@ -77,21 +77,26 @@ struct FamilyStats {
     worst: f32,
 }
 
-/// Opt-in: about three minutes of driver compile on a shared GPU.
+/// Opt-in: minutes of driver compile on a shared GPU. One module per family: a single module of every case
+/// grew past what the NVIDIA Vulkan driver's compiler survives (it aborts the process).
 /// `SHADEWIRE_REQUIRE_GPU=1` turns the no-adapter skip into a failure.
 #[test]
 #[ignore = "gpu parity: cargo test -p shadewire-wgsl --test gpu_parity -- --ignored"]
 fn interpreter_and_wgsl_agree_on_every_op() {
     let cases = all();
-    let functions = wgsl_functions(&cases);
-    naga_validates(&gpu::shader(&functions, cases.len()));
-    let Some(gpu) = gpu::run_probes(&functions, cases.len()) else {
-        return;
-    };
-    assert_eq!(gpu.len(), cases.len());
+    let mut results: Vec<(&Case, [f32; 4])> = Vec::with_capacity(cases.len());
+    for chunk in cases.chunk_by(|a, b| family(&a.name) == family(&b.name)) {
+        let functions = wgsl_functions(chunk);
+        naga_validates(&gpu::shader(&functions, chunk.len()));
+        let Some(gpu) = gpu::run_probes(&functions, chunk.len()) else {
+            return;
+        };
+        assert_eq!(gpu.len(), chunk.len());
+        results.extend(chunk.iter().zip(gpu));
+    }
     let mut families: Vec<FamilyStats> = Vec::new();
     let mut failures = 0;
-    for (case, gpu) in cases.iter().zip(gpu) {
+    for (case, gpu) in results {
         let cpu = expected(case);
         let e = error(gpu, cpu);
         let fam = family(&case.name);

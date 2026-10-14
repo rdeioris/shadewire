@@ -57,6 +57,7 @@ pub fn op(op: &Op, args: &[Expr], ty: &Ty) -> Expr {
         Op::Luminance | Op::RgbToHsv | Op::HsvToRgb => color(op, args, ty),
         Op::Noise2d
         | Op::Noise3d
+        | Op::Fractal2d
         | Op::Fractal3d
         | Op::CellNoise2d
         | Op::CellNoise3d
@@ -327,11 +328,12 @@ fn noise(op: &Op, args: &[Expr], ty: &Ty) -> Expr {
             };
             scale(value, &args[0], Some(first_f32(&args[1])), ty)
         }
-        Op::Fractal3d => {
-            let p = leading(&args[4], 3);
+        Op::Fractal2d | Op::Fractal3d => {
+            let (n, dim) = if *op == Op::Fractal2d { (2, "2d") } else { (3, "3d") };
+            let p = leading(&args[4], n);
             let suffix = ["float", "vec2", "vec3", "vec4"][width as usize - 1];
             let call = lib_call(
-                &format!("shadewire_fractal_noise_{suffix}_3d"),
+                &format!("shadewire_fractal_noise_{suffix}_{dim}"),
                 vec![p, int(&args[1]), first_f32(&args[2]), first_f32(&args[3])],
             );
             scale(call, &args[0], None, ty)

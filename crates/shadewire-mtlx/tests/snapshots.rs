@@ -61,3 +61,18 @@ fn standard_surface_marble_solid() {
 fn standard_surface_brass_tiled() {
     snapshot("standard_surface_brass_tiled", &format!("{EXAMPLES}/StandardSurface/standard_surface_brass_tiled.mtlx"));
 }
+
+#[test]
+fn compositing() {
+    snapshot("compositing", "tools/oracle/materials/compositing.mtlx");
+}
+
+#[test]
+fn fractal2d() {
+    snapshot("fractal2d", "tools/oracle/materials/fractal2d.mtlx");
+}
+
+#[test]
+fn normalmap_object_1_38() {
+    snapshot("normalmap_object", "tools/oracle/materials/normalmap_object.mtlx");
+}

@@ -46,7 +46,12 @@ No compatibility shims: old names are gone.
   back end shares (`print`, with a `Syntax` trait and C-family defaults) and test materials (`fixtures`).
 - Closure trees for the `surface` model (`ClosureGraph`): lobes and their combinations, with every value a surface
   field. The optimizer prunes closures whose weights fold to zero.
-- `export`: the IR as a flat JSON document (`shadewire ir --json`, Python `Ir.to_dict`).
+- `export`: the IR as a flat JSON document (`shadewire ir --json`, Python `Ir.to_dict`). A `sample` whose lookup
+  takes explicit gradients (hextiling) carries `grad: [dx, dy]`, the node indices of its uv derivatives; the field is
+  optional and new within format version 1, so a reader that ignores it samples with implicit derivatives as before.
+- `Op::Fractal2d` (`fractal2d` in the JSON): MaterialX's `fractal2d`, every width, from genglsl `mx_fractal2d_*`.
+- Constant folding leaves an op alone when its value would be a NaN or an infinity (`normalize` of a zero vector):
+  no JSON or shading language can hold that constant, and the GPU decides.
 - Geomprop defaults, covered by `structure_hash`.
 - `CompileOptions`: `reserve_uniform_binding` keeps the first binding for the uniform block even without uniforms;
   `implicit_derivatives: false` makes the code run in a compute stage (level-0 samples, zero derivatives).
@@ -72,6 +77,12 @@ No compatibility shims: old names are gone.
   not list open through their implementation graphs.
 - Stdlib nodegraphs for helpers upstream implements per language (`artistic_ior`, `roughness_anisotropy`,
   `roughness_dual`, `rotate3d`); `subsurface_bsdf`'s radius upgrades to color3.
+- The compositing nodes upstream implements only in genglsl (`plus`, `minus`, `difference`, `screen`, `burn`,
+  `dodge`; float, color3, color4) lower through Shadewire nodegraphs of existing ops.
+- `viewdirection` has a nodedef (`ND_viewdirection_vector3`, world space by default): the specification describes
+  it but upstream's libraries ship none.
+- A 1.38 `normalmap` with `space="object"` upgrades to `normalize(in * 2 - 1)`, as upstream's upgrade writes it,
+  instead of being refused.
 
 ### Bevy (`shadewire-bevy`, new)
 
@@ -144,7 +155,9 @@ No compatibility shims: old names are gone.
   glslangValidator (GLSL 330, 420, 450, ES 300, 310), dxc (HLSL as a library and as a pixel shader, HLSL 2018 and
   2021) and Apple's Metal compiler (MSL). `SHADEWIRE_REQUIRE_TOOLS=1` makes a missing one a failure.
 - The MaterialX acceptance test compiles all 54 vendored examples with every back end and validates the code.
-- The GPU parity test (interpreter against the generated WGSL) passes on Windows (Vulkan) and macOS (Metal).
+- The GPU parity test (interpreter against the generated WGSL) passes on Windows (Vulkan) and macOS (Metal). It
+  compiles one module per op family: a single module of every case aborted the NVIDIA Vulkan driver's compiler.
+- Oracle materials for `fractal2d`, the compositing nodes and a 1.38 object-space `normalmap`.
 
 ### Known limitations
 

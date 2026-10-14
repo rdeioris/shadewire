@@ -339,6 +339,50 @@ fn the_ir_answers_what_python_s_ir_does() {
     unsafe { shadewire_ir_free(ir) };
 }
 
+/// Hextiled lookups sample with explicit gradients: `grad` names two earlier vector2 nodes, before and after
+/// optimizing, and a plain lookup has none.
+#[test]
+fn ir_json_samples_carry_their_gradients() {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../vendor/materialx/resources/Materials/Examples/StandardSurface/standard_surface_onyx_hextiled.mtlx"
+    );
+    let ir = to_ir(&std::fs::read_to_string(path).unwrap());
+    let mut optimized = null_mut();
+    let mut error = null_mut();
+    assert_eq!(unsafe { shadewire_ir_optimize(ir, &mut optimized, &mut error) }, shadewire_status::SHADEWIRE_OK);
+    for handle in [ir, optimized] {
+        let json: serde_json::Value =
+            serde_json::from_str(&text(unsafe { shadewire_ir_json(handle, null_mut()) })).unwrap();
+        let nodes = json["nodes"].as_array().unwrap();
+        let samples: Vec<(usize, &serde_json::Value)> =
+            nodes.iter().enumerate().filter(|(_, n)| n["kind"] == "sample").collect();
+        assert!(!samples.is_empty());
+        for (at, sample) in samples {
+            let grad = sample["grad"].as_array().unwrap_or_else(|| panic!("sample {at} has no grad: {sample}"));
+            assert_eq!(grad.len(), 2);
+            for g in grad {
+                let g = g.as_u64().unwrap() as usize;
+                assert!(g < at, "grad {g} of sample {at} is not an earlier node");
+                assert_eq!(nodes[g]["type"], "vector2");
+            }
+        }
+    }
+    unsafe { shadewire_ir_free(optimized) };
+    unsafe { shadewire_ir_free(ir) };
+
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../vendor/materialx/resources/Materials/Examples/StandardSurface/standard_surface_brass_tiled.mtlx"
+    );
+    let ir = to_ir(&std::fs::read_to_string(path).unwrap());
+    let json: serde_json::Value = serde_json::from_str(&text(unsafe { shadewire_ir_json(ir, null_mut()) })).unwrap();
+    let samples: Vec<&serde_json::Value> =
+        json["nodes"].as_array().unwrap().iter().filter(|n| n["kind"] == "sample").collect();
+    assert!(!samples.is_empty() && samples.iter().all(|s| s.get("grad").is_none()), "{samples:?}");
+    unsafe { shadewire_ir_free(ir) };
+}
+
 #[test]
 fn optimize_refuses_null() {
     let mut out = null_mut();

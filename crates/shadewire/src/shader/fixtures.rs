@@ -127,6 +127,7 @@ pub fn library_ops() -> Dag {
     for ty in [Type::Float, Type::Vector2, Type::Vector3, Type::Vector4] {
         fields.push((Op::Noise2d, vec![amp, amp, uv], ty));
         fields.push((Op::Noise3d, vec![amp, amp, pos], ty));
+        fields.push((Op::Fractal2d, vec![amp, oct, amp, amp, uv], ty));
         fields.push((Op::Fractal3d, vec![amp, oct, amp, amp, pos], ty));
         if ty != Type::Vector4 {
             fields.push((Op::WorleyNoise2d, vec![uv, amp, style], ty));

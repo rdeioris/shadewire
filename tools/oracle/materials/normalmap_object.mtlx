@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!-- 1.38: an object-space normalmap, which the 1.39 upgrade turns into normalize(in * 2 - 1). -->
+<materialx version="1.38">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
+    <extract name="v" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="1" /></extract>
+    <combine3 name="map" type="vector3"><input name="in1" type="float" nodename="u" /><input name="in2" type="float" nodename="v" /><input name="in3" type="float" value="0.9" /></combine3>
+    <normalmap name="n" type="vector3"><input name="in" type="vector3" nodename="map" /><input name="space" type="string" value="object" /><input name="scale" type="float" value="0.25" /></normalmap>
+    <convert name="rgb" type="color3"><input name="in" type="vector3" nodename="n" /></convert>
+    <output name="out_color" type="color3" nodename="rgb" />
+  </nodegraph>
+  <standard_surface name="SS" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="out_color" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS" />
+  </surfacematerial>
+</materialx>

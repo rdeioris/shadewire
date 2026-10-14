@@ -1,5 +1,5 @@
 //! Noise nodes. The node formulas follow the genglsl implementation files named in
-//! stdlib_genglsl_impl.mtlx (mx_noise2d_*.glsl, mx_fractal3d_*.glsl, mx_cellnoise*.glsl,
+//! stdlib_genglsl_impl.mtlx (mx_noise2d_*.glsl, mx_fractal2d_*.glsl, mx_fractal3d_*.glsl, mx_cellnoise*.glsl,
 //! mx_worleynoise*.glsl); color and float-amplitude nodedefs are nodegraphs over these.
 //! Arguments arrive in `catalog::input_names` order.
 //!
@@ -21,6 +21,10 @@ pub fn eval(op: &Op, args: &[Value], ty: Type) -> Value {
     match op {
         Op::Noise2d => noise2d(&args[0], args[1].as_f32(), vec2(&args[2]), ty),
         Op::Noise3d => noise3d(&args[0], args[1].as_f32(), vec3(&args[2]), ty),
+        Op::Fractal2d => {
+            let (octaves, lacunarity, diminish) = (int(&args[1]), args[2].as_f32(), args[3].as_f32());
+            fractal2d(&args[0], octaves, lacunarity, diminish, vec2(&args[4]), ty)
+        }
         Op::Fractal3d => {
             let (octaves, lacunarity, diminish) = (int(&args[1]), args[2].as_f32(), args[3].as_f32());
             fractal3d(&args[0], octaves, lacunarity, diminish, vec3(&args[4]), ty)
@@ -61,6 +65,17 @@ fn noise3d(amplitude: &Value, pivot: f32, position: [f32; 3], ty: Type) -> Value
         }
     };
     scale(&value, amplitude, pivot, ty)
+}
+
+/// mx_fractal2d_float / _vector2 / _vector3 / _vector4: `value * amplitude`.
+fn fractal2d(amplitude: &Value, octaves: i32, lacunarity: f32, diminish: f32, texcoord: [f32; 2], ty: Type) -> Value {
+    let value = match ty.component_count() {
+        1 => vec![fractal::fractal_noise_float_2d(texcoord, octaves, lacunarity, diminish)],
+        2 => fractal::fractal_noise_vec2_2d(texcoord, octaves, lacunarity, diminish).to_vec(),
+        3 => fractal::fractal_noise_vec3_2d(texcoord, octaves, lacunarity, diminish).to_vec(),
+        _ => fractal::fractal_noise_vec4_2d(texcoord, octaves, lacunarity, diminish).to_vec(),
+    };
+    scale(&value, amplitude, 0.0, ty)
 }
 
 /// mx_fractal3d_float / _vector2 / _vector3 / _vector4: `value * amplitude`.
@@ -191,6 +206,22 @@ mod tests {
         let args = [Value::Float(2.0), Value::Integer(2), Value::Float(2.0), Value::Float(0.5), v3(p[0], p[1], p[2])];
         let want = 2.0 * (perlin::perlin_noise_float_3d(p) + 0.5 * perlin::perlin_noise_float_3d([0.6, 1.4, 3.8]));
         assert!(close(&eval(&Op::Fractal3d, &args, Type::Float), &Value::Float(want)));
+    }
+
+    #[test]
+    fn fractal2d_sums_octaves() {
+        let p = [0.3, 0.7];
+        let args = [Value::Float(2.0), Value::Integer(2), Value::Float(2.0), Value::Float(0.5), v2(p[0], p[1])];
+        let want = 2.0 * (perlin::perlin_noise_float_2d(p) + 0.5 * perlin::perlin_noise_float_2d([0.6, 1.4]));
+        assert!(close(&eval(&Op::Fractal2d, &args, Type::Float), &Value::Float(want)));
+    }
+
+    #[test]
+    fn fractal2d_vector2_offsets_its_second_channel() {
+        let p = [0.3, 0.7];
+        let args = [Value::Float(1.0), Value::Integer(3), Value::Float(2.0), Value::Float(0.5), v2(p[0], p[1])];
+        let want = fractal::fractal_noise_float_2d([p[0] + 19.0, p[1] + 193.0], 3, 2.0, 0.5);
+        assert!((eval(&Op::Fractal2d, &args, Type::Vector2).floats()[1] - want).abs() < 1e-6);
     }
 
     #[test]

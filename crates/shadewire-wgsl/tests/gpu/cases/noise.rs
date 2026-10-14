@@ -19,6 +19,15 @@ pub fn cases() -> Vec<Case> {
     for p in &points {
         every_op(&mut out, *p);
     }
+    // fractal2d on the grid's diagonal and the far-out points only: at every point, the extra inlined
+    // octave loops overflow the D3D12 driver's compiler on this one-module shader.
+    for p in (0..5).map(|i| [grid(i), grid(i)]).chain(points[25..].iter().copied()) {
+        for ty in WIDTHS {
+            let fractal =
+                [Value::Float(1.0), Value::Integer(3), Value::Float(2.0), Value::Float(0.5), Value::Vector2(p)];
+            out.push(op_case("noise", Op::Fractal2d, ty, &fractal, TRANSCENDENTAL));
+        }
+    }
     for i in 0..12 {
         for j in 0..12 {
             let (x, y) = (grid(i), grid(j) * 7.3);

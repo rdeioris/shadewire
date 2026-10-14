@@ -1,0 +1,328 @@
+---
+source: crates/shadewire-mtlx/tests/snapshots.rs
+expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
+---
+{
+  "shadewire": "0.1.0",
+  "source": "mtlx",
+  "mtlx_version": "1.39",
+  "model": "standard_surface",
+  "structure_hash": "d6cb7907d4ecf25d",
+  "params": {
+    "base": {
+      "type": "float",
+      "kind": "constant",
+      "value": 1.0,
+      "uniform": null
+    },
+    "base_color": {
+      "type": "color3",
+      "kind": "varying",
+      "value": null,
+      "uniform": null
+    },
+    "coat": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "coat_IOR": {
+      "type": "float",
+      "kind": "constant",
+      "value": 1.5,
+      "uniform": null
+    },
+    "coat_affect_color": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "coat_affect_roughness": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "coat_anisotropy": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "coat_color": {
+      "type": "color3",
+      "kind": "constant",
+      "value": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uniform": null
+    },
+    "coat_normal": {
+      "type": "vector3",
+      "kind": "varying",
+      "value": null,
+      "uniform": null
+    },
+    "coat_rotation": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "coat_roughness": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.1,
+      "uniform": null
+    },
+    "diffuse_roughness": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "emission": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "emission_color": {
+      "type": "color3",
+      "kind": "constant",
+      "value": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uniform": null
+    },
+    "metalness": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "normal": {
+      "type": "vector3",
+      "kind": "varying",
+      "value": null,
+      "uniform": null
+    },
+    "opacity": {
+      "type": "color3",
+      "kind": "constant",
+      "value": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uniform": null
+    },
+    "sheen": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "sheen_color": {
+      "type": "color3",
+      "kind": "constant",
+      "value": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uniform": null
+    },
+    "sheen_roughness": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.3,
+      "uniform": null
+    },
+    "specular": {
+      "type": "float",
+      "kind": "constant",
+      "value": 1.0,
+      "uniform": null
+    },
+    "specular_IOR": {
+      "type": "float",
+      "kind": "constant",
+      "value": 1.5,
+      "uniform": null
+    },
+    "specular_anisotropy": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "specular_color": {
+      "type": "color3",
+      "kind": "constant",
+      "value": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uniform": null
+    },
+    "specular_rotation": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "specular_roughness": {
+      "type": "float",
+      "kind": "varying",
+      "value": null,
+      "uniform": null
+    },
+    "subsurface": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "subsurface_anisotropy": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "subsurface_color": {
+      "type": "color3",
+      "kind": "constant",
+      "value": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uniform": null
+    },
+    "subsurface_radius": {
+      "type": "color3",
+      "kind": "constant",
+      "value": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uniform": null
+    },
+    "subsurface_scale": {
+      "type": "float",
+      "kind": "constant",
+      "value": 1.0,
+      "uniform": null
+    },
+    "tangent": {
+      "type": "vector3",
+      "kind": "varying",
+      "value": null,
+      "uniform": null
+    },
+    "thin_film_IOR": {
+      "type": "float",
+      "kind": "constant",
+      "value": 1.5,
+      "uniform": null
+    },
+    "thin_film_thickness": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "thin_walled": {
+      "type": "boolean",
+      "kind": "constant",
+      "value": false,
+      "uniform": null
+    },
+    "transmission": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "transmission_color": {
+      "type": "color3",
+      "kind": "constant",
+      "value": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "uniform": null
+    },
+    "transmission_depth": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "transmission_dispersion": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "transmission_extra_roughness": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    },
+    "transmission_scatter": {
+      "type": "color3",
+      "kind": "constant",
+      "value": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "uniform": null
+    },
+    "transmission_scatter_anisotropy": {
+      "type": "float",
+      "kind": "constant",
+      "value": 0.0,
+      "uniform": null
+    }
+  },
+  "uniforms": [],
+  "uniform_block_size": 0,
+  "uniform_binding": null,
+  "group": 2,
+  "textures": [],
+  "context": {
+    "varyings": [
+      {
+        "name": "normal_world",
+        "type": "vector3"
+      },
+      {
+        "name": "tangent_world",
+        "type": "vector3"
+      },
+      {
+        "name": "texcoord_0",
+        "type": "vector2"
+      }
+    ],
+    "derived": [],
+    "globals": [],
+    "geomprops": [],
+    "transforms": []
+  },
+  "displacement": null,
+  "approximations": []
+}

@@ -87,6 +87,7 @@ pub enum Op {
     // noise/
     Noise2d,
     Noise3d,
+    Fractal2d,
     Fractal3d,
     CellNoise2d,
     CellNoise3d,
