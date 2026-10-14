@@ -1,5 +1,10 @@
 use crate::{ClosureGraph, NodeId, Type};
 
+/// The models a host passes to the front end to have every material opened into its closure tree (named models
+/// through their implementation graphs) and lit by MaterialX's reference lobes. `surface_unlit` has no lobes and
+/// stays unshaded.
+pub const LOBE_MODELS: [&str; 2] = ["surface", "surface_unlit"];
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SurfaceField {
     pub name: String,

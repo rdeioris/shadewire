@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
 
+use shadewire::LOBE_MODELS;
 use shadewire_mtlx::{MtlxOptions, Resolver, material_names, to_ir};
 
-use crate::{GdshaderOptions, GdshaderOutput, LOBE_MODELS, MODELS, Transparency, compile};
+use crate::{GdshaderOptions, GdshaderOutput, MODELS, Transparency, compile};
 
 fn options(models: &[&str], values_as_uniforms: bool) -> MtlxOptions {
     MtlxOptions { models: models.iter().map(|m| m.to_string()).collect(), values_as_uniforms, ..MtlxOptions::default() }

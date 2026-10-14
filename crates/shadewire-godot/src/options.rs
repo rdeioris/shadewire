@@ -3,7 +3,8 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use shadewire_gdshader::{GdshaderOptions, LOBE_MODELS, MODELS, Transparency};
+use shadewire::LOBE_MODELS;
+use shadewire_gdshader::{GdshaderOptions, MODELS, Transparency};
 use shadewire_mtlx::{MtlxOptions, Resolver};
 
 /// Which surface models the front end accepts, and so how the material is lit.
@@ -11,7 +12,7 @@ use shadewire_mtlx::{MtlxOptions, Resolver};
 pub enum Models {
     /// Named models mapped onto Godot's outputs and lit by Godot's BRDF (`shadewire_gdshader::MODELS`).
     Mapped,
-    /// Every material opened into its closure tree and lit by MaterialX's lobes (`shadewire_gdshader::LOBE_MODELS`).
+    /// Every material opened into its closure tree and lit by MaterialX's lobes (`shadewire::LOBE_MODELS`).
     Lobes,
     /// An explicit list, as `MtlxOptions::models`.
     List(Vec<String>),

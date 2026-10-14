@@ -46,10 +46,6 @@ pub const MODELS: [&str; 7] = [
     "surface",
 ];
 
-/// The models a host passes to have every material lit by MaterialX's reference lobes: named models open into
-/// closure trees through their implementation graphs. `surface_unlit` has no lobes and stays unshaded.
-pub const LOBE_MODELS: [&str; 2] = ["surface", "surface_unlit"];
-
 /// The result of a compilation: the `.gdshader` text, what a host must bind, the Godot name of each reflection
 /// uniform, and the DAG the shader was generated from (optimized when asked).
 ///

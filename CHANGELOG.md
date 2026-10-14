@@ -23,6 +23,7 @@ No compatibility shims: old names are gone.
 - **Rust:** `Compiled` and `CompileOptions` live in `shadewire::shader` (re-exported by every back end);
   `Compiled.wgsl` is `Compiled.code`. `shadewire-wgsl` loses `translate`, `link`, `Target` and its versions,
   `glsl_library`, `reference_host`, the `emit` module and the `translate` feature. `shadewire::Error::Naga` is gone.
+  `LOBE_MODELS` moved from `shadewire_gdshader` to `shadewire`: it picks what the front end accepts, on every back end.
 - **CLI:** `--lang` is `wgsl|glsl|glsl-es|hlsl|msl` and picks the back end; `--glsl-version N` sets the GLSL
   version. No SPIR-V, and no reference host linked in. `--lobes` opens every material into its closure tree on every back end
   (it was Godot only) and conflicts with `--model`; `ir` takes it too. `--transparency` and `--emission-scale` are an error

@@ -1,6 +1,6 @@
-use shadewire::Error;
 use shadewire::optimize::optimize;
 use shadewire::shader::{CompileOptions, Compiled};
+use shadewire::{Error, LOBE_MODELS};
 use shadewire_mtlx::{MtlxOptions, Resolver, material_names, to_ir};
 
 use crate::args::{Args, Command, CompileArgs, IrArgs, Lang, ListArgs, Transparency};
@@ -21,7 +21,7 @@ fn io(e: std::io::Error, what: &std::path::Path) -> Error {
 /// `default` when given, else the front end's own.
 fn mtlx_options(models: &[String], lobes: bool, default: Option<&[&str]>, constants: bool) -> MtlxOptions {
     let mut options = MtlxOptions::default();
-    let fixed = if lobes { Some(&shadewire_gdshader::LOBE_MODELS[..]) } else { default };
+    let fixed = if lobes { Some(&LOBE_MODELS[..]) } else { default };
     if !models.is_empty() {
         options.models = models.to_vec();
     } else if let Some(fixed) = fixed {
