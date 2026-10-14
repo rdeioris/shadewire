@@ -131,3 +131,28 @@ fn the_node_limit_applies() {
         .unwrap_err();
     assert!(matches!(err, Error::Limit(_)), "{err}");
 }
+
+#[test]
+fn the_node_limit_applies_to_a_leaf() {
+    let s = Synthetic::new();
+    let o = IrOptions { max_nodes: Some(2), ..IrOptions::default() };
+    let mut e = standalone(&s, &o);
+    let err = e
+        .instantiate(
+            "add",
+            Type::Float,
+            &[("in1", Arg::Value(Value::Float(1.0))), ("in2", Arg::Value(Value::Float(2.0)))],
+            "sum",
+        )
+        .unwrap_err();
+    assert!(matches!(err, Error::Limit(_)), "{err}");
+}
+
+#[test]
+fn instantiate_needs_a_standalone_elaborator() {
+    let d = doc(r#"<nodegraph name="g"/>"#);
+    let o = IrOptions::default();
+    let mut e = Elaborator::new(&d, crate::library::standard(), &o, "");
+    let err = e.instantiate("add", Type::Float, &[], "x").unwrap_err();
+    assert!(matches!(&err, Error::BadValue { message, .. } if message.contains("standalone")), "{err}");
+}

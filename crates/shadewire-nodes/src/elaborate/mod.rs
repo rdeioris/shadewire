@@ -193,27 +193,12 @@ pub fn elaborate(doc: &Document, lib: &Library, options: &IrOptions, material: O
 
 fn elaborate_here(doc: &Document, lib: &Library, options: &IrOptions, material: Option<&str>) -> Result<Dag, Error> {
     let mut elaborator = Elaborator::new(doc, lib, options, "");
-    let models: Vec<&str> = options.models.iter().map(String::as_str).collect();
     elaborator.accepted_models = options.models.clone();
-    elaborator.accepts_closures = models.contains(&CLOSURE_MODEL);
+    elaborator.accepts_closures = options.models.iter().any(|m| m == CLOSURE_MODEL);
     let material = pick_material(doc, material)?;
     let top = elaborator.top_scope(&doc.nodes);
     let source = elaborator.find_surface(&top, material)?;
-    let model = source.model().to_string();
-    if !models.contains(&model.as_str()) {
-        return Err(Error::NoTranslation { from: model, to: options.models.clone() });
-    }
-    if model == CLOSURE_MODEL {
-        let (fields, closure) = elaborator.closure_surface(&source)?;
-        elaborator.dag.surface.fields = fields;
-        elaborator.dag.surface.closure = Some(closure);
-    } else {
-        elaborator.dag.surface.fields = elaborator.surface_fields(&source)?;
-    }
-    elaborator.check_node_limit()?;
-    elaborator.dag.surface.model = model;
-    elaborator.dag.geomprop_defaults = elaborator.geomprop_defaults.drain().collect();
-    Ok(elaborator.dag)
+    elaborator.finish_source(source)
 }
 
 /// Test helper: a DAG whose single surface field `out` is output `output` of user nodegraph `graph`.

@@ -20,7 +20,7 @@ fn load(relative: &str) -> Document {
     build(&parse_str(&text, Some(&file)).unwrap(), Some(&file)).unwrap()
 }
 
-fn inline(body: &str) -> Document {
+pub(super) fn inline(body: &str) -> Document {
     let text = format!(r#"<materialx version="1.39">{body}</materialx>"#);
     build(&parse_str(&text, None).unwrap(), Some("test.mtlx")).unwrap()
 }
@@ -35,7 +35,7 @@ fn field_count(nodedef: &str) -> usize {
     fields(index.nodedef(nodedef).unwrap()).len()
 }
 
-struct Zeros;
+pub(super) struct Zeros;
 impl ContextSource for Zeros {
     fn read(&mut self, read: &ContextRead) -> Value {
         Value::zero(read.ty())

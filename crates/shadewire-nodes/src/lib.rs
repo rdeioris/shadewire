@@ -25,4 +25,5 @@ pub use index::Index;
 pub use library::Library;
 pub use options::{DEFAULT_MODELS, IrOptions};
 pub use resolve_nodedef::resolve_nodedef;
+pub use surface::ShaderNode;
 pub use synthetic::Synthetic;
