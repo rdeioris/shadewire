@@ -2,7 +2,8 @@
 //!
 //! cargo run -p shadewire-mtlx --example mtlx_to_wgsl -- path/to/material.mtlx
 
-use shadewire_mtlx::{MtlxOptions, to_ir};
+use shadewire_mtlx::{Resolver, to_ir};
+use shadewire_nodes::LowerOptions;
 use shadewire_wgsl::{CompileOptions, compile};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -14,7 +15,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &text,
         Some(&path), // names the file in errors; base for relative includes
         None,        // material name, when the document has several
-        &MtlxOptions::default(),
+        &LowerOptions::default(),
+        &Resolver::default(), // reads included files from the file system
     )?;
 
     // 2. Back end: IR -> WGSL `fn shadewire_eval_surface() -> <ModelStruct>` plus reflection.

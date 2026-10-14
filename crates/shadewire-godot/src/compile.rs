@@ -14,7 +14,8 @@ pub fn compile(
     options: &LoadOptions,
     resolver: Resolver,
 ) -> Result<GdshaderOutput, String> {
-    let ir = to_ir(text, location, options.material.as_deref(), &options.mtlx(resolver)).map_err(|e| e.to_string())?;
+    let ir =
+        to_ir(text, location, options.material.as_deref(), &options.lower(), &resolver).map_err(|e| e.to_string())?;
     shadewire_gdshader::compile(&ir.dag, &ir.source, &options.gdshader()).map_err(|e| e.to_string())
 }
 

@@ -15,6 +15,7 @@ categories = ["command-line-utilities", "graphics"]
 [dependencies]
 shadewire.workspace = true
 shadewire-mtlx.workspace = true
+shadewire-nodes.workspace = true
 shadewire-wgsl.workspace = true
 shadewire-glsl.workspace = true
 shadewire-hlsl.workspace = true

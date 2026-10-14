@@ -11,14 +11,16 @@ pub mod elaborate;
 pub mod element;
 pub mod index;
 pub mod library;
+pub mod options;
 pub mod parse;
 pub mod resolve_nodedef;
 pub mod surface;
 pub mod version;
 
 pub use document::Document;
-pub use elaborate::{ElaborateOptions, Elaborator, elaborate};
+pub use elaborate::{Elaborator, elaborate};
 pub use element::Element;
 pub use index::Index;
 pub use library::Library;
+pub use options::{DEFAULT_MODELS, LowerOptions};
 pub use resolve_nodedef::resolve_nodedef;

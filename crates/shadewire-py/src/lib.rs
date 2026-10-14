@@ -15,7 +15,8 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use shadewire::shader::CompileOptions;
 use shadewire::{Dag, SourceInfo, model_struct_name};
-use shadewire_mtlx::{MtlxOptions, Resolved, Resolver};
+use shadewire_mtlx::{Resolved, Resolver};
+use shadewire_nodes::LowerOptions;
 
 create_exception!(shadewire, ShadewireError, PyException, "A document Shadewire cannot read or compile.");
 
@@ -125,15 +126,16 @@ fn to_ir(
     values_as_uniforms: bool,
     resolver: Option<Py<PyAny>>,
 ) -> PyResult<PyIr> {
-    let mut options = MtlxOptions { values_as_uniforms, resolver: self::resolver(resolver), ..MtlxOptions::default() };
+    let mut options = LowerOptions { values_as_uniforms, ..LowerOptions::default() };
     if let Some(models) = models {
         options.models = models;
     }
     if let Some(colorspace) = working_colorspace {
         options.working_colorspace = colorspace;
     }
+    let resolver = self::resolver(resolver);
     let ir = py
-        .detach(|| shadewire_mtlx::to_ir(&text, location.as_deref(), material.as_deref(), &options))
+        .detach(|| shadewire_mtlx::to_ir(&text, location.as_deref(), material.as_deref(), &options, &resolver))
         .map_err(error)?;
     Ok(PyIr { dag: ir.dag, source: ir.source })
 }

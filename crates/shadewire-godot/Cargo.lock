@@ -241,16 +241,24 @@ dependencies = [
  "shadewire",
  "shadewire-gdshader",
  "shadewire-mtlx",
+ "shadewire-nodes",
 ]
 
 [[package]]
 name = "shadewire-mtlx"
 version = "0.1.0"
 dependencies = [
+ "shadewire",
+ "shadewire-nodes",
+]
+
+[[package]]
+name = "shadewire-nodes"
+version = "0.1.0"
+dependencies = [
  "include_dir",
  "quick-xml",
  "shadewire",
- "thiserror",
 ]
 
 [[package]]

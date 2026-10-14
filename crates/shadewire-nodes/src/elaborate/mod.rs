@@ -45,26 +45,11 @@ use shadewire::{Dag, Error, Location, NodeId, SurfaceField, Type, Value};
 use crate::document::{Document, PortType};
 use crate::index::Index;
 use crate::library::Library;
+use crate::options::LowerOptions;
 use crate::surface::CLOSURE_MODEL;
 use crate::surface::find::{SurfaceSource, pick_material};
 
 pub use scope::{Binding, Scope, TextValue};
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct ElaborateOptions {
-    /// The colorspace authored colors are converted to.
-    pub working_colorspace: String,
-    /// Surface-node values and top-level nodegraph interface values become uniforms.
-    pub values_as_uniforms: bool,
-    /// The most nodes the DAG may grow to (`MtlxOptions::max_nodes`).
-    pub max_nodes: Option<usize>,
-}
-
-impl Default for ElaborateOptions {
-    fn default() -> ElaborateOptions {
-        ElaborateOptions { working_colorspace: "lin_rec709".to_string(), values_as_uniforms: true, max_nodes: None }
-    }
-}
 
 /// How many node outputs elaboration follows inside one another before it
 /// gives up. Real graphs are under 100 deep; a debug build uses about 12 KB of
@@ -79,7 +64,7 @@ pub type MemoKey = (u32, String, String);
 
 pub struct Elaborator<'a> {
     pub index: Index<'a>,
-    pub options: &'a ElaborateOptions,
+    pub options: &'a LowerOptions,
     pub dag: Dag,
     pub memo: HashMap<MemoKey, NodeId>,
     pub in_progress: HashSet<MemoKey>,
@@ -108,7 +93,7 @@ pub struct Elaborator<'a> {
 }
 
 impl<'a> Elaborator<'a> {
-    pub fn new(doc: &'a Document, lib: &'a Library, options: &'a ElaborateOptions, model: &str) -> Elaborator<'a> {
+    pub fn new(doc: &'a Document, lib: &'a Library, options: &'a LowerOptions, model: &str) -> Elaborator<'a> {
         Elaborator {
             index: Index::new(doc, lib),
             options,
@@ -156,44 +141,33 @@ impl<'a> Elaborator<'a> {
     }
 }
 
-/// Compiles the document's material into a DAG for one of `models`.
+/// Compiles the document's material into a DAG for one of `options.models`.
 /// Elaboration recurses along the graph, so it runs on a thread with a large
 /// stack; where no thread can be made it runs on the caller's.
-pub fn elaborate(
-    doc: &Document,
-    lib: &Library,
-    options: &ElaborateOptions,
-    material: Option<&str>,
-    models: &[&str],
-) -> Result<Dag, Error> {
+pub fn elaborate(doc: &Document, lib: &Library, options: &LowerOptions, material: Option<&str>) -> Result<Dag, Error> {
     std::thread::scope(|threads| {
         let builder = std::thread::Builder::new().name("shadewire-elaborate".to_string()).stack_size(STACK_BYTES);
-        match builder.spawn_scoped(threads, || elaborate_here(doc, lib, options, material, models)) {
+        match builder.spawn_scoped(threads, || elaborate_here(doc, lib, options, material)) {
             Ok(handle) => match handle.join() {
                 Ok(result) => result,
                 Err(panic) => std::panic::resume_unwind(panic),
             },
-            Err(_) => elaborate_here(doc, lib, options, material, models),
+            Err(_) => elaborate_here(doc, lib, options, material),
         }
     })
 }
 
-fn elaborate_here(
-    doc: &Document,
-    lib: &Library,
-    options: &ElaborateOptions,
-    material: Option<&str>,
-    models: &[&str],
-) -> Result<Dag, Error> {
+fn elaborate_here(doc: &Document, lib: &Library, options: &LowerOptions, material: Option<&str>) -> Result<Dag, Error> {
     let mut elaborator = Elaborator::new(doc, lib, options, "");
-    elaborator.accepted_models = models.iter().map(|m| m.to_string()).collect();
+    let models: Vec<&str> = options.models.iter().map(String::as_str).collect();
+    elaborator.accepted_models = options.models.clone();
     elaborator.accepts_closures = models.contains(&CLOSURE_MODEL);
     let material = pick_material(doc, material)?;
     let top = elaborator.top_scope(&doc.nodes);
     let source = elaborator.find_surface(&top, material)?;
     let model = source.model().to_string();
     if !models.contains(&model.as_str()) {
-        return Err(Error::NoTranslation { from: model, to: models.iter().map(|m| m.to_string()).collect() });
+        return Err(Error::NoTranslation { from: model, to: options.models.clone() });
     }
     if model == CLOSURE_MODEL {
         let (fields, closure) = elaborator.closure_surface(&source)?;
@@ -211,7 +185,7 @@ fn elaborate_here(
 /// Test helper: a DAG whose single surface field `out` is output `output` of user nodegraph `graph`.
 #[cfg(test)]
 pub(crate) fn elaborate_output(doc: &Document, graph: &str, output: &str) -> Result<Dag, Error> {
-    let options = ElaborateOptions::default();
+    let options = LowerOptions::default();
     let mut elaborator = Elaborator::new(doc, crate::library::standard(), &options, "test");
     let top = elaborator.top_scope(&doc.nodes);
     let at = elaborator.at(&top, 0, graph.to_string());

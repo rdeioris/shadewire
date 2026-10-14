@@ -3800,6 +3800,7 @@ dependencies = [
  "png 0.17.16",
  "shadewire",
  "shadewire-mtlx",
+ "shadewire-nodes",
  "shadewire-wgsl",
  "thiserror 2.0.21",
  "wesl",
@@ -3816,6 +3817,7 @@ dependencies = [
  "shadewire-hlsl",
  "shadewire-msl",
  "shadewire-mtlx",
+ "shadewire-nodes",
  "shadewire-wgsl",
 ]
 
@@ -3839,6 +3841,7 @@ dependencies = [
  "shadewire-hlsl",
  "shadewire-msl",
  "shadewire-mtlx",
+ "shadewire-nodes",
  "shadewire-wgsl",
 ]
 
@@ -3908,6 +3911,7 @@ dependencies = [
  "shadewire-hlsl",
  "shadewire-msl",
  "shadewire-mtlx",
+ "shadewire-nodes",
  "shadewire-wgsl",
 ]
 

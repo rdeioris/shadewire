@@ -4,9 +4,10 @@
 use shadewire::interpret::{ContextSource, NoTextures, eval_surface};
 use shadewire::{ContextRead, Dag, Location, Node, NodeKind, Op, Space, TransformKind, Type, Value};
 
-use super::{ElaborateOptions, Elaborator, elaborate_output};
+use super::{Elaborator, elaborate_output};
 use crate::document::Document;
 use crate::document::build::build;
+use crate::options::LowerOptions;
 use crate::parse::parse_str;
 
 /// A document whose authored colors are in `srgb_texture`.
@@ -62,7 +63,7 @@ fn geompropvalue_color_default_in_a_colorspace_folds_to_a_constant() {
           <output name="out" type="color3" nodename="p"/>
         </nodegraph>"#,
     );
-    let options = ElaborateOptions::default();
+    let options = LowerOptions::default();
     let mut e = Elaborator::new(&d, crate::library::standard(), &options, "test");
     let top = e.top_scope(&d.nodes);
     let at = e.at(&top, 0, "g".to_string());
@@ -92,7 +93,7 @@ fn interface_uniform_in_a_colorspace_keeps_its_conversion() {
 #[test]
 fn distance_on_a_non_constant_value_multiplies() {
     let d = srgb_doc("");
-    let options = ElaborateOptions::default();
+    let options = LowerOptions::default();
     let mut e = Elaborator::new(&d, crate::library::standard(), &options, "test");
     let read = NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 });
     let uv = e.dag.add(Node { kind: read, ty: Type::Vector2, origin: String::new() });

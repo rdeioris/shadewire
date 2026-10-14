@@ -6,7 +6,7 @@ use crate::document::{NodeDef, PortType};
 
 /// Shading models a surface can be compiled as without translation. A model's fields are the value inputs of its
 /// nodedef; its graph (the BSDF layers) is the host's business, unless the host accepts the closure model and not
-/// this one, which opens the model through its graph. Which of them a host accepts is `MtlxOptions::models`.
+/// this one, which opens the model through its graph. Which of them a host accepts is `LowerOptions::models`.
 pub const KNOWN_MODELS: [&str; 6] =
     ["open_pbr_surface", "standard_surface", "gltf_pbr", "surface_unlit", "UsdPreviewSurface", "disney_principled"];
 

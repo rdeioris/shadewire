@@ -1,11 +1,12 @@
 use std::path::{Path, PathBuf};
 
-use shadewire_mtlx::{MtlxOptions, Resolver, material_names, to_ir};
+use shadewire_mtlx::{Resolver, material_names, to_ir};
+use shadewire_nodes::LowerOptions;
 
 use crate::{GdshaderOptions, GdshaderOutput, LOBE_MODELS, MODELS, Transparency, compile};
 
-fn options(models: &[&str], values_as_uniforms: bool) -> MtlxOptions {
-    MtlxOptions { models: models.iter().map(|m| m.to_string()).collect(), values_as_uniforms, ..MtlxOptions::default() }
+fn options(models: &[&str], values_as_uniforms: bool) -> LowerOptions {
+    LowerOptions { values_as_uniforms, ..LowerOptions::with_models(models) }
 }
 
 /// With `SHADEWIRE_GDSHADER_OUT` set, writes a generated shader there, for Godot to check
@@ -19,7 +20,8 @@ fn write_out(name: &str, code: &str) {
 }
 
 fn compile_text(name: &str, text: &str, models: &[&str], gd: &GdshaderOptions) -> GdshaderOutput {
-    let ir = to_ir(text, None, None, &options(models, true)).unwrap_or_else(|e| panic!("{name}: {e}"));
+    let ir =
+        to_ir(text, None, None, &options(models, true), &Resolver::default()).unwrap_or_else(|e| panic!("{name}: {e}"));
     let out = compile(&ir.dag, &ir.source, gd).unwrap_or_else(|e| panic!("{name}: {e}"));
     write_out(name, &out.code);
     out
@@ -72,7 +74,7 @@ fn a_named_model_maps_onto_godots_outputs() {
     }
     assert_eq!(out.uniform_names.len(), out.reflection.uniforms.len());
     // Baked in, the MASK alpha mode is a cutout.
-    let ir = to_ir(GLTF, None, None, &options(&MODELS, false)).unwrap();
+    let ir = to_ir(GLTF, None, None, &options(&MODELS, false), &Resolver::default()).unwrap();
     let baked = compile(&ir.dag, &ir.source, &GdshaderOptions::default()).unwrap();
     assert!(fragment_of(&baked.code).contains("ALPHA_SCISSOR_THRESHOLD = s.alpha_cutoff;"), "{}", baked.code);
 }
@@ -143,12 +145,12 @@ fn a_closure_tree_is_lit_by_its_lobes_in_light() {
 /// Only what varies per fragment travels to light(), each DAG value once.
 #[test]
 fn light_reads_constants_and_uniforms_directly() {
-    let ir = to_ir(SURFACE, None, None, &options(&MODELS, false)).unwrap();
+    let ir = to_ir(SURFACE, None, None, &options(&MODELS, false), &Resolver::default()).unwrap();
     let out = compile(&ir.dag, &ir.source, &GdshaderOptions::default()).unwrap();
     let varyings = out.code.matches("varying vec4 shadewire_l").count();
     // The normals of both lobes (one node) and the dielectric's tangent: six floats, two vec4s.
     assert_eq!(varyings, 2, "{}", out.code);
-    let ir = to_ir(SURFACE, None, None, &options(&MODELS, true)).unwrap();
+    let ir = to_ir(SURFACE, None, None, &options(&MODELS, true), &Resolver::default()).unwrap();
     let uniforms = compile(&ir.dag, &ir.source, &GdshaderOptions::default()).unwrap();
     assert_eq!(uniforms.code.matches("varying vec4 shadewire_l").count(), 2, "{}", uniforms.code);
 }
@@ -308,8 +310,14 @@ fn every_vendored_example_compiles_mapped_and_with_lobes() {
             for material in material_names(&text, path.to_str(), &Resolver::default()).unwrap() {
                 for models in [&MODELS[..], &LOBE_MODELS[..]] {
                     for values_as_uniforms in [true, false] {
-                        let ir = to_ir(&text, path.to_str(), Some(&material), &options(models, values_as_uniforms))
-                            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+                        let ir = to_ir(
+                            &text,
+                            path.to_str(),
+                            Some(&material),
+                            &options(models, values_as_uniforms),
+                            &Resolver::default(),
+                        )
+                        .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
                         let out = compile(&ir.dag, &ir.source, &limited)
                             .unwrap_or_else(|e| panic!("{} {material}: {e}", path.display()));
                         assert_eq!(out.uniform_names.len(), out.reflection.uniforms.len());
@@ -371,7 +379,7 @@ fn textures_over_the_limit_fail() {
       <surfacematerial name="M" type="material"><input name="surfaceshader" type="surfaceshader" nodename="SR" /></surfacematerial>
     </materialx>"#,
     );
-    let ir = to_ir(&text, None, None, &options(&MODELS, true)).unwrap();
+    let ir = to_ir(&text, None, None, &options(&MODELS, true), &Resolver::default()).unwrap();
     let at =
         |max| compile(&ir.dag, &ir.source, &GdshaderOptions { max_textures: Some(max), ..GdshaderOptions::default() });
     assert_eq!(at(3).unwrap().reflection.textures.len(), 3);

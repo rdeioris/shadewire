@@ -6,14 +6,11 @@ use shadewire::{ContextRead, Dag, NodeKind, Space, Type};
 use crate::document::build::build;
 use crate::library::standard;
 use crate::parse::parse_str;
-use crate::{ElaborateOptions, elaborate};
-
-/// The models a host maps by default: what the MaterialX reader accepts unless told otherwise.
-const MODELS: [&str; 4] = ["open_pbr_surface", "standard_surface", "gltf_pbr", "surface_unlit"];
+use crate::{LowerOptions, elaborate};
 
 fn to_dag(text: &str) -> Dag {
     let document = build(&parse_str(text, None).unwrap(), None).unwrap();
-    elaborate(&document, standard(), &ElaborateOptions::default(), None, &MODELS).unwrap()
+    elaborate(&document, standard(), &LowerOptions::default(), None).unwrap()
 }
 
 fn gltf(normal: &str) -> Dag {

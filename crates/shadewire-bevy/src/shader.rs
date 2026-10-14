@@ -134,7 +134,8 @@ pub fn module(compiled: &Compiled) -> Result<String, ShadewireError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadewire_mtlx::{MtlxOptions, to_ir};
+    use shadewire_mtlx::{Resolver, to_ir};
+    use shadewire_nodes::LowerOptions;
     use shadewire_wgsl::compile;
 
     const UNLIT: &str = r#"<materialx version="1.39">
@@ -147,7 +148,7 @@ mod tests {
 </materialx>"#;
 
     fn compiled(text: &str, options: &CompileOptions) -> Compiled {
-        let ir = to_ir(text, None, None, &MtlxOptions::default()).unwrap();
+        let ir = to_ir(text, None, None, &LowerOptions::default(), &Resolver::default()).unwrap();
         compile(&ir.dag, &ir.source, options).unwrap()
     }
 

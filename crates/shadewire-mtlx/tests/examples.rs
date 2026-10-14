@@ -12,7 +12,7 @@ mod common;
 
 use common::compile_mtlx;
 use shadewire::shader::CompileOptions;
-use shadewire_mtlx::MtlxOptions;
+use shadewire_nodes::LowerOptions;
 
 const FOLDERS: [&str; 3] = ["StandardSurface", "OpenPbr", "GltfPbr"];
 const ALLOWLIST: &str = include_str!("examples_allowlist.txt");
@@ -42,11 +42,12 @@ fn variant(error: &Error) -> String {
 /// failure is a bug, not an allow-listed error, so it panics.
 fn check(text: &str, path: &Path, material: &str) -> Result<(), Error> {
     let options = CompileOptions::default();
-    let compiled = compile_mtlx(text, Some(path), Some(material), &MtlxOptions::default(), &options)?;
+    let compiled = compile_mtlx(text, Some(path), Some(material), &LowerOptions::default(), &options)?;
     let name = format!("{}_{material}", path.file_stem().unwrap_or_default().to_string_lossy());
     let fail = |language: &str, e: String| -> ! { panic!("{name}: the {language} does not validate:\n{e}") };
     shadewire_wgsl::validate::check(&compiled.code, &compiled.reflection).unwrap_or_else(|e| fail("WGSL", e));
-    let ir = shadewire_mtlx::to_ir(text, path.to_str(), Some(material), &MtlxOptions::default())?;
+    let ir =
+        shadewire_mtlx::to_ir(text, path.to_str(), Some(material), &LowerOptions::default(), &Resolver::default())?;
     let version = shadewire_glsl::Version::Desktop(420);
     let glsl = shadewire_glsl::compile(&ir.dag, &ir.source, &options, version)?;
     shadewire_glsl::validate::check(&name, &glsl.code, &glsl.reflection, version).unwrap_or_else(|e| fail("GLSL", e));

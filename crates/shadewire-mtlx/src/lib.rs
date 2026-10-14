@@ -11,4 +11,4 @@ pub mod upgrade;
 
 pub use dependencies::{Dependencies, list_dependencies};
 pub use include::{ResolveFn, Resolved, Resolver};
-pub use to_ir::{MaterialIr, MtlxOptions, material_names, to_ir};
+pub use to_ir::{MaterialIr, material_names, to_ir};

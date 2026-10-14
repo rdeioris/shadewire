@@ -5,7 +5,7 @@
 //!
 //! - `shadewire.mtlx.to_ir`, `.material_names`: `shadewire_mtlx_to_ir`, `shadewire_mtlx_material_names` (a
 //!   `shadewire_strings`);
-//! - `shadewire_mtlx::list_dependencies` and `MtlxOptions::resolver`: `shadewire_mtlx_list_dependencies` (a
+//! - `shadewire_mtlx::list_dependencies` and the resolver argument of `to_ir`: `shadewire_mtlx_list_dependencies` (a
 //!   `shadewire_dependencies`) and `shadewire_mtlx_options::resolve` (a `shadewire_resolve_fn` answering through
 //!   `shadewire_resolution_set` / `_fail`);
 //! - `shadewire.Ir` (`.optimize()`, `.dump()`, `.to_dict()`, `.model`, `.source`, `.structure_hash`): `shadewire_ir`

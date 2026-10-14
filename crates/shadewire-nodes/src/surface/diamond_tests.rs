@@ -5,7 +5,7 @@ use shadewire::{Dag, NodeKind};
 use crate::document::build::build;
 use crate::library::standard;
 use crate::parse::parse_str;
-use crate::{ElaborateOptions, elaborate};
+use crate::{LowerOptions, elaborate};
 
 /// `levels` surface mixes, each with fg = bg = the one before, over one unlit surface.
 fn diamond_chain(levels: usize) -> Dag {
@@ -27,7 +27,7 @@ fn diamond_chain(levels: usize) -> Dag {
     ));
     let text = format!(r#"<materialx version="1.39">{body}</materialx>"#);
     let doc = build(&parse_str(&text, None).unwrap(), Some("test.mtlx")).unwrap();
-    elaborate(&doc, standard(), &ElaborateOptions::default(), None, &["surface_unlit"]).unwrap()
+    elaborate(&doc, standard(), &LowerOptions::with_models(&["surface_unlit"]), None).unwrap()
 }
 
 #[test]

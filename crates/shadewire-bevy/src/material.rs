@@ -23,7 +23,7 @@ use bevy::asset::uuid::Uuid;
 use bevy::image::Image;
 use bevy::pbr::{ExtendedMaterial, StandardMaterial};
 use bevy::shader::Shader;
-use shadewire_mtlx::to_ir;
+use shadewire_mtlx::{Resolver, to_ir};
 use shadewire_wgsl::{CompileOptions, compile};
 
 use crate::assets::ShadewireAssets;
@@ -104,7 +104,7 @@ pub(crate) fn build(
     stores: &mut Stores,
 ) -> Result<Built<ShadewireMaterial>, ShadewireError> {
     let location = path.map(|p| p.display().to_string());
-    let ir = to_ir(text, location.as_deref(), options.material.as_deref(), &options.mtlx)?;
+    let ir = to_ir(text, location.as_deref(), options.material.as_deref(), &options.lower, &Resolver::default())?;
     let compile_options = options.compile_options();
     let compiled = compile(&ir.dag, &ir.source, &compile_options)?;
     let source = module(&compiled)?;
@@ -161,7 +161,7 @@ mod tests {
     use bevy::image::ImagePlugin;
     use bevy::prelude::*;
     use shadewire::Value;
-    use shadewire_mtlx::MtlxOptions;
+    use shadewire_nodes::LowerOptions;
 
     use crate::ShadewirePlugin;
     use crate::shader::compile_options;
@@ -282,11 +282,11 @@ mod tests {
     }
 
     #[test]
-    fn mtlx_options_pass_through() {
+    fn lower_options_pass_through() {
         let mut f = Fixture::default();
         let uniforms = f.build_with(&unlit("1, 0.5, 0.25"), &BuildOptions::default());
         let options = BuildOptions {
-            mtlx: MtlxOptions { values_as_uniforms: false, ..MtlxOptions::default() },
+            lower: LowerOptions { values_as_uniforms: false, ..LowerOptions::default() },
             ..BuildOptions::default()
         };
         let constants = f.build_with(&unlit("1, 0.5, 0.25"), &options);
@@ -296,10 +296,8 @@ mod tests {
         assert_ne!(uniforms.material.extension.shader, constants.material.extension.shader);
         assert_eq!(f.shaders.len(), 2);
 
-        let refused = BuildOptions {
-            mtlx: MtlxOptions { models: vec!["standard_surface".into()], ..MtlxOptions::default() },
-            ..BuildOptions::default()
-        };
+        let refused =
+            BuildOptions { lower: LowerOptions::with_models(&["standard_surface"]), ..BuildOptions::default() };
         assert!(build(&unlit("1, 1, 1"), None, &refused, default(), &mut f.stores()).is_err());
     }
 
