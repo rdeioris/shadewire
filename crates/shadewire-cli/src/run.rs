@@ -17,10 +17,15 @@ fn io(e: std::io::Error, what: &std::path::Path) -> Error {
     Error::Io(format!("{}: {e}", what.display()))
 }
 
-fn mtlx_options(models: &[String], constants: bool) -> MtlxOptions {
+/// The front end's options. The models: `--model`'s, or with `--lobes` only the closure tree (and unlit), or else
+/// `default` when given, else the front end's own.
+fn mtlx_options(models: &[String], lobes: bool, default: Option<&[&str]>, constants: bool) -> MtlxOptions {
     let mut options = MtlxOptions::default();
+    let fixed = if lobes { Some(&shadewire_gdshader::LOBE_MODELS[..]) } else { default };
     if !models.is_empty() {
         options.models = models.to_vec();
+    } else if let Some(fixed) = fixed {
+        options.models = fixed.iter().map(|m| m.to_string()).collect();
     }
     options.values_as_uniforms = !constants;
     options
@@ -36,7 +41,7 @@ fn compile_options(args: &CompileArgs) -> CompileOptions {
 
 fn ir_command(args: &IrArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
-    let mtlx = mtlx_options(&args.models, args.constants);
+    let mtlx = mtlx_options(&args.models, args.lobes, None, args.constants);
     let ir = to_ir(&text, Some(&args.file.display().to_string()), args.material.as_deref(), &mtlx)?;
     let dag = if args.no_optimize { ir.dag } else { optimize(&ir.dag) };
     if args.json {
@@ -94,12 +99,9 @@ fn gdshader_options(args: &CompileArgs) -> shadewire_gdshader::GdshaderOptions {
 
 fn compile_command(args: &CompileArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
-    let mut mtlx = mtlx_options(&args.models, args.constants);
-    // The Godot back end has its own model lists: the six it maps (and closure trees), or only closure trees.
-    if args.lang == Lang::Gdshader && args.models.is_empty() {
-        let models: &[&str] = if args.lobes { &shadewire_gdshader::LOBE_MODELS } else { &shadewire_gdshader::MODELS };
-        mtlx.models = models.iter().map(|m| m.to_string()).collect();
-    }
+    // The Godot back end has its own model list: the six it maps, and closure trees.
+    let default = (args.lang == Lang::Gdshader).then_some(&shadewire_gdshader::MODELS[..]);
+    let mtlx = mtlx_options(&args.models, args.lobes, default, args.constants);
     let ir = to_ir(&text, Some(&args.file.display().to_string()), args.material.as_deref(), &mtlx)?;
     let compiled = compile(&ir, args)?;
     if let Some(path) = &args.reflection {

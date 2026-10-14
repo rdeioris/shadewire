@@ -24,7 +24,8 @@ No compatibility shims: old names are gone.
   `Compiled.wgsl` is `Compiled.code`. `shadewire-wgsl` loses `translate`, `link`, `Target` and its versions,
   `glsl_library`, `reference_host`, the `emit` module and the `translate` feature. `shadewire::Error::Naga` is gone.
 - **CLI:** `--lang` is `wgsl|glsl|glsl-es|hlsl|msl` and picks the back end; `--glsl-version N` sets the GLSL
-  version. No SPIR-V, and no reference host linked in.
+  version. No SPIR-V, and no reference host linked in. `--lobes` opens every material into its closure tree on every back end
+  (it was Godot only) and conflicts with `--model`; `ir` takes it too.
 - **C API:** `shadewire_compile(ir, target, options, ...)` replaces `shadewire_wgsl_compile`;
   `shadewire_compile_mtlx` is gone (`shadewire_mtlx_to_ir`, then `shadewire_compile`); `shadewire_compiled_code`
   replaces `shadewire_compiled_wgsl`. `shadewire_translate`, the blob type, `SHADEWIRE_TARGET_SPIRV`, `_WEBGL2` and HLSL

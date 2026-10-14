@@ -54,9 +54,12 @@ pub struct IrArgs {
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,
-    /// Surface models the host accepts (repeatable); default: all four
+    /// Surface models the host accepts (repeatable); default: the four most hosts map
     #[arg(long = "model")]
     pub models: Vec<String>,
+    /// Open every material into its closure tree (accept only `surface` and `surface_unlit`)
+    #[arg(long, conflicts_with = "models")]
+    pub lobes: bool,
     /// Print the IR as elaborated, before the optimizer
     #[arg(long)]
     pub no_optimize: bool,
@@ -75,10 +78,14 @@ pub struct CompileArgs {
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,
-    /// Surface models the host accepts (repeatable); default: the four most hosts map, and for gdshader its
-    /// own lists (`shadewire_gdshader::MODELS`, or `LOBE_MODELS` with --lobes)
+    /// Surface models the host accepts (repeatable); default: the four most hosts map, and for gdshader its own
+    /// list (`shadewire_gdshader::MODELS`)
     #[arg(long = "model")]
     pub models: Vec<String>,
+    /// Open every material into its closure tree (accept only `surface` and `surface_unlit`) and write
+    /// MaterialX's reference lobes to light it; gdshader calls them from a light() function
+    #[arg(long, conflicts_with = "models")]
+    pub lobes: bool,
     #[arg(long, value_enum, default_value = "wgsl")]
     pub lang: Lang,
     /// The GLSL version: default 420 for `glsl`, 300 for `glsl-es`
@@ -99,10 +106,6 @@ pub struct CompileArgs {
     /// Keep binding 0 for the uniform block even without uniforms, so textures start at 1
     #[arg(long)]
     pub reserve_uniform_binding: bool,
-    /// gdshader: light every material with MaterialX's reference lobes in a light() function, named models
-    /// opened into closure trees, instead of mapping them onto Godot's own BRDF
-    #[arg(long)]
-    pub lobes: bool,
     /// gdshader: how opacity reaches Godot
     #[arg(long, value_enum, default_value = "auto")]
     pub transparency: Transparency,

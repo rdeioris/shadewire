@@ -107,3 +107,36 @@ fn ir_prints_the_dag_before_and_after_the_optimizer() {
     let raw = String::from_utf8_lossy(&raw.stdout).to_string();
     assert!(raw.lines().count() > optimized.lines().count(), "the optimizer removed nothing");
 }
+
+/// `--lobes` opens a named model into its closure tree on every back end, which then writes MaterialX's lobes.
+#[test]
+fn lobes_write_the_closure_tree_on_every_back_end() {
+    for lang in ["wgsl", "glsl", "glsl-es", "hlsl", "msl", "gdshader"] {
+        let json = scratch(&format!("lobes-{lang}.json"));
+        let mapped = run(&["compile", EXAMPLE, "--lang", lang]);
+        let lobes = run(&["compile", EXAMPLE, "--lang", lang, "--lobes", "--reflection", json.to_str().unwrap()]);
+        assert!(lobes.status.success(), "{lang}: {}", String::from_utf8_lossy(&lobes.stderr));
+        let value: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&json).unwrap()).unwrap();
+        assert_eq!(value["model"], "surface", "{lang}");
+        let (mapped, lobes) = (String::from_utf8_lossy(&mapped.stdout), String::from_utf8_lossy(&lobes.stdout));
+        assert!(!mapped.contains("shadewire_layer_bsdf"), "{lang}: {mapped}");
+        assert!(lobes.contains("shadewire_layer_bsdf"), "{lang}: {lobes}");
+    }
+}
+
+#[test]
+fn lobes_and_model_conflict() {
+    for command in ["compile", "ir"] {
+        let out = run(&[command, EXAMPLE, "--lobes", "--model", "gltf_pbr"]);
+        assert!(!out.status.success(), "{command}");
+        assert!(String::from_utf8_lossy(&out.stderr).contains("cannot be used with"), "{command}");
+    }
+}
+
+#[test]
+fn ir_with_lobes_is_a_closure_tree() {
+    let mapped = run(&["ir", EXAMPLE]);
+    let lobes = run(&["ir", EXAMPLE, "--lobes"]);
+    assert!(lobes.status.success(), "{}", String::from_utf8_lossy(&lobes.stderr));
+    assert_ne!(mapped.stdout, lobes.stdout);
+}
