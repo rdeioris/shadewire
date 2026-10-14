@@ -105,7 +105,7 @@ pub(crate) fn build(
     stores: &mut Stores,
 ) -> Result<Built<ShadewireMaterial>, ShadewireError> {
     let location = path.map(|p| p.display().to_string());
-    let ir = to_ir(text, location.as_deref(), options.material.as_deref(), &options.mtlx)?;
+    let ir = to_ir(text, location.as_deref(), options.material.as_deref(), &options.ir, &options.resolver)?;
     let compile_options = options.compile_options();
     let mut compiled = compile(&ir.dag, &ir.source, &compile_options)?;
     let source = module(&compiled)?;
@@ -165,7 +165,7 @@ mod tests {
     use bevy::image::ImagePlugin;
     use bevy::prelude::*;
     use shadewire::Value;
-    use shadewire_mtlx::MtlxOptions;
+    use shadewire_nodes::IrOptions;
 
     use crate::ShadewirePlugin;
     use crate::shader::compile_options;
@@ -286,11 +286,11 @@ mod tests {
     }
 
     #[test]
-    fn mtlx_options_pass_through() {
+    fn ir_options_pass_through() {
         let mut f = Fixture::default();
         let uniforms = f.build_with(&unlit("1, 0.5, 0.25"), &BuildOptions::default());
         let options = BuildOptions {
-            mtlx: MtlxOptions { values_as_uniforms: false, ..MtlxOptions::default() },
+            ir: IrOptions { values_as_uniforms: false, ..IrOptions::default() },
             ..BuildOptions::default()
         };
         let constants = f.build_with(&unlit("1, 0.5, 0.25"), &options);
@@ -300,10 +300,7 @@ mod tests {
         assert_ne!(uniforms.material.extension.shader, constants.material.extension.shader);
         assert_eq!(f.shaders.len(), 2);
 
-        let refused = BuildOptions {
-            mtlx: MtlxOptions { models: vec!["standard_surface".into()], ..MtlxOptions::default() },
-            ..BuildOptions::default()
-        };
+        let refused = BuildOptions { ir: IrOptions::with_models(&["standard_surface"]), ..BuildOptions::default() };
         assert!(build(&unlit("1, 1, 1"), None, &refused, default(), &mut f.stores()).is_err());
     }
 

@@ -35,6 +35,12 @@ pub struct Document {
     pub graph_implementations: Vec<(String, String)>,
 }
 
+/// A document with nothing in it, for lowering that starts from no document (`Elaborator::standalone`).
+pub fn empty_document() -> &'static Document {
+    static EMPTY: std::sync::OnceLock<Document> = std::sync::OnceLock::new();
+    EMPTY.get_or_init(Document::empty)
+}
+
 impl Document {
     pub fn empty() -> Document {
         Document {

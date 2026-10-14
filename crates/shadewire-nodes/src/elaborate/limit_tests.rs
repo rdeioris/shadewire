@@ -5,7 +5,7 @@ use shadewire::Error;
 
 use super::tests::doc;
 use crate::library::standard;
-use crate::{ElaborateOptions, elaborate};
+use crate::{IrOptions, elaborate};
 
 /// Level `k` of `levels` adds two instances of level `k - 1`, so the material needs about `2^levels` nodes.
 fn doubling(levels: usize) -> String {
@@ -37,8 +37,8 @@ fn doubling(levels: usize) -> String {
 }
 
 fn compile(levels: usize, max_nodes: Option<usize>) -> Result<shadewire::Dag, Error> {
-    let options = ElaborateOptions { max_nodes, ..ElaborateOptions::default() };
-    elaborate(&doc(&doubling(levels)), standard(), &options, None, &["standard_surface"])
+    let options = IrOptions { max_nodes, ..IrOptions::with_models(&["standard_surface"]) };
+    elaborate(&doc(&doubling(levels)), standard(), &options, None)
 }
 
 #[test]

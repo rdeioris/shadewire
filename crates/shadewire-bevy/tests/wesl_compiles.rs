@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use shadewire_bevy::{BuildOptions, compile_options};
-use shadewire_mtlx::{MtlxOptions, to_ir};
+use shadewire_mtlx::{IrOptions, Resolver, to_ir};
 use shadewire_wgsl::compile;
 use wesl::error::ResolveError;
 use wesl::syntax::{ModulePath, PathOrigin};
@@ -191,15 +191,15 @@ fn bevy_roots() -> HashMap<String, PathBuf> {
 
 /// The module for `file` (relative to the workspace), compiled by wesl under `defs` then validated by naga.
 fn compile_in_bevy(file: &str, defs: &[&str]) -> (String, naga::Module) {
-    compile_models_in_bevy(file, defs, &BuildOptions::default().mtlx.models)
+    compile_models_in_bevy(file, defs, &BuildOptions::default().ir.models)
 }
 
 /// [`compile_in_bevy`] with the front end accepting `models` (the plugin's defaults there).
 fn compile_models_in_bevy(file: &str, defs: &[&str], models: &[String]) -> (String, naga::Module) {
     let path = Path::new(WORKSPACE).join(file);
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    let options = MtlxOptions { models: models.to_vec(), ..MtlxOptions::default() };
-    let ir = to_ir(&text, path.to_str(), None, &options).unwrap();
+    let options = IrOptions { models: models.to_vec(), ..IrOptions::default() };
+    let ir = to_ir(&text, path.to_str(), None, &options, &Resolver::default()).unwrap();
     let compiled = compile(&ir.dag, &ir.source, &compile_options()).unwrap();
     let main = shadewire_bevy::shader::module(&compiled).unwrap();
     let wgsl = wesl_to_wgsl(&main, defs).unwrap_or_else(|e| panic!("{file}: wesl:\n{e}\n\nmodule:\n{main}"));
@@ -299,7 +299,7 @@ fn every_host_read_compiles() {
 }
 
 fn lobe_models() -> Vec<String> {
-    BuildOptions::lobes().mtlx.models
+    BuildOptions::lobes().ir.models
 }
 
 #[test]

@@ -4,7 +4,7 @@ use shadewire::Error;
 
 use super::tests::doc;
 use crate::library::standard;
-use crate::{ElaborateOptions, elaborate};
+use crate::{IrOptions, elaborate};
 
 /// A material whose standard_surface `base` is the end of a chain of `n` adds.
 fn add_chain(n: usize) -> String {
@@ -25,7 +25,7 @@ fn add_chain(n: usize) -> String {
 
 fn compile_chain(n: usize) -> Result<shadewire::Dag, Error> {
     let d = doc(&add_chain(n));
-    elaborate(&d, standard(), &ElaborateOptions::default(), None, &["standard_surface"])
+    elaborate(&d, standard(), &IrOptions::with_models(&["standard_surface"]), None)
 }
 
 #[test]

@@ -6,7 +6,8 @@ use std::path::Path;
 
 use common::compile_mtlx;
 use shadewire::Error;
-use shadewire_mtlx::{MtlxOptions, to_ir};
+use shadewire_mtlx::{Resolver, to_ir};
+use shadewire_nodes::IrOptions;
 use shadewire_wgsl::{CompileOptions, compile};
 
 const EXAMPLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/resources/Materials/Examples");
@@ -19,7 +20,7 @@ fn example(relative: &str) -> (String, std::path::PathBuf) {
 #[test]
 fn compile_without_the_optimizer_keeps_the_raw_dag() {
     let (text, path) = example("StandardSurface/standard_surface_default.mtlx");
-    let ir = to_ir(&text, path.to_str(), None, &MtlxOptions::default()).unwrap();
+    let ir = to_ir(&text, path.to_str(), None, &IrOptions::default(), &Resolver::default()).unwrap();
     let raw = CompileOptions { optimize: false, ..CompileOptions::default() };
     assert_eq!(compile(&ir.dag, &ir.source, &raw).unwrap().dag.nodes.len(), ir.dag.nodes.len());
     let optimized = compile(&ir.dag, &ir.source, &CompileOptions::default()).unwrap();
@@ -29,7 +30,7 @@ fn compile_without_the_optimizer_keeps_the_raw_dag() {
 #[test]
 fn standard_surface_example_compiles() {
     let (text, path) = example("StandardSurface/standard_surface_default.mtlx");
-    let out = compile_mtlx(&text, Some(&path), None, &MtlxOptions::default(), &CompileOptions::default()).unwrap();
+    let out = compile_mtlx(&text, Some(&path), None, &IrOptions::default(), &CompileOptions::default()).unwrap();
     assert_eq!(out.reflection.model, "standard_surface");
     assert_eq!(out.reflection.source, "mtlx");
     assert_eq!(out.reflection.group, 2);
@@ -40,18 +41,18 @@ fn standard_surface_example_compiles() {
 #[test]
 fn derivatives_are_reported_fragment_only() {
     let (text, path) = example("StandardSurface/standard_surface_onyx_hextiled.mtlx");
-    let out = compile_mtlx(&text, Some(&path), None, &MtlxOptions::default(), &CompileOptions::default()).unwrap();
+    let out = compile_mtlx(&text, Some(&path), None, &IrOptions::default(), &CompileOptions::default()).unwrap();
     assert!(out.reflection.approximations.contains(&"fragment stage only (derivatives)".to_string()));
     let (text, path) = example("StandardSurface/standard_surface_default.mtlx");
-    let out = compile_mtlx(&text, Some(&path), None, &MtlxOptions::default(), &CompileOptions::default()).unwrap();
+    let out = compile_mtlx(&text, Some(&path), None, &IrOptions::default(), &CompileOptions::default()).unwrap();
     assert!(out.reflection.approximations.is_empty(), "{:?}", out.reflection.approximations);
 }
 
 #[test]
 fn constants_option_removes_the_uniform_block() {
     let (text, path) = example("StandardSurface/standard_surface_default.mtlx");
-    let mtlx = MtlxOptions { values_as_uniforms: false, ..MtlxOptions::default() };
-    let out = compile_mtlx(&text, Some(&path), None, &mtlx, &CompileOptions::default()).unwrap();
+    let lower = IrOptions { values_as_uniforms: false, ..IrOptions::default() };
+    let out = compile_mtlx(&text, Some(&path), None, &lower, &CompileOptions::default()).unwrap();
     assert!(out.reflection.uniforms.is_empty());
     assert_eq!(out.reflection.uniform_binding, None);
 }
@@ -59,8 +60,8 @@ fn constants_option_removes_the_uniform_block() {
 #[test]
 fn a_model_the_host_refuses_is_no_translation() {
     let (text, path) = example("StandardSurface/standard_surface_default.mtlx");
-    let mtlx = MtlxOptions { models: vec!["gltf_pbr".to_string()], ..MtlxOptions::default() };
-    let err = compile_mtlx(&text, Some(&path), None, &mtlx, &CompileOptions::default()).unwrap_err();
+    let lower = IrOptions::with_models(&["gltf_pbr"]);
+    let err = compile_mtlx(&text, Some(&path), None, &lower, &CompileOptions::default()).unwrap_err();
     assert!(matches!(err, Error::NoTranslation { .. }), "{err:?}");
 }
 
@@ -75,7 +76,7 @@ fn a_converted_uniform_is_a_uniform_expression() {
         </standard_surface>
         <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s"/></surfacematerial>
     </materialx>"#;
-    let out = compile_mtlx(text, None, None, &MtlxOptions::default(), &CompileOptions::default()).unwrap();
+    let out = compile_mtlx(text, None, None, &IrOptions::default(), &CompileOptions::default()).unwrap();
     let color = &out.reflection.params["base_color"];
     assert_eq!((color.kind, color.uniform.as_deref()), ("uniform_expr", None));
     assert!(out.reflection.uniforms.iter().any(|u| u.name == "base_color"));
@@ -97,7 +98,7 @@ fn one_context_read_at_two_types_is_an_error() {
         </surface_unlit>
         <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s"/></surfacematerial>
     </materialx>"#;
-    let err = compile_mtlx(text, None, None, &MtlxOptions::default(), &CompileOptions::default()).unwrap_err();
+    let err = compile_mtlx(text, None, None, &IrOptions::default(), &CompileOptions::default()).unwrap_err();
     match err {
         Error::TypeMismatch { at, expected, found } => {
             assert_eq!((at.path.as_str(), expected.as_str(), found.as_str()), ("uv3", "vector2", "vector3"));
@@ -112,6 +113,6 @@ fn the_document_version_is_reported_as_authored() {
         <standard_surface name="s" type="surfaceshader"/>
         <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s"/></surfacematerial>
     </materialx>"#;
-    let out = compile_mtlx(text, None, None, &MtlxOptions::default(), &CompileOptions::default()).unwrap();
+    let out = compile_mtlx(text, None, None, &IrOptions::default(), &CompileOptions::default()).unwrap();
     assert_eq!(out.reflection.mtlx_version, "1.38");
 }

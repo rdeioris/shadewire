@@ -39,8 +39,8 @@ pub unsafe extern "C" fn shadewire_mtlx_material_names(
                 }
                 let text = text_arg(text, len)?;
                 let location = opt_cstr(location)?;
-                let options = read_mtlx(options)?;
-                let names = shadewire_mtlx::material_names(text, location, &options.resolver)?;
+                let (_, resolver) = read_mtlx(options)?;
+                let names = shadewire_mtlx::material_names(text, location, &resolver)?;
                 *out = Box::into_raw(Box::new(shadewire_strings { items: names.into_iter().map(c_string).collect() }));
                 Ok(())
             }),

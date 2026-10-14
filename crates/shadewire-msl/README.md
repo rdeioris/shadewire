@@ -10,10 +10,11 @@ The host defines the `shadewire_host_*` functions it calls (the library declares
 
 ```rust
 use shadewire::shader::CompileOptions;
-use shadewire_mtlx::{MtlxOptions, to_ir};
+use shadewire_mtlx::{Resolver, to_ir};
+use shadewire_nodes::IrOptions;
 
 let text = std::fs::read_to_string("material.mtlx")?;
-let ir = to_ir(&text, Some("material.mtlx".as_ref()), None, &MtlxOptions::default())?;
+let ir = to_ir(&text, Some("material.mtlx".as_ref()), None, &IrOptions::default(), &Resolver::default())?;
 let compiled = shadewire_msl::compile(&ir.dag, &ir.source, &CompileOptions::default())?;
 println!("{}", compiled.code);
 ```

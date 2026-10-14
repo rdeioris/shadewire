@@ -1,8 +1,8 @@
 //! `normalmap` lost its `space` input (tangent space only; object space is refused).
 
 use super::scope::{copy_input, for_each_scope, new_node, node_input, unique_name};
-use crate::document::{Document, Node, PortType};
 use shadewire::{Error, Location, Type};
+use shadewire_nodes::document::{Document, Node, PortType};
 
 const VECTOR3: PortType = PortType::Value(Type::Vector3);
 

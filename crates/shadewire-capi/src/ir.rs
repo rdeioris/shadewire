@@ -90,8 +90,8 @@ pub unsafe extern "C" fn shadewire_mtlx_to_ir(
                 let text = text_arg(text, len)?;
                 let location = opt_cstr(location)?;
                 let material = opt_cstr(material)?;
-                let options = read_mtlx(options)?;
-                let ir = shadewire_mtlx::to_ir(text, location, material, &options)?;
+                let (options, resolver) = read_mtlx(options)?;
+                let ir = shadewire_mtlx::to_ir(text, location, material, &options, &resolver)?;
                 *out = Box::into_raw(Box::new(shadewire_ir::new(ir)));
                 Ok(())
             }),

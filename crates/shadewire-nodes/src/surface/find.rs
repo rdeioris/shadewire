@@ -176,7 +176,12 @@ impl<'a> Elaborator<'a> {
 
     /// What shader node `node` is, found once per scope and node: both sides
     /// of a mix may reach the same sub-mix.
-    fn surface_at(&mut self, scope: &Scope<'a>, node: &'a Node, depth: u32) -> Result<SurfaceSource<'a>, Error> {
+    pub(crate) fn surface_at(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        depth: u32,
+    ) -> Result<SurfaceSource<'a>, Error> {
         let key = (scope.id, node.name.clone());
         if let Some(found) = self.surface_sources.get(&key) {
             return Ok(found.clone());

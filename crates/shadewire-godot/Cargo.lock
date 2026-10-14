@@ -241,16 +241,25 @@ dependencies = [
  "shadewire",
  "shadewire-gdshader",
  "shadewire-mtlx",
+ "shadewire-nodes",
 ]
 
 [[package]]
 name = "shadewire-mtlx"
 version = "0.1.0"
 dependencies = [
+ "shadewire",
+ "shadewire-nodes",
+]
+
+[[package]]
+name = "shadewire-nodes"
+version = "0.1.0"
+dependencies = [
  "include_dir",
  "quick-xml",
  "shadewire",
- "thiserror",
+ "typed-arena",
 ]
 
 [[package]]
@@ -283,6 +292,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "typed-arena"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "unicode-ident"

@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use shadewire::LOBE_MODELS;
 use shadewire_gdshader::{GdshaderOptions, MODELS, Transparency};
-use shadewire_mtlx::{MtlxOptions, Resolver};
+use shadewire_nodes::IrOptions;
 
 /// Which surface models the front end accepts, and so how the material is lit.
 #[derive(Clone, Debug, PartialEq)]
@@ -14,7 +14,7 @@ pub enum Models {
     Mapped,
     /// Every material opened into its closure tree and lit by MaterialX's lobes (`shadewire::LOBE_MODELS`).
     Lobes,
-    /// An explicit list, as `MtlxOptions::models`.
+    /// An explicit list, as `IrOptions::models`.
     List(Vec<String>),
 }
 
@@ -153,18 +153,17 @@ pub fn models(name: &str) -> Result<Models, String> {
 }
 
 impl LoadOptions {
-    pub fn mtlx(&self, resolver: Resolver) -> MtlxOptions {
+    pub fn ir(&self) -> IrOptions {
         let models = match &self.models {
             Models::Mapped => MODELS.iter().map(|m| m.to_string()).collect(),
             Models::Lobes => LOBE_MODELS.iter().map(|m| m.to_string()).collect(),
             Models::List(list) => list.clone(),
         };
-        MtlxOptions {
+        IrOptions {
             models,
             values_as_uniforms: !self.bake_constants,
-            resolver,
             max_nodes: self.limits.max_nodes,
-            ..MtlxOptions::default()
+            ..IrOptions::default()
         }
     }
 
@@ -230,14 +229,14 @@ mod tests {
     #[test]
     fn options_reach_both_halves() {
         let options = LoadOptions { models: Models::Lobes, bake_constants: true, ..LoadOptions::default() };
-        let mtlx = options.mtlx(Resolver::default());
-        assert_eq!(mtlx.models, ["surface", "surface_unlit"]);
-        assert!(!mtlx.values_as_uniforms);
-        assert_eq!(mtlx.max_nodes, Some(4096));
+        let ir = options.ir();
+        assert_eq!(ir.models, ["surface", "surface_unlit"]);
+        assert!(!ir.values_as_uniforms);
+        assert_eq!(ir.max_nodes, Some(4096));
         let gdshader = options.gdshader();
         assert_eq!((gdshader.max_textures, gdshader.max_loop_iterations), (Some(16), Some(16)));
         let unlimited = LoadOptions { limits: Limits::NONE, ..options };
-        assert_eq!(unlimited.mtlx(Resolver::default()).max_nodes, None);
+        assert_eq!(unlimited.ir().max_nodes, None);
         assert_eq!(unlimited.gdshader(), GdshaderOptions::default());
     }
 }

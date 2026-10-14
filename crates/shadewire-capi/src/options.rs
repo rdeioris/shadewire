@@ -7,7 +7,8 @@
 use std::ffi::{c_char, c_void};
 use std::mem::MaybeUninit;
 
-use shadewire_mtlx::MtlxOptions;
+use shadewire_mtlx::Resolver;
+use shadewire_nodes::IrOptions;
 use shadewire_wgsl::CompileOptions;
 
 use crate::resolver::{resolver, shadewire_resolve_fn};
@@ -78,7 +79,7 @@ fn mtlx_defaults() -> shadewire_mtlx_options {
         models: std::ptr::null(),
         model_count: 0,
         working_colorspace: std::ptr::null(),
-        values_as_uniforms: MtlxOptions::default().values_as_uniforms,
+        values_as_uniforms: IrOptions::default().values_as_uniforms,
         reserved: [0; 7],
         resolve: None,
         resolve_user_data: std::ptr::null_mut(),
@@ -108,16 +109,16 @@ unsafe fn flag(field: *const bool) -> bool {
     unsafe { field.cast::<u8>().read() != 0 }
 }
 
-/// Reads MaterialX options; NULL gives the defaults.
+/// Reads MaterialX options, as the IR options and the include resolver; NULL gives the defaults.
 ///
 /// # Safety
 /// `ptr` must be NULL or point to `struct_size` readable bytes (at least 4); `models` must hold `model_count` valid
 /// NUL-terminated strings, and `working_colorspace` must be NULL or a valid NUL-terminated string; `resolve` must be
 /// NULL or a function as `shadewire_resolve_fn` describes.
-pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<MtlxOptions, ArgError> {
-    let mut options = MtlxOptions::default();
+pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<(IrOptions, Resolver), ArgError> {
+    let mut options = IrOptions::default();
     if ptr.is_null() {
-        return Ok(options);
+        return Ok((options, Resolver::default()));
     }
     let raw = unsafe { overlay(ptr, mtlx_defaults()) }?;
     let raw = raw.as_ptr();
@@ -141,8 +142,8 @@ pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<Mtl
     }
     options.values_as_uniforms = unsafe { flag(&raw const (*raw).values_as_uniforms) };
     let resolve = unsafe { (&raw const (*raw).resolve).read() };
-    options.resolver = resolver(resolve, unsafe { (&raw const (*raw).resolve_user_data).read() });
-    Ok(options)
+    let resolver = resolver(resolve, unsafe { (&raw const (*raw).resolve_user_data).read() });
+    Ok((options, resolver))
 }
 
 /// Reads compile options; NULL gives the defaults.
@@ -215,8 +216,8 @@ mod tests {
         assert_eq!(unsafe { read_compile(&c) }.unwrap(), CompileOptions::default());
         let m = mtlx_default_struct();
         assert_eq!(m.struct_size as usize, size_of::<shadewire_mtlx_options>());
-        let read = unsafe { read_mtlx(&m) }.unwrap();
-        let d = MtlxOptions::default();
+        let (read, _) = unsafe { read_mtlx(&m) }.unwrap();
+        let d = IrOptions::default();
         assert_eq!(read.models, d.models);
         assert_eq!(read.working_colorspace, d.working_colorspace);
         assert_eq!(read.values_as_uniforms, d.values_as_uniforms);
@@ -258,14 +259,14 @@ mod tests {
         assert_eq!(flags.map(u8::from), [1, 1, 1, 1]);
         let mut m = MaybeUninit::new(mtlx_default_struct());
         set_bool_byte(&mut m, offset_of!(shadewire_mtlx_options, values_as_uniforms), 2);
-        let read = unsafe { read_mtlx(m.as_ptr()) }.unwrap();
+        let (read, _) = unsafe { read_mtlx(m.as_ptr()) }.unwrap();
         assert_eq!(u8::from(read.values_as_uniforms), 1);
     }
 
     #[test]
     fn null_reads_the_defaults() {
         assert_eq!(unsafe { read_compile(std::ptr::null()) }.unwrap(), CompileOptions::default());
-        assert_eq!(unsafe { read_mtlx(std::ptr::null()) }.unwrap().models, MtlxOptions::default().models);
+        assert_eq!(unsafe { read_mtlx(std::ptr::null()) }.unwrap().0.models, IrOptions::default().models);
     }
 
     #[test]
@@ -309,8 +310,8 @@ mod tests {
         let mut m = mtlx_default_struct();
         m.resolve = Some(unreachable_resolve); // beyond struct_size: must not be read
         m.struct_size = offset_of!(shadewire_mtlx_options, resolve) as u32;
-        let read = unsafe { read_mtlx(&m) }.unwrap();
-        let err = read.resolver.resolve("no-such-dir/top.mtlx", "missing.mtlx").unwrap_err();
+        let (_, resolver) = unsafe { read_mtlx(&m) }.unwrap();
+        let err = resolver.resolve("no-such-dir/top.mtlx", "missing.mtlx").unwrap_err();
         assert!(err.contains("cannot read"), "{err}");
     }
 
@@ -335,7 +336,7 @@ mod tests {
         m.model_count = 2;
         m.working_colorspace = space.as_ptr();
         m.values_as_uniforms = false;
-        let read = unsafe { read_mtlx(&m) }.unwrap();
+        let (read, _) = unsafe { read_mtlx(&m) }.unwrap();
         assert_eq!(read.models, vec!["standard_surface".to_string(), "gltf_pbr".to_string()]);
         assert_eq!(read.working_colorspace, "srgb_texture");
         assert!(!read.values_as_uniforms);
@@ -378,16 +379,16 @@ mod tests {
         let list: [*const c_char; 0] = [];
         m.models = list.as_ptr();
         m.model_count = 0;
-        assert!(unsafe { read_mtlx(&m) }.unwrap().models.is_empty());
+        assert!(unsafe { read_mtlx(&m) }.unwrap().0.models.is_empty());
     }
 
     #[test]
     fn a_short_mtlx_struct_keeps_the_default_for_missing_fields() {
         let mut m = mtlx_default_struct();
         m.struct_size = offset_of!(shadewire_mtlx_options, values_as_uniforms) as u32;
-        m.values_as_uniforms = !MtlxOptions::default().values_as_uniforms;
-        let read = unsafe { read_mtlx(&m) }.unwrap();
-        assert_eq!(read.values_as_uniforms, MtlxOptions::default().values_as_uniforms);
+        m.values_as_uniforms = !IrOptions::default().values_as_uniforms;
+        let (read, _) = unsafe { read_mtlx(&m) }.unwrap();
+        assert_eq!(read.values_as_uniforms, IrOptions::default().values_as_uniforms);
     }
 
     #[test]

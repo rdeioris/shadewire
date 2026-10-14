@@ -2,8 +2,8 @@
 //! legacy `swizzle` node first; the swizzle rule then turns it into extract/combine nodes.
 
 use super::scope::{copy_input, disconnect, for_each_scope, new_node, unique_name, value_input};
-use crate::document::{Document, Input, Node, PortType};
 use shadewire::Type;
+use shadewire_nodes::document::{Document, Input, Node, PortType};
 
 pub fn apply(doc: &mut Document) {
     for_each_scope(doc, apply_scope);
@@ -60,9 +60,9 @@ fn upstream_type(input: &Input, types: &[(String, PortType)], channels: &str) ->
 
 #[cfg(test)]
 mod tests {
-    use crate::document::PortType;
     use crate::upgrade::test_doc::doc_138;
     use shadewire::Type;
+    use shadewire_nodes::document::PortType;
 
     const COLOR_SOURCE: &str =
         r#"<constant name="c" type="color3"><input name="value" type="color3" value="1,2,3"/></constant>"#;

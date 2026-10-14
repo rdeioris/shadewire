@@ -3800,6 +3800,7 @@ dependencies = [
  "png 0.17.16",
  "shadewire",
  "shadewire-mtlx",
+ "shadewire-nodes",
  "shadewire-wgsl",
  "thiserror 2.0.21",
  "wesl",
@@ -3816,6 +3817,7 @@ dependencies = [
  "shadewire-hlsl",
  "shadewire-msl",
  "shadewire-mtlx",
+ "shadewire-nodes",
  "shadewire-wgsl",
 ]
 
@@ -3839,6 +3841,7 @@ dependencies = [
  "shadewire-hlsl",
  "shadewire-msl",
  "shadewire-mtlx",
+ "shadewire-nodes",
  "shadewire-wgsl",
 ]
 
@@ -3848,6 +3851,7 @@ version = "0.1.0"
 dependencies = [
  "shadewire",
  "shadewire-mtlx",
+ "shadewire-nodes",
 ]
 
 [[package]]
@@ -3875,17 +3879,25 @@ dependencies = [
 name = "shadewire-mtlx"
 version = "0.1.0"
 dependencies = [
- "include_dir",
  "insta",
  "png 0.17.16",
- "quick-xml",
  "serde_json",
  "shadewire",
  "shadewire-glsl",
  "shadewire-hlsl",
  "shadewire-msl",
+ "shadewire-nodes",
  "shadewire-wgsl",
- "thiserror 2.0.21",
+]
+
+[[package]]
+name = "shadewire-nodes"
+version = "0.1.0"
+dependencies = [
+ "include_dir",
+ "quick-xml",
+ "shadewire",
+ "typed-arena",
 ]
 
 [[package]]
@@ -3900,6 +3912,7 @@ dependencies = [
  "shadewire-hlsl",
  "shadewire-msl",
  "shadewire-mtlx",
+ "shadewire-nodes",
  "shadewire-wgsl",
 ]
 
@@ -4309,6 +4322,12 @@ name = "twox-hash"
 version = "2.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86a801b3cea342a06d468c8710662aa29e5e05e4f5c0d62f00bbb7f2ad7941c2"
+
+[[package]]
+name = "typed-arena"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typeid"

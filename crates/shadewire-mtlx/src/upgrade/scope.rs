@@ -1,6 +1,6 @@
 //! Helpers shared by the rules: walk the node lists and make small inputs.
 
-use crate::document::{Document, Input, Node, PortType};
+use shadewire_nodes::document::{Document, Input, Node, PortType};
 
 /// Run `f` on the top-level node list and on every nodegraph's node list.
 pub fn for_each_scope(doc: &mut Document, mut f: impl FnMut(&mut Vec<Node>)) {

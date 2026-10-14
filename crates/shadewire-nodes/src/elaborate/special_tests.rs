@@ -5,8 +5,9 @@ use std::collections::HashMap;
 use shadewire::{ContextRead, Dag, Error, NodeKind, Op, Space, Type, Value};
 
 use super::tests::doc;
-use super::{ElaborateOptions, Elaborator, elaborate_output};
+use super::{Elaborator, elaborate_output};
 use crate::document::Document;
+use crate::options::IrOptions;
 
 /// The kind of the node graph `g`'s output `out` elaborates to.
 fn out_kind(d: &Document) -> NodeKind {
@@ -125,7 +126,7 @@ fn time_and_frame_are_global_reads() {
 
 /// The DAG and the recorded geomprop defaults for graph `g`'s output `out`.
 fn with_defaults(d: &Document) -> (Dag, HashMap<String, Value>) {
-    let options = ElaborateOptions::default();
+    let options = IrOptions::default();
     let mut elaborator = Elaborator::new(d, crate::library::standard(), &options, "test");
     let top = elaborator.top_scope(&d.nodes);
     let at = elaborator.at(&top, 0, "g".to_string());

@@ -12,7 +12,7 @@ use shadewire::{AddressMode, ContextRead, FilterMode, NodeKind, Space, TextureDe
 mod common;
 
 use common::compile_mtlx;
-use shadewire_mtlx::MtlxOptions;
+use shadewire_nodes::IrOptions;
 use shadewire_wgsl::CompileOptions;
 
 const TOLERANCE: f32 = 2e-3;
@@ -147,8 +147,8 @@ impl TextureSource for PngTextures {
 fn compile(material: &str, fields: &[String]) -> Dag {
     let path = root().join("tools/oracle/materials").join(format!("{material}.mtlx"));
     let text = std::fs::read_to_string(&path).unwrap();
-    let mtlx = MtlxOptions { values_as_uniforms: false, ..MtlxOptions::default() };
-    let mut dag = compile_mtlx(&text, Some(&path), None, &mtlx, &CompileOptions::default())
+    let lower = IrOptions { values_as_uniforms: false, ..IrOptions::default() };
+    let mut dag = compile_mtlx(&text, Some(&path), None, &lower, &CompileOptions::default())
         .unwrap_or_else(|e| panic!("{material}: {e}"))
         .dag;
     dag.surface.fields.retain(|f| fields.contains(&f.name));

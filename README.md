@@ -39,23 +39,24 @@ extensions.blender.org requires. Pre-release: APIs change between versions witho
 
 ## Crates
 
-Front ends and back ends never depend on each other; they share only the core, and the caller
-(your code, the CLI, the C API) composes them.
+Front ends and back ends never depend on each other. They share the core and, for front ends, the node library; the
+caller (your code, the CLI, the C API) composes them.
 
 | Crate | Role | Depends on |
 |---|---|---|
 | `shadewire` | core: the IR, optimizer, CPU interpreter, reflection, errors; the shader tree every back end prints (`shader`: the material's code, the support libraries, the shared printing) | — |
-| `shadewire-mtlx` | front end: MaterialX 1.38/1.39 → IR (`to_ir`) | `shadewire` |
+| `shadewire-nodes` | the node library: MaterialX's standard nodes and Shadewire's own, resolved and instantiated into the IR; what every front end lowers through (`Elaborator`, `instantiate`, `finish_model`, `finish_closure`) | `shadewire` |
+| `shadewire-mtlx` | front end: MaterialX 1.38/1.39 documents → IR (`to_ir`) | `shadewire`, `shadewire-nodes` |
 | `shadewire-wgsl` | back end: IR → WGSL + reflection (`compile`) | `shadewire` |
 | `shadewire-glsl` | back end: IR → a GLSL library (desktop from 330, ES from 300) + reflection | `shadewire` |
 | `shadewire-gdshader` | back end: IR → a complete Godot 4 spatial shader (`.gdshader`) + reflection: named models mapped onto Godot's outputs, or closure trees lit by MaterialX's reference lobes in `light()` | `shadewire` |
 | `shadewire-hlsl` | back end: IR → an HLSL library (shader model 5.1 and up) + reflection | `shadewire` |
 | `shadewire-msl` | back end: IR → a Metal Shading Language library + reflection | `shadewire` |
 | `shadewire-cli` | the `shadewire` command | all of the above |
-| `shadewire-capi` | C API (`shadewire.h`): MaterialX → code in any back end's language + reflection | `shadewire`, `shadewire-mtlx`, the back ends |
-| `shadewire-bevy` | Bevy 0.20: MaterialX → a `StandardMaterial` extension with a generated fragment shader (`ShadewirePlugin`, `FromMtlx`) | `shadewire`, `shadewire-mtlx`, `shadewire-wgsl`, `bevy` |
-| `shadewire-godot` | Godot 4.4+ extension (gdext; its own workspace, Rust 1.94): `.mtlx` → `ShaderMaterial` at runtime (`Shadewire`, `load()`) and on import | `shadewire`, `shadewire-mtlx`, `shadewire-gdshader`, `godot` |
-| `shadewire-py` | the `shadewire` Python module (PyO3, stable ABI from CPython 3.8): `shadewire.mtlx`, `.wgsl`, `.glsl`, `.hlsl`, `.msl` | `shadewire`, `shadewire-mtlx`, the back ends |
+| `shadewire-capi` | C API (`shadewire.h`): MaterialX → code in any back end's language + reflection | `shadewire`, `shadewire-mtlx`, `shadewire-nodes`, the back ends |
+| `shadewire-bevy` | Bevy 0.20: MaterialX → a `StandardMaterial` extension with a generated fragment shader (`ShadewirePlugin`, `FromMtlx`) | `shadewire`, `shadewire-mtlx`, `shadewire-nodes`, `shadewire-wgsl`, `bevy` |
+| `shadewire-godot` | Godot 4.4+ extension (gdext; its own workspace, Rust 1.94): `.mtlx` → `ShaderMaterial` at runtime (`Shadewire`, `load()`) and on import | `shadewire`, `shadewire-mtlx`, `shadewire-nodes`, `shadewire-gdshader`, `godot` |
+| `shadewire-py` | the `shadewire` Python module (PyO3, stable ABI from CPython 3.8): `shadewire.mtlx`, `.wgsl`, `.glsl`, `.hlsl`, `.msl` | `shadewire`, `shadewire-mtlx`, `shadewire-nodes`, the back ends |
 
 Each back end is a printer of the shared shader tree: everything they have in common (the material's code, the
 support libraries, operator precedence, declaration order, identifiers valid in every language) lives in the core.
@@ -73,6 +74,7 @@ back ends.
 | MaterialX materials in a Godot project or game | the `shadewire-godot` addon ([its README](crates/shadewire-godot/README.md)) | — |
 | MaterialX → GLSL, GLSL ES, HLSL or MSL | `shadewire-mtlx`, `shadewire-glsl` / `-hlsl` / `-msl` | — |
 | Your own IR (any source) → any of them | `shadewire` and the back end | — |
+| Your own graph format → the IR | `shadewire`, `shadewire-nodes` | — |
 | A command-line tool | `shadewire-cli` (the `shadewire` binary) | — |
 | A C/C++ host | `shadewire-capi` (shared or static library + `shadewire.h`) | — |
 | A Python host or tool | `pip install shadewire` ([its README](crates/shadewire-py/README.md)) | — |
@@ -85,11 +87,11 @@ Library, two steps: front end, then back end.
 
 ```rust
 use shadewire::optimize::optimize;
-use shadewire_mtlx::{MtlxOptions, to_ir};
+use shadewire_mtlx::{IrOptions, Resolver, to_ir};
 use shadewire_wgsl::{CompileOptions, compile};
 
 let text = std::fs::read_to_string("material.mtlx")?;
-let ir = to_ir(&text, Some("material.mtlx"), None, &MtlxOptions::default())?;
+let ir = to_ir(&text, Some("material.mtlx"), None, &IrOptions::default(), &Resolver::default())?;
 print!("{}", optimize(&ir.dag).dump()); // the IR, one node per line
 
 let out = compile(&ir.dag, &ir.source, &CompileOptions::default())?;
@@ -215,7 +217,7 @@ compile with a resolver that answers from memory. Free the list with `shadewire_
 `shadewire-bevy` (Bevy 0.20) turns a MaterialX material into a `ShadewireMaterial`: a `StandardMaterial` (the base,
 which keeps its alpha mode, lighting and shadows) extended with a fragment shader generated for the graph. Identical
 graphs share one shader and pipeline whatever their values; a shader is freed once no material holds it.
-`BuildOptions` picks the material and passes `MtlxOptions` (models, working colour space, `values_as_uniforms`)
+`BuildOptions` picks the material and passes `BuildOptions.ir` (`IrOptions`: models, working colour space, `values_as_uniforms`)
 through. The builder returns the material with its reflection, so uniforms can be set by name later
 (`ShadewireExtension::set_uniform`). Forward rendering only; up to 8 textures per material; meshes without tangents
 get a screen-space tangent frame.

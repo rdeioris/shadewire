@@ -8,7 +8,7 @@ pub mod rebuild;
 use crate::Dag;
 
 /// Folds constants, removes identities, shares equal nodes, prunes closures constant weights turn off,
-/// drops unused nodes.
+/// drops unused nodes. The result has no compounds: after a pass their interiors may be gone.
 pub fn optimize(dag: &Dag) -> Dag {
     let folded = const_fold::run(dag);
     let simplified = identities::run(&folded);

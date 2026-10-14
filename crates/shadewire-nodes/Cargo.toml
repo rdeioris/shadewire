@@ -1,0 +1,19 @@
+[package]
+name = "shadewire-nodes"
+description = "The node library of Shadewire: the standard MaterialX nodes and Shadewire's own, lowered into the IR"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT AND Apache-2.0"
+authors.workspace = true
+repository.workspace = true
+readme = "README.md"
+homepage.workspace = true
+keywords = ["materialx", "shader", "material", "pbr", "nodes"]
+categories = ["graphics", "rendering"]
+
+[dependencies]
+shadewire.workspace = true
+quick-xml.workspace = true
+include_dir.workspace = true
+typed-arena.workspace = true

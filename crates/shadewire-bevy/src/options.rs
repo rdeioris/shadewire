@@ -1,7 +1,8 @@
-//! What the builder is told: which material, the MaterialX front end's options and the compile knobs the
+//! What the builder is told: which material, the front end's options and the compile knobs the
 //! Bevy layout leaves open.
 
-use shadewire_mtlx::MtlxOptions;
+use shadewire_mtlx::Resolver;
+use shadewire_nodes::IrOptions;
 use shadewire_wgsl::CompileOptions;
 
 use crate::shader::compile_options;
@@ -16,13 +17,15 @@ fn models(list: &[&str]) -> Vec<String> {
 }
 
 /// Options of [`FromMtlx`](crate::FromMtlx). `Default` builds the document's only material with
-/// `MtlxOptions::default()` (values as uniforms) accepting [`MODELS`], optimized, V flipped.
+/// `IrOptions::default()` (values as uniforms) accepting [`MODELS`], optimized, V flipped.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BuildOptions {
     /// The material to build; `None` builds the document's only material, and is an error when it has several.
     pub material: Option<String>,
-    /// The MaterialX front end's options: accepted models, working colour space, `values_as_uniforms`.
-    pub mtlx: MtlxOptions,
+    /// The front end's options: accepted models, working colour space, `values_as_uniforms`.
+    pub ir: IrOptions,
+    /// Joins and reads the document's `xi:include`s; the default reads the file system.
+    pub resolver: Resolver,
     /// Run the optimizer before reflection and emission.
     pub optimize: bool,
     /// Flip V when sampling: Bevy uploads images top row first.
@@ -34,7 +37,8 @@ impl Default for BuildOptions {
         let compile = compile_options();
         BuildOptions {
             material: None,
-            mtlx: MtlxOptions { models: models(&MODELS), ..MtlxOptions::default() },
+            ir: IrOptions { models: models(&MODELS), ..IrOptions::default() },
+            resolver: Resolver::default(),
             optimize: compile.optimize,
             flip_v: compile.flip_v,
         }
@@ -46,7 +50,7 @@ impl BuildOptions {
     /// MaterialX's lobes, named models opened through their implementation graphs.
     pub fn lobes() -> BuildOptions {
         let mut options = BuildOptions::default();
-        options.mtlx.models = models(&shadewire::LOBE_MODELS);
+        options.ir.models = models(&shadewire::LOBE_MODELS);
         options
     }
 
@@ -72,9 +76,9 @@ mod tests {
 
     #[test]
     fn surface_is_accepted_by_default_and_alone_with_lobes() {
-        let default = BuildOptions::default().mtlx.models;
+        let default = BuildOptions::default().ir.models;
         assert!(default.iter().any(|m| m == "surface") && default.iter().any(|m| m == "standard_surface"));
-        assert_eq!(BuildOptions::lobes().mtlx.models, ["surface", "surface_unlit"]);
+        assert_eq!(BuildOptions::lobes().ir.models, ["surface", "surface_unlit"]);
     }
 
     #[test]

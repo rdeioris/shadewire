@@ -9,6 +9,7 @@ pub mod hextile;
 pub mod image;
 pub mod inputs;
 pub mod instance;
+pub mod instantiate;
 pub mod leaf;
 pub mod matrix;
 pub mod ramp;
@@ -17,6 +18,8 @@ pub mod special;
 pub mod units;
 pub mod values;
 
+#[cfg(test)]
+mod compound_tests;
 #[cfg(test)]
 mod connection_tests;
 #[cfg(test)]
@@ -30,6 +33,8 @@ mod geomprop_tests;
 #[cfg(test)]
 mod image_tests;
 #[cfg(test)]
+mod instantiate_tests;
+#[cfg(test)]
 mod limit_tests;
 #[cfg(test)]
 mod param_tests;
@@ -40,31 +45,18 @@ mod tests;
 
 use std::collections::{HashMap, HashSet};
 
-use shadewire::{Dag, Error, Location, NodeId, SurfaceField, Type, Value};
+use shadewire::{Compound, Dag, Error, Location, NodeId, SurfaceField, Type, Value};
 
 use crate::document::{Document, PortType};
 use crate::index::Index;
 use crate::library::Library;
+use crate::options::IrOptions;
 use crate::surface::CLOSURE_MODEL;
 use crate::surface::find::{SurfaceSource, pick_material};
+use crate::synthetic::Synthetic;
 
+pub use instantiate::Arg;
 pub use scope::{Binding, Scope, TextValue};
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct ElaborateOptions {
-    /// The colorspace authored colors are converted to.
-    pub working_colorspace: String,
-    /// Surface-node values and top-level nodegraph interface values become uniforms.
-    pub values_as_uniforms: bool,
-    /// The most nodes the DAG may grow to (`MtlxOptions::max_nodes`).
-    pub max_nodes: Option<usize>,
-}
-
-impl Default for ElaborateOptions {
-    fn default() -> ElaborateOptions {
-        ElaborateOptions { working_colorspace: "lin_rec709".to_string(), values_as_uniforms: true, max_nodes: None }
-    }
-}
 
 /// How many node outputs elaboration follows inside one another before it
 /// gives up. Real graphs are under 100 deep; a debug build uses about 12 KB of
@@ -79,13 +71,15 @@ pub type MemoKey = (u32, String, String);
 
 pub struct Elaborator<'a> {
     pub index: Index<'a>,
-    pub options: &'a ElaborateOptions,
+    pub options: &'a IrOptions,
     pub dag: Dag,
     pub memo: HashMap<MemoKey, NodeId>,
     pub in_progress: HashSet<MemoKey>,
     /// Node outputs being followed right now, inside one another.
     pub depth: u32,
     pub uniform_names: HashSet<String>,
+    /// The origins a standalone elaborator gave its synthetic nodes, so a reused one is told apart.
+    pub(crate) synthetic_origins: HashSet<String>,
     pub file: Option<String>,
     pub next_scope_id: u32,
     /// User nodegraphs entered so far, by name.
@@ -105,10 +99,12 @@ pub struct Elaborator<'a> {
     /// The host accepts the `surface` model: `surface` nodes compile to closure trees, and named models
     /// outside `accepted_models` open through their implementation graphs.
     pub accepts_closures: bool,
+    /// The nodes a front end made up (`Elaborator::standalone`); `None` when built from a document.
+    pub synthetic: Option<&'a Synthetic>,
 }
 
 impl<'a> Elaborator<'a> {
-    pub fn new(doc: &'a Document, lib: &'a Library, options: &'a ElaborateOptions, model: &str) -> Elaborator<'a> {
+    pub fn new(doc: &'a Document, lib: &'a Library, options: &'a IrOptions, model: &str) -> Elaborator<'a> {
         Elaborator {
             index: Index::new(doc, lib),
             options,
@@ -117,6 +113,7 @@ impl<'a> Elaborator<'a> {
             in_progress: HashSet::new(),
             depth: 0,
             uniform_names: HashSet::new(),
+            synthetic_origins: HashSet::new(),
             file: doc.file.clone(),
             next_scope_id: 0,
             user_scopes: HashMap::new(),
@@ -127,6 +124,7 @@ impl<'a> Elaborator<'a> {
             surface_field_memo: HashMap::new(),
             accepted_models: Vec::new(),
             accepts_closures: false,
+            synthetic: None,
         }
     }
 
@@ -145,6 +143,30 @@ impl<'a> Elaborator<'a> {
         }
     }
 
+    /// Records that `node` is output `output` of an instance of `nodedef` at `origin`; a second output of the same
+    /// instance joins the compound recorded for its first.
+    pub fn record_compound(
+        &mut self,
+        nodedef: &str,
+        inputs: Vec<(String, NodeId)>,
+        output: &str,
+        node: NodeId,
+        origin: &str,
+    ) {
+        if let Some(found) = self.dag.compounds.iter_mut().find(|c| c.origin == origin && c.nodedef == nodedef) {
+            if !found.outputs.iter().any(|(name, _)| name == output) {
+                found.outputs.push((output.to_string(), node));
+            }
+            return;
+        }
+        self.dag.compounds.push(Compound {
+            nodedef: nodedef.to_string(),
+            inputs,
+            outputs: vec![(output.to_string(), node)],
+            origin: origin.to_string(),
+        });
+    }
+
     /// `Error::Limit` once the DAG has grown past `options.max_nodes`.
     pub fn check_node_limit(&self) -> Result<(), Error> {
         match self.options.max_nodes {
@@ -156,62 +178,36 @@ impl<'a> Elaborator<'a> {
     }
 }
 
-/// Compiles the document's material into a DAG for one of `models`.
+/// Compiles the document's material into a DAG for one of `options.models`.
 /// Elaboration recurses along the graph, so it runs on a thread with a large
 /// stack; where no thread can be made it runs on the caller's.
-pub fn elaborate(
-    doc: &Document,
-    lib: &Library,
-    options: &ElaborateOptions,
-    material: Option<&str>,
-    models: &[&str],
-) -> Result<Dag, Error> {
+pub fn elaborate(doc: &Document, lib: &Library, options: &IrOptions, material: Option<&str>) -> Result<Dag, Error> {
     std::thread::scope(|threads| {
         let builder = std::thread::Builder::new().name("shadewire-elaborate".to_string()).stack_size(STACK_BYTES);
-        match builder.spawn_scoped(threads, || elaborate_here(doc, lib, options, material, models)) {
+        match builder.spawn_scoped(threads, || elaborate_here(doc, lib, options, material)) {
             Ok(handle) => match handle.join() {
                 Ok(result) => result,
                 Err(panic) => std::panic::resume_unwind(panic),
             },
-            Err(_) => elaborate_here(doc, lib, options, material, models),
+            Err(_) => elaborate_here(doc, lib, options, material),
         }
     })
 }
 
-fn elaborate_here(
-    doc: &Document,
-    lib: &Library,
-    options: &ElaborateOptions,
-    material: Option<&str>,
-    models: &[&str],
-) -> Result<Dag, Error> {
+fn elaborate_here(doc: &Document, lib: &Library, options: &IrOptions, material: Option<&str>) -> Result<Dag, Error> {
     let mut elaborator = Elaborator::new(doc, lib, options, "");
-    elaborator.accepted_models = models.iter().map(|m| m.to_string()).collect();
-    elaborator.accepts_closures = models.contains(&CLOSURE_MODEL);
+    elaborator.accepted_models = options.models.clone();
+    elaborator.accepts_closures = options.models.iter().any(|m| m == CLOSURE_MODEL);
     let material = pick_material(doc, material)?;
     let top = elaborator.top_scope(&doc.nodes);
     let source = elaborator.find_surface(&top, material)?;
-    let model = source.model().to_string();
-    if !models.contains(&model.as_str()) {
-        return Err(Error::NoTranslation { from: model, to: models.iter().map(|m| m.to_string()).collect() });
-    }
-    if model == CLOSURE_MODEL {
-        let (fields, closure) = elaborator.closure_surface(&source)?;
-        elaborator.dag.surface.fields = fields;
-        elaborator.dag.surface.closure = Some(closure);
-    } else {
-        elaborator.dag.surface.fields = elaborator.surface_fields(&source)?;
-    }
-    elaborator.check_node_limit()?;
-    elaborator.dag.surface.model = model;
-    elaborator.dag.geomprop_defaults = elaborator.geomprop_defaults.drain().collect();
-    Ok(elaborator.dag)
+    elaborator.finish_source(source)
 }
 
 /// Test helper: a DAG whose single surface field `out` is output `output` of user nodegraph `graph`.
 #[cfg(test)]
 pub(crate) fn elaborate_output(doc: &Document, graph: &str, output: &str) -> Result<Dag, Error> {
-    let options = ElaborateOptions::default();
+    let options = IrOptions::default();
     let mut elaborator = Elaborator::new(doc, crate::library::standard(), &options, "test");
     let top = elaborator.top_scope(&doc.nodes);
     let at = elaborator.at(&top, 0, graph.to_string());

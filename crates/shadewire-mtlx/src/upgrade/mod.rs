@@ -16,7 +16,7 @@ pub mod test_doc;
 
 use shadewire::{Error, Location};
 
-use crate::document::Document;
+use shadewire_nodes::document::Document;
 
 /// Upgrade `doc` to 1.39. 1.39 passes through; 1.38 gets the rules; anything else is refused.
 pub fn upgrade(mut doc: Document) -> Result<Document, Error> {

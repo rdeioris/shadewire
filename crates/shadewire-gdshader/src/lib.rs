@@ -34,7 +34,7 @@ pub use options::{GdshaderOptions, Transparency};
 
 use shadewire::{Dag, Reflection};
 
-/// The models a host passes to the front end (`MtlxOptions::models`) to have named models mapped onto Godot's
+/// The models a host passes to the front end (`IrOptions::models`) to have named models mapped onto Godot's
 /// outputs and lit by Godot's BRDF; a pbrlib `surface` still gets its lobes.
 pub const MODELS: [&str; 7] = [
     "open_pbr_surface",

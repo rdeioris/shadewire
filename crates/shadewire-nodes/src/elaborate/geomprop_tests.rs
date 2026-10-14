@@ -3,7 +3,15 @@
 
 use shadewire::{ContextRead, Dag, NodeKind, Space, Type};
 
-use crate::{MtlxOptions, to_ir};
+use crate::document::build::build;
+use crate::library::standard;
+use crate::parse::parse_str;
+use crate::{IrOptions, elaborate};
+
+fn to_dag(text: &str) -> Dag {
+    let document = build(&parse_str(text, None).unwrap(), None).unwrap();
+    elaborate(&document, standard(), &IrOptions::default(), None).unwrap()
+}
 
 fn gltf(normal: &str) -> Dag {
     let text = format!(
@@ -18,7 +26,7 @@ fn gltf(normal: &str) -> Dag {
   </surfacematerial>
 </materialx>"#
     );
-    to_ir(&text, None, None, &MtlxOptions::default()).unwrap().dag
+    to_dag(&text)
 }
 
 fn field<'d>(dag: &'d Dag, name: &str) -> &'d NodeKind {
@@ -55,7 +63,7 @@ fn a_graph_interface_input_with_a_value_reads_its_geomprop() {
     <input name="surfaceshader" type="surfaceshader" nodename="SR" />
   </surfacematerial>
 </materialx>"#;
-    let dag = to_ir(text, None, None, &MtlxOptions::default()).unwrap().dag;
+    let dag = to_dag(text);
     let reads_normal = dag.nodes.iter().any(|n| matches!(n.kind, NodeKind::Context(ContextRead::Normal(Space::World))));
     let has_uniform = dag.nodes.iter().any(|n| matches!(n.kind, NodeKind::Uniform { .. }) && n.ty == Type::Vector3);
     assert!(reads_normal && !has_uniform, "{}", dag.dump());
