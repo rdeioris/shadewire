@@ -106,10 +106,25 @@ pub struct CompileArgs {
     /// Keep binding 0 for the uniform block even without uniforms, so textures start at 1
     #[arg(long)]
     pub reserve_uniform_binding: bool,
-    /// gdshader: how opacity reaches Godot
-    #[arg(long, value_enum, default_value = "auto")]
-    pub transparency: Transparency,
-    /// gdshader: multiplies EMISSION
-    #[arg(long, default_value_t = 1.0)]
-    pub emission_scale: f32,
+    /// gdshader: how opacity reaches Godot [default: auto]
+    #[arg(long, value_enum)]
+    pub transparency: Option<Transparency>,
+    /// gdshader: multiplies EMISSION [default: 1]
+    #[arg(long)]
+    pub emission_scale: Option<f32>,
+}
+
+impl CompileArgs {
+    /// The first flag given that only `--lang gdshader` reads, when the language is another.
+    pub fn misplaced_gdshader_flag(&self) -> Option<&'static str> {
+        if self.lang == Lang::Gdshader {
+            None
+        } else if self.transparency.is_some() {
+            Some("--transparency")
+        } else if self.emission_scale.is_some() {
+            Some("--emission-scale")
+        } else {
+            None
+        }
+    }
 }

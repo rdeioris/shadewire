@@ -140,3 +140,14 @@ fn ir_with_lobes_is_a_closure_tree() {
     assert!(lobes.status.success(), "{}", String::from_utf8_lossy(&lobes.stderr));
     assert_ne!(mapped.stdout, lobes.stdout);
 }
+
+#[test]
+fn gdshader_flags_need_gdshader() {
+    for flag in [&["--transparency", "blend"][..], &["--emission-scale", "2"][..]] {
+        let out = run(&[&["compile", EXAMPLE, "--lang", "wgsl"][..], flag].concat());
+        assert!(!out.status.success(), "{flag:?}");
+        assert!(String::from_utf8_lossy(&out.stderr).contains("applies to --lang gdshader only"), "{flag:?}");
+        let out = run(&[&["compile", EXAMPLE, "--lang", "gdshader"][..], flag].concat());
+        assert!(out.status.success(), "{flag:?}: {}", String::from_utf8_lossy(&out.stderr));
+    }
+}

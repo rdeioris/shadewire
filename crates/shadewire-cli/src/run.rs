@@ -82,7 +82,7 @@ fn compile(ir: &shadewire_mtlx::MaterialIr, args: &CompileArgs) -> Result<Compil
 
 fn gdshader_options(args: &CompileArgs) -> shadewire_gdshader::GdshaderOptions {
     use shadewire_gdshader::Transparency as T;
-    let transparency = match args.transparency {
+    let transparency = match args.transparency.unwrap_or(Transparency::Auto) {
         Transparency::Auto => T::Auto,
         Transparency::Opaque => T::Opaque,
         Transparency::Scissor => T::Scissor,
@@ -92,7 +92,7 @@ fn gdshader_options(args: &CompileArgs) -> shadewire_gdshader::GdshaderOptions {
     shadewire_gdshader::GdshaderOptions {
         optimize: !args.no_optimize,
         transparency,
-        emission_scale: args.emission_scale,
+        emission_scale: args.emission_scale.unwrap_or(1.0),
         ..shadewire_gdshader::GdshaderOptions::default()
     }
 }
