@@ -1,4 +1,4 @@
-//! What the builder is told: which material, the MaterialX front end's options and the compile knobs the
+//! What the builder is told: which material, the front end's options and the compile knobs the
 //! Bevy layout leaves open.
 
 use shadewire_nodes::IrOptions;

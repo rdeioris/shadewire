@@ -8,3 +8,19 @@ leaf nodedefs into ops, and finishes a material as a shading model or a closure 
 
 Front ends depend on it: `shadewire-mtlx` reads MaterialX documents and lowers them here; a front end for another
 graph format calls `Elaborator::standalone`, `instantiate` and `finish_model`/`finish_closure` directly.
+
+## Lowering without a document
+
+```rust
+use shadewire::{Type, Value};
+use shadewire_nodes::{Arg, Elaborator, IrOptions, Synthetic};
+
+let synthetic = Synthetic::new();
+let options = IrOptions::default();
+let mut e = Elaborator::standalone(&synthetic, &options);
+let base = e.authored("base_color", Value::Color3([0.8, 0.1, 0.1]), "Principled BSDF.Base Color");
+let dag = e.finish_model("open_pbr_surface", &[("base_color", Arg::Node(base))], "Principled BSDF")?;
+```
+
+`instantiate("overlay", Type::Color3, &[("fg", Arg::Node(a)), ("bg", Arg::Node(b))], origin)` is any library node;
+the dag's `compounds` remember it was one, so a graph back end writes `overlay` again rather than its expansion.

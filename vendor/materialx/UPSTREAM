@@ -2,4 +2,4 @@ repository: https://github.com/AcademySoftwareFoundation/MaterialX
 tag: v1.39.5
 commit: 7b64921ef1d42f2d57871e9d2c43dc11f041f26b
 copied: LICENSE resources/Materials/Examples/**/*.mtlx resources/Images/grid.png (libraries/{stdlib,pbrlib,bxdf,cmlib}
-live in crates/shadewire-mtlx/materialx, inside the crate that embeds them)
+live in crates/shadewire-nodes/materialx, inside the crate that embeds them)

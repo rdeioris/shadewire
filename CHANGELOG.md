@@ -15,11 +15,19 @@ Since `f5039f8` (readme: c example compiles).
   as MaterialX's reference GLSL does: `shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`.
 - **A Bevy integration**, a **Blender add-on** that imports MaterialX as Cycles node trees, and a **Python
   module** with wheels for every Blender platform.
+- **`shadewire-nodes`, the node library as a crate.** The vendored libraries, nodedef resolution and the elaborator
+  move out of `shadewire-mtlx`, which is now the MaterialX reader alone. A front end without a document
+  (`Elaborator::standalone`) asks for nodes by name (`instantiate`) and finishes a material as a model or a closure
+  tree (`finish_model`, `finish_closure`). The IR records the library nodes it was built from (`Dag::compounds`).
 
 ### Breaking changes
 
 No compatibility shims: old names are gone.
 
+- **Rust:** `shadewire_mtlx::MtlxOptions` and `ElaborateOptions` are `shadewire_nodes::IrOptions`; `to_ir` takes
+  the `Resolver` as its own argument. `shadewire_mtlx::{document, elaborate, element, index, library, parse,
+  resolve_nodedef, surface, version}` are `shadewire_nodes::…`. `shadewire_bevy::BuildOptions::mtlx` is `ir`.
+- **IR export JSON:** a `compounds` list (format version unchanged: readers may ignore it).
 - **Rust:** `Compiled` and `CompileOptions` live in `shadewire::shader` (re-exported by every back end);
   `Compiled.wgsl` is `Compiled.code`. `shadewire-wgsl` loses `translate`, `link`, `Target` and its versions,
   `glsl_library`, `reference_host`, the `emit` module and the `translate` feature. `shadewire::Error::Naga` is gone.
