@@ -23,7 +23,7 @@ use bevy::asset::uuid::Uuid;
 use bevy::image::Image;
 use bevy::pbr::{ExtendedMaterial, StandardMaterial};
 use bevy::shader::Shader;
-use shadewire_mtlx::{Resolver, to_ir};
+use shadewire_mtlx::to_ir;
 use shadewire_wgsl::{CompileOptions, compile};
 
 use crate::assets::ShadewireAssets;
