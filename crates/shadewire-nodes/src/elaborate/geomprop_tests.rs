@@ -6,11 +6,11 @@ use shadewire::{ContextRead, Dag, NodeKind, Space, Type};
 use crate::document::build::build;
 use crate::library::standard;
 use crate::parse::parse_str;
-use crate::{LowerOptions, elaborate};
+use crate::{IrOptions, elaborate};
 
 fn to_dag(text: &str) -> Dag {
     let document = build(&parse_str(text, None).unwrap(), None).unwrap();
-    elaborate(&document, standard(), &LowerOptions::default(), None).unwrap()
+    elaborate(&document, standard(), &IrOptions::default(), None).unwrap()
 }
 
 fn gltf(normal: &str) -> Dag {

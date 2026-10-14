@@ -6,7 +6,7 @@ use crate::document::Document;
 use crate::document::build::build;
 use crate::library::standard;
 use crate::parse::parse_str;
-use crate::{LowerOptions, elaborate};
+use crate::{IrOptions, elaborate};
 
 fn inline(version: &str, body: &str) -> Document {
     let text = format!(r#"<materialx version="{version}">{body}</materialx>"#);
@@ -14,7 +14,7 @@ fn inline(version: &str, body: &str) -> Document {
 }
 
 fn compile(doc: &Document, material: Option<&str>, models: &[&str]) -> Result<Dag, Error> {
-    elaborate(doc, standard(), &LowerOptions::with_models(models), material)
+    elaborate(doc, standard(), &IrOptions::with_models(models), material)
 }
 
 /// The teapot's porcelain from pablode/cg-assets (CC0): a glaze layered over a diffuse and subsurface mix.

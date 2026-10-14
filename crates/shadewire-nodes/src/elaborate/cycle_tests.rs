@@ -75,7 +75,7 @@ fn a_failed_node_does_not_stay_in_progress() {
           <add name="bad" type="float"><input name="in1" type="float" value="x"/></add>
           <output name="out" type="float" nodename="bad"/>
         </nodegraph>"#);
-    let options = crate::LowerOptions::default();
+    let options = crate::IrOptions::default();
     let mut e = super::Elaborator::new(&d, crate::library::standard(), &options, "test");
     let top = e.top_scope(&d.nodes);
     let at = e.at(&top, 0, "g".to_string());

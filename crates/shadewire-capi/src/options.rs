@@ -8,7 +8,7 @@ use std::ffi::{c_char, c_void};
 use std::mem::MaybeUninit;
 
 use shadewire_mtlx::Resolver;
-use shadewire_nodes::LowerOptions;
+use shadewire_nodes::IrOptions;
 use shadewire_wgsl::CompileOptions;
 
 use crate::resolver::{resolver, shadewire_resolve_fn};
@@ -79,7 +79,7 @@ fn mtlx_defaults() -> shadewire_mtlx_options {
         models: std::ptr::null(),
         model_count: 0,
         working_colorspace: std::ptr::null(),
-        values_as_uniforms: LowerOptions::default().values_as_uniforms,
+        values_as_uniforms: IrOptions::default().values_as_uniforms,
         reserved: [0; 7],
         resolve: None,
         resolve_user_data: std::ptr::null_mut(),
@@ -109,14 +109,14 @@ unsafe fn flag(field: *const bool) -> bool {
     unsafe { field.cast::<u8>().read() != 0 }
 }
 
-/// Reads MaterialX options, as the lowering options and the include resolver; NULL gives the defaults.
+/// Reads MaterialX options, as the IR options and the include resolver; NULL gives the defaults.
 ///
 /// # Safety
 /// `ptr` must be NULL or point to `struct_size` readable bytes (at least 4); `models` must hold `model_count` valid
 /// NUL-terminated strings, and `working_colorspace` must be NULL or a valid NUL-terminated string; `resolve` must be
 /// NULL or a function as `shadewire_resolve_fn` describes.
-pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<(LowerOptions, Resolver), ArgError> {
-    let mut options = LowerOptions::default();
+pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<(IrOptions, Resolver), ArgError> {
+    let mut options = IrOptions::default();
     if ptr.is_null() {
         return Ok((options, Resolver::default()));
     }
@@ -217,7 +217,7 @@ mod tests {
         let m = mtlx_default_struct();
         assert_eq!(m.struct_size as usize, size_of::<shadewire_mtlx_options>());
         let (read, _) = unsafe { read_mtlx(&m) }.unwrap();
-        let d = LowerOptions::default();
+        let d = IrOptions::default();
         assert_eq!(read.models, d.models);
         assert_eq!(read.working_colorspace, d.working_colorspace);
         assert_eq!(read.values_as_uniforms, d.values_as_uniforms);
@@ -266,7 +266,7 @@ mod tests {
     #[test]
     fn null_reads_the_defaults() {
         assert_eq!(unsafe { read_compile(std::ptr::null()) }.unwrap(), CompileOptions::default());
-        assert_eq!(unsafe { read_mtlx(std::ptr::null()) }.unwrap().0.models, LowerOptions::default().models);
+        assert_eq!(unsafe { read_mtlx(std::ptr::null()) }.unwrap().0.models, IrOptions::default().models);
     }
 
     #[test]
@@ -386,9 +386,9 @@ mod tests {
     fn a_short_mtlx_struct_keeps_the_default_for_missing_fields() {
         let mut m = mtlx_default_struct();
         m.struct_size = offset_of!(shadewire_mtlx_options, values_as_uniforms) as u32;
-        m.values_as_uniforms = !LowerOptions::default().values_as_uniforms;
+        m.values_as_uniforms = !IrOptions::default().values_as_uniforms;
         let (read, _) = unsafe { read_mtlx(&m) }.unwrap();
-        assert_eq!(read.values_as_uniforms, LowerOptions::default().values_as_uniforms);
+        assert_eq!(read.values_as_uniforms, IrOptions::default().values_as_uniforms);
     }
 
     #[test]

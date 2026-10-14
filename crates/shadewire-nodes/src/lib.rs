@@ -22,5 +22,5 @@ pub use elaborate::{Elaborator, elaborate};
 pub use element::Element;
 pub use index::Index;
 pub use library::Library;
-pub use options::{DEFAULT_MODELS, LowerOptions};
+pub use options::{DEFAULT_MODELS, IrOptions};
 pub use resolve_nodedef::resolve_nodedef;

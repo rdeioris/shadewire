@@ -4,7 +4,7 @@ use shadewire::{Dag, Error, SourceInfo};
 
 use crate::include::{Resolver, resolve_includes};
 use crate::upgrade::upgrade;
-use shadewire_nodes::LowerOptions;
+use shadewire_nodes::IrOptions;
 use shadewire_nodes::document::build::build;
 use shadewire_nodes::elaborate::elaborate;
 use shadewire_nodes::library::standard;
@@ -25,7 +25,7 @@ pub fn to_ir(
     text: &str,
     location: Option<&str>,
     material: Option<&str>,
-    options: &LowerOptions,
+    options: &IrOptions,
     resolver: &Resolver,
 ) -> Result<MaterialIr, Error> {
     let root = parse_str(text, location)?;
@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn an_example_lowers_to_a_printable_dag() {
         let text = std::fs::read_to_string(DEFAULT).unwrap();
-        let ir = to_ir(&text, Some(DEFAULT), None, &LowerOptions::default(), &Resolver::default()).unwrap();
+        let ir = to_ir(&text, Some(DEFAULT), None, &IrOptions::default(), &Resolver::default()).unwrap();
         assert_eq!(ir.dag.surface.model, "standard_surface");
         assert_eq!(ir.source.mtlx_version, "1.39");
         assert!(ir.dag.dump().starts_with("model standard_surface\n"), "{}", ir.dag.dump());
@@ -71,7 +71,7 @@ mod tests {
             "/../../vendor/materialx/resources/Materials/Examples/OpenPbr/open_pbr_default.mtlx"
         ))
         .unwrap();
-        let options = LowerOptions::with_models(&["standard_surface"]);
+        let options = IrOptions::with_models(&["standard_surface"]);
         let err = to_ir(&text, None, None, &options, &Resolver::default()).unwrap_err();
         assert!(matches!(err, Error::NoTranslation { .. }), "{err}");
     }
@@ -86,7 +86,7 @@ mod tests {
     #[test]
     fn includes_without_a_file_are_an_error() {
         let text = r#"<materialx version="1.39"><xi:include href="other.mtlx"/></materialx>"#;
-        let err = to_ir(text, None, None, &LowerOptions::default(), &Resolver::default()).unwrap_err();
+        let err = to_ir(text, None, None, &IrOptions::default(), &Resolver::default()).unwrap_err();
         assert!(err.to_string().contains("includes need a document location"), "{err}");
     }
 }

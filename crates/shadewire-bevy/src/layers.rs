@@ -57,7 +57,7 @@ pub fn enable(mut base: StandardMaterial, reflection: &Reflection) -> StandardMa
 mod tests {
     use super::*;
     use shadewire_mtlx::{Resolver, to_ir};
-    use shadewire_nodes::LowerOptions;
+    use shadewire_nodes::IrOptions;
     use shadewire_wgsl::compile;
 
     use crate::shader::compile_options;
@@ -78,7 +78,7 @@ mod tests {
   </surfacematerial>
 </materialx>"#
         );
-        let ir = to_ir(&text, None, None, &LowerOptions::default(), &Resolver::default()).unwrap();
+        let ir = to_ir(&text, None, None, &IrOptions::default(), &Resolver::default()).unwrap();
         compile(&ir.dag, &ir.source, &compile_options()).unwrap().reflection
     }
 

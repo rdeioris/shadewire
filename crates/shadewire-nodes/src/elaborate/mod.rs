@@ -47,7 +47,7 @@ use shadewire::{Compound, Dag, Error, Location, NodeId, SurfaceField, Type, Valu
 use crate::document::{Document, PortType};
 use crate::index::Index;
 use crate::library::Library;
-use crate::options::LowerOptions;
+use crate::options::IrOptions;
 use crate::surface::CLOSURE_MODEL;
 use crate::surface::find::{SurfaceSource, pick_material};
 
@@ -66,7 +66,7 @@ pub type MemoKey = (u32, String, String);
 
 pub struct Elaborator<'a> {
     pub index: Index<'a>,
-    pub options: &'a LowerOptions,
+    pub options: &'a IrOptions,
     pub dag: Dag,
     pub memo: HashMap<MemoKey, NodeId>,
     pub in_progress: HashSet<MemoKey>,
@@ -95,7 +95,7 @@ pub struct Elaborator<'a> {
 }
 
 impl<'a> Elaborator<'a> {
-    pub fn new(doc: &'a Document, lib: &'a Library, options: &'a LowerOptions, model: &str) -> Elaborator<'a> {
+    pub fn new(doc: &'a Document, lib: &'a Library, options: &'a IrOptions, model: &str) -> Elaborator<'a> {
         Elaborator {
             index: Index::new(doc, lib),
             options,
@@ -170,7 +170,7 @@ impl<'a> Elaborator<'a> {
 /// Compiles the document's material into a DAG for one of `options.models`.
 /// Elaboration recurses along the graph, so it runs on a thread with a large
 /// stack; where no thread can be made it runs on the caller's.
-pub fn elaborate(doc: &Document, lib: &Library, options: &LowerOptions, material: Option<&str>) -> Result<Dag, Error> {
+pub fn elaborate(doc: &Document, lib: &Library, options: &IrOptions, material: Option<&str>) -> Result<Dag, Error> {
     std::thread::scope(|threads| {
         let builder = std::thread::Builder::new().name("shadewire-elaborate".to_string()).stack_size(STACK_BYTES);
         match builder.spawn_scoped(threads, || elaborate_here(doc, lib, options, material)) {
@@ -183,7 +183,7 @@ pub fn elaborate(doc: &Document, lib: &Library, options: &LowerOptions, material
     })
 }
 
-fn elaborate_here(doc: &Document, lib: &Library, options: &LowerOptions, material: Option<&str>) -> Result<Dag, Error> {
+fn elaborate_here(doc: &Document, lib: &Library, options: &IrOptions, material: Option<&str>) -> Result<Dag, Error> {
     let mut elaborator = Elaborator::new(doc, lib, options, "");
     let models: Vec<&str> = options.models.iter().map(String::as_str).collect();
     elaborator.accepted_models = options.models.clone();
@@ -211,7 +211,7 @@ fn elaborate_here(doc: &Document, lib: &Library, options: &LowerOptions, materia
 /// Test helper: a DAG whose single surface field `out` is output `output` of user nodegraph `graph`.
 #[cfg(test)]
 pub(crate) fn elaborate_output(doc: &Document, graph: &str, output: &str) -> Result<Dag, Error> {
-    let options = LowerOptions::default();
+    let options = IrOptions::default();
     let mut elaborator = Elaborator::new(doc, crate::library::standard(), &options, "test");
     let top = elaborator.top_scope(&doc.nodes);
     let at = elaborator.at(&top, 0, graph.to_string());

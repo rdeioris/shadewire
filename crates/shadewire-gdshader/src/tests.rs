@@ -1,12 +1,12 @@
 use std::path::{Path, PathBuf};
 
 use shadewire_mtlx::{Resolver, material_names, to_ir};
-use shadewire_nodes::LowerOptions;
+use shadewire_nodes::IrOptions;
 
 use crate::{GdshaderOptions, GdshaderOutput, LOBE_MODELS, MODELS, Transparency, compile};
 
-fn options(models: &[&str], values_as_uniforms: bool) -> LowerOptions {
-    LowerOptions { values_as_uniforms, ..LowerOptions::with_models(models) }
+fn options(models: &[&str], values_as_uniforms: bool) -> IrOptions {
+    IrOptions { values_as_uniforms, ..IrOptions::with_models(models) }
 }
 
 /// With `SHADEWIRE_GDSHADER_OUT` set, writes a generated shader there, for Godot to check

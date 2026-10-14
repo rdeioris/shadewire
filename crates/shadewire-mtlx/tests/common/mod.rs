@@ -5,7 +5,7 @@ use std::path::Path;
 use shadewire::Error;
 use shadewire::shader::{CompileOptions, Compiled};
 use shadewire_mtlx::{Resolver, to_ir};
-use shadewire_nodes::LowerOptions;
+use shadewire_nodes::IrOptions;
 use shadewire_wgsl::compile;
 
 /// `to_ir`, then `compile`.
@@ -13,7 +13,7 @@ pub fn compile_mtlx(
     text: &str,
     file: Option<&Path>,
     material: Option<&str>,
-    lower: &LowerOptions,
+    lower: &IrOptions,
     options: &CompileOptions,
 ) -> Result<Compiled, Error> {
     let ir = to_ir(text, file.and_then(Path::to_str), material, lower, &Resolver::default())?;

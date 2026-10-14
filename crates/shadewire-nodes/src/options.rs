@@ -1,11 +1,11 @@
-//! What every front end decides before lowering: which models the host accepts and how values are read.
+//! What every front end decides about the IR it produces: which models the host accepts and how values are read.
 
 /// The models most hosts map; `surface::KNOWN_MODELS` has two more, and `surface::CLOSURE_MODEL` opens every
 /// model not listed into its closure tree.
 pub const DEFAULT_MODELS: [&str; 4] = ["open_pbr_surface", "standard_surface", "gltf_pbr", "surface_unlit"];
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct LowerOptions {
+pub struct IrOptions {
     /// Surface models the host accepts; a material of another model is `Error::NoTranslation`.
     pub models: Vec<String>,
     /// The colorspace authored colors are converted to.
@@ -16,16 +16,16 @@ pub struct LowerOptions {
     pub max_nodes: Option<usize>,
 }
 
-impl Default for LowerOptions {
-    fn default() -> LowerOptions {
-        LowerOptions::with_models(&DEFAULT_MODELS)
+impl Default for IrOptions {
+    fn default() -> IrOptions {
+        IrOptions::with_models(&DEFAULT_MODELS)
     }
 }
 
-impl LowerOptions {
+impl IrOptions {
     /// The defaults, accepting `models`.
-    pub fn with_models(models: &[&str]) -> LowerOptions {
-        LowerOptions {
+    pub fn with_models(models: &[&str]) -> IrOptions {
+        IrOptions {
             models: models.iter().map(|m| m.to_string()).collect(),
             working_colorspace: "lin_rec709".to_string(),
             values_as_uniforms: true,
@@ -40,7 +40,7 @@ mod tests {
 
     #[test]
     fn defaults_are_the_four_models_most_hosts_map() {
-        let o = LowerOptions::default();
+        let o = IrOptions::default();
         assert_eq!(o.models, DEFAULT_MODELS.iter().map(|m| m.to_string()).collect::<Vec<_>>());
         assert_eq!(o.working_colorspace, "lin_rec709");
         assert!(o.values_as_uniforms);
@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn with_models_keeps_the_other_defaults() {
-        let o = LowerOptions::with_models(&["surface"]);
+        let o = IrOptions::with_models(&["surface"]);
         assert_eq!(o.models, ["surface"]);
         assert!(o.values_as_uniforms);
     }

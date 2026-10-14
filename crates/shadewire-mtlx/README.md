@@ -7,10 +7,10 @@ tree of MaterialX's lobes, raw BSDF graphs included).
 
 ```rust
 use shadewire_mtlx::{Resolver, to_ir};
-use shadewire_nodes::LowerOptions;
+use shadewire_nodes::IrOptions;
 
 let text = std::fs::read_to_string("material.mtlx")?;
-let ir = to_ir(&text, Some("material.mtlx"), None, &LowerOptions::default(), &Resolver::default())?;
+let ir = to_ir(&text, Some("material.mtlx"), None, &IrOptions::default(), &Resolver::default())?;
 print!("{}", ir.dag.dump());
 ```
 

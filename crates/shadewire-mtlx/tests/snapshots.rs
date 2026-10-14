@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 mod common;
 
 use common::compile_mtlx;
-use shadewire_nodes::LowerOptions;
+use shadewire_nodes::IrOptions;
 use shadewire_wgsl::{CompileOptions, Compiled};
 
 fn root() -> PathBuf {
@@ -17,7 +17,7 @@ fn root() -> PathBuf {
 fn compile(relative: &str) -> Compiled {
     let path = root().join(relative);
     let text = std::fs::read_to_string(&path).unwrap();
-    compile_mtlx(&text, Some(&path), None, &LowerOptions::default(), &CompileOptions::default())
+    compile_mtlx(&text, Some(&path), None, &IrOptions::default(), &CompileOptions::default())
         .unwrap_or_else(|e| panic!("{relative}: {e}"))
 }
 

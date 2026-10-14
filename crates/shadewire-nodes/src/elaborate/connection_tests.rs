@@ -5,7 +5,7 @@ use shadewire::{Error, Type};
 use super::elaborate_output;
 use super::tests::doc;
 use crate::library::standard;
-use crate::{LowerOptions, elaborate};
+use crate::{IrOptions, elaborate};
 
 fn mismatch(result: Result<shadewire::Dag, Error>) -> (String, String, String) {
     match result {
@@ -50,7 +50,7 @@ fn a_texcoord_into_base_color_is_a_mismatch() {
         <surfacematerial name="m" type="material">
           <input name="surfaceshader" type="surfaceshader" nodename="s"/>
         </surfacematerial>"#);
-    let result = elaborate(&d, standard(), &LowerOptions::with_models(&["standard_surface"]), None);
+    let result = elaborate(&d, standard(), &IrOptions::with_models(&["standard_surface"]), None);
     let (path, expected, found) = mismatch(result);
     assert_eq!((path.as_str(), expected.as_str(), found.as_str()), ("s.base_color", "color3", "vector2"));
 }
@@ -64,7 +64,7 @@ fn a_vector3_node_into_a_color3_input_is_relabelled() {
         <surfacematerial name="m" type="material">
           <input name="surfaceshader" type="surfaceshader" nodename="s"/>
         </surfacematerial>"#);
-    let dag = elaborate(&d, standard(), &LowerOptions::with_models(&["standard_surface"]), None).unwrap();
+    let dag = elaborate(&d, standard(), &IrOptions::with_models(&["standard_surface"]), None).unwrap();
     let field = dag.surface.fields.iter().find(|f| f.name == "base_color").unwrap();
     assert_eq!(field.ty, Type::Color3);
 }

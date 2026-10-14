@@ -2,7 +2,7 @@ use shadewire::Error;
 use shadewire::optimize::optimize;
 use shadewire::shader::{CompileOptions, Compiled};
 use shadewire_mtlx::{Resolver, material_names, to_ir};
-use shadewire_nodes::LowerOptions;
+use shadewire_nodes::IrOptions;
 
 use crate::args::{Args, Command, CompileArgs, IrArgs, Lang, ListArgs, Transparency};
 
@@ -20,8 +20,8 @@ fn io(e: std::io::Error, what: &std::path::Path) -> Error {
 
 /// The front end's options. The models: `--model`'s, or with `--lobes` only the closure tree (and unlit), or else
 /// `default` when given, else the front end's own.
-fn lower_options(models: &[String], lobes: bool, default: Option<&[&str]>, constants: bool) -> LowerOptions {
-    let mut options = LowerOptions::default();
+fn ir_options(models: &[String], lobes: bool, default: Option<&[&str]>, constants: bool) -> IrOptions {
+    let mut options = IrOptions::default();
     let fixed = if lobes { Some(&shadewire_gdshader::LOBE_MODELS[..]) } else { default };
     if !models.is_empty() {
         options.models = models.to_vec();
@@ -42,7 +42,7 @@ fn compile_options(args: &CompileArgs) -> CompileOptions {
 
 fn ir_command(args: &IrArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
-    let lower = lower_options(&args.models, args.lobes, None, args.constants);
+    let lower = ir_options(&args.models, args.lobes, None, args.constants);
     let ir =
         to_ir(&text, Some(&args.file.display().to_string()), args.material.as_deref(), &lower, &Resolver::default())?;
     let dag = if args.no_optimize { ir.dag } else { optimize(&ir.dag) };
@@ -103,7 +103,7 @@ fn compile_command(args: &CompileArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
     // The Godot back end has its own model list: the six it maps, and closure trees.
     let default = (args.lang == Lang::Gdshader).then_some(&shadewire_gdshader::MODELS[..]);
-    let lower = lower_options(&args.models, args.lobes, default, args.constants);
+    let lower = ir_options(&args.models, args.lobes, default, args.constants);
     let ir =
         to_ir(&text, Some(&args.file.display().to_string()), args.material.as_deref(), &lower, &Resolver::default())?;
     let compiled = compile(&ir, args)?;

@@ -1,19 +1,19 @@
 //! What the builder is told: which material, the MaterialX front end's options and the compile knobs the
 //! Bevy layout leaves open.
 
-use shadewire_nodes::LowerOptions;
+use shadewire_nodes::IrOptions;
 use shadewire_wgsl::CompileOptions;
 
 use crate::shader::compile_options;
 
 /// Options of [`FromMtlx`](crate::FromMtlx). `Default` builds the document's only material with
-/// `LowerOptions::default()` (values as uniforms), optimized, V flipped.
+/// `IrOptions::default()` (values as uniforms), optimized, V flipped.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BuildOptions {
     /// The material to build; `None` builds the document's only material, and is an error when it has several.
     pub material: Option<String>,
     /// The front end's options: accepted models, working colour space, `values_as_uniforms`.
-    pub lower: LowerOptions,
+    pub ir: IrOptions,
     /// Run the optimizer before reflection and emission.
     pub optimize: bool,
     /// Flip V when sampling: Bevy uploads images top row first.
@@ -23,12 +23,7 @@ pub struct BuildOptions {
 impl Default for BuildOptions {
     fn default() -> BuildOptions {
         let compile = compile_options();
-        BuildOptions {
-            material: None,
-            lower: LowerOptions::default(),
-            optimize: compile.optimize,
-            flip_v: compile.flip_v,
-        }
+        BuildOptions { material: None, ir: IrOptions::default(), optimize: compile.optimize, flip_v: compile.flip_v }
     }
 }
 

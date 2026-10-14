@@ -9,7 +9,7 @@ use crate::document::build::build;
 use crate::index::Index;
 use crate::library::standard;
 use crate::parse::parse_str;
-use crate::{LowerOptions, elaborate};
+use crate::{IrOptions, elaborate};
 
 const EXAMPLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/materialx/resources/Materials/Examples");
 
@@ -26,7 +26,7 @@ fn inline(body: &str) -> Document {
 }
 
 fn compile(doc: &Document, material: Option<&str>, models: &[&str]) -> Result<Dag, Error> {
-    elaborate(doc, standard(), &LowerOptions::with_models(models), material)
+    elaborate(doc, standard(), &IrOptions::with_models(models), material)
 }
 
 fn field_count(nodedef: &str) -> usize {

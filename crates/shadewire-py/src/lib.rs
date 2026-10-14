@@ -16,7 +16,7 @@ use pyo3::prelude::*;
 use shadewire::shader::CompileOptions;
 use shadewire::{Dag, SourceInfo, model_struct_name};
 use shadewire_mtlx::{Resolved, Resolver};
-use shadewire_nodes::LowerOptions;
+use shadewire_nodes::IrOptions;
 
 create_exception!(shadewire, ShadewireError, PyException, "A document Shadewire cannot read or compile.");
 
@@ -126,7 +126,7 @@ fn to_ir(
     values_as_uniforms: bool,
     resolver: Option<Py<PyAny>>,
 ) -> PyResult<PyIr> {
-    let mut options = LowerOptions { values_as_uniforms, ..LowerOptions::default() };
+    let mut options = IrOptions { values_as_uniforms, ..IrOptions::default() };
     if let Some(models) = models {
         options.models = models;
     }

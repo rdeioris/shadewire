@@ -230,7 +230,7 @@ fn library_graph_errors_name_the_library_file() {
     let d = doc(
         r#"<nodegraph name="g"><broken name="n" type="float"/><output name="out" type="float" nodename="n"/></nodegraph>"#,
     );
-    let options = crate::LowerOptions::default();
+    let options = crate::IrOptions::default();
     let mut elaborator = super::Elaborator::new(&d, &library, &options, "test");
     let top = elaborator.top_scope(&d.nodes);
     let at = elaborator.at(&top, 0, "g".to_string());
