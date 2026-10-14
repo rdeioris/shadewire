@@ -83,7 +83,9 @@ No compatibility shims: old names are gone.
   cache key from the structure hash, and the `gltf_mtlx` example (a material on a glTF scene, live recompiling).
 - Closure trees (the `surface` model) lit by MaterialX's lobes: Bevy's point, spot and directional lights, shadows
   and contact shadows through `shadewire_eval_bsdf`, in Bevy's light units (the `lobe_calibration` example checks a
-  white Lambert lobe against `StandardMaterial`). No indirect light yet. `matlib_render --lobes` renders that way.
+  white Lambert lobe against `StandardMaterial` under a directional light, the ambient light and an environment map).
+  Indirect light through `shadewire_eval_ambient`'s diffuse and specular split, with nothing to invert: lightmaps,
+  irradiance volumes, environment maps and the ambient light. `matlib_render --lobes` renders that way.
 - Limits: forward rendering, up to 8 textures and 1 KiB of uniforms per material.
 
 ### Blender add-on (`blender/shadewire`, new)

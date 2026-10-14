@@ -19,9 +19,23 @@
 //! and by `mix(1, exposure, emissive.a)` of the base material, as Bevy scales `emissive`
 //! (pbr_functions.wesl:822-833).
 //!
+//! Indirect light goes through `shadewire_eval_ambient`, the tree's albedo (its response to a uniform white
+//! environment) split into what its diffuse and its specular lobes reflect, and the specular lobes' perceptual
+//! roughness. Bevy's own indirect terms are already albedo times light, so the split takes their place with nothing
+//! to invert: the environment map's diffuse `kD × irradiance` and specular `FssEss × radiance`
+//! (light_probe/environment_map.wesl:380-389) become `diffuse × irradiance` and `specular × radiance`, the radiance
+//! sampled at the split's roughness through Bevy's `compute_radiances` (:101, :232); the irradiance volume and the
+//! lightmap light the diffuse part (pbr_functions.wesl:694-712); the ambient light lights the whole albedo as
+//! `ambient_light` does (render/pbr_ambient.wesl:8-26), the diffuse part scaled by Bevy's fit at full roughness,
+//! `F_AB(1, NdotV)`, so a closure tree sits beside Bevy's own materials under the same `AmbientLight`. They take
+//! Bevy's priority (lightmap, then irradiance volume, then environment map for the diffuse part)
+//! and its occlusion: SSAO and the base material's occlusion texture on the diffuse part, SSAO's specular occlusion
+//! on the specular part (render/pbr_fragment.wesl:516-548).
+//!
 //! Not lit: rect lights (their LTC integral needs Bevy's BRDF), light textures, the atmosphere's transmittance of
-//! directional lights, and indirect light. Point and spot lights are points: their radius does not widen the
-//! lobes as Bevy's `compute_specular_layer_values_for_point_light` widens its own.
+//! directional lights, and screen-space transmission. Point and spot lights are points: their radius does not
+//! widen the lobes as Bevy's `compute_specular_layer_values_for_point_light` widens its own. A lightmapped mesh
+//! still takes the diffuse part of every light.
 
 /// The imports `shadewire_light` adds to the module's.
 pub const IMPORTS: &str = "import bevy_pbr::render::{
@@ -36,11 +50,16 @@ pub const IMPORTS: &str = "import bevy_pbr::render::{
 
 @if(CONTACT_SHADOWS && DEPTH_PREPASS)
 import bevy_pbr::render::pbr_functions::calculate_contact_shadow;
+@if(ENVIRONMENT_MAP)
+import bevy_pbr::light_probe::environment_map;
+@if(IRRADIANCE_VOLUME)
+import bevy_pbr::light_probe::irradiance_volume;
 ";
 
-/// What a closure tree in Bevy is not lit by; the reflection's `approximations` gets it.
-pub const APPROXIMATIONS: &str = "bevy: a closure tree is lit by point, spot and directional lights only (as points, \
-     without rect lights, light textures, atmosphere or indirect light)";
+/// What a closure tree in Bevy loses; the reflection's `approximations` gets it.
+pub const APPROXIMATIONS: &str = "bevy: a closure tree's indirect light sees one specular roughness for every \
+     specular lobe; rect lights, light textures, the atmosphere and screen-space transmission do not light it, and \
+     point and spot lights are points";
 
 /// The contact shadow of a light toward `l` when the light casts them (`flags & bit`), else 1.
 const CONTACT: &str = "@if(CONTACT_SHADOWS && DEPTH_PREPASS)
@@ -66,7 +85,7 @@ const LIGHT: &str = "fn shadewire_light(in: PbrInput, s: {MODEL}, n: vec3<f32>) 
         view_bindings::view.view_from_world[3].z
     ), in.world_position);
     let cluster_index = clustering::view_fragment_cluster_index(in.frag_coord.xy, view_z, in.is_orthographic);
-    let ranges = clustering::unpack_clusterable_object_index_ranges(cluster_index);
+    var ranges = clustering::unpack_clusterable_object_index_ranges(cluster_index);
     var direct = vec3<f32>(0.0);
 
     // Point and spot lights: the spot lights follow the point lights in the cluster's list.
@@ -114,10 +133,48 @@ const LIGHT: &str = "fn shadewire_light(in: PbrInput, s: {MODEL}, n: vec3<f32>) 
         direct += shadewire_eval_bsdf(s, l, v, n).response * (*light).color.rgb * shadow;
     }
 
+    // Indirect light through the albedo split, in Bevy's priority for the diffuse part.
+    let a = shadewire_eval_ambient(s, v, n);
+    let diffuse = a.diffuse * in.diffuse_occlusion;
+    let specular = a.specular * in.specular_occlusion;
+    var indirect = vec3<f32>(0.0);
+    var found_diffuse_indirect = false;
+@if(LIGHTMAP) {
+    indirect += in.lightmap_light * a.diffuse;
+    found_diffuse_indirect = true;
+}
+    @if(IRRADIANCE_VOLUME)
+    if !found_diffuse_indirect {
+        indirect += irradiance_volume::irradiance_volume_light(p, n, &ranges) * diffuse;
+        found_diffuse_indirect = true;
+    }
+@if(ENVIRONMENT_MAP) {
+    var layer: lighting::LayerLightingInput;
+    layer.N = n;
+    layer.R = reflect(-v, n);
+    layer.NdotV = max(dot(n, v), 0.0001);
+    layer.perceptual_roughness = a.roughness;
+    layer.roughness = lighting::perceptualRoughnessToRoughness(a.roughness);
+    let radiances = environment_map::compute_radiances(layer, &ranges, p, found_diffuse_indirect);
+    if !found_diffuse_indirect {
+        indirect += radiances.irradiance * diffuse;
+    }
+    indirect += radiances.radiance * specular;
+}
+    @if(LIGHTMAP)
+    let ambient = (view_bindings::lights.ambient_light_flags
+        & mesh_view_types::AMBIENT_LIGHT_FLAGS_AFFECTS_LIGHTMAPPED_MESHES_BIT) != 0u;
+    @else
+    let ambient = true;
+    if ambient {
+        let f_ab = lighting::F_AB(1.0, max(dot(n, v), 0.0001));
+        indirect += (diffuse * (f_ab.x + f_ab.y) + specular) * view_bindings::lights.ambient_color.rgb;
+    }
+
     let alpha = in.material.base_color.a;
     let exposure = view_bindings::view.exposure;
     let emission = shadewire_eval_emission(s, v, n) * alpha * mix(1.0, exposure, in.material.emissive.a);
-    return vec4<f32>(exposure * direct + emission, alpha);
+    return vec4<f32>(exposure * (direct + indirect) + emission, alpha);
 }
 ";
 

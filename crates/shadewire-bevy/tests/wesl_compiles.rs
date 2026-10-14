@@ -58,6 +58,47 @@ const CONTACT: &[&str] = &[
     "DEPTH_PREPASS",
 ];
 
+/// Irradiance volumes and the view's environment map, with storage buffers as on desktop (bevy_render
+/// src/render_resource/pipeline_cache.rs:263-272).
+const INDIRECT: &[&str] = &[
+    "MESH_PIPELINE",
+    "VERTEX_OUTPUT_INSTANCE_INDEX",
+    "VERTEX_POSITIONS",
+    "VERTEX_NORMALS",
+    "VERTEX_UVS",
+    "VERTEX_UVS_A",
+    "VIEW_PROJECTION_PERSPECTIVE",
+    "SHADOW_FILTER_METHOD_GAUSSIAN",
+    "IRRADIANCE_VOLUME",
+    "IRRADIANCE_VOLUMES_ARE_USABLE",
+    "ENVIRONMENT_MAP",
+    "AVAILABLE_STORAGE_BUFFER_BINDINGS__GE_3",
+    "AVAILABLE_STORAGE_BUFFER_BINDINGS__GE_6",
+];
+
+/// Every indirect source on a lightmapped mesh, reflection probes and irradiance volumes in binding arrays
+/// (bevy_pbr src/render/mesh_view_bindings.rs). A lightmap with the single view probe does not compile in
+/// Bevy 0.20 itself: `compute_radiances` ANDs a bool with the `u32` field
+/// `view_environment_map_affects_lightmapped_mesh_diffuse` (src/light_probe/environment_map.wesl:251).
+const PROBE_ARRAYS: &[&str] = &[
+    "MESH_PIPELINE",
+    "VERTEX_OUTPUT_INSTANCE_INDEX",
+    "VERTEX_POSITIONS",
+    "VERTEX_NORMALS",
+    "VERTEX_UVS",
+    "VERTEX_UVS_A",
+    "VERTEX_UVS_B",
+    "VIEW_PROJECTION_PERSPECTIVE",
+    "SHADOW_FILTER_METHOD_GAUSSIAN",
+    "LIGHTMAP",
+    "IRRADIANCE_VOLUME",
+    "IRRADIANCE_VOLUMES_ARE_USABLE",
+    "ENVIRONMENT_MAP",
+    "MULTIPLE_LIGHT_PROBES_IN_ARRAY",
+    "AVAILABLE_STORAGE_BUFFER_BINDINGS__GE_3",
+    "AVAILABLE_STORAGE_BUFFER_BINDINGS__GE_6",
+];
+
 /// Positions and normals only: the screen-space tangent, zero UVs and white color paths.
 const BARE: &[&str] = &["MESH_PIPELINE", "VERTEX_OUTPUT_INSTANCE_INDEX", "VERTEX_POSITIONS", "VERTEX_NORMALS"];
 
@@ -269,7 +310,7 @@ fn closure_trees_are_lit_by_their_lobes() {
         "GltfPbr/gltf_pbr_default.mtlx",
         "StandardSurface/standard_surface_brass_tiled.mtlx",
     ] {
-        for defs in [FULL, BARE, CONTACT] {
+        for defs in [FULL, BARE, CONTACT, INDIRECT, PROBE_ARRAYS] {
             let (main, module) = compile_models_in_bevy(&format!("{EXAMPLES}/{file}"), defs, &lobe_models());
             assert!(
                 main.contains(

@@ -255,10 +255,14 @@ uniform built at 0 and raised later through `set_uniform` or the extension's `pa
 Closure trees: with `surface` among the accepted models (`shadewire::LOBE_MODELS` accepts only `surface` and
 `surface_unlit`, so every material opens into its lobes), the material is lit by MaterialX's reference lobes instead
 of Bevy's BRDF: the fragment walks Bevy's point, spot and directional lights, with their shadows and contact shadows,
-and adds `shadewire_eval_bsdf` for each, then `shadewire_eval_emission`; the tree's opacity is the alpha. Lobes take
-Bevy's light units as they are, so a white Lambert lobe lights as a white rough `StandardMaterial`
-(`cargo run -p shadewire-bevy --example lobe_calibration` checks it). Not lit yet: indirect light, rect lights, light
-textures and the atmosphere; point and spot lights are points. The reflection's `approximations` says so.
+and adds `shadewire_eval_bsdf` for each, then `shadewire_eval_emission`; the tree's opacity is the alpha. Indirect
+light (lightmaps, irradiance volumes, environment maps and reflection probes, the ambient light) goes through
+`shadewire_eval_ambient`: the tree's albedo split into a diffuse and a specular part takes the place of Bevy's own, so
+nothing is inverted, and the specular part samples the environment at one roughness for every specular lobe. Lobes
+take Bevy's light units as they are, so a white Lambert lobe lights as a white rough `StandardMaterial` under each kind
+of light (`cargo run -p shadewire-bevy --example lobe_calibration` checks it). Not lit: rect lights, light textures,
+the atmosphere and screen-space transmission; point and spot lights are points. The reflection's `approximations`
+says so.
 
 Limits:
 
