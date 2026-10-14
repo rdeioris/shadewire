@@ -1,7 +1,9 @@
 //! Batch renderer for the material library regression harness (`tools/matlib`): each MaterialX file of a
 //! list on a sphere, framed like the library's preview renders, saved as a square PNG.
 //!
-//! `cargo run -p shadewire-bevy --example matlib_render --release -- <list.tsv> <results.tsv> [--size N]`
+//! `cargo run -p shadewire-bevy --example matlib_render --release -- <list.tsv> <results.tsv> [--size N] [--lobes]`
+//!
+//! `--lobes` opens every material into its closure tree, lit by MaterialX's lobes instead of Bevy's BRDF.
 //!
 //! Each line of the list is `<material.mtlx>\t<out.png>[\t<uv scale>]`; the document's material (it must
 //! have one) is built, on a sphere whose texture coordinates are multiplied by the scale (1 by default). Each
@@ -21,7 +23,7 @@ use bevy::render::view::screenshot::{Screenshot, ScreenshotCaptured, save_to_dis
 use bevy::window::WindowResolution;
 use shadewire_bevy::{BuildOptions, FromMtlx, ShadewireAssets, ShadewireMaterial, ShadewirePlugin};
 
-const USAGE: &str = "usage: matlib_render <list.tsv> <results.tsv> [--size N]";
+const USAGE: &str = "usage: matlib_render <list.tsv> <results.tsv> [--size N] [--lobes]";
 
 /// Frames drawn with a material before its shot.
 const FRAMES: u32 = 4;
@@ -45,6 +47,7 @@ struct Entry {
 #[derive(Resource)]
 struct Batch {
     entries: Vec<Entry>,
+    options: BuildOptions,
     /// The sphere for each UV scale used so far.
     spheres: Vec<(f32, Handle<Mesh>)>,
     results: File,
@@ -72,7 +75,7 @@ impl Batch {
 struct Subject;
 
 fn main() -> AppExit {
-    let (list, results, size) = match parse(std::env::args().skip(1)) {
+    let (list, results, size, lobes) = match parse(std::env::args().skip(1)) {
         Ok(args) => args,
         Err(err) => {
             eprintln!("error: {err}\n{USAGE}");
@@ -109,27 +112,45 @@ fn main() -> AppExit {
         .add_plugins(ShadewirePlugin)
         .insert_resource(ClearColor(BACKDROP))
         .insert_resource(GlobalAmbientLight { brightness: 400.0, ..default() })
-        .insert_resource(Batch { entries, spheres: Vec::new(), results, next: 0, phase: Phase::Load })
+        .insert_resource(Batch {
+            entries,
+            options: build_options(lobes),
+            spheres: Vec::new(),
+            results,
+            next: 0,
+            phase: Phase::Load,
+        })
         .add_systems(Startup, setup)
         .add_systems(Update, step)
         .run()
 }
 
-fn parse(args: impl IntoIterator<Item = String>) -> Result<(PathBuf, PathBuf, u32), String> {
+/// The default options, or with `lobes` the front end accepting only closure trees.
+fn build_options(lobes: bool) -> BuildOptions {
+    let mut options = BuildOptions::default();
+    if lobes {
+        options.mtlx.models = shadewire::LOBE_MODELS.iter().map(|m| m.to_string()).collect();
+    }
+    options
+}
+
+fn parse(args: impl IntoIterator<Item = String>) -> Result<(PathBuf, PathBuf, u32, bool), String> {
     let mut positional = Vec::new();
     let mut size = 512;
+    let mut lobes = false;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--size" => {
                 size = args.next().and_then(|s| s.parse().ok()).ok_or("--size needs a number of pixels")?;
             }
+            "--lobes" => lobes = true,
             flag if flag.starts_with("--") => return Err(format!("unknown option {flag}")),
             _ => positional.push(PathBuf::from(arg)),
         }
     }
     match <[PathBuf; 2]>::try_from(positional) {
-        Ok([list, results]) => Ok((list, results, size)),
+        Ok([list, results]) => Ok((list, results, size, lobes)),
         Err(p) => Err(format!("expected a list and a results file, got {} paths", p.len())),
     }
 }
@@ -221,7 +242,7 @@ fn step(
                 return;
             };
             batch.record(&format!("start\t{}", out.display()));
-            match ShadewireMaterial::from_mtlx_file(&mtlx, &BuildOptions::default(), default(), &mut assets) {
+            match ShadewireMaterial::from_mtlx_file(&mtlx, &batch.options, default(), &mut assets) {
                 Ok(built) => {
                     let material = built.material;
                     // The previous material's handle drops here, and its textures with it.

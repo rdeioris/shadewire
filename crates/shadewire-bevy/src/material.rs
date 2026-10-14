@@ -32,6 +32,7 @@ use crate::cache::ShaderCache;
 use crate::error::ShadewireError;
 use crate::extension::ShadewireExtension;
 use crate::layers;
+use crate::lobes;
 use crate::options::BuildOptions;
 use crate::plugin::ShadewireMaterial;
 use crate::shader::module;
@@ -106,8 +107,11 @@ pub(crate) fn build(
     let location = path.map(|p| p.display().to_string());
     let ir = to_ir(text, location.as_deref(), options.material.as_deref(), &options.mtlx)?;
     let compile_options = options.compile_options();
-    let compiled = compile(&ir.dag, &ir.source, &compile_options)?;
+    let mut compiled = compile(&ir.dag, &ir.source, &compile_options)?;
     let source = module(&compiled)?;
+    if compiled.reflection.closure.is_some() {
+        compiled.reflection.approximations.push(lobes::APPROXIMATIONS.to_string());
+    }
     let params = uniforms::pack(&compiled.reflection)?;
     let dir = path.and_then(Path::parent).unwrap_or(Path::new(""));
     let [t0, t1, t2, t3, t4, t5, t6, t7] = textures::load(&compiled.reflection, dir, stores.images)?;
@@ -369,6 +373,24 @@ mod tests {
         let m = Fixture::default().build(text);
         assert!(m.base.clearcoat > 0.0);
         assert_eq!(m.base.specular_transmission, 0.0);
+    }
+
+    #[test]
+    fn a_closure_tree_is_built_and_says_what_it_is_not_lit_by() {
+        let options = BuildOptions {
+            mtlx: MtlxOptions { models: shadewire::LOBE_MODELS.iter().map(|m| m.to_string()).collect(), ..default() },
+            ..BuildOptions::default()
+        };
+        let mut f = Fixture::default();
+        let text =
+            std::fs::read_to_string(format!("{EXAMPLES}/StandardSurface/standard_surface_default.mtlx")).unwrap();
+        let built = f.build_with(&text, &options);
+        assert_eq!(built.reflection.model, "surface");
+        assert!(built.reflection.approximations.iter().any(|a| a == lobes::APPROXIMATIONS));
+        let shader = f.shaders.get(built.material.extension.shader).unwrap();
+        assert!(shader.path.starts_with("shadewire/material_"), "{}", shader.path);
+        let mapped = f.build_with(&text, &BuildOptions::default());
+        assert!(mapped.reflection.approximations.iter().all(|a| a != lobes::APPROXIMATIONS));
     }
 
     #[test]

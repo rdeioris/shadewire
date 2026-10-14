@@ -20,12 +20,14 @@
 //! against Bevy's own WESL sources and validates the result with naga.
 
 use bevy::pbr::MATERIAL_BIND_GROUP_INDEX;
+use shadewire::shader::names::ident;
 use shadewire::{Reflection, model_struct_name};
 use shadewire_wgsl::{CompileOptions, Compiled};
 
 use crate::error::ShadewireError;
 use crate::extension::FIRST_BINDING;
 use crate::host::host;
+use crate::lobes;
 use crate::models::mapping;
 
 /// Bevy's material bind group.
@@ -109,25 +111,40 @@ fn check_bindings(r: &Reflection) -> Result<(), ShadewireError> {
     Ok(())
 }
 
-/// The WESL source of `compiled` (compiled with [`compile_options`]) as Bevy's main-pass fragment shader.
+/// The WESL source of `compiled` (compiled with [`compile_options`]) as Bevy's main-pass fragment shader. A
+/// named model is written onto Bevy's `PbrInput` and lit by Bevy's BRDF; a closure tree is lit by its own lobes
+/// (`crate::lobes`).
 pub fn module(compiled: &Compiled) -> Result<String, ShadewireError> {
     let reflection = &compiled.reflection;
     check_bindings(reflection)?;
-    let map = mapping(&reflection.model)?;
+    let closure = reflection.closure.as_ref();
+    let map = if closure.is_some() { "" } else { mapping(&reflection.model)? };
     let host = host(reflection)?;
     let model = model_struct_name(&reflection.model);
     let mut out = String::new();
     out.push_str(IMPORTS);
+    if closure.is_some() {
+        out.push_str(lobes::IMPORTS);
+    }
     out.push('\n');
     out.push_str(&host.declarations);
     out.push('\n');
     out.push_str(&compiled.code);
     out.push('\n');
+    if closure.is_some() {
+        out.push_str(&lobes::functions(&model));
+        out.push('\n');
+    }
     out.push_str(ENTRY_HEAD);
     out.push_str(&host.statements);
     out.push_str(&format!("    let s: {model} = shadewire_eval_surface();\n"));
-    out.push_str(map);
-    out.push_str(ENTRY_TAIL);
+    match closure {
+        Some(graph) => out.push_str(&lobes::tail(graph.opacity.as_deref().map(ident).as_deref())),
+        None => {
+            out.push_str(map);
+            out.push_str(ENTRY_TAIL);
+        }
+    }
     Ok(out)
 }
 

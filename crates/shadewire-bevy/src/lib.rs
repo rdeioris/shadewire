@@ -14,6 +14,7 @@ mod extension;
 mod host;
 mod key;
 mod layers;
+mod lobes;
 mod material;
 mod models;
 mod options;

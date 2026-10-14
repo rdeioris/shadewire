@@ -81,6 +81,9 @@ No compatibility shims: old names are gone.
   (`ShadewirePlugin`, `FromMtlx`). Identical graphs share one shader and pipeline.
 - Back faces, coat and transmission turned on in the base when the graph uses them, unlit premultiplied color, a
   cache key from the structure hash, and the `gltf_mtlx` example (a material on a glTF scene, live recompiling).
+- Closure trees (the `surface` model) lit by MaterialX's lobes: Bevy's point, spot and directional lights, shadows
+  and contact shadows through `shadewire_eval_bsdf`, in Bevy's light units (the `lobe_calibration` example checks a
+  white Lambert lobe against `StandardMaterial`). No indirect light yet. `matlib_render --lobes` renders that way.
 - Limits: forward rendering, up to 8 textures and 1 KiB of uniforms per material.
 
 ### Blender add-on (`blender/shadewire`, new)

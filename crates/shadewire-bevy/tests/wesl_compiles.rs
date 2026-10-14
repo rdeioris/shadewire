@@ -40,6 +40,24 @@ const FULL: &[&str] = &[
     "VIEW_TRANSMISSION_TEXTURE",
 ];
 
+/// [`FULL`] with contact shadows, which the lobe path fetches itself.
+const CONTACT: &[&str] = &[
+    "MESH_PIPELINE",
+    "VERTEX_OUTPUT_INSTANCE_INDEX",
+    "VERTEX_POSITIONS",
+    "VERTEX_NORMALS",
+    "VERTEX_UVS",
+    "VERTEX_UVS_A",
+    "VERTEX_TANGENTS",
+    "TONEMAP_IN_SHADER",
+    "TONEMAP_METHOD_TONY_MC_MAPFACE",
+    "VIEW_PROJECTION_PERSPECTIVE",
+    "SHADOW_FILTER_METHOD_GAUSSIAN",
+    "MAY_DISCARD",
+    "CONTACT_SHADOWS",
+    "DEPTH_PREPASS",
+];
+
 /// Positions and normals only: the screen-space tangent, zero UVs and white color paths.
 const BARE: &[&str] = &["MESH_PIPELINE", "VERTEX_OUTPUT_INSTANCE_INDEX", "VERTEX_POSITIONS", "VERTEX_NORMALS"];
 
@@ -132,9 +150,15 @@ fn bevy_roots() -> HashMap<String, PathBuf> {
 
 /// The module for `file` (relative to the workspace), compiled by wesl under `defs` then validated by naga.
 fn compile_in_bevy(file: &str, defs: &[&str]) -> (String, naga::Module) {
+    compile_models_in_bevy(file, defs, &MtlxOptions::default().models)
+}
+
+/// [`compile_in_bevy`] with the front end accepting `models`.
+fn compile_models_in_bevy(file: &str, defs: &[&str], models: &[String]) -> (String, naga::Module) {
     let path = Path::new(WORKSPACE).join(file);
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    let ir = to_ir(&text, path.to_str(), None, &MtlxOptions::default()).unwrap();
+    let options = MtlxOptions { models: models.to_vec(), ..MtlxOptions::default() };
+    let ir = to_ir(&text, path.to_str(), None, &options).unwrap();
     let compiled = compile(&ir.dag, &ir.source, &compile_options()).unwrap();
     let main = shadewire_bevy::shader::module(&compiled).unwrap();
     let wgsl = wesl_to_wgsl(&main, defs).unwrap_or_else(|e| panic!("{file}: wesl:\n{e}\n\nmodule:\n{main}"));
@@ -231,4 +255,40 @@ fn every_host_read_compiles() {
     assert!(main.contains("fn shadewire_host_transform_point_object_to_world("));
     assert!(main.contains("var<private> shadewire_in_geomprop_tint: vec3<f32> = vec3<f32>(0.5, 0.5, 0.5);"));
     compile_in_bevy("crates/shadewire-bevy/tests/host_reads.mtlx", BARE);
+}
+
+fn lobe_models() -> Vec<String> {
+    shadewire::LOBE_MODELS.iter().map(|m| m.to_string()).collect()
+}
+
+#[test]
+fn closure_trees_are_lit_by_their_lobes() {
+    for file in [
+        "StandardSurface/standard_surface_default.mtlx",
+        "OpenPbr/open_pbr_default.mtlx",
+        "GltfPbr/gltf_pbr_default.mtlx",
+        "StandardSurface/standard_surface_brass_tiled.mtlx",
+    ] {
+        for defs in [FULL, BARE, CONTACT] {
+            let (main, module) = compile_models_in_bevy(&format!("{EXAMPLES}/{file}"), defs, &lobe_models());
+            assert!(
+                main.contains(
+                    "    let s: Surface = shadewire_eval_surface();
+"
+                ),
+                "{file}"
+            );
+            assert!(main.contains("out.color = shadewire_light(pbr_input, s, shadewire_n);"), "{file}");
+            assert!(!main.contains("apply_pbr_lighting(pbr_input)"), "{file}");
+            assert!(module.entry_points.iter().any(|e| e.name == "fragment"), "{file}");
+        }
+    }
+}
+
+#[test]
+fn a_closure_trees_opacity_is_the_alpha() {
+    let file = format!("{EXAMPLES}/GltfPbr/gltf_pbr_default.mtlx");
+    let (main, _) = compile_models_in_bevy(&file, BARE, &lobe_models());
+    assert!(main.contains("pbr_input.material.base_color = vec4<f32>(pbr_input.material.base_color.rgb, s."), "{main}");
+    assert!(!main.contains("base_color.rgb, 1.0);"), "{main}");
 }

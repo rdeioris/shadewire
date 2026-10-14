@@ -252,6 +252,14 @@ Coat and transmission: Bevy compiles clearcoat and specular transmission into a 
 shader replaces it with the graph's). Specular transmission also moves the mesh into Bevy's transmissive pass. A
 uniform built at 0 and raised later through `set_uniform` or the extension's `params` needs the base factor set by the app.
 
+Closure trees: with `surface` among the accepted models (`shadewire::LOBE_MODELS` accepts only `surface` and
+`surface_unlit`, so every material opens into its lobes), the material is lit by MaterialX's reference lobes instead
+of Bevy's BRDF: the fragment walks Bevy's point, spot and directional lights, with their shadows and contact shadows,
+and adds `shadewire_eval_bsdf` for each, then `shadewire_eval_emission`; the tree's opacity is the alpha. Lobes take
+Bevy's light units as they are, so a white Lambert lobe lights as a white rough `StandardMaterial`
+(`cargo run -p shadewire-bevy --example lobe_calibration` checks it). Not lit yet: indirect light, rect lights, light
+textures and the atmosphere; point and spot lights are points. The reflection's `approximations` says so.
+
 Limits:
 
 - Uniform values: at most 1 KiB per material (the extension's uniform binding is `[Vec4; 64]`).
