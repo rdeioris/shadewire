@@ -30,6 +30,6 @@ pub use error::ShadewireError;
 pub use extension::ShadewireExtension;
 pub use key::ShadewireKey;
 pub use material::FromMtlx;
-pub use options::BuildOptions;
+pub use options::{BuildOptions, MODELS};
 pub use plugin::{ShadewireMaterial, ShadewirePlugin};
 pub use shader::compile_options;

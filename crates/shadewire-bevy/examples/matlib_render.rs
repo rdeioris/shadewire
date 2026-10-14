@@ -127,11 +127,7 @@ fn main() -> AppExit {
 
 /// The default options, or with `lobes` the front end accepting only closure trees.
 fn build_options(lobes: bool) -> BuildOptions {
-    let mut options = BuildOptions::default();
-    if lobes {
-        options.mtlx.models = shadewire::LOBE_MODELS.iter().map(|m| m.to_string()).collect();
-    }
-    options
+    if lobes { BuildOptions::lobes() } else { BuildOptions::default() }
 }
 
 fn parse(args: impl IntoIterator<Item = String>) -> Result<(PathBuf, PathBuf, u32, bool), String> {

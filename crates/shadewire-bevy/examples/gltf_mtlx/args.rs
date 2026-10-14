@@ -1,9 +1,9 @@
-//! The command line: `[scene.glb|gltf] <material.mtlx> [--material NAME] [--screenshot out.png]`.
+//! The command line: `[scene.glb|gltf] <material.mtlx> [--material NAME] [--screenshot out.png] [--lobes]`.
 
 use std::path::PathBuf;
 
 pub const USAGE: &str =
-    "usage: gltf_mtlx [scene.glb|scene.gltf] <material.mtlx> [--material NAME] [--screenshot out.png]";
+    "usage: gltf_mtlx [scene.glb|scene.gltf] <material.mtlx> [--material NAME] [--screenshot out.png] [--lobes]";
 
 /// What the example was asked to show.
 #[derive(Debug, PartialEq)]
@@ -15,6 +15,8 @@ pub struct Args {
     pub material: Option<String>,
     /// Save a screenshot here after a few frames, then exit.
     pub screenshot: Option<PathBuf>,
+    /// Light the material by MaterialX's lobes, every model opened into its closure tree.
+    pub lobes: bool,
 }
 
 /// Parses the arguments after the program name.
@@ -22,11 +24,13 @@ pub fn parse(args: impl IntoIterator<Item = String>) -> Result<Args, String> {
     let mut positional = Vec::new();
     let mut material = None;
     let mut screenshot = None;
+    let mut lobes = false;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--material" => material = Some(args.next().ok_or("--material needs a name")?),
             "--screenshot" => screenshot = Some(PathBuf::from(args.next().ok_or("--screenshot needs a file")?)),
+            "--lobes" => lobes = true,
             flag if flag.starts_with("--") => return Err(format!("unknown option {flag}")),
             _ => positional.push(PathBuf::from(arg)),
         }
@@ -39,7 +43,7 @@ pub fn parse(args: impl IntoIterator<Item = String>) -> Result<Args, String> {
         }
         n => return Err(format!("expected a .mtlx file and an optional scene, got {n} paths")),
     };
-    Ok(Args { scene, mtlx, material, screenshot })
+    Ok(Args { scene, mtlx, material, screenshot, lobes })
 }
 
 #[cfg(test)]
@@ -53,7 +57,7 @@ mod tests {
     #[test]
     fn one_path_is_the_material() {
         let a = parse_str("m.mtlx").unwrap();
-        assert_eq!(a, Args { scene: None, mtlx: "m.mtlx".into(), material: None, screenshot: None });
+        assert_eq!(a, Args { scene: None, mtlx: "m.mtlx".into(), material: None, screenshot: None, lobes: false });
     }
 
     #[test]
@@ -63,6 +67,8 @@ mod tests {
         assert_eq!(a.mtlx, PathBuf::from("m.mtlx"));
         assert_eq!(a.material.as_deref(), Some("Marble"));
         assert_eq!(a.screenshot, Some("s.png".into()));
+        assert!(!a.lobes);
+        assert!(parse_str("m.mtlx --lobes").unwrap().lobes);
     }
 
     #[test]

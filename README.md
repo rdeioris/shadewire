@@ -243,7 +243,7 @@ The example puts a material on a glTF scene (every `StandardMaterial` is replace
 over it) or, without a scene, on a sphere and a cube; drag to orbit, scroll to zoom, `R` to recompile the `.mtlx`:
 
 ```
-cargo run -p shadewire-bevy --example gltf_mtlx -- [scene.glb|gltf] material.mtlx [--material NAME] [--screenshot out.png]
+cargo run -p shadewire-bevy --example gltf_mtlx -- [scene.glb|gltf] material.mtlx [--material NAME] [--screenshot out.png] [--lobes]
 ```
 
 Coat and transmission: Bevy compiles clearcoat and specular transmission into a material only when the base
@@ -252,9 +252,11 @@ Coat and transmission: Bevy compiles clearcoat and specular transmission into a 
 shader replaces it with the graph's). Specular transmission also moves the mesh into Bevy's transmissive pass. A
 uniform built at 0 and raised later through `set_uniform` or the extension's `params` needs the base factor set by the app.
 
-Closure trees: with `surface` among the accepted models (`shadewire::LOBE_MODELS` accepts only `surface` and
-`surface_unlit`, so every material opens into its lobes), the material is lit by MaterialX's reference lobes instead
-of Bevy's BRDF: the fragment walks Bevy's point, spot and directional lights, with their shadows and contact shadows,
+Closure trees: by default the builder accepts `shadewire_bevy::MODELS`, the four models it writes onto
+`StandardMaterial`'s inputs and `surface`, so every other material (a raw BSDF graph, `UsdPreviewSurface`,
+`disney_principled`) opens into its closure tree; `BuildOptions::lobes()` accepts only `surface` and `surface_unlit`
+(`shadewire::LOBE_MODELS`), so every material does. A closure tree is lit by MaterialX's reference lobes instead of
+Bevy's BRDF: the fragment walks Bevy's point, spot and directional lights, with their shadows and contact shadows,
 and adds `shadewire_eval_bsdf` for each, then `shadewire_eval_emission`; the tree's opacity is the alpha. Indirect
 light (lightmaps, irradiance volumes, environment maps and reflection probes, the ambient light) goes through
 `shadewire_eval_ambient`: the tree's albedo split into a diffuse and a specular part takes the place of Bevy's own, so

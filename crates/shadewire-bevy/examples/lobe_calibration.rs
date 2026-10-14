@@ -25,7 +25,6 @@ use bevy::render::render_resource::{
 use bevy::render::view::screenshot::{Screenshot, ScreenshotCaptured};
 use bevy::window::WindowResolution;
 use shadewire_bevy::{BuildOptions, FromMtlx, ShadewireAssets, ShadewireMaterial, ShadewirePlugin};
-use shadewire_mtlx::MtlxOptions;
 
 const LAMBERT: &str = r#"<materialx version="1.39">
   <oren_nayar_diffuse_bsdf name="diffuse" type="BSDF">
@@ -118,11 +117,8 @@ fn setup(
         ..default()
     };
     commands.spawn((Mesh3d(quad.clone()), MeshMaterial3d(standard.add(white)), Transform::from_xyz(-0.5, 0.0, 0.0)));
-    let options = BuildOptions {
-        mtlx: MtlxOptions { models: shadewire::LOBE_MODELS.iter().map(|m| m.to_string()).collect(), ..default() },
-        ..default()
-    };
-    let built = ShadewireMaterial::from_mtlx(LAMBERT, None, &options, default(), &mut assets).expect("the lobe builds");
+    let built = ShadewireMaterial::from_mtlx(LAMBERT, None, &BuildOptions::lobes(), default(), &mut assets)
+        .expect("the lobe builds");
     commands.spawn((Mesh3d(quad), MeshMaterial3d(shadewire.add(built.material)), Transform::from_xyz(0.5, 0.0, 0.0)));
 }
 

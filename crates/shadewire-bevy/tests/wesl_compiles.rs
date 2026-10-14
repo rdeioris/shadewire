@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use shadewire_bevy::compile_options;
+use shadewire_bevy::{BuildOptions, compile_options};
 use shadewire_mtlx::{MtlxOptions, to_ir};
 use shadewire_wgsl::compile;
 use wesl::error::ResolveError;
@@ -191,10 +191,10 @@ fn bevy_roots() -> HashMap<String, PathBuf> {
 
 /// The module for `file` (relative to the workspace), compiled by wesl under `defs` then validated by naga.
 fn compile_in_bevy(file: &str, defs: &[&str]) -> (String, naga::Module) {
-    compile_models_in_bevy(file, defs, &MtlxOptions::default().models)
+    compile_models_in_bevy(file, defs, &BuildOptions::default().mtlx.models)
 }
 
-/// [`compile_in_bevy`] with the front end accepting `models`.
+/// [`compile_in_bevy`] with the front end accepting `models` (the plugin's defaults there).
 fn compile_models_in_bevy(file: &str, defs: &[&str], models: &[String]) -> (String, naga::Module) {
     let path = Path::new(WORKSPACE).join(file);
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
@@ -299,7 +299,7 @@ fn every_host_read_compiles() {
 }
 
 fn lobe_models() -> Vec<String> {
-    shadewire::LOBE_MODELS.iter().map(|m| m.to_string()).collect()
+    BuildOptions::lobes().mtlx.models
 }
 
 #[test]
@@ -332,4 +332,13 @@ fn a_closure_trees_opacity_is_the_alpha() {
     let (main, _) = compile_models_in_bevy(&file, BARE, &lobe_models());
     assert!(main.contains("pbr_input.material.base_color = vec4<f32>(pbr_input.material.base_color.rgb, s."), "{main}");
     assert!(!main.contains("base_color.rgb, 1.0);"), "{main}");
+}
+
+#[test]
+fn models_bevy_does_not_map_open_into_their_lobes_by_default() {
+    for file in ["UsdPreviewSurface/usd_preview_surface_gold.mtlx", "DisneyPrincipled/disney_principled_carpaint.mtlx"]
+    {
+        let (main, _) = compile_in_bevy(&format!("{EXAMPLES}/{file}"), FULL);
+        assert!(main.contains("out.color = shadewire_light(pbr_input, s, shadewire_n);"), "{file}");
+    }
 }

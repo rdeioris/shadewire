@@ -86,6 +86,9 @@ No compatibility shims: old names are gone.
   white Lambert lobe against `StandardMaterial` under a directional light, the ambient light and an environment map).
   Indirect light through `shadewire_eval_ambient`'s diffuse and specular split, with nothing to invert: lightmaps,
   irradiance volumes, environment maps and the ambient light. `matlib_render --lobes` renders that way.
+- The builder accepts `shadewire_bevy::MODELS` by default, `surface` included, so raw BSDF graphs,
+  `UsdPreviewSurface` and `disney_principled` build (as closure trees) instead of failing; `BuildOptions::lobes()`
+  opens every material into its lobes, and `gltf_mtlx --lobes` shows it.
 - Limits: forward rendering, up to 8 textures and 1 KiB of uniforms per material.
 
 ### Blender add-on (`blender/shadewire`, new)

@@ -20,7 +20,8 @@ Run from the repo root (the data directory is --data, else $SHADEWIRE_MATLIB, el
     python -I tools/matlib/harness.py accept <run dir>      # make a run the baseline
 
 `run` and `calibrate` take --renderer and --renderer-args (the renderer's options as one string, which
-replace its defaults, e.g. "--spp 512 --env other.hdr"); a run records both. `run` renders into <data>/runs/<timestamp>/
+replace its defaults, e.g. "--spp 512 --env other.hdr"; a lone flag needs the `=` form, as in
+`--renderer bevy --renderer-args=--lobes`, Bevy lighting every material by MaterialX's lobes); a run records both. `run` renders into <data>/runs/<timestamp>/
 (shots/, results.json), compares, writes report.html and report.json there, and exits 1 when anything
 regressed against the baseline of its renderer (<data>/baselines/<renderer>/).
 

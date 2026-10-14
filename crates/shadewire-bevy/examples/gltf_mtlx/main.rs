@@ -1,7 +1,8 @@
 //! A MaterialX material on a glTF scene, or on a sphere and a cube.
 //!
-//! `cargo run -p shadewire-bevy --example gltf_mtlx -- [scene.glb|gltf] <material.mtlx> [--material NAME] [--screenshot out.png]`
+//! `cargo run -p shadewire-bevy --example gltf_mtlx -- [scene.glb|gltf] <material.mtlx> [--material NAME] [--screenshot out.png] [--lobes]`
 //!
+//! `--lobes` lights the material by MaterialX's lobes, every model opened into its closure tree.
 //! Drag with the left mouse button to orbit, scroll to zoom, `R` to recompile the `.mtlx`.
 //! `--screenshot` saves the window a few frames after the scene is ready, then exits.
 
@@ -31,7 +32,8 @@ fn main() -> AppExit {
             return AppExit::error();
         }
     };
-    let source = Source { mtlx: args.mtlx, options: BuildOptions { material: args.material, ..default() } };
+    let options = if args.lobes { BuildOptions::lobes() } else { BuildOptions::default() };
+    let source = Source { mtlx: args.mtlx, options: BuildOptions { material: args.material, ..options } };
     // Compile once before opening a window, so a bad file is reported without one.
     if let Err(err) = source.check() {
         eprintln!("error: {}: {err}", source.mtlx.display());

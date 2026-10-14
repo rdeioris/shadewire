@@ -377,10 +377,7 @@ mod tests {
 
     #[test]
     fn a_closure_tree_is_built_and_says_what_it_is_not_lit_by() {
-        let options = BuildOptions {
-            mtlx: MtlxOptions { models: shadewire::LOBE_MODELS.iter().map(|m| m.to_string()).collect(), ..default() },
-            ..BuildOptions::default()
-        };
+        let options = BuildOptions::lobes();
         let mut f = Fixture::default();
         let text =
             std::fs::read_to_string(format!("{EXAMPLES}/StandardSurface/standard_surface_default.mtlx")).unwrap();
