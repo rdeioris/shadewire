@@ -45,7 +45,7 @@ impl<'a> Elaborator<'a> {
         Ok(id)
     }
 
-    fn instance(
+    pub(crate) fn instance(
         &mut self,
         scope: &Scope<'a>,
         node: &'a Node,

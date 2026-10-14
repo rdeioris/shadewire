@@ -34,7 +34,7 @@ impl<'a> Elaborator<'a> {
     }
 
     /// `base`, then `base_2`, `base_3`, ... for later uniforms of the same name.
-    fn unique_uniform_name(&mut self, base: &str) -> String {
+    pub(crate) fn unique_uniform_name(&mut self, base: &str) -> String {
         let mut name = base.to_string();
         let mut n = 2;
         while self.uniform_names.contains(&name) {

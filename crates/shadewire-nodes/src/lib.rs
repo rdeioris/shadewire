@@ -15,12 +15,14 @@ pub mod options;
 pub mod parse;
 pub mod resolve_nodedef;
 pub mod surface;
+pub mod synthetic;
 pub mod version;
 
 pub use document::Document;
-pub use elaborate::{Elaborator, elaborate};
+pub use elaborate::{Arg, Elaborator, elaborate};
 pub use element::Element;
 pub use index::Index;
 pub use library::Library;
 pub use options::{DEFAULT_MODELS, IrOptions};
 pub use resolve_nodedef::resolve_nodedef;
+pub use synthetic::Synthetic;

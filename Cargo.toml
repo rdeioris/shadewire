@@ -25,6 +25,7 @@ shadewire-hlsl = { path = "crates/shadewire-hlsl", version = "0.1.0" }
 shadewire-msl = { path = "crates/shadewire-msl", version = "0.1.0" }
 naga = { version = "30", features = ["wgsl-in", "wgsl-out", "hlsl-out", "glsl-out", "msl-out", "spv-out"] }
 quick-xml = "0.38"
+typed-arena = "2"
 include_dir = "0.7"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }

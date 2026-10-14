@@ -1,7 +1,10 @@
-use shadewire::NodeKind;
+use shadewire::{NodeKind, Value};
 
+use super::Elaborator;
 use super::elaborate_output;
 use super::tests::doc;
+use crate::options::IrOptions;
+use crate::synthetic::Synthetic;
 
 #[test]
 fn an_inlined_library_node_is_a_compound() {
@@ -75,4 +78,18 @@ fn nested_instances_are_nested_compounds() {
     assert_eq!(dag.compounds[inner].nodedef, "ND_overlay_color3");
     // Everything recorded sits under the outer instance.
     assert!(dag.compounds.iter().all(|c| c.origin == "g/t" || c.origin.starts_with("g/t/")), "{:?}", dag.compounds);
+}
+
+#[test]
+fn a_second_output_joins_its_instance_compound() {
+    let synthetic = Synthetic::new();
+    let options = IrOptions::default();
+    let mut e = Elaborator::standalone(&synthetic, &options);
+    let a = e.constant(Value::Float(1.0), "a");
+    let b = e.constant(Value::Float(2.0), "b");
+    e.record_compound("ND_separate3_vector3", Vec::new(), "outx", a, "sep");
+    e.record_compound("ND_separate3_vector3", Vec::new(), "outy", b, "sep");
+    e.record_compound("ND_separate3_vector3", Vec::new(), "outx", a, "sep");
+    assert_eq!(e.dag.compounds.len(), 1);
+    assert_eq!(e.dag.compounds[0].outputs, vec![("outx".to_string(), a), ("outy".to_string(), b)]);
 }

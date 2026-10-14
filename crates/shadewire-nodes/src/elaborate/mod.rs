@@ -9,6 +9,7 @@ pub mod hextile;
 pub mod image;
 pub mod inputs;
 pub mod instance;
+pub mod instantiate;
 pub mod leaf;
 pub mod matrix;
 pub mod ramp;
@@ -32,6 +33,8 @@ mod geomprop_tests;
 #[cfg(test)]
 mod image_tests;
 #[cfg(test)]
+mod instantiate_tests;
+#[cfg(test)]
 mod limit_tests;
 #[cfg(test)]
 mod param_tests;
@@ -50,7 +53,9 @@ use crate::library::Library;
 use crate::options::IrOptions;
 use crate::surface::CLOSURE_MODEL;
 use crate::surface::find::{SurfaceSource, pick_material};
+use crate::synthetic::Synthetic;
 
+pub use instantiate::Arg;
 pub use scope::{Binding, Scope, TextValue};
 
 /// How many node outputs elaboration follows inside one another before it
@@ -92,6 +97,8 @@ pub struct Elaborator<'a> {
     /// The host accepts the `surface` model: `surface` nodes compile to closure trees, and named models
     /// outside `accepted_models` open through their implementation graphs.
     pub accepts_closures: bool,
+    /// The nodes a front end made up (`Elaborator::standalone`); `None` when built from a document.
+    pub synthetic: Option<&'a Synthetic>,
 }
 
 impl<'a> Elaborator<'a> {
@@ -114,6 +121,7 @@ impl<'a> Elaborator<'a> {
             surface_field_memo: HashMap::new(),
             accepted_models: Vec::new(),
             accepts_closures: false,
+            synthetic: None,
         }
     }
 

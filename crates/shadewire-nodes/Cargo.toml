@@ -16,3 +16,4 @@ categories = ["graphics", "rendering"]
 shadewire.workspace = true
 quick-xml.workspace = true
 include_dir.workspace = true
+typed-arena.workspace = true
