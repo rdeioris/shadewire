@@ -18,8 +18,8 @@ Licensed under MIT; vendored MaterialX files are Apache-2.0 (see NOTICE). The Bl
 
 ## Crates
 
-Front ends and back ends never depend on each other; they share the core and, for front ends, the node library, and the caller
-(your code, the CLI, the C API) composes them.
+Front ends and back ends never depend on each other. They share the core and, for front ends, the node library; the
+caller (your code, the CLI, the C API) composes them.
 
 | Crate | Role | Depends on |
 |---|---|---|
@@ -62,8 +62,7 @@ Library, two steps: front end, then back end.
 
 ```rust
 use shadewire::optimize::optimize;
-use shadewire_mtlx::{Resolver, to_ir};
-use shadewire_nodes::IrOptions;
+use shadewire_mtlx::{IrOptions, Resolver, to_ir};
 use shadewire_wgsl::{CompileOptions, compile};
 
 let text = std::fs::read_to_string("material.mtlx")?;

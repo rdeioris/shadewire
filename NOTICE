@@ -16,6 +16,8 @@ Copyright Contributors to the MaterialX Project, licensed under the Apache Licen
 - crates/shadewire-nodes/src/elaborate/hextile.rs: lowering of libraries/stdlib/genglsl/mx_hextiledimage.glsl
 - crates/shadewire-nodes/src/elaborate/ramp.rs: lowering of libraries/stdlib/genglsl/mx_ramplr_*.glsl and
   mx_ramptb_*.glsl
+- crates/shadewire-mtlx/src/upgrade/**: port of the 1.38 to 1.39 upgrade rules of MaterialXCore/Version.cpp
+  (Document::upgradeVersion)
 
 crates/shadewire/src/ops/noise/*.rs and crates/shadewire/src/shader/lib/noise_*.wgsl derive from
 the Open Shading Language noise library (github.com/imageworks/OpenShadingLanguage,

@@ -6,8 +6,7 @@ accepts: `standard_surface`, `open_pbr_surface`, `gltf_pbr`, `surface_unlit`, or
 tree of MaterialX's lobes, raw BSDF graphs included).
 
 ```rust
-use shadewire_mtlx::{Resolver, to_ir};
-use shadewire_nodes::IrOptions;
+use shadewire_mtlx::{IrOptions, Resolver, to_ir};
 
 let text = std::fs::read_to_string("material.mtlx")?;
 let ir = to_ir(&text, Some("material.mtlx"), None, &IrOptions::default(), &Resolver::default())?;
@@ -20,5 +19,6 @@ asynchronous calls `list_dependencies(text, location)` for the `xi:include` href
 `fileprefix`) a document names, fetches them, lists each fetched include again (includes nest), and then compiles with
 a resolver that answers from memory.
 
-It embeds MaterialX's standard libraries (`stdlib`, `pbrlib`, `bxdf`, `cmlib` from v1.39.5, Apache-2.0: see
-`materialx/LICENSE` and NOTICE).
+The standard libraries ship in `shadewire-nodes` (`crates/shadewire-nodes/materialx`, Apache-2.0: see its
+`materialx/LICENSE` and NOTICE); this crate's `upgrade` module ports the upstream 1.38 to 1.39 upgrade rules
+(Apache-2.0, see NOTICE).

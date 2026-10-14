@@ -1,2 +1,8 @@
 Shadewire
 Copyright (c) 2026 Roberto De Ioris (MIT, see LICENSE)
+
+This product includes files from MaterialX (https://github.com/AcademySoftwareFoundation/MaterialX),
+Copyright Contributors to the MaterialX Project, licensed under the Apache License 2.0
+(crates/shadewire-nodes/materialx/LICENSE):
+- crates/shadewire-mtlx/src/upgrade/**: port of the 1.38 to 1.39 upgrade rules of MaterialXCore/Version.cpp
+  (Document::upgradeVersion)

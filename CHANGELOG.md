@@ -26,7 +26,8 @@ No compatibility shims: old names are gone.
 
 - **Rust:** `shadewire_mtlx::MtlxOptions` and `ElaborateOptions` are `shadewire_nodes::IrOptions`; `to_ir` takes
   the `Resolver` as its own argument. `shadewire_mtlx::{document, elaborate, element, index, library, parse,
-  resolve_nodedef, surface, version}` are `shadewire_nodes::…`. `shadewire_bevy::BuildOptions::mtlx` is `ir`.
+  resolve_nodedef, surface, version}` are `shadewire_nodes::…`. `shadewire_bevy::BuildOptions::mtlx` is `ir`; its include
+  resolver is the new `BuildOptions.resolver`.
 - **IR export JSON:** a `compounds` list (format version unchanged: readers may ignore it).
 - **Rust:** `Compiled` and `CompileOptions` live in `shadewire::shader` (re-exported by every back end);
   `Compiled.wgsl` is `Compiled.code`. `shadewire-wgsl` loses `translate`, `link`, `Target` and its versions,
@@ -141,9 +142,9 @@ No compatibility shims: old names are gone.
 
 ### Packaging
 
-- Ready for crates.io (nine crates, `cargo publish --workspace`), PyPI (six abi3 wheels and the sdist) and
+- Ready for crates.io (ten crates, `cargo publish --workspace`), PyPI (six abi3 wheels and the sdist) and
   extensions.blender.org (one zip holding the wheel of every platform Blender ships for): see `RELEASING.md`.
-- `shadewire-mtlx` embeds MaterialX's libraries from its own folder (`crates/shadewire-mtlx/materialx`).
+- `shadewire-nodes` embeds MaterialX's libraries from its own folder (`crates/shadewire-nodes/materialx`).
 - `rust-version` is 1.88; `shadewire-bevy` needs 1.97.
 
 ### Testing
