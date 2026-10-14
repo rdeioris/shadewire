@@ -26,6 +26,8 @@ impl<'a> Elaborator<'a> {
     /// The dag finished as `model` over `fields` (missing fields take the nodedef's defaults): the model itself
     /// when the options accept it; its closure tree when they accept `surface` instead; else `NoTranslation`.
     pub fn finish_model(mut self, model: &str, fields: &[(&str, Arg)], origin: &str) -> Result<Dag, Error> {
+        let origin = self.unique_origin(origin);
+        let origin = origin.as_str();
         let at = Location { file: None, line: 0, path: origin.to_string() };
         let Some(synthetic) = self.synthetic else {
             return Err(Error::BadValue { at, message: "finish_model needs Elaborator::standalone".to_string() });

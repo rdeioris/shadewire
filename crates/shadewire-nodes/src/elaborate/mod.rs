@@ -78,6 +78,8 @@ pub struct Elaborator<'a> {
     /// Node outputs being followed right now, inside one another.
     pub depth: u32,
     pub uniform_names: HashSet<String>,
+    /// The origins a standalone elaborator gave its synthetic nodes, so a reused one is told apart.
+    pub(crate) synthetic_origins: HashSet<String>,
     pub file: Option<String>,
     pub next_scope_id: u32,
     /// User nodegraphs entered so far, by name.
@@ -111,6 +113,7 @@ impl<'a> Elaborator<'a> {
             in_progress: HashSet::new(),
             depth: 0,
             uniform_names: HashSet::new(),
+            synthetic_origins: HashSet::new(),
             file: doc.file.clone(),
             next_scope_id: 0,
             user_scopes: HashMap::new(),

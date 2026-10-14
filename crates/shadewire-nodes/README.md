@@ -12,14 +12,17 @@ graph format calls `Elaborator::standalone`, `instantiate` and `finish_model`/`f
 ## Lowering without a document
 
 ```rust
-use shadewire::{Type, Value};
+use shadewire::Value;
 use shadewire_nodes::{Arg, Elaborator, IrOptions, Synthetic};
 
-let synthetic = Synthetic::new();
-let options = IrOptions::default();
-let mut e = Elaborator::standalone(&synthetic, &options);
-let base = e.authored("base_color", Value::Color3([0.8, 0.1, 0.1]), "Principled BSDF.Base Color");
-let dag = e.finish_model("open_pbr_surface", &[("base_color", Arg::Node(base))], "Principled BSDF")?;
+fn lower() -> Result<(), shadewire::Error> {
+    let synthetic = Synthetic::new();
+    let options = IrOptions::default();
+    let mut e = Elaborator::standalone(&synthetic, &options);
+    let base = e.authored("base_color", Value::Color3([0.8, 0.1, 0.1]), "Principled BSDF.Base Color");
+    let dag = e.finish_model("open_pbr_surface", &[("base_color", Arg::Node(base))], "Principled BSDF")?;
+    Ok(())
+}
 ```
 
 `instantiate("overlay", Type::Color3, &[("fg", Arg::Node(a)), ("bg", Arg::Node(b))], origin)` is any library node;

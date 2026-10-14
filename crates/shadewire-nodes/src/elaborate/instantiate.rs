@@ -28,6 +28,10 @@ pub enum Arg {
 impl<'a> Elaborator<'a> {
     /// An elaborator over the standard library alone, for a front end that lowers its own graph: nodes it asks
     /// for live in `synthetic`. `options.models` are the accepted models, as for a document.
+    ///
+    /// Lowering recurses along the graph; a front end opening deep graphs (a model into its lobes) should call
+    /// this on a thread with a large stack, as `elaborate` does with `STACK_BYTES`. `Synthetic` is not `Send`:
+    /// make both on that thread.
     pub fn standalone(synthetic: &'a Synthetic, options: &'a IrOptions) -> Elaborator<'a> {
         let mut elaborator = Elaborator::new(empty_document(), standard(), options, "");
         elaborator.synthetic = Some(synthetic);
@@ -37,7 +41,8 @@ impl<'a> Elaborator<'a> {
     }
 
     /// Output `out` of a `category` node over `inputs`; inputs not given take the nodedef's defaults. `origin`
-    /// names the node in the IR.
+    /// names the node in the IR. A reused `origin` gets a numeric suffix (`Mix`, `Mix_2`, ...) so each instance
+    /// keeps its own compound.
     pub fn instantiate(
         &mut self,
         category: &str,
@@ -67,6 +72,8 @@ impl<'a> Elaborator<'a> {
         output: Option<&str>,
         origin: &str,
     ) -> Result<NodeId, Error> {
+        let origin = self.unique_origin(origin);
+        let origin = origin.as_str();
         let at = Location { file: None, line: 0, path: origin.to_string() };
         let Some(synthetic) = self.synthetic else {
             return Err(Error::BadValue { at, message: "instantiate needs Elaborator::standalone".to_string() });
@@ -85,6 +92,18 @@ impl<'a> Elaborator<'a> {
         let id = self.instance(&scope, node, output, &at)?;
         self.check_node_limit()?;
         Ok(id)
+    }
+
+    /// `origin`, then `origin_2`, `origin_3`, ... for later synthetic nodes of the same origin.
+    pub(crate) fn unique_origin(&mut self, origin: &str) -> String {
+        let mut unique = origin.to_string();
+        let mut n = 2;
+        while self.synthetic_origins.contains(&unique) {
+            unique = format!("{origin}_{n}");
+            n += 1;
+        }
+        self.synthetic_origins.insert(unique.clone());
+        unique
     }
 
     /// Document inputs for `args`, each an `interfacename` into the returned bindings.

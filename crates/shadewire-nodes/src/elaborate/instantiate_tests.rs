@@ -50,11 +50,37 @@ fn a_graph_node_is_inlined_and_recorded_as_a_compound() {
         </nodegraph>"#);
     let from_document = elaborate_output(&d, "g", "out").unwrap();
     let expected = crate::elaborate::fold::fold_constant_of(&from_document, from_document.surface.fields[0].node);
+    assert!(expected.is_some());
     assert_eq!(e.fold_constant(id), expected);
     // Library nodes inlined inside the overlay are compounds too, so find the instance by its origin.
     let c = e.dag.compounds.iter().find(|c| c.origin == "o").expect("the overlay instance is recorded");
     assert_eq!((c.nodedef.as_str(), c.origin.as_str()), ("ND_overlay_color3", "o"));
     assert_eq!(c.inputs[0], ("fg".to_string(), fg));
+}
+
+#[test]
+fn a_reused_origin_keeps_two_compounds() {
+    let (s, o) = (Synthetic::new(), IrOptions::default());
+    let mut e = standalone(&s, &o);
+    let mut mix = |fg: [f32; 3]| {
+        e.instantiate(
+            "overlay",
+            Type::Color3,
+            &[("fg", Arg::Value(Value::Color3(fg))), ("bg", Arg::Value(Value::Color3([0.5, 0.5, 0.5])))],
+            "Mix",
+        )
+        .unwrap()
+    };
+    let first = mix([0.2, 0.4, 0.6]);
+    let second = mix([0.7, 0.1, 0.3]);
+    let compounds: Vec<_> = e.dag.compounds.iter().filter(|c| c.nodedef == "ND_overlay_color3").collect();
+    assert_eq!(compounds.len(), 2);
+    assert_eq!((compounds[0].origin.as_str(), compounds[0].outputs.clone()), ("Mix", vec![("out".to_string(), first)]));
+    assert_eq!(
+        (compounds[1].origin.as_str(), compounds[1].outputs.clone()),
+        ("Mix_2", vec![("out".to_string(), second)])
+    );
+    assert_ne!(first, second);
 }
 
 #[test]

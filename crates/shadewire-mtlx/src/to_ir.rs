@@ -83,6 +83,63 @@ mod tests {
         assert_eq!(material_names(text, None, &Resolver::default()).unwrap(), ["b", "a"]);
     }
 
+    /// A porcelain glaze over a diffuse and subsurface mix, as 1.38 wrote it: `radius` of the subsurface BSDF is a
+    /// vector3.
+    #[test]
+    fn a_1_38_subsurface_document_upgrades_into_a_closure_tree() {
+        let text = r#"<materialx version="1.38">
+          <nodegraph name="NG_porcelain">
+            <subsurface_bsdf name="node1" type="BSDF">
+              <input name="color" type="color3" value="0.75, 0.75, 0.75" />
+            </subsurface_bsdf>
+            <subsurface_bsdf name="node2" type="BSDF">
+              <input name="radius" type="vector3" value="0.3, 0.3, 0.3" />
+              <input name="color" type="color3" value="0.75, 0.75, 0.75" />
+            </subsurface_bsdf>
+            <mix name="node3" type="BSDF">
+              <input name="bg" type="BSDF" nodename="node1" />
+              <input name="fg" type="BSDF" nodename="node2" />
+              <input name="mix" type="float" value="0.35" />
+            </mix>
+            <oren_nayar_diffuse_bsdf name="node4" type="BSDF">
+              <input name="color" type="color3" value="0.9, 0.9, 0.9" />
+              <input name="roughness" type="float" value="0.65" />
+            </oren_nayar_diffuse_bsdf>
+            <mix name="node5" type="BSDF">
+              <input name="bg" type="BSDF" nodename="node4" />
+              <input name="fg" type="BSDF" nodename="node3" />
+              <input name="mix" type="float" value="0.35" />
+            </mix>
+            <dielectric_bsdf name="node6" type="BSDF">
+              <input name="weight" type="float" value="0.35" />
+            </dielectric_bsdf>
+            <layer name="node7" type="BSDF">
+              <input name="top" type="BSDF" nodename="node6" />
+              <input name="base" type="BSDF" nodename="node5" />
+            </layer>
+            <output name="out_bsdf" type="BSDF" nodename="node7" />
+          </nodegraph>
+          <surface name="SR_porcelain" type="surfaceshader">
+            <input name="bsdf" type="BSDF" nodegraph="NG_porcelain" output="out_bsdf" />
+          </surface>
+          <surfacematerial name="porcelain" type="material">
+            <input name="surfaceshader" type="surfaceshader" nodename="SR_porcelain" />
+          </surfacematerial>
+        </materialx>"#;
+        let ir = to_ir(text, None, None, &IrOptions::with_models(&["surface"]), &Resolver::default()).unwrap();
+        assert_eq!(ir.dag.surface.model, "surface");
+        let closure = ir.dag.surface.closure.as_ref().unwrap();
+        let kinds: Vec<&str> = closure
+            .nodes
+            .iter()
+            .filter_map(|n| match n {
+                shadewire::ClosureNode::Lobe { kind, .. } => Some(kind.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert!(kinds.contains(&"subsurface_bsdf"), "{kinds:?}");
+    }
+
     #[test]
     fn includes_without_a_file_are_an_error() {
         let text = r#"<materialx version="1.39"><xi:include href="other.mtlx"/></materialx>"#;
