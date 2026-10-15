@@ -115,10 +115,10 @@ shadewire compile material.mtlx --lang hlsl -o material.hlsl
 shadewire compile material.mtlx --lang gdshader -o material.gdshader
 shadewire ir material.mtlx               # print the IR (optimized; --no-optimize for the raw graph; --json)
 shadewire list scene.mtlx                # the document's material names
-shadewire mtlx material.mtlx [--material NAME] [--inline] [--optimize] [-o out.mtlx]
+shadewire mtlx material.mtlx [--material NAME] [--model M]... [--lobes] [--inline] [--optimize] [--constants] [-o FILE]
 ```
 
-- `shadewire mtlx` writes the material back as MaterialX: includes resolved, 1.38 upgraded, library nodes kept as nodes (`--inline` expands them, `--optimize` folds first).
+- `shadewire mtlx` writes the material back as MaterialX: includes resolved, 1.38 upgraded, library nodes kept as nodes. `--inline` expands library nodes; `--optimize` folds constants first and writes leaf ops (the optimizer drops the compounds); `--constants` bakes authored values in as constants.
 - `--material NAME` picks the material when the document has several.
 - `--model MODEL` (repeatable) names the surface models the host accepts: an accepted model comes out as its struct, filled by `shadewire_eval_surface()`, for the host to light. By default `open_pbr_surface`, `standard_surface`, `gltf_pbr` and `surface_unlit`. A material of another model is an error, not a translation, unless `surface` is accepted: then it opens into its closure tree.
 - `--lobes` accepts only `surface` and `surface_unlit`, so every material opens into its closure tree and the shader brings MaterialX's reference lobes to light it (`shadewire_eval_bsdf` and the rest), on every back end. It cannot be combined with `--model`; `ir` takes it too.

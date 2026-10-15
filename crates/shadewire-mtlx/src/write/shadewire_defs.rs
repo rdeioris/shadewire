@@ -9,6 +9,9 @@ use super::xml::Element;
 
 /// The `<nodedef>`s of Shadewire's `shadewire_ir.mtlx` whose node is one of `categories`, in the file's order.
 pub fn shadewire_declarations(categories: &[&str]) -> Vec<Element> {
+    if categories.is_empty() {
+        return Vec::new();
+    }
     // The library loaded the same text already: it parses.
     let root = parse_str(shadewire_ir_defs_text(), Some("shadewire/shadewire_ir.mtlx"))
         .expect("Shadewire's shadewire_ir.mtlx parses");

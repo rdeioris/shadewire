@@ -1,6 +1,6 @@
 //! How the shader reads the nodegraph: values on its inputs, or nodegraph outputs made on demand.
 
-use shadewire::{Dag, NodeId, NodeKind};
+use shadewire::{Dag, Error, Location, NodeId, NodeKind};
 
 use super::elements::{Source, dot_element, output_element};
 use super::patterns::Patterns;
@@ -21,9 +21,9 @@ impl Patterns<'_> {
     /// named after the first input that asks: a const through a `constant` node (a value on a shader input would
     /// read back as a uniform), another uniform through a `dot` reading its nodegraph input.
     ///
-    /// Panics when `node` is inside a kept compound without being one of its outputs: the plan counts every
-    /// shader read, so such a node is never asked for.
-    pub fn reach(&mut self, node: NodeId, input_name: &str, value_allowed: bool, dag: &Dag) -> Reach {
+    /// `Error::BadValue` when `node` is never written (inside a kept compound without being one of its outputs):
+    /// the plan counts every shader read, so such a node is never asked for.
+    pub fn reach(&mut self, node: NodeId, input_name: &str, value_allowed: bool, dag: &Dag) -> Result<Reach, Error> {
         let node = self.aliases.get(&node).copied().unwrap_or(node);
         let n = dag.node(node);
         if let NodeKind::Uniform { value, .. } = &n.kind
@@ -32,14 +32,16 @@ impl Patterns<'_> {
             && self.readers.get(&node) == Some(&1)
             && self.pending_uniforms.contains_key(&node)
         {
-            return Reach::Value(value_text(value));
+            return Ok(Reach::Value(value_text(value)));
         }
         if let Some(output) = self.reached.get(&node) {
-            return Reach::Output(output.clone());
+            return Ok(Reach::Output(output.clone()));
         }
         self.write_leaf(dag, node);
-        let written =
-            self.node_names.get(&node).cloned().unwrap_or_else(|| panic!("reach: node {} not written", node.0));
+        let written = self.node_names.get(&node).cloned().ok_or_else(|| Error::BadValue {
+            at: Location { file: None, line: 0, path: n.origin.clone() },
+            message: format!("node {} is read by the shader but never written", node.0),
+        })?;
         let source = if self.uniform_names.contains_key(&node) {
             self.write_uniform(node);
             let dot = self.names.unique(&format!("{written}_dot"));
@@ -54,7 +56,7 @@ impl Patterns<'_> {
         };
         self.outputs.push(output_element(&name, n.ty, &source));
         self.reached.insert(node, name.clone());
-        Reach::Output(name)
+        Ok(Reach::Output(name))
     }
 }
 
@@ -82,7 +84,7 @@ mod tests {
         let mut names = Names::new();
         let mut patterns = write_patterns(dag, &plan, &index, &WriteOptions::default(), &mut names).unwrap();
         let wanted = dag.surface.fields.iter().filter(|f| fields.contains(&f.name.as_str()));
-        let reaches = wanted.map(|f| patterns.reach(f.node, &f.name, true, dag)).collect();
+        let reaches = wanted.map(|f| patterns.reach(f.node, &f.name, true, dag).unwrap()).collect();
         let mut graph = super::super::xml::Element::new("nodegraph");
         for e in patterns.inputs.iter().chain(&patterns.nodes).chain(&patterns.outputs) {
             graph.push(e.clone());
@@ -109,7 +111,7 @@ mod tests {
         let index = Index::new(empty_document(), standard());
         let plan = plan(&dag, &index, false);
         let mut patterns = write_patterns(&dag, &plan, &index, &WriteOptions::default(), &mut Names::new()).unwrap();
-        assert_eq!(patterns.reach(u, "emission", true, &dag), Reach::Output("emission_out".into()));
+        assert_eq!(patterns.reach(u, "emission", true, &dag).unwrap(), Reach::Output("emission_out".into()));
         assert_eq!(patterns.inputs.len(), 1, "one nodegraph input, read by the op and the output");
     }
 

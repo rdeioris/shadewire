@@ -30,7 +30,7 @@ pub fn write_surface(
         let mut element = Element::new(&node.category).attr("name", &name).attr("type", &node.ty);
         for (input_name, ty, read) in &node.inputs {
             let child = match read {
-                Read::Field { node, value_allowed } => match patterns.reach(*node, input_name, *value_allowed, dag) {
+                Read::Field { node, value_allowed } => match patterns.reach(*node, input_name, *value_allowed, dag)? {
                     // A value is a uniform named after the input: its ui hints go on the input.
                     Reach::Value(text) => {
                         with_ui_hints(input(input_name, ty, &Source::Value(text)), dag.uniform_ui.get(input_name))

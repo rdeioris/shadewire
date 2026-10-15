@@ -159,7 +159,7 @@ impl<'a> Patterns<'a> {
 
     /// Warns, once per category, that the document uses a nodedef only Shadewire declares.
     pub(super) fn warn_shadewire(&mut self, category: &str) {
-        let warning = format!("shadewire nodedef {category} written: the document reads only in Shadewire");
+        let warning = format!("shadewire nodedef {category} written: it has no implementation outside Shadewire");
         if !self.warnings.contains(&warning) {
             self.warnings.push(warning);
         }

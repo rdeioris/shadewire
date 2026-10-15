@@ -1,18 +1,18 @@
 //! The IR as a MaterialX document.
 
-pub mod catalog;
-pub mod elements;
-pub mod emit;
-pub mod names;
-pub mod patterns;
-pub mod plan;
-pub mod reach;
-pub mod readers;
-pub mod shader;
-pub mod shadewire_defs;
-pub mod surface;
+pub(crate) mod catalog;
+pub(crate) mod elements;
+pub(crate) mod emit;
+pub(crate) mod names;
+pub(crate) mod patterns;
+pub(crate) mod plan;
+pub(crate) mod reach;
+pub(crate) mod readers;
+pub(crate) mod shader;
+pub(crate) mod shadewire_defs;
+pub(crate) mod surface;
 pub mod values;
-pub mod xml;
+pub(crate) mod xml;
 
 use shadewire::{Dag, Error};
 use shadewire_nodes::Index;
@@ -55,8 +55,8 @@ pub struct Written {
 }
 
 /// The dag as a MaterialX document: the nodegraph `NG_{name}` (when it has any element), the shader level, and
-/// the `surfacematerial` `{name}`. Takes an unoptimized dag (as `to_ir` returns it): its compounds are what
-/// library nodes and colorspace conversions are written from.
+/// the `surfacematerial` `{name}`, `name` the sanitized `options.name`. Library nodes and folded colorspace
+/// conversions are written from the dag's compounds, so an optimized dag (which has none) writes as leaf ops.
 pub fn from_ir(dag: &Dag, options: &WriteOptions) -> Result<Written, Error> {
     let index = Index::new(empty_document(), standard());
     let plan = plan(dag, &index, options.inline);
