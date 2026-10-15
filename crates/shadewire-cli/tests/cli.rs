@@ -6,6 +6,17 @@ const EXAMPLE: &str = concat!(
     "/../../vendor/materialx/resources/Materials/Examples/StandardSurface/standard_surface_default.mtlx"
 );
 
+const EXAMPLE_MARBLE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../vendor/materialx/resources/Materials/Examples/StandardSurface/standard_surface_marble_solid.mtlx"
+);
+
+/// A material that uses a library node defined by a nodegraph (`place2d`); the marble has only leaf ops.
+const EXAMPLE_COMPOUNDS: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../vendor/materialx/resources/Materials/Examples/StandardSurface/standard_surface_greysphere_calibration.mtlx"
+);
+
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("shadewire-cli-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
@@ -150,4 +161,38 @@ fn gdshader_flags_need_gdshader() {
         let out = run(&[&["compile", EXAMPLE, "--lang", "gdshader"][..], flag].concat());
         assert!(out.status.success(), "{flag:?}: {}", String::from_utf8_lossy(&out.stderr));
     }
+}
+
+#[test]
+fn mtlx_writes_a_document_that_reads_again() {
+    let out = run(&["mtlx", EXAMPLE_MARBLE]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let text = String::from_utf8(out.stdout).unwrap();
+    assert!(
+        text.starts_with(
+            "<?xml version=\"1.0\"?>
+<materialx version=\"1.39\">"
+        ),
+        "{text}"
+    );
+    assert!(text.contains("<standard_surface "), "{text}");
+    let again = scratch("again.mtlx");
+    std::fs::write(&again, &text).unwrap();
+    let listed = run(&["list", again.to_str().unwrap()]);
+    assert!(listed.status.success());
+}
+
+#[test]
+fn mtlx_inline_and_optimize_expand_library_nodes() {
+    let kept = String::from_utf8(run(&["mtlx", EXAMPLE_COMPOUNDS]).stdout).unwrap();
+    let inlined = String::from_utf8(run(&["mtlx", EXAMPLE_COMPOUNDS, "--inline"]).stdout).unwrap();
+    let optimized = String::from_utf8(run(&["mtlx", EXAMPLE_COMPOUNDS, "--optimize"]).stdout).unwrap();
+    assert!(kept.len() < inlined.len(), "kept {} inlined {}", kept.len(), inlined.len());
+    assert!(kept.contains("nodedef=\"ND_place2d_vector2\""), "{kept}");
+    assert!(!inlined.contains("nodedef=\"ND_"), "{inlined}");
+    assert!(!optimized.contains("nodedef=\"ND_"), "{optimized}");
+    let out = scratch("compounds_out.mtlx");
+    let written = run(&["mtlx", EXAMPLE_COMPOUNDS, "-o", out.to_str().unwrap()]);
+    assert!(written.status.success() && written.stdout.is_empty());
+    assert_eq!(std::fs::read_to_string(out).unwrap(), kept);
 }

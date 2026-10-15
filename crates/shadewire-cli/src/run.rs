@@ -1,16 +1,17 @@
 use shadewire::optimize::optimize;
 use shadewire::shader::{CompileOptions, Compiled};
 use shadewire::{Error, LOBE_MODELS};
-use shadewire_mtlx::{Resolver, material_names, to_ir};
+use shadewire_mtlx::{Resolver, WriteOptions, from_ir, material_names, to_ir};
 use shadewire_nodes::IrOptions;
 
-use crate::args::{Args, Command, CompileArgs, IrArgs, Lang, ListArgs, Transparency};
+use crate::args::{Args, Command, CompileArgs, IrArgs, Lang, ListArgs, MtlxArgs, Transparency};
 
 pub fn run(args: Args) -> Result<(), Error> {
     match args.command {
         Command::Compile(compile) => compile_command(&compile),
         Command::Ir(ir) => ir_command(&ir),
         Command::List(list) => list_command(&list),
+        Command::Mtlx(mtlx) => mtlx_command(&mtlx),
     }
 }
 
@@ -59,6 +60,29 @@ fn list_command(args: &ListArgs) -> Result<(), Error> {
     let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
     for name in material_names(&text, Some(&args.file.display().to_string()), &Resolver::default())? {
         println!("{name}");
+    }
+    Ok(())
+}
+
+fn mtlx_command(args: &MtlxArgs) -> Result<(), Error> {
+    let text = std::fs::read_to_string(&args.file).map_err(|e| io(e, &args.file))?;
+    let name = Some(args.file.display().to_string());
+    let lower = ir_options(&args.models, args.lobes, None, args.constants);
+    let ir = to_ir(&text, name.as_deref(), args.material.as_deref(), &lower, &Resolver::default())?;
+    let dag = if args.optimize { optimize(&ir.dag) } else { ir.dag };
+    // `to_ir` without `--material` succeeded, so the document has exactly one material.
+    let material = match &args.material {
+        Some(material) => material.clone(),
+        None => material_names(&text, name.as_deref(), &Resolver::default())?.swap_remove(0),
+    };
+    let options = WriteOptions { inline: args.inline, name: material, ..WriteOptions::default() };
+    let written = from_ir(&dag, &options)?;
+    for warning in &written.warnings {
+        eprintln!("{warning}");
+    }
+    match &args.output {
+        Some(path) => std::fs::write(path, &written.text).map_err(|e| io(e, path))?,
+        None => print!("{}", written.text),
     }
     Ok(())
 }

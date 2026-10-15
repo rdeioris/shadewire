@@ -17,12 +17,41 @@ pub enum Command {
     Ir(IrArgs),
     /// List the materials of a MaterialX document, one name per line
     List(ListArgs),
+    /// Write a material back as a MaterialX document (library nodes kept as nodes)
+    Mtlx(MtlxArgs),
 }
 
 #[derive(Parser, Debug)]
 pub struct ListArgs {
     /// The .mtlx document
     pub file: PathBuf,
+}
+
+#[derive(Parser, Debug)]
+pub struct MtlxArgs {
+    /// The .mtlx document
+    pub file: PathBuf,
+    /// Material name, when the document has several
+    #[arg(long)]
+    pub material: Option<String>,
+    /// Surface models the host accepts (repeatable); default: the four most hosts map
+    #[arg(long = "model")]
+    pub models: Vec<String>,
+    /// Open every material into its closure tree (accept only `surface` and `surface_unlit`)
+    #[arg(long, conflicts_with = "models")]
+    pub lobes: bool,
+    /// Write every library node expanded to leaf ops instead of as one node
+    #[arg(long)]
+    pub inline: bool,
+    /// Run the optimizer first (folds constants; expands library nodes)
+    #[arg(long)]
+    pub optimize: bool,
+    /// Bake authored values in as constants instead of uniforms
+    #[arg(long)]
+    pub constants: bool,
+    /// Write the document here instead of stdout
+    #[arg(short = 'o', long)]
+    pub output: Option<PathBuf>,
 }
 
 /// The language of the generated code: each a back end of its own.
