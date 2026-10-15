@@ -97,13 +97,13 @@ static int names_and_ir(const char *text, size_t len, const char *path, char *re
     }
     if (shadewire_ir_to_mtlx(ir, false, NULL, &doc, &err) != SHADEWIRE_OK ||
         shadewire_document_text(doc, NULL) == NULL) {
-        step = fail(report, report_len, 14, "writing the IR back as MaterialX failed", err);
+        step = fail(report, report_len, 13, "writing the IR back as MaterialX failed", err);
         goto done;
     }
     json = shadewire_ir_json(optimized, &json_len);
     if (json == NULL || json_len == 0 || json[0] != '{' || strcmp(shadewire_ir_source(optimized), "mtlx") != 0 ||
         shadewire_ir_structure_hash(optimized) == NULL) {
-        step = fail(report, report_len, 13, "the IR does not read back", NULL);
+        step = fail(report, report_len, 14, "the IR does not read back", NULL);
     }
 
 done:
