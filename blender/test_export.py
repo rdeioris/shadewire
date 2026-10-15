@@ -201,6 +201,16 @@ def test_merge_unnamed_elements():
     check(merged.count("<variantset") == 2, f"elements without a name are neither deduplicated nor an error: {merged}")
 
 
+def test_sanitize_name():
+    sanitize = getattr(compiler, "sanitize_name", None)
+    check(sanitize is not None, "compiler.sanitize_name exists")
+    if sanitize is None:
+        return
+    for text, expected in (("Wood", "Wood"), ("Bois é", "Bois__"), ("Wood.001", "Wood_001"), ("2 sided", "_2_sided"),
+                           ("", "node"), ("日本", "__")):
+        check(sanitize(text) == expected, f"sanitize_name({text!r}) is {expected!r}: {sanitize(text)!r}")
+
+
 def test_non_ascii_path():
     bpy.ops.wm.read_homefile(use_empty=True)
     m = textured_material("Accents")
@@ -581,9 +591,76 @@ def test_usd_export_reports_an_unwritable_mtlx():
         addon.usd.defaults["executable"] = executable
         bpy.context.window_manager.shadewire_usd_materials = True
         os.makedirs(os.path.join(folder, "blocked.mtlx"))
-        _, output = printed(export_usd, folder, "blocked.usda", generate_preview_surface=False)
-        check("Shadewire: cannot write blocked.mtlx: " in output and "the stripped materials have no shader" in output
+        path, output = printed(export_usd, folder, "blocked.usda", generate_preview_surface=False)
+        check("Shadewire: cannot write blocked.mtlx: " in output and "left as Blender wrote them" in output
               and "Traceback" not in output, f"the write failure is reported: {output!r}")
+        stage, spec = material_spec(path)
+        check("previewShader" in spec.nameChildren.keys() and "outputs:surface" in spec.properties.keys()
+              and not spec.hasReferences, "the materials keep Blender's shaders")
+
+
+def materials_of(stage):
+    """The material prims of an exported stage, by name."""
+    return {prim.GetName(): prim for prim in stage.GetPrimAtPath("/root/_materials").GetChildren()}
+
+
+def test_usd_export_names_documents_like_the_writer():
+    """Prim names Blender keeps in Unicode get the writer's name in the document and in the reference, unique when two
+    sanitize alike. (`Bois_é` would not do for the second: Blender gives it the prim of `Bois é`.)"""
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        cube_with(textured_material("Bois é"))
+        bpy.ops.mesh.primitive_uv_sphere_add()
+        bpy.context.object.data.materials.append(textured_material("Bois è"))
+        addon.usd.defaults["executable"] = executable
+        bpy.context.window_manager.shadewire_usd_materials = True
+        path, output = printed(export_usd, folder, "unicode.usda", generate_preview_surface=False)
+        mtlx = os.path.join(folder, "unicode.mtlx")
+        check(os.path.isfile(mtlx), f"unicode.mtlx is written: {output!r}")
+        text = read(mtlx) if os.path.isfile(mtlx) else ""
+        names = [line.split('name="')[1].split('"')[0] for line in text.splitlines() if "<surfacematerial " in line]
+        check(sorted(names) == ["Bois__", "Bois___2"], f"the writer's names, made unique: {names}")
+        stage = Usd.Stage.Open(path)
+        prims = materials_of(stage)
+        check(sorted(prims) == ["Bois_è", "Bois_é"], f"Blender keeps the prim names: {sorted(prims)}")
+        for name, prim in prims.items():
+            check(composes_mtlx(prim), f"{name}: the reference resolves to a MaterialX surface")
+
+
+def composes_mtlx(prim):
+    """Whether the composed material has a connected MaterialX surface."""
+    output = UsdShade.Material(prim).GetSurfaceOutput("mtlx")
+    return bool(output) and output.HasConnectedSource()
+
+
+def test_usd_export_skips_a_material_that_collides():
+    """A material whose document repeats an element of another is left as Blender wrote it; the others are written,
+    stripped and referenced."""
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        # A's shader node is named A_shader, as is the other material.
+        cube_with(textured_material("A"))
+        bpy.ops.mesh.primitive_uv_sphere_add()
+        bpy.context.object.data.materials.append(textured_material("A_shader"))
+        addon.usd.defaults["executable"] = executable
+        bpy.context.window_manager.shadewire_usd_materials = True
+        path, output = printed(export_usd, folder, "collide.usda", generate_preview_surface=False)
+        lines = output.splitlines()
+        skipped = [name for name in ("A", "A_shader") if any(
+            line.startswith(f"Shadewire: {name}: ") and line.endswith("; left as Blender wrote it") for line in lines)]
+        check(len(skipped) == 1, f"one material is reported skipped: {output!r}")
+        check("Shadewire: wrote collide.mtlx with 1 material" in lines, f"the other is written: {output!r}")
+        stage = Usd.Stage.Open(path)
+        layer = stage.GetRootLayer()
+        for name in ("A", "A_shader"):
+            spec = layer.GetPrimAtPath(f"/root/_materials/{name}")
+            if name in skipped:
+                check("previewShader" in spec.nameChildren.keys() and "outputs:surface" in spec.properties.keys()
+                      and not spec.hasReferences, f"{name}: the skipped material stays as Blender wrote it")
+            else:
+                check("previewShader" not in spec.nameChildren.keys() and spec.hasReferences,
+                      f"{name}: the written material is replaced")
+                check(composes_mtlx(materials_of(stage)[name]), f"{name}: its reference resolves")
 
 
 def printed(function, *args, **kwargs):
@@ -615,12 +692,13 @@ def test_usd_panel():
 
 
 TESTS = [test_to_mtlx, test_merge_documents, test_merge_lobe_materials, test_merge_unnamed_elements,
-         test_non_ascii_path, test_old_executable_hint, test_module_without_front_end,
+         test_sanitize_name, test_non_ascii_path, test_old_executable_hint, test_module_without_front_end,
          test_export_operator, test_export_unwritable_image, test_export_menu,
          test_usd_export_replaces_blenders_shaders, test_usd_import_exports_again,
          test_usd_export_keeps_a_requested_preview_surface_and_blenders_output_when_off, test_usdz_is_left_to_blender,
          test_usd_export_to_a_folder_named_usdz, test_usd_export_leaves_a_failing_material_to_blender,
-         test_usd_export_reports_an_unwritable_mtlx, test_usd_panel]
+         test_usd_export_reports_an_unwritable_mtlx, test_usd_export_names_documents_like_the_writer,
+         test_usd_export_skips_a_material_that_collides, test_usd_panel]
 
 if __name__ == "__main__":
     for test in TESTS:

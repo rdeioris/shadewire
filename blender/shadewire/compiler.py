@@ -184,15 +184,28 @@ def merge_documents(texts):
     repeated name is an error (the same material name twice, or two names the writer sanitizes alike); a repeated
     declaration is dropped even if its content differs. An element without a name is always kept. A single
     document is returned as it is."""
-    if len(texts) == 1:
-        return texts[0]
-    merged = ET.Element("materialx", version="1.39")
-    taken = set()
+    merged = MergedDocument()
     for text in texts:
+        merged.add(text)
+    return merged.text()
+
+
+class MergedDocument:
+    """MaterialX documents merged into one as `merge_documents` merges them, one document at a time."""
+
+    def __init__(self):
+        self.root = ET.Element("materialx", version="1.39")
+        self.taken = set()
+        self.texts = []
+
+    def add(self, text):
+        """Adds the elements of `text`; a document that repeats a name already taken (but for an embedded
+        declaration) or does not parse is a CompileError, and nothing of it is added."""
         try:
             root = ET.fromstring(text)
         except ET.ParseError as e:
             raise CompileError(f"not a MaterialX document: {e}") from e
+        added, taken = [], set(self.taken)
         for element in root:
             name = element.get("name")
             if name in taken and is_embedded(element):
@@ -201,9 +214,34 @@ def merge_documents(texts):
                 raise CompileError(f"two exported materials write an element named {name}; rename one material")
             if name is not None:
                 taken.add(name)
-            merged.append(element)
-    ET.indent(merged, space="  ")
-    return '<?xml version="1.0"?>\n' + ET.tostring(merged, encoding="unicode") + "\n"
+            added.append(element)
+        self.taken = taken
+        self.root.extend(added)
+        self.texts.append(text)
+
+    def text(self):
+        """The merged document; a single document as it was given."""
+        if len(self.texts) == 1:
+            return self.texts[0]
+        ET.indent(self.root, space="  ")
+        return '<?xml version="1.0"?>\n' + ET.tostring(self.root, encoding="unicode") + "\n"
+
+
+def sanitize_name(text):
+    """The name the MaterialX writer gives `text`: ASCII letters, digits and `_` kept, every other character `_`, a
+    leading digit prefixed with `_`; an empty text is `node`."""
+    name = "".join(c if c.isascii() and (c.isalnum() or c == "_") else "_" for c in text) or "node"
+    return "_" + name if name[0].isdigit() else name
+
+
+def unique_name(text, taken):
+    """`sanitize_name(text)`, suffixed `_2`, `_3`, ... until it is not in `taken`."""
+    base = name = sanitize_name(text)
+    n = 2
+    while name in taken:
+        name = f"{base}_{n}"
+        n += 1
+    return name
 
 
 def is_embedded(element):
