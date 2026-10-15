@@ -1,0 +1,325 @@
+---
+source: crates/shadewire-blender/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_lobes">
+    <input name="Glossy_Roughness" type="float" value="0.5" />
+    <input name="Glossy_Anisotropy" type="float" value="0" />
+    <input name="Glass_Roughness" type="float" value="0" />
+    <input name="Refraction_Roughness" type="float" value="0" />
+    <input name="Subsurface_Radius" type="vector3" value="1, 0.2, 0.1" />
+    <input name="Subsurface_Scale" type="float" value="0.005" />
+    <input name="Metallic_Conductor_IOR" type="vector3" value="2.757, 2.513, 2.231" />
+    <input name="Metallic_Conductor_Extinction" type="vector3" value="3.867, 3.404, 3.009" />
+    <input name="Metallic_Conductor_Roughness" type="float" value="0.5" />
+    <input name="Metallic_Conductor_Anisotropy" type="float" value="0" />
+    <input name="Metallic_F82_Roughness" type="float" value="0.5" />
+    <input name="Metallic_F82_Anisotropy" type="float" value="0" />
+    <input name="Emission_Color" type="color3" value="1, 1, 1" />
+    <input name="Emission_Strength" type="float" value="1" />
+    <input name="Transparent_Color" type="color3" value="1, 1, 1" />
+    <input name="Mix_Emission_Transparent_Factor" type="float" value="0.1" />
+    <input name="Mix_Final_Factor" type="float" value="0.5" />
+    <input name="Metallic_F82_Base_Color" type="color3" value="0.617, 0.577, 0.54" />
+    <input name="Metallic_F82_Edge_Tint" type="color3" value="0.695, 0.726, 0.77" />
+    <input name="Glossy_Color" type="color3" value="0.8, 0.8, 0.8" />
+    <input name="Diffuse_Color" type="color3" value="0.8, 0.8, 0.8" />
+    <input name="Diffuse_Roughness" type="float" value="0" />
+    <input name="Mix_Diffuse_Glossy_Factor" type="float" value="0.3" />
+    <input name="Refraction_IOR" type="float" value="1.45" />
+    <input name="Refraction_Color" type="color3" value="1, 1, 1" />
+    <input name="Glass_IOR" type="float" value="1.5" />
+    <input name="Glass_Color" type="color3" value="1, 1, 1" />
+    <input name="Mix_Glass_Refraction_Factor" type="float" value="0.5" />
+    <input name="Subsurface_Anisotropy" type="float" value="0" />
+    <input name="Subsurface_Color" type="color3" value="0.8, 0.8, 0.8" />
+    <input name="Translucent_Color" type="color3" value="0.8, 0.8, 0.8" />
+    <input name="Sheen_Color" type="color3" value="0.8, 0.8, 0.8" />
+    <input name="Sheen_Roughness" type="float" value="0.5" />
+    <input name="Mix_Soft_Factor" type="float" value="0.6" />
+    <roughness_anisotropy name="Glossy_roughness" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" interfacename="Glossy_Roughness" />
+      <input name="anisotropy" type="float" interfacename="Glossy_Anisotropy" />
+    </roughness_anisotropy>
+    <roughness_anisotropy name="Glass_roughness" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" interfacename="Glass_Roughness" />
+    </roughness_anisotropy>
+    <roughness_anisotropy name="Refraction_roughness" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" interfacename="Refraction_Roughness" />
+    </roughness_anisotropy>
+    <multiply name="Subsurface_radius" type="vector3">
+      <input name="in1" type="vector3" interfacename="Subsurface_Radius" />
+      <input name="in2" type="float" interfacename="Subsurface_Scale" />
+    </multiply>
+    <convert name="Subsurface_radius_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="Subsurface_radius" />
+    </convert>
+    <convert name="Metallic_Conductor_IOR_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" interfacename="Metallic_Conductor_IOR" />
+    </convert>
+    <convert name="Metallic_Conductor_Extinction_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" interfacename="Metallic_Conductor_Extinction" />
+    </convert>
+    <roughness_anisotropy name="Metallic_Conductor_roughness" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" interfacename="Metallic_Conductor_Roughness" />
+      <input name="anisotropy" type="float" interfacename="Metallic_Conductor_Anisotropy" />
+    </roughness_anisotropy>
+    <roughness_anisotropy name="Metallic_F82_roughness" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" interfacename="Metallic_F82_Roughness" />
+      <input name="anisotropy" type="float" interfacename="Metallic_F82_Anisotropy" />
+    </roughness_anisotropy>
+    <multiply name="Emission_color" type="color3">
+      <input name="in1" type="color3" interfacename="Emission_Color" />
+      <input name="in2" type="float" interfacename="Emission_Strength" />
+    </multiply>
+    <luminance name="Transparent_Color_2" type="color3">
+      <input name="in" type="color3" interfacename="Transparent_Color" />
+      <input name="lumacoeffs" type="color3" value="0.2126, 0.7152, 0.0722" />
+    </luminance>
+    <extract name="Transparent_Color_2_2" type="float">
+      <input name="in" type="color3" nodename="Transparent_Color_2" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <subtract name="Mix_Emission_Transparent_weight" type="float">
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" interfacename="Mix_Emission_Transparent_Factor" />
+    </subtract>
+    <convert name="Mix_Emission_Transparent_weight_2" type="color3" nodedef="ND_convert_float_color3">
+      <input name="in" type="float" nodename="Mix_Emission_Transparent_weight" />
+    </convert>
+    <mix name="Mix_Emission_Transparent_transparency" type="float">
+      <input name="fg" type="float" nodename="Transparent_Color_2_2" />
+      <input name="bg" type="float" value="0" />
+      <input name="mix" type="float" interfacename="Mix_Emission_Transparent_Factor" />
+    </mix>
+    <convert name="Mix_Final_weight" type="color3" nodedef="ND_convert_float_color3">
+      <input name="in" type="float" interfacename="Mix_Final_Factor" />
+    </convert>
+    <mix name="Mix_Final_transparency" type="float">
+      <input name="fg" type="float" nodename="Mix_Emission_Transparent_transparency" />
+      <input name="bg" type="float" value="0" />
+      <input name="mix" type="float" interfacename="Mix_Final_Factor" />
+    </mix>
+    <subtract name="surface_opacity" type="float">
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" nodename="Mix_Final_transparency" />
+    </subtract>
+    <constant name="surface_scale" type="float">
+      <input name="value" type="float" value="1" />
+    </constant>
+    <divide name="surface_scale_2" type="float">
+      <input name="in1" type="float" nodename="surface_scale" />
+      <input name="in2" type="float" nodename="surface_opacity" />
+    </divide>
+    <ifequal name="surface_scale_2_2" type="float">
+      <input name="value1" type="float" nodename="surface_opacity" />
+      <input name="value2" type="float" value="0" />
+      <input name="in1" type="float" nodename="surface_scale" />
+      <input name="in2" type="float" nodename="surface_scale_2" />
+    </ifequal>
+    <convert name="surface_scale_3" type="color3" nodedef="ND_convert_float_color3">
+      <input name="in" type="float" nodename="surface_scale_2_2" />
+    </convert>
+    <dot name="Metallic_F82_Base_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Metallic_F82_Base_Color" />
+    </dot>
+    <dot name="Metallic_F82_Edge_Tint_dot" type="color3">
+      <input name="in" type="color3" interfacename="Metallic_F82_Edge_Tint" />
+    </dot>
+    <dot name="Glossy_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Glossy_Color" />
+    </dot>
+    <dot name="Diffuse_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Diffuse_Color" />
+    </dot>
+    <dot name="Diffuse_Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Diffuse_Roughness" />
+    </dot>
+    <dot name="Mix_Diffuse_Glossy_Factor_dot" type="float">
+      <input name="in" type="float" interfacename="Mix_Diffuse_Glossy_Factor" />
+    </dot>
+    <dot name="Refraction_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Refraction_IOR" />
+    </dot>
+    <dot name="Refraction_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Refraction_Color" />
+    </dot>
+    <dot name="Glass_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Glass_IOR" />
+    </dot>
+    <dot name="Glass_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Glass_Color" />
+    </dot>
+    <dot name="Mix_Glass_Refraction_Factor_dot" type="float">
+      <input name="in" type="float" interfacename="Mix_Glass_Refraction_Factor" />
+    </dot>
+    <dot name="Subsurface_Anisotropy_dot" type="float">
+      <input name="in" type="float" interfacename="Subsurface_Anisotropy" />
+    </dot>
+    <dot name="Subsurface_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Subsurface_Color" />
+    </dot>
+    <dot name="Translucent_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Translucent_Color" />
+    </dot>
+    <dot name="Sheen_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Sheen_Color" />
+    </dot>
+    <dot name="Sheen_Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Sheen_Roughness" />
+    </dot>
+    <dot name="Mix_Soft_Factor_dot" type="float">
+      <input name="in" type="float" interfacename="Mix_Soft_Factor" />
+    </dot>
+    <dot name="Mix_Final_Factor_dot" type="float">
+      <input name="in" type="float" interfacename="Mix_Final_Factor" />
+    </dot>
+    <output name="extinction" type="color3" nodename="Metallic_Conductor_Extinction_2" />
+    <output name="ior" type="color3" nodename="Metallic_Conductor_IOR_2" />
+    <output name="roughness" type="vector2" nodename="Metallic_Conductor_roughness" />
+    <output name="color0" type="color3" nodename="Metallic_F82_Base_Color_dot" />
+    <output name="color82" type="color3" nodename="Metallic_F82_Edge_Tint_dot" />
+    <output name="roughness_out" type="vector2" nodename="Metallic_F82_roughness" />
+    <output name="color0_out" type="color3" nodename="Glossy_Color_dot" />
+    <output name="roughness_out_2" type="vector2" nodename="Glossy_roughness" />
+    <output name="color" type="color3" nodename="Diffuse_Color_dot" />
+    <output name="roughness_out_3" type="float" nodename="Diffuse_Roughness_dot" />
+    <output name="mix" type="float" nodename="Mix_Diffuse_Glossy_Factor_dot" />
+    <output name="ior_out" type="float" nodename="Refraction_IOR_dot" />
+    <output name="roughness_out_4" type="vector2" nodename="Refraction_roughness" />
+    <output name="tint" type="color3" nodename="Refraction_Color_dot" />
+    <output name="ior_out_2" type="float" nodename="Glass_IOR_dot" />
+    <output name="roughness_out_5" type="vector2" nodename="Glass_roughness" />
+    <output name="tint_out" type="color3" nodename="Glass_Color_dot" />
+    <output name="mix_out" type="float" nodename="Mix_Glass_Refraction_Factor_dot" />
+    <output name="anisotropy" type="float" nodename="Subsurface_Anisotropy_dot" />
+    <output name="color_out" type="color3" nodename="Subsurface_Color_dot" />
+    <output name="radius" type="color3" nodename="Subsurface_radius_2" />
+    <output name="color_out_2" type="color3" nodename="Translucent_Color_dot" />
+    <output name="color_out_3" type="color3" nodename="Sheen_Color_dot" />
+    <output name="roughness_out_6" type="float" nodename="Sheen_Roughness_dot" />
+    <output name="mix_out_2" type="float" nodename="Mix_Soft_Factor_dot" />
+    <output name="mix_out_3" type="float" nodename="Mix_Final_Factor_dot" />
+    <output name="in2" type="color3" nodename="surface_scale_3" />
+    <output name="color_out_4" type="color3" nodename="Emission_color" />
+    <output name="in2_out" type="color3" nodename="Mix_Emission_Transparent_weight_2" />
+    <output name="in2_out_2" type="color3" nodename="Mix_Final_weight" />
+    <output name="opacity" type="float" nodename="surface_opacity" />
+  </nodegraph>
+  <conductor_bsdf name="conductor_bsdf_0" type="BSDF">
+    <input name="extinction" type="color3" nodegraph="NG_lobes" output="extinction" />
+    <input name="ior" type="color3" nodegraph="NG_lobes" output="ior" />
+    <input name="roughness" type="vector2" nodegraph="NG_lobes" output="roughness" />
+    <input name="distribution" type="string" value="ggx" />
+  </conductor_bsdf>
+  <generalized_schlick_bsdf name="generalized_schlick_bsdf_1" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_lobes" output="color0" />
+    <input name="color82" type="color3" nodegraph="NG_lobes" output="color82" />
+    <input name="roughness" type="vector2" nodegraph="NG_lobes" output="roughness_out" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <add name="add_2" type="BSDF">
+    <input name="in1" type="BSDF" nodename="conductor_bsdf_0" />
+    <input name="in2" type="BSDF" nodename="generalized_schlick_bsdf_1" />
+  </add>
+  <generalized_schlick_bsdf name="generalized_schlick_bsdf_3" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_lobes" output="color0_out" />
+    <input name="color82" type="color3" nodegraph="NG_lobes" output="color0_out" />
+    <input name="roughness" type="vector2" nodegraph="NG_lobes" output="roughness_out_2" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <oren_nayar_diffuse_bsdf name="oren_nayar_diffuse_bsdf_4" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_lobes" output="color" />
+    <input name="roughness" type="float" nodegraph="NG_lobes" output="roughness_out_3" />
+  </oren_nayar_diffuse_bsdf>
+  <mix name="mix_5" type="BSDF">
+    <input name="fg" type="BSDF" nodename="generalized_schlick_bsdf_3" />
+    <input name="bg" type="BSDF" nodename="oren_nayar_diffuse_bsdf_4" />
+    <input name="mix" type="float" nodegraph="NG_lobes" output="mix" />
+  </mix>
+  <dielectric_bsdf name="dielectric_bsdf_6" type="BSDF">
+    <input name="ior" type="float" nodegraph="NG_lobes" output="ior_out" />
+    <input name="roughness" type="vector2" nodegraph="NG_lobes" output="roughness_out_4" />
+    <input name="tint" type="color3" nodegraph="NG_lobes" output="tint" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="T" />
+  </dielectric_bsdf>
+  <dielectric_bsdf name="dielectric_bsdf_7" type="BSDF">
+    <input name="ior" type="float" nodegraph="NG_lobes" output="ior_out_2" />
+    <input name="roughness" type="vector2" nodegraph="NG_lobes" output="roughness_out_5" />
+    <input name="tint" type="color3" nodegraph="NG_lobes" output="tint_out" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="RT" />
+  </dielectric_bsdf>
+  <mix name="mix_8" type="BSDF">
+    <input name="fg" type="BSDF" nodename="dielectric_bsdf_6" />
+    <input name="bg" type="BSDF" nodename="dielectric_bsdf_7" />
+    <input name="mix" type="float" nodegraph="NG_lobes" output="mix_out" />
+  </mix>
+  <add name="add_9" type="BSDF">
+    <input name="in1" type="BSDF" nodename="mix_5" />
+    <input name="in2" type="BSDF" nodename="mix_8" />
+  </add>
+  <subsurface_bsdf name="subsurface_bsdf_10" type="BSDF">
+    <input name="anisotropy" type="float" nodegraph="NG_lobes" output="anisotropy" />
+    <input name="color" type="color3" nodegraph="NG_lobes" output="color_out" />
+    <input name="radius" type="color3" nodegraph="NG_lobes" output="radius" />
+  </subsurface_bsdf>
+  <translucent_bsdf name="translucent_bsdf_11" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_lobes" output="color_out_2" />
+  </translucent_bsdf>
+  <sheen_bsdf name="sheen_bsdf_12" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_lobes" output="color_out_3" />
+    <input name="roughness" type="float" nodegraph="NG_lobes" output="roughness_out_6" />
+    <input name="mode" type="string" value="zeltner" />
+  </sheen_bsdf>
+  <add name="add_13" type="BSDF">
+    <input name="in1" type="BSDF" nodename="translucent_bsdf_11" />
+    <input name="in2" type="BSDF" nodename="sheen_bsdf_12" />
+  </add>
+  <mix name="mix_14" type="BSDF">
+    <input name="fg" type="BSDF" nodename="subsurface_bsdf_10" />
+    <input name="bg" type="BSDF" nodename="add_13" />
+    <input name="mix" type="float" nodegraph="NG_lobes" output="mix_out_2" />
+  </mix>
+  <add name="add_15" type="BSDF">
+    <input name="in1" type="BSDF" nodename="add_9" />
+    <input name="in2" type="BSDF" nodename="mix_14" />
+  </add>
+  <mix name="mix_16" type="BSDF">
+    <input name="fg" type="BSDF" nodename="add_2" />
+    <input name="bg" type="BSDF" nodename="add_15" />
+    <input name="mix" type="float" nodegraph="NG_lobes" output="mix_out_3" />
+  </mix>
+  <multiply name="multiply_17" type="BSDF">
+    <input name="in1" type="BSDF" nodename="mix_16" />
+    <input name="in2" type="color3" nodegraph="NG_lobes" output="in2" />
+  </multiply>
+  <uniform_edf name="uniform_edf_18" type="EDF">
+    <input name="color" type="color3" nodegraph="NG_lobes" output="color_out_4" />
+  </uniform_edf>
+  <multiply name="multiply_19" type="EDF">
+    <input name="in1" type="EDF" nodename="uniform_edf_18" />
+    <input name="in2" type="color3" nodegraph="NG_lobes" output="in2_out" />
+  </multiply>
+  <multiply name="multiply_20" type="EDF">
+    <input name="in1" type="EDF" nodename="multiply_19" />
+    <input name="in2" type="color3" nodegraph="NG_lobes" output="in2_out_2" />
+  </multiply>
+  <multiply name="multiply_21" type="EDF">
+    <input name="in1" type="EDF" nodename="multiply_20" />
+    <input name="in2" type="color3" nodegraph="NG_lobes" output="in2" />
+  </multiply>
+  <surface name="lobes_shader" type="surfaceshader">
+    <input name="bsdf" type="BSDF" nodename="multiply_17" />
+    <input name="edf" type="EDF" nodename="multiply_21" />
+    <input name="opacity" type="float" nodegraph="NG_lobes" output="opacity" />
+  </surface>
+  <surfacematerial name="lobes" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="lobes_shader" />
+  </surfacematerial>
+</materialx>

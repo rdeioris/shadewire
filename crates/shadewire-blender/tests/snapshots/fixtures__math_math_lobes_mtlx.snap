@@ -1,0 +1,1282 @@
+---
+source: crates/shadewire-blender/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_math">
+    <input name="Mix_EXCLUSION_Factor" type="float" value="0.5" />
+    <input name="Mix_LINEAR_LIGHT_Factor" type="float" value="0.5" />
+    <input name="Mix_SOFT_LIGHT_Factor" type="float" value="0.5" />
+    <input name="Mix_DIVIDE_Factor" type="float" value="0.5" />
+    <input name="Mix_LIGHTEN_Factor" type="float" value="0.5" />
+    <input name="Mix_DARKEN_Factor" type="float" value="0.5" />
+    <input name="Mix_DIFFERENCE_Factor" type="float" value="0.5" />
+    <input name="Mix_SUBTRACT_Factor" type="float" value="0.5" />
+    <input name="Mix_ADD_Factor" type="float" value="0.5" />
+    <input name="Mix_OVERLAY_Factor" type="float" value="0.5" />
+    <input name="Mix_SCREEN_Factor" type="float" value="0.5" />
+    <input name="Invert_Color_Factor" type="float" value="1" />
+    <input name="Mix_Color_Factor" type="float" value="0.6" />
+    <input name="Mix_Float_Factor" type="float" value="0.3" />
+    <input name="Mix_Vector_Factor" type="vector3" value="0.2, 0.5, 0.8" />
+    <input name="Start_Value" type="float" value="0.75" />
+    <input name="Math_ADD_Value" type="float" value="0.5" />
+    <input name="Math_SUBTRACT_Value" type="float" value="0.5" />
+    <input name="Math_MULTIPLY_Value" type="float" value="0.5" />
+    <input name="Math_DIVIDE_Value" type="float" value="0.5" />
+    <input name="Math_MULTIPLY_ADD_Value" type="float" value="0.5" />
+    <input name="Math_MULTIPLY_ADD_Value_2" type="float" value="0.5" />
+    <input name="Math_POWER_Value" type="float" value="0.5" />
+    <input name="Math_LOGARITHM_Value" type="float" value="0.5" />
+    <input name="Math_MINIMUM_Value" type="float" value="0.5" />
+    <input name="Math_MAXIMUM_Value" type="float" value="0.5" />
+    <input name="Math_LESS_THAN_Value" type="float" value="0.5" />
+    <input name="Math_GREATER_THAN_Value" type="float" value="0.5" />
+    <input name="Math_COMPARE_Value" type="float" value="0.5" />
+    <input name="Math_COMPARE_Value_2" type="float" value="0.5" />
+    <input name="Math_SMOOTH_MIN_Value" type="float" value="0.5" />
+    <input name="Math_SMOOTH_MIN_Value_2" type="float" value="0.5" />
+    <input name="Math_SMOOTH_MAX_Value" type="float" value="0.5" />
+    <input name="Math_SMOOTH_MAX_Value_2" type="float" value="0.5" />
+    <input name="Math_MODULO_Value" type="float" value="0.5" />
+    <input name="Math_FLOORED_MODULO_Value" type="float" value="0.5" />
+    <input name="Math_WRAP_Value" type="float" value="0.5" />
+    <input name="Math_WRAP_Value_2" type="float" value="0.5" />
+    <input name="Math_SNAP_Value" type="float" value="0.5" />
+    <input name="Math_PINGPONG_Value" type="float" value="0.5" />
+    <input name="Math_ARCTAN2_Value" type="float" value="0.5" />
+    <input name="Combine_XYZ_Y" type="float" value="0.25" />
+    <input name="Combine_XYZ_Z" type="float" value="0.5" />
+    <input name="Vector_ADD_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Vector_MULTIPLY_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Vector_CROSS_PRODUCT_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Vector_REFLECT_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Vector_PROJECT_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Vector_FACEFORWARD_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Vector_FACEFORWARD_Vector_2" type="vector3" value="-0.5, -0.25, 0" />
+    <input name="Vector_WRAP_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Vector_WRAP_Vector_2" type="vector3" value="-0.5, -0.25, 0" />
+    <input name="Vector_SNAP_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Vector_MODULO_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Vector_MINIMUM_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Vector_MAXIMUM_Vector" type="vector3" value="0.5, 0.25, 0.75" />
+    <input name="Mix_Vector_B" type="vector3" value="1, 0.5, 0" />
+    <input name="Clamp_Min" type="float" value="0.1" />
+    <input name="Clamp_Max" type="float" value="0.9" />
+    <input name="Map_Range_Linear_From_Min" type="float" value="0" />
+    <input name="Map_Range_Linear_From_Max" type="float" value="1" />
+    <input name="Map_Range_Linear_To_Min" type="float" value="0.2" />
+    <input name="Map_Range_Linear_To_Max" type="float" value="0.8" />
+    <input name="Map_Range_Smooth_From_Min" type="float" value="0" />
+    <input name="Map_Range_Smooth_From_Max" type="float" value="1" />
+    <input name="Map_Range_Smooth_To_Min" type="float" value="0" />
+    <input name="Map_Range_Smooth_To_Max" type="float" value="1" />
+    <input name="Mix_Color_B" type="color3" value="0.9, 0.7, 0.5" />
+    <input name="Gamma_Gamma" type="float" value="1" />
+    <input name="Brightness_Contrast_Brightness" type="float" value="0" />
+    <input name="Brightness_Contrast_Contrast" type="float" value="0" />
+    <input name="Hue_Saturation_Value_Hue" type="float" value="0.5" />
+    <input name="Hue_Saturation_Value_Saturation" type="float" value="1" />
+    <input name="Hue_Saturation_Value_Value" type="float" value="1" />
+    <input name="Hue_Saturation_Value_Factor" type="float" value="1" />
+    <input name="Mix_SCREEN_B" type="color3" value="0.25, 0.5, 0.75" />
+    <input name="Mix_OVERLAY_B" type="color3" value="0.3, 0.5, 0.7" />
+    <input name="Mix_ADD_B" type="color3" value="0.35, 0.5, 0.65" />
+    <input name="Mix_SUBTRACT_B" type="color3" value="0.4, 0.5, 0.6" />
+    <input name="Mix_DIFFERENCE_B" type="color3" value="0.45, 0.5, 0.55" />
+    <input name="Mix_DARKEN_B" type="color3" value="0.5, 0.5, 0.5" />
+    <input name="Mix_LIGHTEN_B" type="color3" value="0.55, 0.5, 0.45" />
+    <input name="Mix_DIVIDE_B" type="color3" value="0.6, 0.5, 0.4" />
+    <input name="Mix_SOFT_LIGHT_B" type="color3" value="0.65, 0.5, 0.35" />
+    <input name="Mix_LINEAR_LIGHT_B" type="color3" value="0.7, 0.5, 0.3" />
+    <input name="Mix_EXCLUSION_B" type="color3" value="0.75, 0.5, 0.25" />
+    <clamp name="Mix_EXCLUSION" type="float">
+      <input name="in" type="float" interfacename="Mix_EXCLUSION_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_LINEAR_LIGHT" type="float">
+      <input name="in" type="float" interfacename="Mix_LINEAR_LIGHT_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_SOFT_LIGHT" type="float">
+      <input name="in" type="float" interfacename="Mix_SOFT_LIGHT_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_DIVIDE" type="float">
+      <input name="in" type="float" interfacename="Mix_DIVIDE_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_LIGHTEN" type="float">
+      <input name="in" type="float" interfacename="Mix_LIGHTEN_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_DARKEN" type="float">
+      <input name="in" type="float" interfacename="Mix_DARKEN_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_DIFFERENCE" type="float">
+      <input name="in" type="float" interfacename="Mix_DIFFERENCE_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_SUBTRACT" type="float">
+      <input name="in" type="float" interfacename="Mix_SUBTRACT_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_ADD" type="float">
+      <input name="in" type="float" interfacename="Mix_ADD_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_OVERLAY" type="float">
+      <input name="in" type="float" interfacename="Mix_OVERLAY_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_SCREEN" type="float">
+      <input name="in" type="float" interfacename="Mix_SCREEN_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_Color" type="float">
+      <input name="in" type="float" interfacename="Mix_Color_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_Float" type="float">
+      <input name="in" type="float" interfacename="Mix_Float_Factor" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <clamp name="Mix_Vector" type="vector3">
+      <input name="in" type="vector3" interfacename="Mix_Vector_Factor" />
+      <input name="low" type="vector3" value="0, 0, 0" />
+      <input name="high" type="vector3" value="1, 1, 1" />
+    </clamp>
+    <add name="Math_ADD" type="float">
+      <input name="in1" type="float" interfacename="Start_Value" />
+      <input name="in2" type="float" interfacename="Math_ADD_Value" />
+    </add>
+    <subtract name="Math_SUBTRACT" type="float">
+      <input name="in1" type="float" nodename="Math_ADD" />
+      <input name="in2" type="float" interfacename="Math_SUBTRACT_Value" />
+    </subtract>
+    <multiply name="Math_MULTIPLY" type="float">
+      <input name="in1" type="float" nodename="Math_SUBTRACT" />
+      <input name="in2" type="float" interfacename="Math_MULTIPLY_Value" />
+    </multiply>
+    <constant name="Math_DIVIDE" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <divide name="Math_DIVIDE_2" type="float">
+      <input name="in1" type="float" nodename="Math_MULTIPLY" />
+      <input name="in2" type="float" interfacename="Math_DIVIDE_Value" />
+    </divide>
+    <ifequal name="Math_DIVIDE_2_2" type="float">
+      <input name="value1" type="float" interfacename="Math_DIVIDE_Value" />
+      <input name="value2" type="float" nodename="Math_DIVIDE" />
+      <input name="in1" type="float" nodename="Math_DIVIDE" />
+      <input name="in2" type="float" nodename="Math_DIVIDE_2" />
+    </ifequal>
+    <multiply name="Math_MULTIPLY_ADD" type="float">
+      <input name="in1" type="float" nodename="Math_DIVIDE_2_2" />
+      <input name="in2" type="float" interfacename="Math_MULTIPLY_ADD_Value" />
+    </multiply>
+    <add name="Math_MULTIPLY_ADD_2" type="float">
+      <input name="in1" type="float" nodename="Math_MULTIPLY_ADD" />
+      <input name="in2" type="float" interfacename="Math_MULTIPLY_ADD_Value_2" />
+    </add>
+    <safepower name="Math_POWER" type="float" nodedef="ND_safepower_float">
+      <input name="in1" type="float" nodename="Math_MULTIPLY_ADD_2" />
+      <input name="in2" type="float" interfacename="Math_POWER_Value" />
+    </safepower>
+    <ln name="Math_LOGARITHM" type="float">
+      <input name="in" type="float" nodename="Math_POWER" />
+    </ln>
+    <ln name="Math_LOGARITHM_2" type="float">
+      <input name="in" type="float" interfacename="Math_LOGARITHM_Value" />
+    </ln>
+    <divide name="Math_LOGARITHM_3" type="float">
+      <input name="in1" type="float" nodename="Math_LOGARITHM" />
+      <input name="in2" type="float" nodename="Math_LOGARITHM_2" />
+    </divide>
+    <max name="Math_SQRT" type="float">
+      <input name="in1" type="float" nodename="Math_LOGARITHM_3" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <sqrt name="Math_SQRT_2" type="float">
+      <input name="in" type="float" nodename="Math_SQRT" />
+    </sqrt>
+    <constant name="Math_INVERSE_SQRT" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <sqrt name="Math_INVERSE_SQRT_2" type="float">
+      <input name="in" type="float" nodename="Math_SQRT_2" />
+    </sqrt>
+    <divide name="Math_INVERSE_SQRT_2_2" type="float">
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" nodename="Math_INVERSE_SQRT_2" />
+    </divide>
+    <ifgreater name="Math_INVERSE_SQRT_3" type="float">
+      <input name="value1" type="float" nodename="Math_SQRT_2" />
+      <input name="value2" type="float" nodename="Math_INVERSE_SQRT" />
+      <input name="in1" type="float" nodename="Math_INVERSE_SQRT_2_2" />
+      <input name="in2" type="float" nodename="Math_INVERSE_SQRT" />
+    </ifgreater>
+    <absval name="Math_ABSOLUTE" type="float">
+      <input name="in" type="float" nodename="Math_INVERSE_SQRT_3" />
+    </absval>
+    <exp name="Math_EXPONENT" type="float">
+      <input name="in" type="float" nodename="Math_ABSOLUTE" />
+    </exp>
+    <min name="Math_MINIMUM" type="float">
+      <input name="in1" type="float" nodename="Math_EXPONENT" />
+      <input name="in2" type="float" interfacename="Math_MINIMUM_Value" />
+    </min>
+    <max name="Math_MAXIMUM" type="float">
+      <input name="in1" type="float" nodename="Math_MINIMUM" />
+      <input name="in2" type="float" interfacename="Math_MAXIMUM_Value" />
+    </max>
+    <ifgreater name="Math_LESS_THAN" type="float">
+      <input name="value1" type="float" interfacename="Math_LESS_THAN_Value" />
+      <input name="value2" type="float" nodename="Math_MAXIMUM" />
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" value="0" />
+    </ifgreater>
+    <ifgreater name="Math_GREATER_THAN" type="float">
+      <input name="value1" type="float" nodename="Math_LESS_THAN" />
+      <input name="value2" type="float" interfacename="Math_GREATER_THAN_Value" />
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" value="0" />
+    </ifgreater>
+    <sign name="Math_SIGN" type="float">
+      <input name="in" type="float" nodename="Math_GREATER_THAN" />
+    </sign>
+    <subtract name="Math_COMPARE" type="float">
+      <input name="in1" type="float" nodename="Math_SIGN" />
+      <input name="in2" type="float" interfacename="Math_COMPARE_Value" />
+    </subtract>
+    <absval name="Math_COMPARE_2" type="float">
+      <input name="in" type="float" nodename="Math_COMPARE" />
+    </absval>
+    <ifgreatereq name="Math_COMPARE_3" type="float">
+      <input name="value1" type="float" interfacename="Math_COMPARE_Value_2" />
+      <input name="value2" type="float" nodename="Math_COMPARE_2" />
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" value="0" />
+    </ifgreatereq>
+    <constant name="Math_SMOOTH_MIN" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <subtract name="Math_SMOOTH_MIN_2" type="float">
+      <input name="in1" type="float" nodename="Math_COMPARE_3" />
+      <input name="in2" type="float" interfacename="Math_SMOOTH_MIN_Value" />
+    </subtract>
+    <absval name="Math_SMOOTH_MIN_2_2" type="float">
+      <input name="in" type="float" nodename="Math_SMOOTH_MIN_2" />
+    </absval>
+    <subtract name="Math_SMOOTH_MIN_3" type="float">
+      <input name="in1" type="float" interfacename="Math_SMOOTH_MIN_Value_2" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MIN_2_2" />
+    </subtract>
+    <max name="Math_SMOOTH_MIN_4" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MIN_3" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MIN" />
+    </max>
+    <divide name="Math_SMOOTH_MIN_5" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MIN_4" />
+      <input name="in2" type="float" interfacename="Math_SMOOTH_MIN_Value_2" />
+    </divide>
+    <multiply name="Math_SMOOTH_MIN_6" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MIN_5" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MIN_5" />
+    </multiply>
+    <multiply name="Math_SMOOTH_MIN_7" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MIN_6" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MIN_5" />
+    </multiply>
+    <multiply name="Math_SMOOTH_MIN_8" type="float">
+      <input name="in1" type="float" interfacename="Math_SMOOTH_MIN_Value_2" />
+      <input name="in2" type="float" value="0.16666667" />
+    </multiply>
+    <multiply name="Math_SMOOTH_MIN_9" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MIN_7" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MIN_8" />
+    </multiply>
+    <min name="Math_SMOOTH_MIN_10" type="float">
+      <input name="in1" type="float" nodename="Math_COMPARE_3" />
+      <input name="in2" type="float" interfacename="Math_SMOOTH_MIN_Value" />
+    </min>
+    <subtract name="Math_SMOOTH_MIN_11" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MIN_10" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MIN_9" />
+    </subtract>
+    <ifequal name="Math_SMOOTH_MIN_12" type="float">
+      <input name="value1" type="float" interfacename="Math_SMOOTH_MIN_Value_2" />
+      <input name="value2" type="float" nodename="Math_SMOOTH_MIN" />
+      <input name="in1" type="float" nodename="Math_SMOOTH_MIN_10" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MIN_11" />
+    </ifequal>
+    <constant name="Math_SMOOTH_MAX" type="float">
+      <input name="value" type="float" value="-1" />
+    </constant>
+    <multiply name="Math_SMOOTH_MAX_2" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MIN_12" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX" />
+    </multiply>
+    <multiply name="Math_SMOOTH_MAX_2_2" type="float">
+      <input name="in1" type="float" interfacename="Math_SMOOTH_MAX_Value" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX" />
+    </multiply>
+    <constant name="Math_SMOOTH_MAX_3" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <subtract name="Math_SMOOTH_MAX_3_2" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_2" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX_2_2" />
+    </subtract>
+    <absval name="Math_SMOOTH_MAX_4" type="float">
+      <input name="in" type="float" nodename="Math_SMOOTH_MAX_3_2" />
+    </absval>
+    <subtract name="Math_SMOOTH_MAX_5" type="float">
+      <input name="in1" type="float" interfacename="Math_SMOOTH_MAX_Value_2" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX_4" />
+    </subtract>
+    <max name="Math_SMOOTH_MAX_6" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_5" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX_3" />
+    </max>
+    <divide name="Math_SMOOTH_MAX_7" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_6" />
+      <input name="in2" type="float" interfacename="Math_SMOOTH_MAX_Value_2" />
+    </divide>
+    <multiply name="Math_SMOOTH_MAX_8" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_7" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX_7" />
+    </multiply>
+    <multiply name="Math_SMOOTH_MAX_9" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_8" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX_7" />
+    </multiply>
+    <multiply name="Math_SMOOTH_MAX_10" type="float">
+      <input name="in1" type="float" interfacename="Math_SMOOTH_MAX_Value_2" />
+      <input name="in2" type="float" value="0.16666667" />
+    </multiply>
+    <multiply name="Math_SMOOTH_MAX_11" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_9" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX_10" />
+    </multiply>
+    <min name="Math_SMOOTH_MAX_12" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_2" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX_2_2" />
+    </min>
+    <subtract name="Math_SMOOTH_MAX_13" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_12" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX_11" />
+    </subtract>
+    <ifequal name="Math_SMOOTH_MAX_14" type="float">
+      <input name="value1" type="float" interfacename="Math_SMOOTH_MAX_Value_2" />
+      <input name="value2" type="float" nodename="Math_SMOOTH_MAX_3" />
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_12" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX_13" />
+    </ifequal>
+    <multiply name="Math_SMOOTH_MAX_15" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_14" />
+      <input name="in2" type="float" nodename="Math_SMOOTH_MAX" />
+    </multiply>
+    <add name="Math_ROUND" type="float">
+      <input name="in1" type="float" nodename="Math_SMOOTH_MAX_15" />
+      <input name="in2" type="float" value="0.5" />
+    </add>
+    <floor name="Math_ROUND_2" type="float">
+      <input name="in" type="float" nodename="Math_ROUND" />
+    </floor>
+    <floor name="Math_FLOOR" type="float">
+      <input name="in" type="float" nodename="Math_ROUND_2" />
+    </floor>
+    <ceil name="Math_CEIL" type="float">
+      <input name="in" type="float" nodename="Math_FLOOR" />
+    </ceil>
+    <sign name="Math_TRUNC" type="float">
+      <input name="in" type="float" nodename="Math_CEIL" />
+    </sign>
+    <absval name="Math_TRUNC_2" type="float">
+      <input name="in" type="float" nodename="Math_CEIL" />
+    </absval>
+    <floor name="Math_TRUNC_3" type="float">
+      <input name="in" type="float" nodename="Math_TRUNC_2" />
+    </floor>
+    <multiply name="Math_TRUNC_4" type="float">
+      <input name="in1" type="float" nodename="Math_TRUNC" />
+      <input name="in2" type="float" nodename="Math_TRUNC_3" />
+    </multiply>
+    <fract name="Math_FRACT" type="float">
+      <input name="in" type="float" nodename="Math_TRUNC_4" />
+    </fract>
+    <constant name="Math_MODULO" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <divide name="Math_MODULO_2" type="float">
+      <input name="in1" type="float" nodename="Math_FRACT" />
+      <input name="in2" type="float" interfacename="Math_MODULO_Value" />
+    </divide>
+    <sign name="Math_MODULO_2_2" type="float">
+      <input name="in" type="float" nodename="Math_MODULO_2" />
+    </sign>
+    <absval name="Math_MODULO_3" type="float">
+      <input name="in" type="float" nodename="Math_MODULO_2" />
+    </absval>
+    <floor name="Math_MODULO_4" type="float">
+      <input name="in" type="float" nodename="Math_MODULO_3" />
+    </floor>
+    <multiply name="Math_MODULO_5" type="float">
+      <input name="in1" type="float" nodename="Math_MODULO_2_2" />
+      <input name="in2" type="float" nodename="Math_MODULO_4" />
+    </multiply>
+    <multiply name="Math_MODULO_6" type="float">
+      <input name="in1" type="float" interfacename="Math_MODULO_Value" />
+      <input name="in2" type="float" nodename="Math_MODULO_5" />
+    </multiply>
+    <subtract name="Math_MODULO_7" type="float">
+      <input name="in1" type="float" nodename="Math_FRACT" />
+      <input name="in2" type="float" nodename="Math_MODULO_6" />
+    </subtract>
+    <ifequal name="Math_MODULO_8" type="float">
+      <input name="value1" type="float" interfacename="Math_MODULO_Value" />
+      <input name="value2" type="float" nodename="Math_MODULO" />
+      <input name="in1" type="float" nodename="Math_MODULO" />
+      <input name="in2" type="float" nodename="Math_MODULO_7" />
+    </ifequal>
+    <constant name="Math_FLOORED_MODULO" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <modulo name="Math_FLOORED_MODULO_2" type="float">
+      <input name="in1" type="float" nodename="Math_MODULO_8" />
+      <input name="in2" type="float" interfacename="Math_FLOORED_MODULO_Value" />
+    </modulo>
+    <ifequal name="Math_FLOORED_MODULO_2_2" type="float">
+      <input name="value1" type="float" interfacename="Math_FLOORED_MODULO_Value" />
+      <input name="value2" type="float" nodename="Math_FLOORED_MODULO" />
+      <input name="in1" type="float" nodename="Math_FLOORED_MODULO" />
+      <input name="in2" type="float" nodename="Math_FLOORED_MODULO_2" />
+    </ifequal>
+    <subtract name="Math_WRAP" type="float">
+      <input name="in1" type="float" interfacename="Math_WRAP_Value" />
+      <input name="in2" type="float" interfacename="Math_WRAP_Value_2" />
+    </subtract>
+    <subtract name="Math_WRAP_2" type="float">
+      <input name="in1" type="float" nodename="Math_FLOORED_MODULO_2_2" />
+      <input name="in2" type="float" interfacename="Math_WRAP_Value_2" />
+    </subtract>
+    <modulo name="Math_WRAP_3" type="float">
+      <input name="in1" type="float" nodename="Math_WRAP_2" />
+      <input name="in2" type="float" nodename="Math_WRAP" />
+    </modulo>
+    <add name="Math_WRAP_4" type="float">
+      <input name="in1" type="float" interfacename="Math_WRAP_Value_2" />
+      <input name="in2" type="float" nodename="Math_WRAP_3" />
+    </add>
+    <ifequal name="Math_WRAP_5" type="float">
+      <input name="value1" type="float" nodename="Math_WRAP" />
+      <input name="value2" type="float" value="0" />
+      <input name="in1" type="float" interfacename="Math_WRAP_Value_2" />
+      <input name="in2" type="float" nodename="Math_WRAP_4" />
+    </ifequal>
+    <constant name="Math_SNAP" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <divide name="Math_SNAP_2" type="float">
+      <input name="in1" type="float" nodename="Math_WRAP_5" />
+      <input name="in2" type="float" interfacename="Math_SNAP_Value" />
+    </divide>
+    <floor name="Math_SNAP_2_2" type="float">
+      <input name="in" type="float" nodename="Math_SNAP_2" />
+    </floor>
+    <multiply name="Math_SNAP_3" type="float">
+      <input name="in1" type="float" nodename="Math_SNAP_2_2" />
+      <input name="in2" type="float" interfacename="Math_SNAP_Value" />
+    </multiply>
+    <ifequal name="Math_SNAP_4" type="float">
+      <input name="value1" type="float" interfacename="Math_SNAP_Value" />
+      <input name="value2" type="float" nodename="Math_SNAP" />
+      <input name="in1" type="float" nodename="Math_SNAP" />
+      <input name="in2" type="float" nodename="Math_SNAP_3" />
+    </ifequal>
+    <constant name="Math_PINGPONG" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <multiply name="Math_PINGPONG_2" type="float">
+      <input name="in1" type="float" interfacename="Math_PINGPONG_Value" />
+      <input name="in2" type="float" value="2" />
+    </multiply>
+    <subtract name="Math_PINGPONG_2_2" type="float">
+      <input name="in1" type="float" nodename="Math_SNAP_4" />
+      <input name="in2" type="float" interfacename="Math_PINGPONG_Value" />
+    </subtract>
+    <divide name="Math_PINGPONG_3" type="float">
+      <input name="in1" type="float" nodename="Math_PINGPONG_2_2" />
+      <input name="in2" type="float" nodename="Math_PINGPONG_2" />
+    </divide>
+    <fract name="Math_PINGPONG_4" type="float">
+      <input name="in" type="float" nodename="Math_PINGPONG_3" />
+    </fract>
+    <multiply name="Math_PINGPONG_5" type="float">
+      <input name="in1" type="float" nodename="Math_PINGPONG_4" />
+      <input name="in2" type="float" nodename="Math_PINGPONG_2" />
+    </multiply>
+    <subtract name="Math_PINGPONG_6" type="float">
+      <input name="in1" type="float" nodename="Math_PINGPONG_5" />
+      <input name="in2" type="float" interfacename="Math_PINGPONG_Value" />
+    </subtract>
+    <absval name="Math_PINGPONG_7" type="float">
+      <input name="in" type="float" nodename="Math_PINGPONG_6" />
+    </absval>
+    <ifequal name="Math_PINGPONG_8" type="float">
+      <input name="value1" type="float" interfacename="Math_PINGPONG_Value" />
+      <input name="value2" type="float" nodename="Math_PINGPONG" />
+      <input name="in1" type="float" nodename="Math_PINGPONG" />
+      <input name="in2" type="float" nodename="Math_PINGPONG_7" />
+    </ifequal>
+    <sin name="Math_SINE" type="float">
+      <input name="in" type="float" nodename="Math_PINGPONG_8" />
+    </sin>
+    <cos name="Math_COSINE" type="float">
+      <input name="in" type="float" nodename="Math_SINE" />
+    </cos>
+    <tan name="Math_TANGENT" type="float">
+      <input name="in" type="float" nodename="Math_COSINE" />
+    </tan>
+    <asin name="Math_ARCSINE" type="float">
+      <input name="in" type="float" nodename="Math_TANGENT" />
+    </asin>
+    <acos name="Math_ARCCOSINE" type="float">
+      <input name="in" type="float" nodename="Math_ARCSINE" />
+    </acos>
+    <atan2 name="Math_ARCTANGENT" type="float">
+      <input name="iny" type="float" nodename="Math_ARCCOSINE" />
+      <input name="inx" type="float" value="1" />
+    </atan2>
+    <atan2 name="Math_ARCTAN2" type="float">
+      <input name="iny" type="float" nodename="Math_ARCTANGENT" />
+      <input name="inx" type="float" interfacename="Math_ARCTAN2_Value" />
+    </atan2>
+    <multiply name="Math_SINH" type="float">
+      <input name="in1" type="float" nodename="Math_ARCTAN2" />
+      <input name="in2" type="float" value="-1" />
+    </multiply>
+    <exp name="Math_SINH_2" type="float">
+      <input name="in" type="float" nodename="Math_ARCTAN2" />
+    </exp>
+    <exp name="Math_SINH_3" type="float">
+      <input name="in" type="float" nodename="Math_SINH" />
+    </exp>
+    <subtract name="Math_SINH_4" type="float">
+      <input name="in1" type="float" nodename="Math_SINH_2" />
+      <input name="in2" type="float" nodename="Math_SINH_3" />
+    </subtract>
+    <divide name="Math_SINH_5" type="float">
+      <input name="in1" type="float" nodename="Math_SINH_4" />
+      <input name="in2" type="float" value="2" />
+    </divide>
+    <multiply name="Math_COSH" type="float">
+      <input name="in1" type="float" nodename="Math_SINH_5" />
+      <input name="in2" type="float" value="-1" />
+    </multiply>
+    <exp name="Math_COSH_2" type="float">
+      <input name="in" type="float" nodename="Math_SINH_5" />
+    </exp>
+    <exp name="Math_COSH_3" type="float">
+      <input name="in" type="float" nodename="Math_COSH" />
+    </exp>
+    <add name="Math_COSH_4" type="float">
+      <input name="in1" type="float" nodename="Math_COSH_2" />
+      <input name="in2" type="float" nodename="Math_COSH_3" />
+    </add>
+    <divide name="Math_COSH_5" type="float">
+      <input name="in1" type="float" nodename="Math_COSH_4" />
+      <input name="in2" type="float" value="2" />
+    </divide>
+    <constant name="Math_TANH" type="float">
+      <input name="value" type="float" value="1" />
+    </constant>
+    <multiply name="Math_TANH_2" type="float">
+      <input name="in1" type="float" nodename="Math_COSH_5" />
+      <input name="in2" type="float" value="2" />
+    </multiply>
+    <exp name="Math_TANH_2_2" type="float">
+      <input name="in" type="float" nodename="Math_TANH_2" />
+    </exp>
+    <subtract name="Math_TANH_3" type="float">
+      <input name="in1" type="float" nodename="Math_TANH_2_2" />
+      <input name="in2" type="float" nodename="Math_TANH" />
+    </subtract>
+    <add name="Math_TANH_4" type="float">
+      <input name="in1" type="float" nodename="Math_TANH_2_2" />
+      <input name="in2" type="float" nodename="Math_TANH" />
+    </add>
+    <divide name="Math_TANH_5" type="float">
+      <input name="in1" type="float" nodename="Math_TANH_3" />
+      <input name="in2" type="float" nodename="Math_TANH_4" />
+    </divide>
+    <multiply name="Math_RADIANS" type="float">
+      <input name="in1" type="float" nodename="Math_TANH_5" />
+      <input name="in2" type="float" value="0.017453292" />
+    </multiply>
+    <multiply name="Math_DEGREES" type="float">
+      <input name="in1" type="float" nodename="Math_RADIANS" />
+      <input name="in2" type="float" value="57.295776" />
+    </multiply>
+    <combine3 name="Combine_XYZ" type="vector3">
+      <input name="in1" type="float" nodename="Math_DEGREES" />
+      <input name="in2" type="float" interfacename="Combine_XYZ_Y" />
+      <input name="in3" type="float" interfacename="Combine_XYZ_Z" />
+    </combine3>
+    <add name="Vector_ADD" type="vector3">
+      <input name="in1" type="vector3" nodename="Combine_XYZ" />
+      <input name="in2" type="vector3" interfacename="Vector_ADD_Vector" />
+    </add>
+    <multiply name="Vector_MULTIPLY" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_ADD" />
+      <input name="in2" type="vector3" interfacename="Vector_MULTIPLY_Vector" />
+    </multiply>
+    <crossproduct name="Vector_CROSS_PRODUCT" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_MULTIPLY" />
+      <input name="in2" type="vector3" interfacename="Vector_CROSS_PRODUCT_Vector" />
+    </crossproduct>
+    <normalize name="Vector_NORMALIZE" type="vector3">
+      <input name="in" type="vector3" nodename="Vector_CROSS_PRODUCT" />
+    </normalize>
+    <magnitude name="Vector_LENGTH" type="float">
+      <input name="in" type="vector3" nodename="Vector_NORMALIZE" />
+    </magnitude>
+    <multiply name="Vector_SCALE" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_NORMALIZE" />
+      <input name="in2" type="float" nodename="Vector_LENGTH" />
+    </multiply>
+    <normalize name="Vector_REFLECT" type="vector3">
+      <input name="in" type="vector3" interfacename="Vector_REFLECT_Vector" />
+    </normalize>
+    <reflect name="Vector_REFLECT_2" type="vector3" nodedef="ND_reflect_vector3">
+      <input name="in" type="vector3" nodename="Vector_SCALE" />
+      <input name="normal" type="vector3" nodename="Vector_REFLECT" />
+    </reflect>
+    <dotproduct name="Vector_PROJECT" type="float">
+      <input name="in1" type="vector3" nodename="Vector_REFLECT_2" />
+      <input name="in2" type="vector3" interfacename="Vector_PROJECT_Vector" />
+    </dotproduct>
+    <dotproduct name="Vector_PROJECT_2" type="float">
+      <input name="in1" type="vector3" interfacename="Vector_PROJECT_Vector" />
+      <input name="in2" type="vector3" interfacename="Vector_PROJECT_Vector" />
+    </dotproduct>
+    <divide name="Vector_PROJECT_3" type="float">
+      <input name="in1" type="float" nodename="Vector_PROJECT" />
+      <input name="in2" type="float" nodename="Vector_PROJECT_2" />
+    </divide>
+    <multiply name="Vector_PROJECT_4" type="vector3">
+      <input name="in1" type="vector3" interfacename="Vector_PROJECT_Vector" />
+      <input name="in2" type="float" nodename="Vector_PROJECT_3" />
+    </multiply>
+    <dotproduct name="Vector_FACEFORWARD" type="float">
+      <input name="in1" type="vector3" interfacename="Vector_FACEFORWARD_Vector" />
+      <input name="in2" type="vector3" interfacename="Vector_FACEFORWARD_Vector_2" />
+    </dotproduct>
+    <multiply name="Vector_FACEFORWARD_2" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_PROJECT_4" />
+      <input name="in2" type="float" value="-1" />
+    </multiply>
+    <ifgreater name="Vector_FACEFORWARD_3" type="vector3">
+      <input name="value1" type="float" value="0" />
+      <input name="value2" type="float" nodename="Vector_FACEFORWARD" />
+      <input name="in1" type="vector3" nodename="Vector_PROJECT_4" />
+      <input name="in2" type="vector3" nodename="Vector_FACEFORWARD_2" />
+    </ifgreater>
+    <subtract name="Vector_WRAP" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_FACEFORWARD_3" />
+      <input name="in2" type="vector3" interfacename="Vector_WRAP_Vector_2" />
+    </subtract>
+    <subtract name="Vector_WRAP_2" type="vector3">
+      <input name="in1" type="vector3" interfacename="Vector_WRAP_Vector" />
+      <input name="in2" type="vector3" interfacename="Vector_WRAP_Vector_2" />
+    </subtract>
+    <modulo name="Vector_WRAP_3" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_WRAP" />
+      <input name="in2" type="vector3" nodename="Vector_WRAP_2" />
+    </modulo>
+    <add name="Vector_WRAP_4" type="vector3">
+      <input name="in1" type="vector3" interfacename="Vector_WRAP_Vector_2" />
+      <input name="in2" type="vector3" nodename="Vector_WRAP_3" />
+    </add>
+    <divide name="Vector_SNAP" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_WRAP_4" />
+      <input name="in2" type="vector3" interfacename="Vector_SNAP_Vector" />
+    </divide>
+    <floor name="Vector_SNAP_2" type="vector3">
+      <input name="in" type="vector3" nodename="Vector_SNAP" />
+    </floor>
+    <multiply name="Vector_SNAP_3" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_SNAP_2" />
+      <input name="in2" type="vector3" interfacename="Vector_SNAP_Vector" />
+    </multiply>
+    <sin name="Vector_SINE" type="vector3">
+      <input name="in" type="vector3" nodename="Vector_SNAP_3" />
+    </sin>
+    <floor name="Vector_FLOOR" type="vector3">
+      <input name="in" type="vector3" nodename="Vector_SINE" />
+    </floor>
+    <fract name="Vector_FRACTION" type="vector3">
+      <input name="in" type="vector3" nodename="Vector_FLOOR" />
+    </fract>
+    <divide name="Vector_MODULO" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_FRACTION" />
+      <input name="in2" type="vector3" interfacename="Vector_MODULO_Vector" />
+    </divide>
+    <sign name="Vector_MODULO_2" type="vector3">
+      <input name="in" type="vector3" nodename="Vector_MODULO" />
+    </sign>
+    <absval name="Vector_MODULO_3" type="vector3">
+      <input name="in" type="vector3" nodename="Vector_MODULO" />
+    </absval>
+    <floor name="Vector_MODULO_4" type="vector3">
+      <input name="in" type="vector3" nodename="Vector_MODULO_3" />
+    </floor>
+    <multiply name="Vector_MODULO_5" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_MODULO_2" />
+      <input name="in2" type="vector3" nodename="Vector_MODULO_4" />
+    </multiply>
+    <multiply name="Vector_MODULO_6" type="vector3">
+      <input name="in1" type="vector3" interfacename="Vector_MODULO_Vector" />
+      <input name="in2" type="vector3" nodename="Vector_MODULO_5" />
+    </multiply>
+    <subtract name="Vector_MODULO_7" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_FRACTION" />
+      <input name="in2" type="vector3" nodename="Vector_MODULO_6" />
+    </subtract>
+    <absval name="Vector_ABSOLUTE" type="vector3">
+      <input name="in" type="vector3" nodename="Vector_MODULO_7" />
+    </absval>
+    <min name="Vector_MINIMUM" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_ABSOLUTE" />
+      <input name="in2" type="vector3" interfacename="Vector_MINIMUM_Vector" />
+    </min>
+    <max name="Vector_MAXIMUM" type="vector3">
+      <input name="in1" type="vector3" nodename="Vector_MINIMUM" />
+      <input name="in2" type="vector3" interfacename="Vector_MAXIMUM_Vector" />
+    </max>
+    <mix name="Mix_Vector_2" type="vector3">
+      <input name="fg" type="vector3" interfacename="Mix_Vector_B" />
+      <input name="bg" type="vector3" nodename="Vector_MAXIMUM" />
+      <input name="mix" type="vector3" nodename="Mix_Vector" />
+    </mix>
+    <extract name="Separate_XYZ" type="float">
+      <input name="in" type="vector3" nodename="Mix_Vector_2" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <clamp name="Clamp" type="float">
+      <input name="in" type="float" nodename="Separate_XYZ" />
+      <input name="low" type="float" interfacename="Clamp_Min" />
+      <input name="high" type="float" interfacename="Clamp_Max" />
+    </clamp>
+    <remap name="Map_Range_Linear" type="float">
+      <input name="in" type="float" nodename="Clamp" />
+      <input name="inlow" type="float" interfacename="Map_Range_Linear_From_Min" />
+      <input name="inhigh" type="float" interfacename="Map_Range_Linear_From_Max" />
+      <input name="outlow" type="float" interfacename="Map_Range_Linear_To_Min" />
+      <input name="outhigh" type="float" interfacename="Map_Range_Linear_To_Max" />
+    </remap>
+    <min name="Map_Range_Linear_2" type="float">
+      <input name="in1" type="float" interfacename="Map_Range_Linear_To_Min" />
+      <input name="in2" type="float" interfacename="Map_Range_Linear_To_Max" />
+    </min>
+    <max name="Map_Range_Linear_3" type="float">
+      <input name="in1" type="float" interfacename="Map_Range_Linear_To_Min" />
+      <input name="in2" type="float" interfacename="Map_Range_Linear_To_Max" />
+    </max>
+    <clamp name="Map_Range_Linear_4" type="float">
+      <input name="in" type="float" nodename="Map_Range_Linear" />
+      <input name="low" type="float" nodename="Map_Range_Linear_2" />
+      <input name="high" type="float" nodename="Map_Range_Linear_3" />
+    </clamp>
+    <subtract name="Map_Range_Smooth" type="float">
+      <input name="in1" type="float" nodename="Map_Range_Linear_4" />
+      <input name="in2" type="float" interfacename="Map_Range_Smooth_From_Min" />
+    </subtract>
+    <subtract name="Map_Range_Smooth_2" type="float">
+      <input name="in1" type="float" interfacename="Map_Range_Smooth_From_Max" />
+      <input name="in2" type="float" interfacename="Map_Range_Smooth_From_Min" />
+    </subtract>
+    <divide name="Map_Range_Smooth_3" type="float">
+      <input name="in1" type="float" nodename="Map_Range_Smooth" />
+      <input name="in2" type="float" nodename="Map_Range_Smooth_2" />
+    </divide>
+    <clamp name="Map_Range_Smooth_4" type="float">
+      <input name="in" type="float" nodename="Map_Range_Smooth_3" />
+      <input name="low" type="float" value="0" />
+      <input name="high" type="float" value="1" />
+    </clamp>
+    <multiply name="Map_Range_Smooth_5" type="float">
+      <input name="in1" type="float" nodename="Map_Range_Smooth_4" />
+      <input name="in2" type="float" nodename="Map_Range_Smooth_4" />
+    </multiply>
+    <multiply name="Map_Range_Smooth_6" type="float">
+      <input name="in1" type="float" nodename="Map_Range_Smooth_5" />
+      <input name="in2" type="float" nodename="Map_Range_Smooth_4" />
+    </multiply>
+    <multiply name="Map_Range_Smooth_7" type="float">
+      <input name="in1" type="float" nodename="Map_Range_Smooth_5" />
+      <input name="in2" type="float" value="3" />
+    </multiply>
+    <multiply name="Map_Range_Smooth_8" type="float">
+      <input name="in1" type="float" nodename="Map_Range_Smooth_6" />
+      <input name="in2" type="float" value="2" />
+    </multiply>
+    <subtract name="Map_Range_Smooth_9" type="float">
+      <input name="in1" type="float" nodename="Map_Range_Smooth_7" />
+      <input name="in2" type="float" nodename="Map_Range_Smooth_8" />
+    </subtract>
+    <subtract name="Map_Range_Smooth_10" type="float">
+      <input name="in1" type="float" interfacename="Map_Range_Smooth_To_Max" />
+      <input name="in2" type="float" interfacename="Map_Range_Smooth_To_Min" />
+    </subtract>
+    <multiply name="Map_Range_Smooth_11" type="float">
+      <input name="in1" type="float" nodename="Map_Range_Smooth_9" />
+      <input name="in2" type="float" nodename="Map_Range_Smooth_10" />
+    </multiply>
+    <add name="Map_Range_Smooth_12" type="float">
+      <input name="in1" type="float" interfacename="Map_Range_Smooth_To_Min" />
+      <input name="in2" type="float" nodename="Map_Range_Smooth_11" />
+    </add>
+    <min name="Map_Range_Smooth_13" type="float">
+      <input name="in1" type="float" interfacename="Map_Range_Smooth_To_Min" />
+      <input name="in2" type="float" interfacename="Map_Range_Smooth_To_Max" />
+    </min>
+    <max name="Map_Range_Smooth_14" type="float">
+      <input name="in1" type="float" interfacename="Map_Range_Smooth_To_Min" />
+      <input name="in2" type="float" interfacename="Map_Range_Smooth_To_Max" />
+    </max>
+    <clamp name="Map_Range_Smooth_15" type="float">
+      <input name="in" type="float" nodename="Map_Range_Smooth_12" />
+      <input name="low" type="float" nodename="Map_Range_Smooth_13" />
+      <input name="high" type="float" nodename="Map_Range_Smooth_14" />
+    </clamp>
+    <extract name="Separate_XYZ_2" type="float">
+      <input name="in" type="vector3" nodename="Mix_Vector_2" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <mix name="Mix_Float_2" type="float">
+      <input name="fg" type="float" nodename="Separate_XYZ_2" />
+      <input name="bg" type="float" nodename="Map_Range_Smooth_15" />
+      <input name="mix" type="float" nodename="Mix_Float" />
+    </mix>
+    <extract name="Separate_XYZ_3" type="float">
+      <input name="in" type="vector3" nodename="Mix_Vector_2" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <dotproduct name="Vector_DOT_PRODUCT" type="float">
+      <input name="in1" type="vector3" nodename="Combine_XYZ" />
+      <input name="in2" type="vector3" nodename="Vector_MAXIMUM" />
+    </dotproduct>
+    <distance name="Vector_DISTANCE" type="float" nodedef="ND_distance_vector3">
+      <input name="in1" type="vector3" nodename="Combine_XYZ" />
+      <input name="in2" type="vector3" nodename="Vector_MAXIMUM" />
+    </distance>
+    <add name="Dot_Plus_Distance" type="float">
+      <input name="in1" type="float" nodename="Vector_DOT_PRODUCT" />
+      <input name="in2" type="float" nodename="Vector_DISTANCE" />
+    </add>
+    <combine3 name="Combine_RGB" type="color3">
+      <input name="in1" type="float" nodename="Mix_Float_2" />
+      <input name="in2" type="float" nodename="Separate_XYZ_3" />
+      <input name="in3" type="float" nodename="Dot_Plus_Distance" />
+    </combine3>
+    <rgbtohsv name="Separate_HSV" type="color3">
+      <input name="in" type="color3" nodename="Combine_RGB" />
+    </rgbtohsv>
+    <extract name="Separate_HSV_2" type="float">
+      <input name="in" type="color3" nodename="Separate_HSV" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <rgbtohsv name="Separate_HSV_3" type="color3">
+      <input name="in" type="color3" nodename="Combine_RGB" />
+    </rgbtohsv>
+    <extract name="Separate_HSV_4" type="float">
+      <input name="in" type="color3" nodename="Separate_HSV_3" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <rgbtohsv name="Separate_HSV_5" type="color3">
+      <input name="in" type="color3" nodename="Combine_RGB" />
+    </rgbtohsv>
+    <extract name="Separate_HSV_6" type="float">
+      <input name="in" type="color3" nodename="Separate_HSV_5" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <combine3 name="Combine_HSV" type="color3">
+      <input name="in1" type="float" nodename="Separate_HSV_2" />
+      <input name="in2" type="float" nodename="Separate_HSV_4" />
+      <input name="in3" type="float" nodename="Separate_HSV_6" />
+    </combine3>
+    <hsvtorgb name="Combine_HSV_2" type="color3">
+      <input name="in" type="color3" nodename="Combine_HSV" />
+    </hsvtorgb>
+    <extract name="Separate_RGB" type="float">
+      <input name="in" type="color3" nodename="Combine_HSV_2" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="Separate_RGB_2" type="float">
+      <input name="in" type="color3" nodename="Combine_HSV_2" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="Separate_RGB_3" type="float">
+      <input name="in" type="color3" nodename="Combine_HSV_2" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <combine3 name="Combine_RGB_Again" type="color3">
+      <input name="in1" type="float" nodename="Separate_RGB" />
+      <input name="in2" type="float" nodename="Separate_RGB_2" />
+      <input name="in3" type="float" nodename="Separate_RGB_3" />
+    </combine3>
+    <rgbtohsv name="Separate_HSL" type="color3">
+      <input name="in" type="color3" nodename="Combine_RGB_Again" />
+    </rgbtohsv>
+    <extract name="Separate_HSL_2" type="float">
+      <input name="in" type="color3" nodename="Separate_HSL" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <rgbtohsv name="Separate_HSL_3" type="color3">
+      <input name="in" type="color3" nodename="Combine_RGB_Again" />
+    </rgbtohsv>
+    <extract name="Separate_HSL_4" type="float">
+      <input name="in" type="color3" nodename="Separate_HSL_3" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <rgbtohsv name="Separate_HSL_5" type="color3">
+      <input name="in" type="color3" nodename="Combine_RGB_Again" />
+    </rgbtohsv>
+    <extract name="Separate_HSL_6" type="float">
+      <input name="in" type="color3" nodename="Separate_HSL_5" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <combine3 name="Combine_HSL" type="color3">
+      <input name="in1" type="float" nodename="Separate_HSL_2" />
+      <input name="in2" type="float" nodename="Separate_HSL_4" />
+      <input name="in3" type="float" nodename="Separate_HSL_6" />
+    </combine3>
+    <hsvtorgb name="Combine_HSL_2" type="color3">
+      <input name="in" type="color3" nodename="Combine_HSL" />
+    </hsvtorgb>
+    <multiply name="Mix_Color_2" type="color3">
+      <input name="in1" type="color3" nodename="Combine_HSL_2" />
+      <input name="in2" type="color3" interfacename="Mix_Color_B" />
+    </multiply>
+    <mix name="Mix_Color_3" type="color3">
+      <input name="fg" type="color3" nodename="Mix_Color_2" />
+      <input name="bg" type="color3" nodename="Combine_HSL_2" />
+      <input name="mix" type="float" nodename="Mix_Color" />
+    </mix>
+    <invert name="Invert_Color" type="color3">
+      <input name="in" type="color3" nodename="Mix_Color_3" />
+      <input name="amount" type="color3" value="1, 1, 1" />
+    </invert>
+    <mix name="Invert_Color_2" type="color3">
+      <input name="fg" type="color3" nodename="Invert_Color" />
+      <input name="bg" type="color3" nodename="Mix_Color_3" />
+      <input name="mix" type="float" interfacename="Invert_Color_Factor" />
+    </mix>
+    <max name="Gamma" type="color3">
+      <input name="in1" type="color3" nodename="Invert_Color_2" />
+      <input name="in2" type="color3" value="0, 0, 0" />
+    </max>
+    <power name="Gamma_2" type="color3">
+      <input name="in1" type="color3" nodename="Gamma" />
+      <input name="in2" type="float" interfacename="Gamma_Gamma" />
+    </power>
+    <add name="Contrast" type="float">
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" interfacename="Brightness_Contrast_Contrast" />
+    </add>
+    <divide name="Contrast_2" type="float">
+      <input name="in1" type="float" interfacename="Brightness_Contrast_Contrast" />
+      <input name="in2" type="float" value="2" />
+    </divide>
+    <subtract name="Contrast_3" type="float">
+      <input name="in1" type="float" interfacename="Brightness_Contrast_Brightness" />
+      <input name="in2" type="float" nodename="Contrast_2" />
+    </subtract>
+    <multiply name="Contrast_4" type="color3">
+      <input name="in1" type="color3" nodename="Gamma_2" />
+      <input name="in2" type="float" nodename="Contrast" />
+    </multiply>
+    <add name="Contrast_5" type="color3">
+      <input name="in1" type="color3" nodename="Contrast_4" />
+      <input name="in2" type="float" nodename="Contrast_3" />
+    </add>
+    <max name="Contrast_6" type="color3">
+      <input name="in1" type="color3" nodename="Contrast_5" />
+      <input name="in2" type="color3" value="0, 0, 0" />
+    </max>
+    <subtract name="Value" type="float">
+      <input name="in1" type="float" interfacename="Hue_Saturation_Value_Hue" />
+      <input name="in2" type="float" value="0.5" />
+    </subtract>
+    <combine3 name="Value_2" type="vector3">
+      <input name="in1" type="float" nodename="Value" />
+      <input name="in2" type="float" interfacename="Hue_Saturation_Value_Saturation" />
+      <input name="in3" type="float" interfacename="Hue_Saturation_Value_Value" />
+    </combine3>
+    <hsvadjust name="Value_3" type="color3" nodedef="ND_hsvadjust_color3">
+      <input name="in" type="color3" nodename="Contrast_6" />
+      <input name="amount" type="vector3" nodename="Value_2" />
+    </hsvadjust>
+    <mix name="Value_4" type="color3">
+      <input name="fg" type="color3" nodename="Value_3" />
+      <input name="bg" type="color3" nodename="Contrast_6" />
+      <input name="mix" type="float" interfacename="Hue_Saturation_Value_Factor" />
+    </mix>
+    <max name="Value_5" type="color3">
+      <input name="in1" type="color3" nodename="Value_4" />
+      <input name="in2" type="color3" value="0, 0, 0" />
+    </max>
+    <constant name="Mix_SCREEN_2" type="color3">
+      <input name="value" type="color3" value="1, 1, 1" />
+    </constant>
+    <subtract name="Mix_SCREEN_2_2" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SCREEN_2" />
+      <input name="in2" type="color3" nodename="Value_5" />
+    </subtract>
+    <subtract name="Mix_SCREEN_3" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SCREEN_2" />
+      <input name="in2" type="color3" interfacename="Mix_SCREEN_B" />
+    </subtract>
+    <multiply name="Mix_SCREEN_4" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SCREEN_2_2" />
+      <input name="in2" type="color3" nodename="Mix_SCREEN_3" />
+    </multiply>
+    <subtract name="Mix_SCREEN_5" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SCREEN_2" />
+      <input name="in2" type="color3" nodename="Mix_SCREEN_4" />
+    </subtract>
+    <mix name="Mix_SCREEN_6" type="color3">
+      <input name="fg" type="color3" nodename="Mix_SCREEN_5" />
+      <input name="bg" type="color3" nodename="Value_5" />
+      <input name="mix" type="float" nodename="Mix_SCREEN" />
+    </mix>
+    <overlay name="Mix_OVERLAY_2" type="color3" nodedef="ND_overlay_color3">
+      <input name="fg" type="color3" interfacename="Mix_OVERLAY_B" />
+      <input name="bg" type="color3" nodename="Mix_SCREEN_6" />
+      <input name="mix" type="float" nodename="Mix_OVERLAY" />
+    </overlay>
+    <add name="Mix_ADD_2" type="color3">
+      <input name="in1" type="color3" nodename="Mix_OVERLAY_2" />
+      <input name="in2" type="color3" interfacename="Mix_ADD_B" />
+    </add>
+    <mix name="Mix_ADD_3" type="color3">
+      <input name="fg" type="color3" nodename="Mix_ADD_2" />
+      <input name="bg" type="color3" nodename="Mix_OVERLAY_2" />
+      <input name="mix" type="float" nodename="Mix_ADD" />
+    </mix>
+    <subtract name="Mix_SUBTRACT_2" type="color3">
+      <input name="in1" type="color3" nodename="Mix_ADD_3" />
+      <input name="in2" type="color3" interfacename="Mix_SUBTRACT_B" />
+    </subtract>
+    <mix name="Mix_SUBTRACT_3" type="color3">
+      <input name="fg" type="color3" nodename="Mix_SUBTRACT_2" />
+      <input name="bg" type="color3" nodename="Mix_ADD_3" />
+      <input name="mix" type="float" nodename="Mix_SUBTRACT" />
+    </mix>
+    <subtract name="Mix_DIFFERENCE_2" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SUBTRACT_3" />
+      <input name="in2" type="color3" interfacename="Mix_DIFFERENCE_B" />
+    </subtract>
+    <absval name="Mix_DIFFERENCE_3" type="color3">
+      <input name="in" type="color3" nodename="Mix_DIFFERENCE_2" />
+    </absval>
+    <mix name="Mix_DIFFERENCE_4" type="color3">
+      <input name="fg" type="color3" nodename="Mix_DIFFERENCE_3" />
+      <input name="bg" type="color3" nodename="Mix_SUBTRACT_3" />
+      <input name="mix" type="float" nodename="Mix_DIFFERENCE" />
+    </mix>
+    <min name="Mix_DARKEN_2" type="color3">
+      <input name="in1" type="color3" nodename="Mix_DIFFERENCE_4" />
+      <input name="in2" type="color3" interfacename="Mix_DARKEN_B" />
+    </min>
+    <mix name="Mix_DARKEN_3" type="color3">
+      <input name="fg" type="color3" nodename="Mix_DARKEN_2" />
+      <input name="bg" type="color3" nodename="Mix_DIFFERENCE_4" />
+      <input name="mix" type="float" nodename="Mix_DARKEN" />
+    </mix>
+    <max name="Mix_LIGHTEN_2" type="color3">
+      <input name="in1" type="color3" nodename="Mix_DARKEN_3" />
+      <input name="in2" type="color3" interfacename="Mix_LIGHTEN_B" />
+    </max>
+    <mix name="Mix_LIGHTEN_3" type="color3">
+      <input name="fg" type="color3" nodename="Mix_LIGHTEN_2" />
+      <input name="bg" type="color3" nodename="Mix_DARKEN_3" />
+      <input name="mix" type="float" nodename="Mix_LIGHTEN" />
+    </mix>
+    <extract name="Mix_DIVIDE_2" type="float">
+      <input name="in" type="color3" nodename="Mix_LIGHTEN_3" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="Mix_DIVIDE_3" type="float">
+      <input name="in" type="color3" interfacename="Mix_DIVIDE_B" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <divide name="Mix_DIVIDE_4" type="float">
+      <input name="in1" type="float" nodename="Mix_DIVIDE_2" />
+      <input name="in2" type="float" nodename="Mix_DIVIDE_3" />
+    </divide>
+    <ifequal name="Mix_DIVIDE_5" type="float">
+      <input name="value1" type="float" nodename="Mix_DIVIDE_3" />
+      <input name="value2" type="float" value="0" />
+      <input name="in1" type="float" nodename="Mix_DIVIDE_2" />
+      <input name="in2" type="float" nodename="Mix_DIVIDE_4" />
+    </ifequal>
+    <extract name="Mix_DIVIDE_6" type="float">
+      <input name="in" type="color3" nodename="Mix_LIGHTEN_3" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="Mix_DIVIDE_7" type="float">
+      <input name="in" type="color3" interfacename="Mix_DIVIDE_B" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <divide name="Mix_DIVIDE_8" type="float">
+      <input name="in1" type="float" nodename="Mix_DIVIDE_6" />
+      <input name="in2" type="float" nodename="Mix_DIVIDE_7" />
+    </divide>
+    <ifequal name="Mix_DIVIDE_9" type="float">
+      <input name="value1" type="float" nodename="Mix_DIVIDE_7" />
+      <input name="value2" type="float" value="0" />
+      <input name="in1" type="float" nodename="Mix_DIVIDE_6" />
+      <input name="in2" type="float" nodename="Mix_DIVIDE_8" />
+    </ifequal>
+    <extract name="Mix_DIVIDE_10" type="float">
+      <input name="in" type="color3" nodename="Mix_LIGHTEN_3" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <extract name="Mix_DIVIDE_11" type="float">
+      <input name="in" type="color3" interfacename="Mix_DIVIDE_B" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <divide name="Mix_DIVIDE_12" type="float">
+      <input name="in1" type="float" nodename="Mix_DIVIDE_10" />
+      <input name="in2" type="float" nodename="Mix_DIVIDE_11" />
+    </divide>
+    <ifequal name="Mix_DIVIDE_13" type="float">
+      <input name="value1" type="float" nodename="Mix_DIVIDE_11" />
+      <input name="value2" type="float" value="0" />
+      <input name="in1" type="float" nodename="Mix_DIVIDE_10" />
+      <input name="in2" type="float" nodename="Mix_DIVIDE_12" />
+    </ifequal>
+    <combine3 name="Mix_DIVIDE_14" type="color3">
+      <input name="in1" type="float" nodename="Mix_DIVIDE_5" />
+      <input name="in2" type="float" nodename="Mix_DIVIDE_9" />
+      <input name="in3" type="float" nodename="Mix_DIVIDE_13" />
+    </combine3>
+    <mix name="Mix_DIVIDE_15" type="color3">
+      <input name="fg" type="color3" nodename="Mix_DIVIDE_14" />
+      <input name="bg" type="color3" nodename="Mix_LIGHTEN_3" />
+      <input name="mix" type="float" nodename="Mix_DIVIDE" />
+    </mix>
+    <constant name="Mix_SOFT_LIGHT_2" type="color3">
+      <input name="value" type="color3" value="1, 1, 1" />
+    </constant>
+    <subtract name="Mix_SOFT_LIGHT_2_2" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SOFT_LIGHT_2" />
+      <input name="in2" type="color3" nodename="Mix_DIVIDE_15" />
+    </subtract>
+    <subtract name="Mix_SOFT_LIGHT_3" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SOFT_LIGHT_2" />
+      <input name="in2" type="color3" interfacename="Mix_SOFT_LIGHT_B" />
+    </subtract>
+    <multiply name="Mix_SOFT_LIGHT_4" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SOFT_LIGHT_3" />
+      <input name="in2" type="color3" nodename="Mix_SOFT_LIGHT_2_2" />
+    </multiply>
+    <subtract name="Mix_SOFT_LIGHT_5" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SOFT_LIGHT_2" />
+      <input name="in2" type="color3" nodename="Mix_SOFT_LIGHT_4" />
+    </subtract>
+    <multiply name="Mix_SOFT_LIGHT_6" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SOFT_LIGHT_2_2" />
+      <input name="in2" type="color3" interfacename="Mix_SOFT_LIGHT_B" />
+    </multiply>
+    <multiply name="Mix_SOFT_LIGHT_7" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SOFT_LIGHT_6" />
+      <input name="in2" type="color3" nodename="Mix_DIVIDE_15" />
+    </multiply>
+    <multiply name="Mix_SOFT_LIGHT_8" type="color3">
+      <input name="in1" type="color3" nodename="Mix_DIVIDE_15" />
+      <input name="in2" type="color3" nodename="Mix_SOFT_LIGHT_5" />
+    </multiply>
+    <add name="Mix_SOFT_LIGHT_9" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SOFT_LIGHT_7" />
+      <input name="in2" type="color3" nodename="Mix_SOFT_LIGHT_8" />
+    </add>
+    <mix name="Mix_SOFT_LIGHT_10" type="color3">
+      <input name="fg" type="color3" nodename="Mix_SOFT_LIGHT_9" />
+      <input name="bg" type="color3" nodename="Mix_DIVIDE_15" />
+      <input name="mix" type="float" nodename="Mix_SOFT_LIGHT" />
+    </mix>
+    <convert name="Mix_LINEAR_LIGHT_2" type="color3" nodedef="ND_convert_float_color3">
+      <input name="in" type="float" nodename="Mix_LINEAR_LIGHT" />
+    </convert>
+    <multiply name="Mix_LINEAR_LIGHT_3" type="color3">
+      <input name="in1" type="color3" interfacename="Mix_LINEAR_LIGHT_B" />
+      <input name="in2" type="color3" value="2, 2, 2" />
+    </multiply>
+    <subtract name="Mix_LINEAR_LIGHT_4" type="color3">
+      <input name="in1" type="color3" nodename="Mix_LINEAR_LIGHT_3" />
+      <input name="in2" type="color3" value="1, 1, 1" />
+    </subtract>
+    <multiply name="Mix_LINEAR_LIGHT_5" type="color3">
+      <input name="in1" type="color3" nodename="Mix_LINEAR_LIGHT_2" />
+      <input name="in2" type="color3" nodename="Mix_LINEAR_LIGHT_4" />
+    </multiply>
+    <add name="Mix_LINEAR_LIGHT_6" type="color3">
+      <input name="in1" type="color3" nodename="Mix_SOFT_LIGHT_10" />
+      <input name="in2" type="color3" nodename="Mix_LINEAR_LIGHT_5" />
+    </add>
+    <add name="Mix_EXCLUSION_2" type="color3">
+      <input name="in1" type="color3" nodename="Mix_LINEAR_LIGHT_6" />
+      <input name="in2" type="color3" interfacename="Mix_EXCLUSION_B" />
+    </add>
+    <multiply name="Mix_EXCLUSION_3" type="color3">
+      <input name="in1" type="color3" nodename="Mix_LINEAR_LIGHT_6" />
+      <input name="in2" type="color3" interfacename="Mix_EXCLUSION_B" />
+    </multiply>
+    <multiply name="Mix_EXCLUSION_4" type="color3">
+      <input name="in1" type="color3" nodename="Mix_EXCLUSION_3" />
+      <input name="in2" type="color3" value="2, 2, 2" />
+    </multiply>
+    <subtract name="Mix_EXCLUSION_5" type="color3">
+      <input name="in1" type="color3" nodename="Mix_EXCLUSION_2" />
+      <input name="in2" type="color3" nodename="Mix_EXCLUSION_4" />
+    </subtract>
+    <mix name="Mix_EXCLUSION_6" type="color3">
+      <input name="fg" type="color3" nodename="Mix_EXCLUSION_5" />
+      <input name="bg" type="color3" nodename="Mix_LINEAR_LIGHT_6" />
+      <input name="mix" type="float" nodename="Mix_EXCLUSION" />
+    </mix>
+    <multiply name="Emission_color" type="color3">
+      <input name="in1" type="color3" nodename="Mix_EXCLUSION_6" />
+      <input name="in2" type="float" nodename="Map_Range_Smooth_15" />
+    </multiply>
+    <output name="color" type="color3" nodename="Emission_color" />
+  </nodegraph>
+  <uniform_edf name="uniform_edf_0" type="EDF">
+    <input name="color" type="color3" nodegraph="NG_math" output="color" />
+  </uniform_edf>
+  <surface name="math_shader" type="surfaceshader">
+    <input name="edf" type="EDF" nodename="uniform_edf_0" />
+  </surface>
+  <surfacematerial name="math" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="math_shader" />
+  </surfacematerial>
+</materialx>

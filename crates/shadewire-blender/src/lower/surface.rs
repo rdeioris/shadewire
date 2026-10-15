@@ -275,7 +275,8 @@ fn operator(
 }
 
 /// The root of `which` over the two sides' roots, pushing the node that makes it onto `nodes`: a mix of both, a
-/// sum, or the side that has one (weighted by its Mix Shader weight; `fac` is `None` for an Add Shader).
+/// sum, or the side that has one (weighted by its Mix Shader weight; `fac` is `None` for an Add Shader). The node is
+/// named `{node}.bsdf` or `{node}.edf`, with `_` appended while a Blender node has that name.
 fn root(
     l: &mut Lowerer,
     node: &FlatNode,
@@ -284,7 +285,7 @@ fn root(
     fac: Option<NodeId>,
     nodes: &mut Vec<ShaderNode>,
 ) -> Result<Option<String>, Error> {
-    let name = format!("{}.{}", node.name, which.suffix);
+    let name = unused_name(l, nodes, format!("{}.{}", node.name, which.suffix));
     let shader = match (sides, fac) {
         ([None, None], _) => return Ok(None),
         ([Some(a), Some(b)], Some(fac)) => {

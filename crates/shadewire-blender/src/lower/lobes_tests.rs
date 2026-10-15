@@ -267,3 +267,13 @@ fn a_surface_linked_to_a_non_surface_shader_names_it_in_the_error() {
     assert!(err.to_string().contains("ShaderNodeVolumePrincipled"), "{err}");
     assert!(!err.to_string().contains("not linked"), "{err}");
 }
+
+#[test]
+fn a_blender_node_named_like_an_operator_keeps_both() {
+    // The Mix Shader's BSDF operator would be "Mix.bsdf", the diffuse's name: the operator takes another.
+    let diffuse = DIFFUSE.replace(r#""name": "D""#, r#""name": "Mix.bsdf""#);
+    let extra = format!("{diffuse}, {EMISSION}, {MIX}");
+    let links = r#"[[["Mix.bsdf", "BSDF"], ["Mix", "Shader"]], [["E", "Emission"], ["Mix", "Shader_001"]]]"#;
+    let dag = to_ir(&closure_doc(&extra, "Mix", "Shader", links), None, &lobes_options()).unwrap().dag;
+    assert_weights(&dag, &[("oren_nayar_diffuse_bsdf", 0.75), ("uniform_edf", 0.25)]);
+}

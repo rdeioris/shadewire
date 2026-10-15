@@ -1,5 +1,6 @@
 //! The hub's promise: `blender → ir → mtlx → ir` is the same material as `blender → ir`.
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use shadewire::Error;
@@ -20,13 +21,20 @@ fn fixtures() -> Vec<(String, String)> {
 
 #[test]
 fn every_fixture_survives_the_trip_through_materialx() {
+    let fixtures = fixtures();
     let mut count = 0;
-    for (name, text) in fixtures() {
-        for material in material_names(&text).unwrap() {
-            for options in [IrOptions::default(), IrOptions::with_models(&["surface", "surface_unlit"])] {
-                let a = match to_ir(&text, Some(&material), &options) {
+    let mut tripped = BTreeSet::new();
+    for (name, text) in &fixtures {
+        for material in material_names(text).unwrap() {
+            let modes =
+                [("models", IrOptions::default()), ("lobes", IrOptions::with_models(&["surface", "surface_unlit"]))];
+            for (mode, options) in modes {
+                let a = match to_ir(text, Some(&material), &options) {
                     Ok(ir) => ir.dag,
-                    Err(Error::NoTranslation { .. }) => continue,
+                    // These two make closure trees, which only the `surface` model takes.
+                    Err(Error::NoTranslation { .. }) if mode == "models" && (name == "lobes" || name == "math") => {
+                        continue;
+                    }
                     Err(e) => panic!("{name}/{material}: {e}"),
                 };
                 for inline in [false, true] {
@@ -38,10 +46,13 @@ fn every_fixture_survives_the_trip_through_materialx() {
                         })
                         .dag;
                     assert_same_material(&a, &b, &written.text);
+                    tripped.insert(name.as_str());
                     count += 1;
                 }
             }
         }
     }
+    let names: BTreeSet<&str> = fixtures.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(tripped, names, "every fixture makes at least one round trip");
     assert!(count >= 36, "{count} round trips");
 }

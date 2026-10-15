@@ -39,10 +39,16 @@ fn every_fixture_lowers_and_its_warnings_are_the_snapshots() {
             for (mode, options) in modes() {
                 let Some(ir) = lower(&name, &text, &material, mode, &options) else { continue };
                 insta::assert_snapshot!(format!("{name}_{material}_{mode}_warnings"), ir.warnings.join("\n"));
-                if mode == "models" {
+                // The mapped models' documents, and the closure trees' of the fixtures that only make closure trees.
+                let snapshot = match mode {
+                    "models" => Some(format!("{name}_{material}_mtlx")),
+                    _ if name == "lobes" || name == "math" => Some(format!("{name}_{material}_{mode}_mtlx")),
+                    _ => None,
+                };
+                if let Some(snapshot) = snapshot {
                     let write = shadewire_mtlx::WriteOptions { name: material.clone(), ..Default::default() };
                     let written = shadewire_mtlx::from_ir(&ir.dag, &write).unwrap();
-                    insta::assert_snapshot!(format!("{name}_{material}_mtlx"), written.text);
+                    insta::assert_snapshot!(snapshot, written.text);
                 }
                 assert_eq!(ir.source.source, "blender");
             }
