@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 
 # The models each import mode accepts. PRINCIPLED keeps the named models (one Principled BSDF each) and takes the
 # rest, raw BSDF graphs included, as Shadewire's closure model; LOBES opens every material into its lobes.
@@ -23,6 +24,10 @@ MODES = {
     "PRINCIPLED": ["standard_surface", "open_pbr_surface", "gltf_pbr", "surface_unlit", "surface"],
     "LOBES": ["surface", "surface_unlit"],
 }
+# The models an export lowers to: a Principled BSDF stays one, lobes become a closure tree.
+EXPORT_MODELS = ["open_pbr_surface", "surface", "surface_unlit"]
+# The element tags Shadewire embeds in every document it writes, which repeat when documents are merged.
+EMBEDDED_TAGS = ("nodedef", "implementation")
 IR_FORMAT = ("shadewire-ir", 1)
 
 
@@ -71,6 +76,17 @@ class ModuleBackend:
             raise CompileError(str(e)) from e
         return checked(doc)
 
+    def to_mtlx(self, graph_text, material, name, inline=False):
+        """A Blender graph document's `material` as a MaterialX document: `(text, warnings)`. `name` names the
+        written `surfacematerial`; `inline` writes library nodes expanded."""
+        try:
+            ir = self.module.blender.to_ir(graph_text, material=material, models=EXPORT_MODELS,
+                                           values_as_uniforms=True)
+            text, writer_warnings = self.module.mtlx.from_ir(ir, inline=inline, name=name)
+        except self.module.ShadewireError as e:
+            raise CompileError(str(e)) from e
+        return text, list(ir.warnings) + list(writer_warnings)
+
 
 class ExecutableBackend:
     """The `shadewire` command-line compiler, one process per call."""
@@ -80,11 +96,15 @@ class ExecutableBackend:
         self.name = f"shadewire executable {path}"
 
     def run(self, args):
+        return self.run_with_stderr(args)[0]
+
+    def run_with_stderr(self, args):
+        """`(stdout, stderr)` of a successful call; a failed one is a CompileError carrying stderr."""
         flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
         done = subprocess.run([self.path, *args], capture_output=True, text=True, creationflags=flags)
         if done.returncode != 0:
             raise CompileError(done.stderr.strip() or f"shadewire exited with {done.returncode}")
-        return done.stdout
+        return done.stdout, done.stderr
 
     def material_names(self, mtlx):
         return [line for line in self.run(["list", mtlx]).splitlines() if line.strip()]
@@ -110,6 +130,76 @@ class ExecutableBackend:
             return self.compile(temporary, material, editable, mode)
         finally:
             os.remove(temporary)
+
+    def to_mtlx(self, graph_text, material, name, inline=False):
+        """`ModuleBackend.to_mtlx` through the `mtlx` command: the warnings are stderr's lines. The command names
+        the written material after the one it reads, so the document handed over holds just `material`, renamed
+        `name`."""
+        fd, temporary = tempfile.mkstemp(suffix=".json")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(renamed_material(graph_text, material, name))
+            args = ["mtlx", temporary, "--format", "blender", "--material", name]
+            for model in EXPORT_MODELS:
+                args += ["--model", model]
+            if inline:
+                args.append("--inline")
+            text, stderr = self.run_with_stderr(args)
+        except CompileError as e:
+            raise CompileError(self.hinted(str(e))) from e
+        finally:
+            os.remove(temporary)
+        return text, [line.strip() for line in stderr.splitlines() if line.strip()]
+
+    def hinted(self, message):
+        """`message`, with what to do about it when the executable predates the Blender front end."""
+        if "unexpected argument" in message or "unknown format" in message:
+            return (f"{message}\nthe shadewire executable at {self.path} does not read Blender graphs: "
+                    "a build with the Blender front end (0.1.0 or later) is needed")
+        return message
+
+
+def renamed_material(graph_text, material, name):
+    """The graph document (its groups kept) with only `material`, under the name `name`."""
+    try:
+        doc = json.loads(graph_text)
+        chosen = [dict(entry, name=name) for entry in doc["materials"] if entry["name"] == material]
+    except (ValueError, KeyError, TypeError) as e:
+        raise CompileError(f"not a Blender graph document: {e}") from e
+    if not chosen:
+        raise CompileError(f"material {material} is not in the Blender graph document")
+    return json.dumps(dict(doc, materials=chosen))
+
+
+def merge_documents(texts):
+    """One MaterialX document holding every element of `texts` in order. Shadewire's embedded declarations
+    (`nodedef`, `implementation`, the `nodegraph` of a nodedef) repeat per document and are kept once; any other
+    repeated name is an error. A single document is returned as it is."""
+    if len(texts) == 1:
+        return texts[0]
+    merged = ET.Element("materialx", version="1.39")
+    taken = set()
+    for text in texts:
+        try:
+            root = ET.fromstring(text)
+        except ET.ParseError as e:
+            raise CompileError(f"not a MaterialX document: {e}") from e
+        for element in root:
+            name = element.get("name")
+            if is_embedded(element):
+                if name in taken:
+                    continue
+            elif name in taken:
+                raise CompileError(f"two exported materials write an element named {name}; rename one material")
+            taken.add(name)
+            merged.append(element)
+    ET.indent(merged, space="  ")
+    return '<?xml version="1.0"?>\n' + ET.tostring(merged, encoding="unicode") + "\n"
+
+
+def is_embedded(element):
+    """Whether `element` is one of the declarations every Shadewire document embeds."""
+    return element.tag in EMBEDDED_TAGS or element.tag == "nodegraph" and element.get("nodedef") is not None
 
 
 def find_executable(configured=""):
