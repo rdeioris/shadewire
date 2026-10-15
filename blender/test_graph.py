@@ -117,8 +117,53 @@ def pytest_round(x):
     return float(__import__("array").array("f", [x])[0])
 
 
+def test_round_trip(graph):
+    original = graph.dump([bpy.data.materials["Wood"]])
+    text = graph.to_text(original)
+    # Load into fresh names: a loaded material is a new material unless `replace`.
+    for material in list(bpy.data.materials):
+        bpy.data.materials.remove(material)
+    for group in list(bpy.data.node_groups):
+        bpy.data.node_groups.remove(group)
+    materials, warnings = graph.load(graph.from_text(text))
+    check(warnings == [], f"load warnings: {warnings}")
+    check([m.name for m in materials] == ["Wood"], f"loaded materials: {[m.name for m in materials]}")
+    again = graph.dump(materials)
+    if again != original:
+        import difflib
+        diff = difflib.unified_diff(graph.to_text(original).splitlines(), graph.to_text(again).splitlines(), lineterm="")
+        check(False, "dump → load → dump is not the identity:\n" + "\n".join(list(diff)[:80]))
+    # Replace rebuilds the existing material in place and keeps its users.
+    cube = bpy.data.objects.new("Cube", bpy.data.meshes.new("Cube"))
+    cube.data.materials.append(bpy.data.materials["Wood"])
+    replaced, warnings = graph.load(graph.from_text(text), replace=True)
+    check(replaced[0] is bpy.data.materials["Wood"] and cube.data.materials[0] is replaced[0], "replace keeps the material")
+    check(len([m for m in bpy.data.materials if m.name.startswith("Wood")]) == 1, "replace makes no copy")
+    check(graph.dump(replaced) == original, "a replaced material dumps the same")
+
+
+def test_load_warnings(graph):
+    doc = graph.from_text(graph.to_text(graph.dump([bpy.data.materials["Wood"]])))
+    material = doc["materials"][0]
+    material["name"] = "Broken"
+    material["nodes"].append({"name": "Nope", "type": "ShaderNodeDoesNotExist", "label": "", "location": [0.0, 0.0],
+                              "width": 140.0, "hide": False, "mute": False, "parent": None, "properties": {},
+                              "inputs": [], "outputs": [], "internal_links": []})
+    material["nodes"][0]["properties"]["no_such_property"] = 1
+    material["nodes"][0]["inputs"].append({"identifier": "Nope", "name": "Nope", "type": "VALUE", "enabled": True, "value": 1.0})
+    material["links"].append({"from": ["Nope", "Out"], "to": ["Principled BSDF", "Base Color"]})
+    materials, warnings = graph.load(doc)
+    check(len(materials) == 1 and materials[0].name == "Broken", "a material with problems still loads")
+    check(any("unknown node type ShaderNodeDoesNotExist" in w for w in warnings), f"unknown node warning: {warnings}")
+    check(any("no_such_property" in w for w in warnings), f"unknown property warning: {warnings}")
+    check(any("Nope" in w and "input" in w for w in warnings), f"unknown input warning: {warnings}")
+    check(any("link" in w for w in warnings), f"broken link warning: {warnings}")
+
+
 bpy.ops.wm.read_homefile(use_empty=True)
 addon = load_addon()
 test_dump_shape(addon.graph)
+test_round_trip(addon.graph)
+test_load_warnings(addon.graph)
 print("FAILURES", len(failures))
 sys.exit(1 if failures else 0)
