@@ -1,6 +1,7 @@
 //! Lowering: a flattened Blender graph becomes IR through `shadewire-nodes`, one node output at a time, from the
 //! active Material Output's Surface back to the values it reads.
 
+pub mod color;
 pub mod fallback;
 pub mod lobes;
 pub mod math;
@@ -8,6 +9,8 @@ pub mod principled;
 pub mod surface;
 pub mod values;
 
+#[cfg(test)]
+mod color_tests;
 #[cfg(test)]
 mod convert_tests;
 #[cfg(test)]
@@ -93,6 +96,15 @@ impl<'a> Lowerer<'a> {
             }
             "ShaderNodeValue" => Ok(self.value(node, own("Value")?, &node.name)),
             "ShaderNodeRGB" => Ok(self.value(node, own("Color")?, &node.name)),
+            "ShaderNodeMix" => color::mix(self, node, socket),
+            "ShaderNodeSeparateColor" => color::separate_color(self, node, socket),
+            "ShaderNodeCombineColor" => color::combine_color(self, node, socket),
+            "ShaderNodeSeparateXYZ" => color::separate_xyz(self, node, socket),
+            "ShaderNodeCombineXYZ" => color::combine_xyz(self, node, socket),
+            "ShaderNodeInvert" => color::invert(self, node, socket),
+            "ShaderNodeGamma" => color::gamma(self, node, socket),
+            "ShaderNodeBrightContrast" => color::bright_contrast(self, node, socket),
+            "ShaderNodeHueSaturation" => color::hue_saturation(self, node, socket),
             "ShaderNodeMath" => math::math(self, node, socket),
             "ShaderNodeVectorMath" => math::vector_math(self, node, socket),
             "ShaderNodeClamp" => math::clamp(self, node, socket),
@@ -199,9 +211,12 @@ impl<'a> Lowerer<'a> {
         }
     }
 
-    /// Records `{kind} "{name}": {what}`.
+    /// Records `{kind} "{name}": {what}`, once however many outputs of the node ask for it.
     pub fn warn(&mut self, node: &FlatNode, what: impl Into<String>) {
-        self.warnings.push(format!("{} \"{}\": {}", node.kind, node.name, what.into()));
+        let warning = format!("{} \"{}\": {}", node.kind, node.name, what.into());
+        if !self.warnings.contains(&warning) {
+            self.warnings.push(warning);
+        }
     }
 
     /// A float constant the handler itself introduces.
@@ -275,6 +290,33 @@ impl<'a> Lowerer<'a> {
         let names = ["value1", "value2", "in1", "in2"];
         let inputs: Vec<(&str, Arg)> = names.into_iter().zip(ids).map(|(n, id)| (n, Arg::Node(id))).collect();
         self.op(category, ty, &inputs, origin)
+    }
+
+    /// Channel `index` of the color or vector `id`, as a float.
+    pub fn extract(&mut self, id: NodeId, index: u32, origin: &str) -> Result<NodeId, Error> {
+        let index = Arg::Value(Value::Integer(index as i32));
+        self.op("extract", Type::Float, &[("in", Arg::Node(id)), ("index", index)], origin)
+    }
+
+    /// The vector of type `ty` (`Color3` or `Vector3`) with channels `a`, `b` and `c`.
+    pub fn combine3(&mut self, a: NodeId, b: NodeId, c: NodeId, ty: Type, origin: &str) -> Result<NodeId, Error> {
+        let inputs = [("in1", Arg::Node(a)), ("in2", Arg::Node(b)), ("in3", Arg::Node(c))];
+        self.op("combine3", ty, &inputs, origin)
+    }
+
+    /// The color made of `f` over each channel of `color` (the float channel and its index), channel by channel.
+    pub fn per_channel(
+        &mut self,
+        color: NodeId,
+        origin: &str,
+        f: &mut dyn FnMut(&mut Lowerer<'a>, NodeId, usize) -> Result<NodeId, Error>,
+    ) -> Result<NodeId, Error> {
+        let mut channels = [color; 3];
+        for (index, channel) in channels.iter_mut().enumerate() {
+            let x = self.extract(color, index as u32, origin)?;
+            *channel = f(self, x, index)?;
+        }
+        self.combine3(channels[0], channels[1], channels[2], Type::Color3, origin)
     }
 
     /// `id` limited to the lower and the higher of `a` and `b`, whichever order they come in.

@@ -2,5 +2,5 @@
 source: crates/shadewire-blender/tests/fixtures.rs
 expression: "ir.warnings.join(\"\\n\")"
 ---
-ShaderNodeMix "Mix EXCLUSION": not lowered, output Result_Color is its default value
-ShaderNodeSeparateXYZ "Separate XYZ": not lowered, output X is its default value
+ShaderNodeCombineColor "Combine HSL": HSL read as HSV
+ShaderNodeSeparateColor "Separate HSL": HSL read as HSV
