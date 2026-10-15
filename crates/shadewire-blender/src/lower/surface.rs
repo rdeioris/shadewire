@@ -205,34 +205,44 @@ fn principled_with(
 fn merged(l: &mut Lowerer, node: &FlatNode, a: Tree, b: Tree, fac: Option<NodeId>) -> Result<Tree, Error> {
     let (bsdf_a, bsdf_b, edf_a, edf_b) = (a.bsdf.clone(), b.bsdf.clone(), a.edf.clone(), b.edf.clone());
     let (t_a, t_b) = (a.transparency, b.transparency);
+    // Light that passes a transparent side reaches what is behind the surface, not the other side's lobes: they
+    // keep their strength and the opacity carries the mix. Only a side that renders black takes energy with it.
+    let lobe_fac = if a.is_transparency_only() || b.is_transparency_only() { None } else { fac };
     let mut extra = Vec::new();
-    let bsdf = root(l, node, Root::BSDF, [bsdf_a, bsdf_b], fac, &mut extra)?;
-    let edf = root(l, node, Root::EDF, [edf_a, edf_b], fac, &mut extra)?;
+    let bsdf = root(l, node, Root::BSDF, [bsdf_a, bsdf_b], lobe_fac, &mut extra)?;
+    let edf = root(l, node, Root::EDF, [edf_a, edf_b], lobe_fac, &mut extra)?;
+    let origin = format!("{}.transparency", node.name);
     let transparency = match fac {
-        Some(fac) => match (t_a, t_b) {
-            (None, None) => None,
-            (a, b) => {
-                let origin = format!("{}.transparency", node.name);
-                let a = a.unwrap_or_else(|| l.float(0.0, &origin));
-                let b = b.unwrap_or_else(|| l.float(0.0, &origin));
-                let inputs = [("bg", Arg::Node(a)), ("fg", Arg::Node(b)), ("mix", Arg::Node(fac))];
-                Some(l.op("mix", Type::Float, &inputs, &origin)?)
-            }
-        },
-        None => match (t_a, t_b) {
-            (Some(a), Some(b)) => {
-                let origin = format!("{}.transparency", node.name);
-                let sum = l.op("add", Type::Float, &[("in1", Arg::Node(a)), ("in2", Arg::Node(b))], &origin)?;
-                let one = l.float(1.0, &origin);
-                Some(l.op("min", Type::Float, &[("in1", Arg::Node(sum)), ("in2", Arg::Node(one))], &origin)?)
-            }
-            (a, b) => a.or(b),
-        },
+        Some(fac) => mixed_transparency(l, [t_a, t_b], fac, &origin)?,
+        None => added_transparency(l, [t_a, t_b], &origin)?,
     };
     let nodes = a.nodes_with(b.nodes);
     let mut tree = Tree { nodes, bsdf, edf, transparency };
     tree.nodes.extend(extra);
     Ok(tree)
+}
+
+/// The transparency of two sides mixed by `fac`; a side with none passes nothing.
+fn mixed_transparency(
+    l: &mut Lowerer,
+    sides: [Option<NodeId>; 2],
+    fac: NodeId,
+    origin: &str,
+) -> Result<Option<NodeId>, Error> {
+    if sides == [None, None] {
+        return Ok(None);
+    }
+    let [bg, fg] = sides.map(|t| t.unwrap_or_else(|| l.float(0.0, origin)));
+    let inputs = [("bg", Arg::Node(bg)), ("fg", Arg::Node(fg)), ("mix", Arg::Node(fac))];
+    l.op("mix", Type::Float, &inputs, origin).map(Some)
+}
+
+/// The transparency of two sides added, at most 1.
+fn added_transparency(l: &mut Lowerer, sides: [Option<NodeId>; 2], origin: &str) -> Result<Option<NodeId>, Error> {
+    let [Some(a), Some(b)] = sides else { return Ok(sides[0].or(sides[1])) };
+    let sum = l.op("add", Type::Float, &[("in1", Arg::Node(a)), ("in2", Arg::Node(b))], origin)?;
+    let one = l.float(1.0, origin);
+    l.op("min", Type::Float, &[("in1", Arg::Node(sum)), ("in2", Arg::Node(one))], origin).map(Some)
 }
 
 /// Which root of a closure tree.
@@ -342,13 +352,14 @@ fn multiply(l: &mut Lowerer, a: NodeId, b: NodeId, origin: &str) -> Result<NodeI
     l.op("multiply", Type::Float, &[("in1", Arg::Node(a)), ("in2", Arg::Node(b))], origin)
 }
 
-/// The dag finished with `shading` as the surface of `output_node`, and the lowering's warnings.
-pub fn finish(mut l: Lowerer, shading: Shading, output_node: &FlatNode) -> Result<(Dag, Vec<String>), Error> {
-    let unsupported = |reason: &str| Error::UnsupportedSurface {
-        at: at(&output_node.name),
-        node: output_node.name.clone(),
-        reason: reason.to_string(),
-    };
+/// The dag finished with `shading` as the surface of `output_node` (`linked`: the node its Surface is linked to), and
+/// the lowering's warnings.
+pub fn finish(
+    mut l: Lowerer,
+    shading: Shading,
+    output_node: &FlatNode,
+    linked: Option<&FlatNode>,
+) -> Result<(Dag, Vec<String>), Error> {
     match shading {
         Shading::Principled { fields, origin } => {
             let fields: Vec<(&str, Arg)> = fields.iter().map(|(name, arg)| (name.as_str(), arg.clone())).collect();
@@ -356,32 +367,49 @@ pub fn finish(mut l: Lowerer, shading: Shading, output_node: &FlatNode) -> Resul
             Ok((e.finish_model("open_pbr_surface", &fields, &origin)?, warnings))
         }
         Shading::Closure(tree) => {
-            let mut name = "surface".to_string();
-            while tree.nodes.iter().any(|n| n.name == name) {
-                name.push('_');
-            }
-            let mut surface = ShaderNode {
-                name: name.clone(),
-                category: "surface".to_string(),
-                port_type: PortType::SurfaceShader,
-                inputs: Vec::new(),
-                links: Vec::new(),
-            };
-            if let Some(transparency) = tree.transparency {
-                let opacity = one_minus(&mut l, transparency, "surface.opacity")?;
-                surface.inputs.push(("opacity".to_string(), Arg::Node(opacity)));
-            }
-            if let Some(bsdf) = tree.bsdf {
-                surface.links.push(("bsdf".to_string(), bsdf));
-            }
-            if let Some(edf) = tree.edf {
-                surface.links.push(("edf".to_string(), edf));
-            }
-            let mut nodes = tree.nodes;
-            nodes.push(surface);
+            let (nodes, name) = closure_nodes(&mut l, tree)?;
             let Lowerer { e, warnings, .. } = l;
             Ok((e.finish_closure(nodes, &name)?, warnings))
         }
-        Shading::Nothing => Err(unsupported("Surface is not linked")),
+        Shading::Nothing => Err(match linked {
+            Some(node) => Error::UnsupportedSurface {
+                at: at(&node.name),
+                node: node.name.clone(),
+                reason: format!("{} is not a surface shader", node.kind),
+            },
+            None => Error::UnsupportedSurface {
+                at: at(&output_node.name),
+                node: output_node.name.clone(),
+                reason: "Surface is not linked".to_string(),
+            },
+        }),
     }
+}
+
+/// The nodes of `tree` and the `surface` node over them (its name, which no other node has).
+fn closure_nodes(l: &mut Lowerer, tree: Tree) -> Result<(Vec<ShaderNode>, String), Error> {
+    let mut name = "surface".to_string();
+    while tree.nodes.iter().any(|n| n.name == name) {
+        name.push('_');
+    }
+    let mut surface = ShaderNode {
+        name: name.clone(),
+        category: "surface".to_string(),
+        port_type: PortType::SurfaceShader,
+        inputs: Vec::new(),
+        links: Vec::new(),
+    };
+    if let Some(transparency) = tree.transparency {
+        let opacity = one_minus(l, transparency, "surface.opacity")?;
+        surface.inputs.push(("opacity".to_string(), Arg::Node(opacity)));
+    }
+    if let Some(bsdf) = tree.bsdf {
+        surface.links.push(("bsdf".to_string(), bsdf));
+    }
+    if let Some(edf) = tree.edf {
+        surface.links.push(("edf".to_string(), edf));
+    }
+    let mut nodes = tree.nodes;
+    nodes.push(surface);
+    Ok((nodes, name))
 }

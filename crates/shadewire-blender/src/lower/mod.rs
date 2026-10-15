@@ -40,8 +40,8 @@ pub struct Lowerer<'a> {
     memo: HashMap<(String, String), NodeId>,
     in_progress: HashSet<(String, String)>,
     /// Shader node name to the shading it carries, so a shader reached twice is lowered (and warned about) once.
-    pub shaded: HashMap<String, Shading>,
-    pub shading_in_progress: HashSet<String>,
+    shaded: HashMap<String, Shading>,
+    shading_in_progress: HashSet<String>,
     pub warnings: Vec<String>,
 }
 
@@ -239,16 +239,16 @@ fn lower_here(doc: &Document, material: &Material, options: &IrOptions) -> Resul
             l.warn(output, format!("{socket} ignored"));
         }
     }
-    let shading = match graph.source(&output.name, "Surface") {
+    let (shading, linked) = match graph.source(&output.name, "Surface") {
         Some((from, socket)) => {
             let Some(node) = graph.node(from) else {
                 return Err(Error::BadValue { at: at(from), message: format!("no node named {from}") });
             };
-            surface::shading(&mut l, node, socket)?
+            (surface::shading(&mut l, node, socket)?, Some(node))
         }
-        None => Shading::Nothing,
+        None => (Shading::Nothing, None),
     };
-    let (dag, lowered) = surface::finish(l, shading, output)?;
+    let (dag, lowered) = surface::finish(l, shading, output, linked)?;
     warnings.extend(lowered);
     let source = SourceInfo { source: "blender".to_string(), mtlx_version: doc.producer.clone() };
     Ok(MaterialIr { dag, source, warnings })

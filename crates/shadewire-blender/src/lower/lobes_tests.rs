@@ -190,3 +190,43 @@ fn add_shader_adds_closures_and_a_shader_reached_twice_is_one_lobe() {
     assert!(closure.bsdf.is_none() && closure.edf.is_none());
     assert!(close(&field(&ir.dag, closure.opacity.as_ref().unwrap()), &Value::Float(0.0)));
 }
+
+#[test]
+fn a_transparent_side_leaves_the_other_lobes_unweighted_and_an_unlinked_side_weights_them() {
+    let extra = format!("{DIFFUSE}, {TRANSPARENT}, {MIX}");
+    // The transparent shader second: (1 - f) D + f (what is behind), so D stays and the opacity is 1 - f.
+    let links = r#"[[["D", "BSDF"], ["Mix", "Shader"]], [["T", "BSDF"], ["Mix", "Shader_001"]]]"#;
+    let ir = to_ir(&closure_doc(&extra, "Mix", "Shader", links), None, &lobes_options()).unwrap();
+    let closure = ir.dag.surface.closure.as_ref().unwrap();
+    assert!(closure.bsdf.is_some() && !closure.dump().contains("multiply"), "{}", closure.dump());
+    assert!(close(&field(&ir.dag, closure.opacity.as_ref().unwrap()), &Value::Float(0.75)));
+    // The transparent shader first: the opacity is f.
+    let links = r#"[[["T", "BSDF"], ["Mix", "Shader"]], [["D", "BSDF"], ["Mix", "Shader_001"]]]"#;
+    let ir = to_ir(&closure_doc(&extra, "Mix", "Shader", links), None, &lobes_options()).unwrap();
+    let closure = ir.dag.surface.closure.as_ref().unwrap();
+    assert!(closure.bsdf.is_some() && !closure.dump().contains("multiply"), "{}", closure.dump());
+    assert!(close(&field(&ir.dag, closure.opacity.as_ref().unwrap()), &Value::Float(0.25)));
+    // An Add Shader keeps the lobes too.
+    let extra = format!("{DIFFUSE}, {TRANSPARENT}, {ADD}");
+    let links = r#"[[["D", "BSDF"], ["Add", "Shader"]], [["T", "BSDF"], ["Add", "Shader_001"]]]"#;
+    let ir = to_ir(&closure_doc(&extra, "Add", "Shader", links), None, &lobes_options()).unwrap();
+    let closure = ir.dag.surface.closure.as_ref().unwrap();
+    assert!(closure.bsdf.is_some() && !closure.dump().contains("multiply"), "{}", closure.dump());
+    // An unlinked shader renders black: the energy is lost, so the lobe is weighted by 1 - 0.25.
+    let extra = format!("{DIFFUSE}, {MIX}");
+    let links = r#"[[["D", "BSDF"], ["Mix", "Shader"]]]"#;
+    let ir = to_ir(&closure_doc(&extra, "Mix", "Shader", links), None, &lobes_options()).unwrap();
+    let dump = ir.dag.surface.closure.as_ref().unwrap().dump();
+    assert_eq!(dump.matches("multiply").count(), 1, "{dump}");
+}
+
+#[test]
+fn a_surface_linked_to_a_non_surface_shader_names_it_in_the_error() {
+    let volume = r#"{"name": "VP", "type": "ShaderNodeVolumePrincipled", "mute": false, "properties": {}, "inputs": [],
+      "outputs": [{"identifier": "Volume", "name": "Volume", "type": "SHADER", "enabled": true}], "internal_links": []}"#;
+    let text = closure_doc(volume, "VP", "Volume", "[]");
+    let err = to_ir(&text, None, &lobes_options()).unwrap_err();
+    assert!(matches!(err, Error::UnsupportedSurface { .. }), "{err}");
+    assert!(err.to_string().contains("ShaderNodeVolumePrincipled"), "{err}");
+    assert!(!err.to_string().contains("not linked"), "{err}");
+}
