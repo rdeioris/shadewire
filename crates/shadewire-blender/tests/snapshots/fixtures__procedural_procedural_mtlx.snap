@@ -1,0 +1,444 @@
+---
+source: crates/shadewire-blender/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_procedural">
+    <input name="Noise_3D_Scale" type="float" value="5" />
+    <input name="Noise_3D_Roughness" type="float" value="0.5" />
+    <input name="Noise_3D_Lacunarity" type="float" value="2" />
+    <input name="Voronoi_F1_Scale" type="float" value="5" />
+    <input name="Voronoi_F1_Randomness" type="float" value="1" />
+    <input name="Noise_4D_Scale" type="float" value="5" />
+    <input name="Noise_4D_Roughness" type="float" value="0.5" />
+    <input name="Noise_4D_Lacunarity" type="float" value="2" />
+    <input name="Checker_Scale" type="float" value="5" />
+    <input name="Noise_2D_Scale" type="float" value="5" />
+    <input name="Noise_2D_Roughness" type="float" value="0.5" />
+    <input name="Noise_2D_Lacunarity" type="float" value="2" />
+    <input name="Principled_BSDF_Subsurface_Radius" type="vector3" value="1, 0.2, 0.1" />
+    <input name="Voronoi_Edge_Scale" type="float" value="5" />
+    <input name="Voronoi_Edge_Randomness" type="float" value="1" />
+    <input name="Voronoi_Sphere_Scale" type="float" value="5" />
+    <input name="Voronoi_Sphere_Randomness" type="float" value="1" />
+    <input name="Voronoi_Smooth_Scale" type="float" value="5" />
+    <input name="Voronoi_F2_Scale" type="float" value="5" />
+    <input name="Voronoi_F2_Randomness" type="float" value="1" />
+    <input name="Principled_BSDF_Diffuse_Roughness" type="float" value="0" />
+    <input name="Principled_BSDF_IOR" type="float" value="1.5" />
+    <input name="Principled_BSDF_Subsurface_Scale" type="float" value="0.005" />
+    <input name="Principled_BSDF_Subsurface_Anisotropy" type="float" value="0" />
+    <input name="Principled_BSDF_Sheen_Tint" type="color3" value="1, 1, 1" />
+    <input name="Principled_BSDF_Coat_Tint" type="color3" value="1, 1, 1" />
+    <input name="Principled_BSDF_Coat_IOR" type="float" value="1.5" />
+    <input name="Principled_BSDF_Thin_Film_IOR" type="float" value="1.33" />
+    <input name="Principled_BSDF_Thin_Wall" type="boolean" value="false" />
+    <position name="Coordinates_Generated" type="vector3">
+      <input name="space" type="string" value="object" />
+    </position>
+    <multiply name="Noise_3D_Color" type="vector3">
+      <input name="in1" type="vector3" nodename="Coordinates_Generated" />
+      <input name="in2" type="float" interfacename="Noise_3D_Scale" />
+    </multiply>
+    <fractal3d name="Noise_3D_Color_2" type="color3" nodedef="ND_fractal3d_color3">
+      <input name="lacunarity" type="float" interfacename="Noise_3D_Lacunarity" />
+      <input name="diminish" type="float" interfacename="Noise_3D_Roughness" />
+      <input name="position" type="vector3" nodename="Noise_3D_Color" />
+    </fractal3d>
+    <constant name="Noise_3D_Color_3" type="color3">
+      <input name="value" type="color3" value="0.5, 0.5, 0.5" />
+    </constant>
+    <multiply name="Noise_3D_Color_3_2" type="color3">
+      <input name="in1" type="color3" nodename="Noise_3D_Color_2" />
+      <input name="in2" type="color3" nodename="Noise_3D_Color_3" />
+    </multiply>
+    <add name="Noise_3D_Color_4" type="color3">
+      <input name="in1" type="color3" nodename="Noise_3D_Color_3_2" />
+      <input name="in2" type="color3" nodename="Noise_3D_Color_3" />
+    </add>
+    <position name="Geometry_Position" type="vector3">
+      <input name="space" type="string" value="world" />
+    </position>
+    <multiply name="Voronoi_F1_Distance" type="vector3">
+      <input name="in1" type="vector3" nodename="Geometry_Position" />
+      <input name="in2" type="float" interfacename="Voronoi_F1_Scale" />
+    </multiply>
+    <worleynoise3d name="Voronoi_F1_Distance_2" type="float">
+      <input name="position" type="vector3" nodename="Voronoi_F1_Distance" />
+      <input name="jitter" type="float" interfacename="Voronoi_F1_Randomness" />
+      <input name="style" type="integer" value="0" />
+    </worleynoise3d>
+    <position name="Coordinates_Object" type="vector3">
+      <input name="space" type="string" value="object" />
+    </position>
+    <multiply name="Noise_4D_Fac" type="vector3">
+      <input name="in1" type="vector3" nodename="Coordinates_Object" />
+      <input name="in2" type="float" interfacename="Noise_4D_Scale" />
+    </multiply>
+    <fractal3d name="Noise_4D_Fac_2" type="float">
+      <input name="amplitude" type="float" value="1" />
+      <input name="octaves" type="integer" value="3" />
+      <input name="lacunarity" type="float" interfacename="Noise_4D_Lacunarity" />
+      <input name="diminish" type="float" interfacename="Noise_4D_Roughness" />
+      <input name="position" type="vector3" nodename="Noise_4D_Fac" />
+    </fractal3d>
+    <constant name="Noise_4D_Fac_3" type="float">
+      <input name="value" type="float" value="0.5" />
+    </constant>
+    <multiply name="Noise_4D_Fac_3_2" type="float">
+      <input name="in1" type="float" nodename="Noise_4D_Fac_2" />
+      <input name="in2" type="float" nodename="Noise_4D_Fac_3" />
+    </multiply>
+    <add name="Noise_4D_Fac_4" type="float">
+      <input name="in1" type="float" nodename="Noise_4D_Fac_3_2" />
+      <input name="in2" type="float" nodename="Noise_4D_Fac_3" />
+    </add>
+    <texcoord name="Coordinates_UV" type="vector2">
+      <input name="index" type="integer" value="0" />
+    </texcoord>
+    <extract name="Coordinates_UV_2" type="float">
+      <input name="in" type="vector2" nodename="Coordinates_UV" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="Coordinates_UV_2_2" type="float">
+      <input name="in" type="vector2" nodename="Coordinates_UV" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <combine3 name="Coordinates_UV_3" type="vector3">
+      <input name="in1" type="float" nodename="Coordinates_UV_2" />
+      <input name="in2" type="float" nodename="Coordinates_UV_2_2" />
+      <input name="in3" type="float" value="0" />
+    </combine3>
+    <convert name="Checker_Fac" type="vector2" nodedef="ND_convert_vector3_vector2">
+      <input name="in" type="vector3" nodename="Coordinates_UV_3" />
+    </convert>
+    <combine2 name="Checker_Fac_2" type="vector2">
+      <input name="in1" type="float" interfacename="Checker_Scale" />
+      <input name="in2" type="float" interfacename="Checker_Scale" />
+    </combine2>
+    <checkerboard name="Checker_Fac_3" type="color3" nodedef="ND_checkerboard_color3">
+      <input name="uvtiling" type="vector2" nodename="Checker_Fac_2" />
+      <input name="texcoord" type="vector2" nodename="Checker_Fac" />
+    </checkerboard>
+    <extract name="Checker_Fac_4" type="float">
+      <input name="in" type="color3" nodename="Checker_Fac_3" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <multiply name="Noise_2D_Fac" type="vector3">
+      <input name="in1" type="vector3" nodename="Coordinates_UV_3" />
+      <input name="in2" type="float" interfacename="Noise_2D_Scale" />
+    </multiply>
+    <convert name="Noise_2D_Fac_2" type="vector2" nodedef="ND_convert_vector3_vector2">
+      <input name="in" type="vector3" nodename="Noise_2D_Fac" />
+    </convert>
+    <constant name="Noise_2D_Fac_3" type="float">
+      <input name="value" type="float" value="1" />
+    </constant>
+    <noise2d name="Noise_2D_Fac_3_2" type="float">
+      <input name="amplitude" type="float" value="1" />
+      <input name="pivot" type="float" value="0" />
+      <input name="texcoord" type="vector2" nodename="Noise_2D_Fac_2" />
+    </noise2d>
+    <multiply name="Noise_2D_Fac_4" type="float">
+      <input name="in1" type="float" nodename="Noise_2D_Fac_3_2" />
+      <input name="in2" type="float" nodename="Noise_2D_Fac_3" />
+    </multiply>
+    <multiply name="Noise_2D_Fac_5" type="vector2">
+      <input name="in1" type="vector2" nodename="Noise_2D_Fac_2" />
+      <input name="in2" type="float" interfacename="Noise_2D_Lacunarity" />
+    </multiply>
+    <multiply name="Noise_2D_Fac_6" type="float">
+      <input name="in1" type="float" nodename="Noise_2D_Fac_3" />
+      <input name="in2" type="float" interfacename="Noise_2D_Roughness" />
+    </multiply>
+    <noise2d name="Noise_2D_Fac_7" type="float">
+      <input name="amplitude" type="float" value="1" />
+      <input name="pivot" type="float" value="0" />
+      <input name="texcoord" type="vector2" nodename="Noise_2D_Fac_5" />
+    </noise2d>
+    <multiply name="Noise_2D_Fac_8" type="float">
+      <input name="in1" type="float" nodename="Noise_2D_Fac_7" />
+      <input name="in2" type="float" nodename="Noise_2D_Fac_6" />
+    </multiply>
+    <add name="Noise_2D_Fac_9" type="float">
+      <input name="in1" type="float" nodename="Noise_2D_Fac_4" />
+      <input name="in2" type="float" nodename="Noise_2D_Fac_8" />
+    </add>
+    <multiply name="Noise_2D_Fac_10" type="vector2">
+      <input name="in1" type="vector2" nodename="Noise_2D_Fac_5" />
+      <input name="in2" type="float" interfacename="Noise_2D_Lacunarity" />
+    </multiply>
+    <multiply name="Noise_2D_Fac_11" type="float">
+      <input name="in1" type="float" nodename="Noise_2D_Fac_6" />
+      <input name="in2" type="float" interfacename="Noise_2D_Roughness" />
+    </multiply>
+    <noise2d name="Noise_2D_Fac_12" type="float">
+      <input name="amplitude" type="float" value="1" />
+      <input name="pivot" type="float" value="0" />
+      <input name="texcoord" type="vector2" nodename="Noise_2D_Fac_10" />
+    </noise2d>
+    <multiply name="Noise_2D_Fac_13" type="float">
+      <input name="in1" type="float" nodename="Noise_2D_Fac_12" />
+      <input name="in2" type="float" nodename="Noise_2D_Fac_11" />
+    </multiply>
+    <add name="Noise_2D_Fac_14" type="float">
+      <input name="in1" type="float" nodename="Noise_2D_Fac_9" />
+      <input name="in2" type="float" nodename="Noise_2D_Fac_13" />
+    </add>
+    <constant name="Noise_2D_Fac_15" type="float">
+      <input name="value" type="float" value="0.5" />
+    </constant>
+    <multiply name="Noise_2D_Fac_15_2" type="float">
+      <input name="in1" type="float" nodename="Noise_2D_Fac_14" />
+      <input name="in2" type="float" nodename="Noise_2D_Fac_15" />
+    </multiply>
+    <add name="Noise_2D_Fac_16" type="float">
+      <input name="in1" type="float" nodename="Noise_2D_Fac_15_2" />
+      <input name="in2" type="float" nodename="Noise_2D_Fac_15" />
+    </add>
+    <convert name="Principled_BSDF_Subsurface_Radius_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" interfacename="Principled_BSDF_Subsurface_Radius" />
+    </convert>
+    <multiply name="Voronoi_Edge_Distance" type="vector3">
+      <input name="in1" type="vector3" nodename="Coordinates_Object" />
+      <input name="in2" type="float" interfacename="Voronoi_Edge_Scale" />
+    </multiply>
+    <worleynoise3d name="Voronoi_Edge_Distance_2" type="float">
+      <input name="position" type="vector3" nodename="Voronoi_Edge_Distance" />
+      <input name="jitter" type="float" interfacename="Voronoi_Edge_Randomness" />
+      <input name="style" type="integer" value="0" />
+    </worleynoise3d>
+    <multiply name="Voronoi_Sphere_Distance" type="vector3">
+      <input name="in1" type="vector3" nodename="Coordinates_Generated" />
+      <input name="in2" type="float" interfacename="Voronoi_Sphere_Scale" />
+    </multiply>
+    <worleynoise3d name="Voronoi_Sphere_Distance_2" type="float">
+      <input name="position" type="vector3" nodename="Voronoi_Sphere_Distance" />
+      <input name="jitter" type="float" interfacename="Voronoi_Sphere_Randomness" />
+      <input name="style" type="integer" value="0" />
+    </worleynoise3d>
+    <constant name="Coordinates_Camera" type="vector3">
+      <input name="value" type="vector3" value="0, 0, 0" />
+    </constant>
+    <extract name="Gradient_Linear_Fac" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_Camera" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="Gradient_Linear_Fac_2" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_Camera" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="Gradient_Quadratic_Fac" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_Generated" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="Gradient_Quadratic_Fac_2" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_Generated" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <max name="Gradient_Quadratic_Fac_3" type="float">
+      <input name="in1" type="float" nodename="Gradient_Quadratic_Fac" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <multiply name="Gradient_Quadratic_Fac_4" type="float">
+      <input name="in1" type="float" nodename="Gradient_Quadratic_Fac_3" />
+      <input name="in2" type="float" nodename="Gradient_Quadratic_Fac_3" />
+    </multiply>
+    <constant name="Coordinates_Window" type="vector3">
+      <input name="value" type="vector3" value="0, 0, 0" />
+    </constant>
+    <extract name="Gradient_Spherical_Fac" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_Window" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="Gradient_Spherical_Fac_2" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_Window" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <magnitude name="Gradient_Spherical_Fac_3" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_Window" />
+    </magnitude>
+    <subtract name="Gradient_Spherical_Fac_4" type="float">
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" nodename="Gradient_Spherical_Fac_3" />
+    </subtract>
+    <max name="Gradient_Spherical_Fac_5" type="float">
+      <input name="in1" type="float" nodename="Gradient_Spherical_Fac_4" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <extract name="Gradient_Diagonal_Fac" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_Object" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="Gradient_Diagonal_Fac_2" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_Object" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <add name="Gradient_Diagonal_Fac_3" type="float">
+      <input name="in1" type="float" nodename="Gradient_Diagonal_Fac" />
+      <input name="in2" type="float" nodename="Gradient_Diagonal_Fac_2" />
+    </add>
+    <multiply name="Gradient_Diagonal_Fac_4" type="float">
+      <input name="in1" type="float" nodename="Gradient_Diagonal_Fac_3" />
+      <input name="in2" type="float" value="0.5" />
+    </multiply>
+    <multiply name="Voronoi_Smooth_Color" type="vector3">
+      <input name="in1" type="vector3" nodename="Geometry_Position" />
+      <input name="in2" type="float" interfacename="Voronoi_Smooth_Scale" />
+    </multiply>
+    <cellnoise3d name="Voronoi_Smooth_Color_2" type="float">
+      <input name="position" type="vector3" nodename="Voronoi_Smooth_Color" />
+    </cellnoise3d>
+    <convert name="Voronoi_Smooth_Color_3" type="color3" nodedef="ND_convert_float_color3">
+      <input name="in" type="float" nodename="Voronoi_Smooth_Color_2" />
+    </convert>
+    <normal name="Geometry_Normal" type="vector3">
+      <input name="space" type="string" value="world" />
+    </normal>
+    <cellnoise3d name="White_Noise_Value" type="float">
+      <input name="position" type="vector3" nodename="Geometry_Normal" />
+    </cellnoise3d>
+    <multiply name="Voronoi_F2_Distance" type="vector3">
+      <input name="in1" type="vector3" value="0, 0, 0" />
+      <input name="in2" type="float" interfacename="Voronoi_F2_Scale" />
+    </multiply>
+    <worleynoise3d name="Voronoi_F2_Distance_2" type="vector3">
+      <input name="position" type="vector3" nodename="Voronoi_F2_Distance" />
+      <input name="jitter" type="float" interfacename="Voronoi_F2_Randomness" />
+      <input name="style" type="integer" value="0" />
+    </worleynoise3d>
+    <extract name="Voronoi_F2_Distance_3" type="float">
+      <input name="in" type="vector3" nodename="Voronoi_F2_Distance_2" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <multiply name="Principled_BSDF_specular_weight" type="float">
+      <input name="in1" type="float" nodename="Voronoi_F2_Distance_3" />
+      <input name="in2" type="float" value="2" />
+    </multiply>
+    <extract name="Gradient_Radial_Fac" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_UV_3" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="Gradient_Radial_Fac_2" type="float">
+      <input name="in" type="vector3" nodename="Coordinates_UV_3" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <atan2 name="Gradient_Radial_Fac_3" type="float">
+      <input name="iny" type="float" nodename="Gradient_Radial_Fac_2" />
+      <input name="inx" type="float" nodename="Gradient_Radial_Fac" />
+    </atan2>
+    <divide name="Gradient_Radial_Fac_4" type="float">
+      <input name="in1" type="float" nodename="Gradient_Radial_Fac_3" />
+      <input name="in2" type="float" value="6.2831855" />
+    </divide>
+    <add name="Gradient_Radial_Fac_5" type="float">
+      <input name="in1" type="float" nodename="Gradient_Radial_Fac_4" />
+      <input name="in2" type="float" value="0.5" />
+    </add>
+    <multiply name="Principled_BSDF_thin_film_thickness" type="float">
+      <input name="in1" type="float" nodename="Gradient_Radial_Fac_5" />
+      <input name="in2" type="float" value="0.001" />
+    </multiply>
+    <constant name="Principled_BSDF_thin_film_weight" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <ifgreater name="Principled_BSDF_thin_film_weight_2" type="float">
+      <input name="value1" type="float" nodename="Gradient_Radial_Fac_5" />
+      <input name="value2" type="float" nodename="Principled_BSDF_thin_film_weight" />
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" nodename="Principled_BSDF_thin_film_weight" />
+    </ifgreater>
+    <dot name="Principled_BSDF_Diffuse_Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Diffuse_Roughness" />
+    </dot>
+    <geomcolor name="Vertex_Color_Color" type="color3">
+      <input name="index" type="integer" value="0" />
+    </geomcolor>
+    <dot name="Principled_BSDF_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_IOR" />
+    </dot>
+    <dot name="Principled_BSDF_Subsurface_Scale_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Subsurface_Scale" />
+    </dot>
+    <dot name="Principled_BSDF_Subsurface_Anisotropy_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Subsurface_Anisotropy" />
+    </dot>
+    <dot name="Principled_BSDF_Sheen_Tint_dot" type="color3">
+      <input name="in" type="color3" interfacename="Principled_BSDF_Sheen_Tint" />
+    </dot>
+    <dot name="Principled_BSDF_Coat_Tint_dot" type="color3">
+      <input name="in" type="color3" interfacename="Principled_BSDF_Coat_Tint" />
+    </dot>
+    <dot name="Principled_BSDF_Coat_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Coat_IOR" />
+    </dot>
+    <dot name="Principled_BSDF_Thin_Film_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Thin_Film_IOR" />
+    </dot>
+    <dot name="Principled_BSDF_Thin_Wall_dot" type="boolean">
+      <input name="in" type="boolean" interfacename="Principled_BSDF_Thin_Wall" />
+    </dot>
+    <output name="base_color" type="color3" nodename="Noise_3D_Color_4" />
+    <output name="base_diffuse_roughness" type="float" nodename="Principled_BSDF_Diffuse_Roughness_dot" />
+    <output name="base_metalness" type="float" nodename="Voronoi_F1_Distance_2" />
+    <output name="specular_weight" type="float" nodename="Principled_BSDF_specular_weight" />
+    <output name="specular_color" type="color3" nodename="Vertex_Color_Color" />
+    <output name="specular_roughness" type="float" nodename="Noise_4D_Fac_4" />
+    <output name="specular_ior" type="float" nodename="Principled_BSDF_IOR_dot" />
+    <output name="specular_roughness_anisotropy" type="float" nodename="Voronoi_Edge_Distance_2" />
+    <output name="transmission_weight" type="float" nodename="Voronoi_Sphere_Distance_2" />
+    <output name="subsurface_weight" type="float" nodename="Noise_2D_Fac_16" />
+    <output name="subsurface_radius" type="float" nodename="Principled_BSDF_Subsurface_Scale_dot" />
+    <output name="subsurface_radius_scale" type="color3" nodename="Principled_BSDF_Subsurface_Radius_2" />
+    <output name="subsurface_scatter_anisotropy" type="float" nodename="Principled_BSDF_Subsurface_Anisotropy_dot" />
+    <output name="fuzz_weight" type="float" nodename="Gradient_Spherical_Fac_5" />
+    <output name="fuzz_color" type="color3" nodename="Principled_BSDF_Sheen_Tint_dot" />
+    <output name="fuzz_roughness" type="float" nodename="Gradient_Diagonal_Fac_4" />
+    <output name="coat_weight" type="float" nodename="Gradient_Linear_Fac" />
+    <output name="coat_color" type="color3" nodename="Principled_BSDF_Coat_Tint_dot" />
+    <output name="coat_roughness" type="float" nodename="Gradient_Quadratic_Fac_4" />
+    <output name="coat_ior" type="float" nodename="Principled_BSDF_Coat_IOR_dot" />
+    <output name="thin_film_weight" type="float" nodename="Principled_BSDF_thin_film_weight_2" />
+    <output name="thin_film_thickness" type="float" nodename="Principled_BSDF_thin_film_thickness" />
+    <output name="thin_film_ior" type="float" nodename="Principled_BSDF_Thin_Film_IOR_dot" />
+    <output name="emission_luminance" type="float" nodename="White_Noise_Value" />
+    <output name="emission_color" type="color3" nodename="Voronoi_Smooth_Color_3" />
+    <output name="geometry_opacity" type="float" nodename="Checker_Fac_4" />
+    <output name="geometry_thin_walled" type="boolean" nodename="Principled_BSDF_Thin_Wall_dot" />
+  </nodegraph>
+  <open_pbr_surface name="procedural_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_procedural" output="base_color" />
+    <input name="base_diffuse_roughness" type="float" nodegraph="NG_procedural" output="base_diffuse_roughness" />
+    <input name="base_metalness" type="float" nodegraph="NG_procedural" output="base_metalness" />
+    <input name="specular_weight" type="float" nodegraph="NG_procedural" output="specular_weight" />
+    <input name="specular_color" type="color3" nodegraph="NG_procedural" output="specular_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG_procedural" output="specular_roughness" />
+    <input name="specular_ior" type="float" nodegraph="NG_procedural" output="specular_ior" />
+    <input name="specular_roughness_anisotropy" type="float" nodegraph="NG_procedural" output="specular_roughness_anisotropy" />
+    <input name="transmission_weight" type="float" nodegraph="NG_procedural" output="transmission_weight" />
+    <input name="transmission_color" type="color3" nodegraph="NG_procedural" output="base_color" />
+    <input name="subsurface_weight" type="float" nodegraph="NG_procedural" output="subsurface_weight" />
+    <input name="subsurface_color" type="color3" nodegraph="NG_procedural" output="base_color" />
+    <input name="subsurface_radius" type="float" nodegraph="NG_procedural" output="subsurface_radius" />
+    <input name="subsurface_radius_scale" type="color3" nodegraph="NG_procedural" output="subsurface_radius_scale" />
+    <input name="subsurface_scatter_anisotropy" type="float" nodegraph="NG_procedural" output="subsurface_scatter_anisotropy" />
+    <input name="fuzz_weight" type="float" nodegraph="NG_procedural" output="fuzz_weight" />
+    <input name="fuzz_color" type="color3" nodegraph="NG_procedural" output="fuzz_color" />
+    <input name="fuzz_roughness" type="float" nodegraph="NG_procedural" output="fuzz_roughness" />
+    <input name="coat_weight" type="float" nodegraph="NG_procedural" output="coat_weight" />
+    <input name="coat_color" type="color3" nodegraph="NG_procedural" output="coat_color" />
+    <input name="coat_roughness" type="float" nodegraph="NG_procedural" output="coat_roughness" />
+    <input name="coat_ior" type="float" nodegraph="NG_procedural" output="coat_ior" />
+    <input name="thin_film_weight" type="float" nodegraph="NG_procedural" output="thin_film_weight" />
+    <input name="thin_film_thickness" type="float" nodegraph="NG_procedural" output="thin_film_thickness" />
+    <input name="thin_film_ior" type="float" nodegraph="NG_procedural" output="thin_film_ior" />
+    <input name="emission_luminance" type="float" nodegraph="NG_procedural" output="emission_luminance" />
+    <input name="emission_color" type="color3" nodegraph="NG_procedural" output="emission_color" />
+    <input name="geometry_opacity" type="float" nodegraph="NG_procedural" output="geometry_opacity" />
+    <input name="geometry_thin_walled" type="boolean" nodegraph="NG_procedural" output="geometry_thin_walled" />
+  </open_pbr_surface>
+  <surfacematerial name="procedural" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="procedural_shader" />
+  </surfacematerial>
+</materialx>

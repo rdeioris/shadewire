@@ -8,7 +8,8 @@ samples), resolves a node to its nodedef by category and types, inlines nodegrap
 nodedefs into ops, and finishes a material as a shading model or a closure tree.
 
 Front ends depend on it: `shadewire-mtlx` reads MaterialX documents and lowers them here; a front end for another
-graph format calls `Elaborator::standalone`, `instantiate` and `finish_model`/`finish_closure` directly.
+graph format calls `Elaborator::standalone`, `instantiate` and `finish_model`/`finish_closure` directly, as
+`shadewire-blender`, its second client, does for Blender's material graphs.
 
 ## Lowering without a document
 

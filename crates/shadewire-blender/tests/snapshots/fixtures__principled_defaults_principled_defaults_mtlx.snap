@@ -1,0 +1,185 @@
+---
+source: crates/shadewire-blender/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_principled_defaults">
+    <input name="Principled_BSDF_Subsurface_Radius" type="vector3" value="1, 0.2, 0.1" />
+    <input name="Principled_BSDF_Specular_IOR_Level" type="float" value="0.5" />
+    <input name="Principled_BSDF_Thin_Film_Thickness" type="float" value="0" />
+    <input name="Principled_BSDF_Base_Color" type="color3" value="0.8, 0.8, 0.8" />
+    <input name="Principled_BSDF_Diffuse_Roughness" type="float" value="0" />
+    <input name="Principled_BSDF_Metallic" type="float" value="0" />
+    <input name="Principled_BSDF_Specular_Tint" type="color3" value="1, 1, 1" />
+    <input name="Principled_BSDF_Roughness" type="float" value="0.5" />
+    <input name="Principled_BSDF_IOR" type="float" value="1.5" />
+    <input name="Principled_BSDF_Anisotropic" type="float" value="0" />
+    <input name="Principled_BSDF_Transmission_Weight" type="float" value="0" />
+    <input name="Principled_BSDF_Subsurface_Weight" type="float" value="0" />
+    <input name="Principled_BSDF_Subsurface_Scale" type="float" value="0.005" />
+    <input name="Principled_BSDF_Subsurface_Anisotropy" type="float" value="0" />
+    <input name="Principled_BSDF_Sheen_Weight" type="float" value="0" />
+    <input name="Principled_BSDF_Sheen_Tint" type="color3" value="1, 1, 1" />
+    <input name="Principled_BSDF_Sheen_Roughness" type="float" value="0.5" />
+    <input name="Principled_BSDF_Coat_Weight" type="float" value="0" />
+    <input name="Principled_BSDF_Coat_Tint" type="color3" value="1, 1, 1" />
+    <input name="Principled_BSDF_Coat_Roughness" type="float" value="0.03" />
+    <input name="Principled_BSDF_Coat_IOR" type="float" value="1.5" />
+    <input name="Principled_BSDF_Thin_Film_IOR" type="float" value="1.33" />
+    <input name="Principled_BSDF_Emission_Strength" type="float" value="0" />
+    <input name="Principled_BSDF_Emission_Color" type="color3" value="1, 1, 1" />
+    <input name="Principled_BSDF_Alpha" type="float" value="1" />
+    <input name="Principled_BSDF_Thin_Wall" type="boolean" value="false" />
+    <convert name="Principled_BSDF_Subsurface_Radius_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" interfacename="Principled_BSDF_Subsurface_Radius" />
+    </convert>
+    <multiply name="Principled_BSDF_specular_weight" type="float">
+      <input name="in1" type="float" interfacename="Principled_BSDF_Specular_IOR_Level" />
+      <input name="in2" type="float" value="2" />
+    </multiply>
+    <multiply name="Principled_BSDF_thin_film_thickness" type="float">
+      <input name="in1" type="float" interfacename="Principled_BSDF_Thin_Film_Thickness" />
+      <input name="in2" type="float" value="0.001" />
+    </multiply>
+    <constant name="Principled_BSDF_thin_film_weight" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <ifgreater name="Principled_BSDF_thin_film_weight_2" type="float">
+      <input name="value1" type="float" interfacename="Principled_BSDF_Thin_Film_Thickness" />
+      <input name="value2" type="float" nodename="Principled_BSDF_thin_film_weight" />
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" nodename="Principled_BSDF_thin_film_weight" />
+    </ifgreater>
+    <dot name="Principled_BSDF_Base_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Principled_BSDF_Base_Color" />
+    </dot>
+    <dot name="Principled_BSDF_Diffuse_Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Diffuse_Roughness" />
+    </dot>
+    <dot name="Principled_BSDF_Metallic_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Metallic" />
+    </dot>
+    <dot name="Principled_BSDF_Specular_Tint_dot" type="color3">
+      <input name="in" type="color3" interfacename="Principled_BSDF_Specular_Tint" />
+    </dot>
+    <dot name="Principled_BSDF_Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Roughness" />
+    </dot>
+    <dot name="Principled_BSDF_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_IOR" />
+    </dot>
+    <dot name="Principled_BSDF_Anisotropic_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Anisotropic" />
+    </dot>
+    <dot name="Principled_BSDF_Transmission_Weight_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Transmission_Weight" />
+    </dot>
+    <dot name="Principled_BSDF_Subsurface_Weight_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Subsurface_Weight" />
+    </dot>
+    <dot name="Principled_BSDF_Subsurface_Scale_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Subsurface_Scale" />
+    </dot>
+    <dot name="Principled_BSDF_Subsurface_Anisotropy_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Subsurface_Anisotropy" />
+    </dot>
+    <dot name="Principled_BSDF_Sheen_Weight_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Sheen_Weight" />
+    </dot>
+    <dot name="Principled_BSDF_Sheen_Tint_dot" type="color3">
+      <input name="in" type="color3" interfacename="Principled_BSDF_Sheen_Tint" />
+    </dot>
+    <dot name="Principled_BSDF_Sheen_Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Sheen_Roughness" />
+    </dot>
+    <dot name="Principled_BSDF_Coat_Weight_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Coat_Weight" />
+    </dot>
+    <dot name="Principled_BSDF_Coat_Tint_dot" type="color3">
+      <input name="in" type="color3" interfacename="Principled_BSDF_Coat_Tint" />
+    </dot>
+    <dot name="Principled_BSDF_Coat_Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Coat_Roughness" />
+    </dot>
+    <dot name="Principled_BSDF_Coat_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Coat_IOR" />
+    </dot>
+    <dot name="Principled_BSDF_Thin_Film_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Thin_Film_IOR" />
+    </dot>
+    <dot name="Principled_BSDF_Emission_Strength_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Emission_Strength" />
+    </dot>
+    <dot name="Principled_BSDF_Emission_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Principled_BSDF_Emission_Color" />
+    </dot>
+    <dot name="Principled_BSDF_Alpha_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Alpha" />
+    </dot>
+    <dot name="Principled_BSDF_Thin_Wall_dot" type="boolean">
+      <input name="in" type="boolean" interfacename="Principled_BSDF_Thin_Wall" />
+    </dot>
+    <output name="base_color" type="color3" nodename="Principled_BSDF_Base_Color_dot" />
+    <output name="base_diffuse_roughness" type="float" nodename="Principled_BSDF_Diffuse_Roughness_dot" />
+    <output name="base_metalness" type="float" nodename="Principled_BSDF_Metallic_dot" />
+    <output name="specular_weight" type="float" nodename="Principled_BSDF_specular_weight" />
+    <output name="specular_color" type="color3" nodename="Principled_BSDF_Specular_Tint_dot" />
+    <output name="specular_roughness" type="float" nodename="Principled_BSDF_Roughness_dot" />
+    <output name="specular_ior" type="float" nodename="Principled_BSDF_IOR_dot" />
+    <output name="specular_roughness_anisotropy" type="float" nodename="Principled_BSDF_Anisotropic_dot" />
+    <output name="transmission_weight" type="float" nodename="Principled_BSDF_Transmission_Weight_dot" />
+    <output name="subsurface_weight" type="float" nodename="Principled_BSDF_Subsurface_Weight_dot" />
+    <output name="subsurface_radius" type="float" nodename="Principled_BSDF_Subsurface_Scale_dot" />
+    <output name="subsurface_radius_scale" type="color3" nodename="Principled_BSDF_Subsurface_Radius_2" />
+    <output name="subsurface_scatter_anisotropy" type="float" nodename="Principled_BSDF_Subsurface_Anisotropy_dot" />
+    <output name="fuzz_weight" type="float" nodename="Principled_BSDF_Sheen_Weight_dot" />
+    <output name="fuzz_color" type="color3" nodename="Principled_BSDF_Sheen_Tint_dot" />
+    <output name="fuzz_roughness" type="float" nodename="Principled_BSDF_Sheen_Roughness_dot" />
+    <output name="coat_weight" type="float" nodename="Principled_BSDF_Coat_Weight_dot" />
+    <output name="coat_color" type="color3" nodename="Principled_BSDF_Coat_Tint_dot" />
+    <output name="coat_roughness" type="float" nodename="Principled_BSDF_Coat_Roughness_dot" />
+    <output name="coat_ior" type="float" nodename="Principled_BSDF_Coat_IOR_dot" />
+    <output name="thin_film_weight" type="float" nodename="Principled_BSDF_thin_film_weight_2" />
+    <output name="thin_film_thickness" type="float" nodename="Principled_BSDF_thin_film_thickness" />
+    <output name="thin_film_ior" type="float" nodename="Principled_BSDF_Thin_Film_IOR_dot" />
+    <output name="emission_luminance" type="float" nodename="Principled_BSDF_Emission_Strength_dot" />
+    <output name="emission_color" type="color3" nodename="Principled_BSDF_Emission_Color_dot" />
+    <output name="geometry_opacity" type="float" nodename="Principled_BSDF_Alpha_dot" />
+    <output name="geometry_thin_walled" type="boolean" nodename="Principled_BSDF_Thin_Wall_dot" />
+  </nodegraph>
+  <open_pbr_surface name="principled_defaults_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_principled_defaults" output="base_color" />
+    <input name="base_diffuse_roughness" type="float" nodegraph="NG_principled_defaults" output="base_diffuse_roughness" />
+    <input name="base_metalness" type="float" nodegraph="NG_principled_defaults" output="base_metalness" />
+    <input name="specular_weight" type="float" nodegraph="NG_principled_defaults" output="specular_weight" />
+    <input name="specular_color" type="color3" nodegraph="NG_principled_defaults" output="specular_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG_principled_defaults" output="specular_roughness" />
+    <input name="specular_ior" type="float" nodegraph="NG_principled_defaults" output="specular_ior" />
+    <input name="specular_roughness_anisotropy" type="float" nodegraph="NG_principled_defaults" output="specular_roughness_anisotropy" />
+    <input name="transmission_weight" type="float" nodegraph="NG_principled_defaults" output="transmission_weight" />
+    <input name="transmission_color" type="color3" nodegraph="NG_principled_defaults" output="base_color" />
+    <input name="subsurface_weight" type="float" nodegraph="NG_principled_defaults" output="subsurface_weight" />
+    <input name="subsurface_color" type="color3" nodegraph="NG_principled_defaults" output="base_color" />
+    <input name="subsurface_radius" type="float" nodegraph="NG_principled_defaults" output="subsurface_radius" />
+    <input name="subsurface_radius_scale" type="color3" nodegraph="NG_principled_defaults" output="subsurface_radius_scale" />
+    <input name="subsurface_scatter_anisotropy" type="float" nodegraph="NG_principled_defaults" output="subsurface_scatter_anisotropy" />
+    <input name="fuzz_weight" type="float" nodegraph="NG_principled_defaults" output="fuzz_weight" />
+    <input name="fuzz_color" type="color3" nodegraph="NG_principled_defaults" output="fuzz_color" />
+    <input name="fuzz_roughness" type="float" nodegraph="NG_principled_defaults" output="fuzz_roughness" />
+    <input name="coat_weight" type="float" nodegraph="NG_principled_defaults" output="coat_weight" />
+    <input name="coat_color" type="color3" nodegraph="NG_principled_defaults" output="coat_color" />
+    <input name="coat_roughness" type="float" nodegraph="NG_principled_defaults" output="coat_roughness" />
+    <input name="coat_ior" type="float" nodegraph="NG_principled_defaults" output="coat_ior" />
+    <input name="thin_film_weight" type="float" nodegraph="NG_principled_defaults" output="thin_film_weight" />
+    <input name="thin_film_thickness" type="float" nodegraph="NG_principled_defaults" output="thin_film_thickness" />
+    <input name="thin_film_ior" type="float" nodegraph="NG_principled_defaults" output="thin_film_ior" />
+    <input name="emission_luminance" type="float" nodegraph="NG_principled_defaults" output="emission_luminance" />
+    <input name="emission_color" type="color3" nodegraph="NG_principled_defaults" output="emission_color" />
+    <input name="geometry_opacity" type="float" nodegraph="NG_principled_defaults" output="geometry_opacity" />
+    <input name="geometry_thin_walled" type="boolean" nodegraph="NG_principled_defaults" output="geometry_thin_walled" />
+  </open_pbr_surface>
+  <surfacematerial name="principled_defaults" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="principled_defaults_shader" />
+  </surfacematerial>
+</materialx>

@@ -1,0 +1,674 @@
+---
+source: crates/shadewire-blender/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_textured">
+    <input name="Tiling_Location" type="vector3" value="0, 0, 0" />
+    <input name="Tiling_Rotation" type="vector3" value="0, 0, 0" />
+    <input name="Tiling_Scale" type="vector3" value="2, 2, 1" />
+    <input name="Principled_BSDF_Subsurface_Radius" type="vector3" value="1, 0.2, 0.1" />
+    <input name="Texture_Space_Location" type="vector3" value="0.25, 0.5, 0" />
+    <input name="Texture_Space_Rotation" type="vector3" value="0, 0, 0" />
+    <input name="Texture_Space_Scale" type="vector3" value="1, 1, 1" />
+    <input name="Bump_Strength" type="float" value="1" />
+    <input name="Bump_Distance" type="float" value="0.2" />
+    <input name="Normal_Map_Strength" type="float" value="1" />
+    <input name="Normal_Map_World_Strength" type="float" value="1" />
+    <input name="Turn_Tangent_Location" type="vector3" value="0, 0, 0" />
+    <input name="Turn_Tangent_Rotation" type="vector3" value="0, 0, 0.5" />
+    <input name="Turn_Tangent_Scale" type="vector3" value="1, 1, 1" />
+    <input name="Normal_Map_Object_Strength" type="float" value="1" />
+    <input name="Principled_BSDF_Specular_IOR_Level" type="float" value="0.5" />
+    <input name="Principled_BSDF_Thin_Film_Thickness" type="float" value="0" />
+    <input name="Principled_BSDF_Diffuse_Roughness" type="float" value="0" />
+    <input name="Principled_BSDF_Metallic" type="float" value="0" />
+    <input name="Principled_BSDF_Specular_Tint" type="color3" value="1, 1, 1" />
+    <input name="Principled_BSDF_IOR" type="float" value="1.5" />
+    <input name="Principled_BSDF_Anisotropic" type="float" value="0" />
+    <input name="Principled_BSDF_Transmission_Weight" type="float" value="0" />
+    <input name="Principled_BSDF_Subsurface_Weight" type="float" value="0" />
+    <input name="Principled_BSDF_Subsurface_Scale" type="float" value="0.005" />
+    <input name="Principled_BSDF_Subsurface_Anisotropy" type="float" value="0" />
+    <input name="Principled_BSDF_Sheen_Weight" type="float" value="0" />
+    <input name="Principled_BSDF_Sheen_Tint" type="color3" value="1, 1, 1" />
+    <input name="Principled_BSDF_Sheen_Roughness" type="float" value="0.5" />
+    <input name="Principled_BSDF_Coat_Weight" type="float" value="0" />
+    <input name="Principled_BSDF_Coat_Tint" type="color3" value="1, 1, 1" />
+    <input name="Principled_BSDF_Coat_Roughness" type="float" value="0.03" />
+    <input name="Principled_BSDF_Coat_IOR" type="float" value="1.5" />
+    <input name="Principled_BSDF_Thin_Film_IOR" type="float" value="1.33" />
+    <input name="Principled_BSDF_Emission_Strength" type="float" value="0" />
+    <input name="Principled_BSDF_Alpha" type="float" value="1" />
+    <input name="Principled_BSDF_Thin_Wall" type="boolean" value="false" />
+    <texcoord name="Coordinates_UV" type="vector2">
+      <input name="index" type="integer" value="0" />
+    </texcoord>
+    <extract name="Coordinates_UV_2" type="float">
+      <input name="in" type="vector2" nodename="Coordinates_UV" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="Coordinates_UV_2_2" type="float">
+      <input name="in" type="vector2" nodename="Coordinates_UV" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <combine3 name="Coordinates_UV_3" type="vector3">
+      <input name="in1" type="float" nodename="Coordinates_UV_2" />
+      <input name="in2" type="float" nodename="Coordinates_UV_2_2" />
+      <input name="in3" type="float" value="0" />
+    </combine3>
+    <constant name="Tiling_Vector" type="float">
+      <input name="value" type="float" value="57.295776" />
+    </constant>
+    <constant name="Tiling_Vector_2" type="float">
+      <input name="value" type="float" value="-1" />
+    </constant>
+    <extract name="Tiling_Vector_3" type="float">
+      <input name="in" type="vector3" interfacename="Tiling_Rotation" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <multiply name="Tiling_Vector_2_2" type="float">
+      <input name="in1" type="float" nodename="Tiling_Vector_3" />
+      <input name="in2" type="float" nodename="Tiling_Vector" />
+    </multiply>
+    <multiply name="Tiling_Vector_3_2" type="float">
+      <input name="in1" type="float" nodename="Tiling_Vector_2_2" />
+      <input name="in2" type="float" nodename="Tiling_Vector_2" />
+    </multiply>
+    <extract name="Tiling_Vector_4" type="float">
+      <input name="in" type="vector3" interfacename="Tiling_Rotation" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <multiply name="Tiling_Vector_5" type="float">
+      <input name="in1" type="float" nodename="Tiling_Vector_4" />
+      <input name="in2" type="float" nodename="Tiling_Vector" />
+    </multiply>
+    <multiply name="Tiling_Vector_6" type="float">
+      <input name="in1" type="float" nodename="Tiling_Vector_5" />
+      <input name="in2" type="float" nodename="Tiling_Vector_2" />
+    </multiply>
+    <extract name="Tiling_Vector_7" type="float">
+      <input name="in" type="vector3" interfacename="Tiling_Rotation" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="Tiling_Vector_8" type="float">
+      <input name="in1" type="float" nodename="Tiling_Vector_7" />
+      <input name="in2" type="float" nodename="Tiling_Vector" />
+    </multiply>
+    <multiply name="Tiling_Vector_9" type="float">
+      <input name="in1" type="float" nodename="Tiling_Vector_8" />
+      <input name="in2" type="float" nodename="Tiling_Vector_2" />
+    </multiply>
+    <multiply name="Tiling_Vector_10" type="vector3">
+      <input name="in1" type="vector3" nodename="Coordinates_UV_3" />
+      <input name="in2" type="vector3" interfacename="Tiling_Scale" />
+    </multiply>
+    <rotate3d name="Tiling_Vector_11" type="vector3" nodedef="ND_rotate3d_vector3">
+      <input name="in" type="vector3" nodename="Tiling_Vector_10" />
+      <input name="amount" type="float" nodename="Tiling_Vector_3_2" />
+      <input name="axis" type="vector3" value="1, 0, 0" />
+    </rotate3d>
+    <rotate3d name="Tiling_Vector_12" type="vector3" nodedef="ND_rotate3d_vector3">
+      <input name="in" type="vector3" nodename="Tiling_Vector_11" />
+      <input name="amount" type="float" nodename="Tiling_Vector_6" />
+    </rotate3d>
+    <rotate3d name="Tiling_Vector_13" type="vector3" nodedef="ND_rotate3d_vector3">
+      <input name="in" type="vector3" nodename="Tiling_Vector_12" />
+      <input name="amount" type="float" nodename="Tiling_Vector_9" />
+      <input name="axis" type="vector3" value="0, 0, 1" />
+    </rotate3d>
+    <add name="Tiling_Vector_14" type="vector3">
+      <input name="in1" type="vector3" nodename="Tiling_Vector_13" />
+      <input name="in2" type="vector3" interfacename="Tiling_Location" />
+    </add>
+    <convert name="Albedo" type="vector2" nodedef="ND_convert_vector3_vector2">
+      <input name="in" type="vector3" nodename="Tiling_Vector_14" />
+    </convert>
+    <image name="Albedo_2" type="color4">
+      <input name="file" type="filename" value="albedo" />
+      <input name="texcoord" type="vector2" nodename="Albedo" />
+      <input name="uaddressmode" type="string" value="clamp" />
+      <input name="vaddressmode" type="string" value="clamp" />
+      <input name="default" type="color4" value="0, 0, 0, 0" />
+    </image>
+    <convert name="Albedo_Color" type="color3" nodedef="ND_convert_color4_color3">
+      <input name="in" type="color4" nodename="Albedo_2" />
+    </convert>
+    <texcoord name="UV_Map_UV" type="vector2">
+      <input name="index" type="integer" value="0" />
+    </texcoord>
+    <extract name="UV_Map_UV_2" type="float">
+      <input name="in" type="vector2" nodename="UV_Map_UV" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="UV_Map_UV_2_2" type="float">
+      <input name="in" type="vector2" nodename="UV_Map_UV" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <combine3 name="UV_Map_UV_3" type="vector3">
+      <input name="in1" type="float" nodename="UV_Map_UV_2" />
+      <input name="in2" type="float" nodename="UV_Map_UV_2_2" />
+      <input name="in3" type="float" value="0" />
+    </combine3>
+    <convert name="Roughness_Image" type="vector2" nodedef="ND_convert_vector3_vector2">
+      <input name="in" type="vector3" nodename="UV_Map_UV_3" />
+    </convert>
+    <image name="Roughness_Image_2" type="color4">
+      <input name="file" type="filename" value="roughness" colorspace="srgb_texture" />
+      <input name="texcoord" type="vector2" nodename="Roughness_Image" />
+      <input name="default" type="color4" value="0, 0, 0, 0" />
+    </image>
+    <convert name="Roughness_Image_Color" type="color3" nodedef="ND_convert_color4_color3">
+      <input name="in" type="color4" nodename="Roughness_Image_2" />
+    </convert>
+    <luminance name="Principled_BSDF_Roughness" type="color3">
+      <input name="in" type="color3" nodename="Roughness_Image_Color" />
+      <input name="lumacoeffs" type="color3" value="0.2126, 0.7152, 0.0722" />
+    </luminance>
+    <extract name="Principled_BSDF_Roughness_2" type="float">
+      <input name="in" type="color3" nodename="Principled_BSDF_Roughness" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <convert name="Principled_BSDF_Subsurface_Radius_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" interfacename="Principled_BSDF_Subsurface_Radius" />
+    </convert>
+    <constant name="Texture_Space_Vector" type="float">
+      <input name="value" type="float" value="57.295776" />
+    </constant>
+    <constant name="Texture_Space_Vector_2" type="float">
+      <input name="value" type="float" value="-1" />
+    </constant>
+    <extract name="Texture_Space_Vector_3" type="float">
+      <input name="in" type="vector3" interfacename="Texture_Space_Rotation" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <multiply name="Texture_Space_Vector_2_2" type="float">
+      <input name="in1" type="float" nodename="Texture_Space_Vector_3" />
+      <input name="in2" type="float" nodename="Texture_Space_Vector" />
+    </multiply>
+    <multiply name="Texture_Space_Vector_3_2" type="float">
+      <input name="in1" type="float" nodename="Texture_Space_Vector_2_2" />
+      <input name="in2" type="float" nodename="Texture_Space_Vector_2" />
+    </multiply>
+    <extract name="Texture_Space_Vector_4" type="float">
+      <input name="in" type="vector3" interfacename="Texture_Space_Rotation" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <multiply name="Texture_Space_Vector_5" type="float">
+      <input name="in1" type="float" nodename="Texture_Space_Vector_4" />
+      <input name="in2" type="float" nodename="Texture_Space_Vector" />
+    </multiply>
+    <multiply name="Texture_Space_Vector_6" type="float">
+      <input name="in1" type="float" nodename="Texture_Space_Vector_5" />
+      <input name="in2" type="float" nodename="Texture_Space_Vector_2" />
+    </multiply>
+    <extract name="Texture_Space_Vector_7" type="float">
+      <input name="in" type="vector3" interfacename="Texture_Space_Rotation" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="Texture_Space_Vector_8" type="float">
+      <input name="in1" type="float" nodename="Texture_Space_Vector_7" />
+      <input name="in2" type="float" nodename="Texture_Space_Vector" />
+    </multiply>
+    <multiply name="Texture_Space_Vector_9" type="float">
+      <input name="in1" type="float" nodename="Texture_Space_Vector_8" />
+      <input name="in2" type="float" nodename="Texture_Space_Vector_2" />
+    </multiply>
+    <subtract name="Texture_Space_Vector_10" type="vector3">
+      <input name="in1" type="vector3" nodename="Coordinates_UV_3" />
+      <input name="in2" type="vector3" interfacename="Texture_Space_Location" />
+    </subtract>
+    <rotate3d name="Texture_Space_Vector_11" type="vector3" nodedef="ND_rotate3d_vector3">
+      <input name="in" type="vector3" nodename="Texture_Space_Vector_10" />
+      <input name="amount" type="float" nodename="Texture_Space_Vector_8" />
+      <input name="axis" type="vector3" value="0, 0, 1" />
+    </rotate3d>
+    <rotate3d name="Texture_Space_Vector_12" type="vector3" nodedef="ND_rotate3d_vector3">
+      <input name="in" type="vector3" nodename="Texture_Space_Vector_11" />
+      <input name="amount" type="float" nodename="Texture_Space_Vector_5" />
+    </rotate3d>
+    <rotate3d name="Texture_Space_Vector_13" type="vector3" nodedef="ND_rotate3d_vector3">
+      <input name="in" type="vector3" nodename="Texture_Space_Vector_12" />
+      <input name="amount" type="float" nodename="Texture_Space_Vector_2_2" />
+      <input name="axis" type="vector3" value="1, 0, 0" />
+    </rotate3d>
+    <divide name="Texture_Space_Vector_14" type="vector3">
+      <input name="in1" type="vector3" nodename="Texture_Space_Vector_13" />
+      <input name="in2" type="vector3" interfacename="Texture_Space_Scale" />
+    </divide>
+    <convert name="Mirror_Image" type="vector2" nodedef="ND_convert_vector3_vector2">
+      <input name="in" type="vector3" nodename="Texture_Space_Vector_14" />
+    </convert>
+    <image name="Mirror_Image_2" type="color4">
+      <input name="file" type="filename" value="emission" colorspace="srgb_texture" />
+      <input name="texcoord" type="vector2" nodename="Mirror_Image" />
+      <input name="uaddressmode" type="string" value="mirror" />
+      <input name="vaddressmode" type="string" value="mirror" />
+      <input name="default" type="color4" value="0, 0, 0, 0" />
+    </image>
+    <convert name="Mirror_Image_Color" type="color3" nodedef="ND_convert_color4_color3">
+      <input name="in" type="color4" nodename="Mirror_Image_2" />
+    </convert>
+    <multiply name="Bump_Normal" type="float">
+      <input name="in1" type="float" interfacename="Bump_Strength" />
+      <input name="in2" type="float" interfacename="Bump_Distance" />
+    </multiply>
+    <position name="Coordinates_Object" type="vector3">
+      <input name="space" type="string" value="object" />
+    </position>
+    <convert name="Height_Image" type="vector2" nodedef="ND_convert_vector3_vector2">
+      <input name="in" type="vector3" nodename="Coordinates_Object" />
+    </convert>
+    <image name="Height_Image_2" type="color4">
+      <input name="file" type="filename" value="height" />
+      <input name="texcoord" type="vector2" nodename="Height_Image" />
+      <input name="uaddressmode" type="string" value="constant" />
+      <input name="vaddressmode" type="string" value="constant" />
+      <input name="filtertype" type="string" value="cubic" />
+      <input name="default" type="color4" value="0, 0, 0, 0" />
+    </image>
+    <convert name="Height_Image_Color" type="color3" nodedef="ND_convert_color4_color3">
+      <input name="in" type="color4" nodename="Height_Image_2" />
+    </convert>
+    <luminance name="Bump_Height" type="color3">
+      <input name="in" type="color3" nodename="Height_Image_Color" />
+      <input name="lumacoeffs" type="color3" value="0.2126, 0.7152, 0.0722" />
+    </luminance>
+    <extract name="Bump_Height_2" type="float">
+      <input name="in" type="color3" nodename="Bump_Height" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <multiply name="Bump_Normal_2" type="float">
+      <input name="in1" type="float" nodename="Bump_Height_2" />
+      <input name="in2" type="float" nodename="Bump_Normal" />
+    </multiply>
+    <texcoord name="Normal_Image_texcoord" type="vector2">
+      <input name="index" type="integer" value="0" />
+    </texcoord>
+    <image name="Normal_Image" type="color4">
+      <input name="file" type="filename" value="normal" />
+      <input name="texcoord" type="vector2" nodename="Normal_Image_texcoord" />
+      <input name="filtertype" type="string" value="closest" />
+      <input name="default" type="color4" value="0, 0, 0, 0" />
+    </image>
+    <convert name="Normal_Image_Color" type="color3" nodedef="ND_convert_color4_color3">
+      <input name="in" type="color4" nodename="Normal_Image" />
+    </convert>
+    <convert name="Normal_Map_Color" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" nodename="Normal_Image_Color" />
+    </convert>
+    <normal name="Normal_Map_Normal_normal" type="vector3">
+      <input name="space" type="string" value="world" />
+    </normal>
+    <tangent name="Normal_Map_Normal_tangent" type="vector3">
+      <input name="space" type="string" value="world" />
+    </tangent>
+    <bitangent name="Normal_Map_Normal_bitangent" type="vector3">
+      <input name="space" type="string" value="world" />
+    </bitangent>
+    <normalmap name="Normal_Map_Normal" type="vector3">
+      <input name="in" type="vector3" nodename="Normal_Map_Color" />
+      <input name="scale" type="float" interfacename="Normal_Map_Strength" />
+      <input name="normal" type="vector3" nodename="Normal_Map_Normal_normal" />
+      <input name="tangent" type="vector3" nodename="Normal_Map_Normal_tangent" />
+      <input name="bitangent" type="vector3" nodename="Normal_Map_Normal_bitangent" />
+    </normalmap>
+    <position name="Bump_Normal_3" type="vector3">
+      <input name="space" type="string" value="world" />
+    </position>
+    <shadewire_dpdx name="Bump_Normal_4" type="vector3" nodedef="ND_shadewire_dpdx_vector3">
+      <input name="in" type="vector3" nodename="Bump_Normal_3" />
+    </shadewire_dpdx>
+    <shadewire_dpdy name="Bump_Normal_5" type="vector3" nodedef="ND_shadewire_dpdy_vector3">
+      <input name="in" type="vector3" nodename="Bump_Normal_3" />
+    </shadewire_dpdy>
+    <shadewire_dpdx name="Bump_Normal_6" type="float" nodedef="ND_shadewire_dpdx_float">
+      <input name="in" type="float" nodename="Bump_Normal_2" />
+    </shadewire_dpdx>
+    <shadewire_dpdy name="Bump_Normal_7" type="float" nodedef="ND_shadewire_dpdy_float">
+      <input name="in" type="float" nodename="Bump_Normal_2" />
+    </shadewire_dpdy>
+    <crossproduct name="Bump_Normal_8" type="vector3">
+      <input name="in1" type="vector3" nodename="Bump_Normal_5" />
+      <input name="in2" type="vector3" nodename="Normal_Map_Normal" />
+    </crossproduct>
+    <crossproduct name="Bump_Normal_9" type="vector3">
+      <input name="in1" type="vector3" nodename="Normal_Map_Normal" />
+      <input name="in2" type="vector3" nodename="Bump_Normal_4" />
+    </crossproduct>
+    <dotproduct name="Bump_Normal_10" type="float">
+      <input name="in1" type="vector3" nodename="Bump_Normal_4" />
+      <input name="in2" type="vector3" nodename="Bump_Normal_8" />
+    </dotproduct>
+    <multiply name="Bump_Normal_11" type="vector3">
+      <input name="in1" type="vector3" nodename="Bump_Normal_8" />
+      <input name="in2" type="float" nodename="Bump_Normal_6" />
+    </multiply>
+    <multiply name="Bump_Normal_12" type="vector3">
+      <input name="in1" type="vector3" nodename="Bump_Normal_9" />
+      <input name="in2" type="float" nodename="Bump_Normal_7" />
+    </multiply>
+    <add name="Bump_Normal_13" type="vector3">
+      <input name="in1" type="vector3" nodename="Bump_Normal_11" />
+      <input name="in2" type="vector3" nodename="Bump_Normal_12" />
+    </add>
+    <sign name="Bump_Normal_14" type="float">
+      <input name="in" type="float" nodename="Bump_Normal_10" />
+    </sign>
+    <multiply name="Bump_Normal_15" type="vector3">
+      <input name="in1" type="vector3" nodename="Bump_Normal_13" />
+      <input name="in2" type="float" nodename="Bump_Normal_14" />
+    </multiply>
+    <absval name="Bump_Normal_16" type="float">
+      <input name="in" type="float" nodename="Bump_Normal_10" />
+    </absval>
+    <multiply name="Bump_Normal_17" type="vector3">
+      <input name="in1" type="vector3" nodename="Normal_Map_Normal" />
+      <input name="in2" type="float" nodename="Bump_Normal_16" />
+    </multiply>
+    <subtract name="Bump_Normal_18" type="vector3">
+      <input name="in1" type="vector3" nodename="Bump_Normal_17" />
+      <input name="in2" type="vector3" nodename="Bump_Normal_15" />
+    </subtract>
+    <normalize name="Bump_Normal_19" type="vector3">
+      <input name="in" type="vector3" nodename="Bump_Normal_18" />
+    </normalize>
+    <ifequal name="Bump_Normal_20" type="vector3">
+      <input name="value1" type="float" nodename="Bump_Normal_10" />
+      <input name="value2" type="float" value="0" />
+      <input name="in1" type="vector3" nodename="Normal_Map_Normal" />
+      <input name="in2" type="vector3" nodename="Bump_Normal_19" />
+    </ifequal>
+    <convert name="Normal_Map_World_Color" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" nodename="Normal_Image_Color" />
+    </convert>
+    <normal name="Normal_Map_World_Normal_normal" type="vector3">
+      <input name="space" type="string" value="world" />
+    </normal>
+    <tangent name="Normal_Map_World_Normal_tangent" type="vector3">
+      <input name="space" type="string" value="world" />
+    </tangent>
+    <bitangent name="Normal_Map_World_Normal_bitangent" type="vector3">
+      <input name="space" type="string" value="world" />
+    </bitangent>
+    <normalmap name="Normal_Map_World_Normal" type="vector3">
+      <input name="in" type="vector3" nodename="Normal_Map_World_Color" />
+      <input name="scale" type="float" interfacename="Normal_Map_World_Strength" />
+      <input name="normal" type="vector3" nodename="Normal_Map_World_Normal_normal" />
+      <input name="tangent" type="vector3" nodename="Normal_Map_World_Normal_tangent" />
+      <input name="bitangent" type="vector3" nodename="Normal_Map_World_Normal_bitangent" />
+    </normalmap>
+    <constant name="Turn_Tangent_Vector" type="float">
+      <input name="value" type="float" value="57.295776" />
+    </constant>
+    <constant name="Turn_Tangent_Vector_2" type="float">
+      <input name="value" type="float" value="-1" />
+    </constant>
+    <extract name="Turn_Tangent_Vector_3" type="float">
+      <input name="in" type="vector3" interfacename="Turn_Tangent_Rotation" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <multiply name="Turn_Tangent_Vector_2_2" type="float">
+      <input name="in1" type="float" nodename="Turn_Tangent_Vector_3" />
+      <input name="in2" type="float" nodename="Turn_Tangent_Vector" />
+    </multiply>
+    <multiply name="Turn_Tangent_Vector_3_2" type="float">
+      <input name="in1" type="float" nodename="Turn_Tangent_Vector_2_2" />
+      <input name="in2" type="float" nodename="Turn_Tangent_Vector_2" />
+    </multiply>
+    <extract name="Turn_Tangent_Vector_4" type="float">
+      <input name="in" type="vector3" interfacename="Turn_Tangent_Rotation" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <multiply name="Turn_Tangent_Vector_5" type="float">
+      <input name="in1" type="float" nodename="Turn_Tangent_Vector_4" />
+      <input name="in2" type="float" nodename="Turn_Tangent_Vector" />
+    </multiply>
+    <multiply name="Turn_Tangent_Vector_6" type="float">
+      <input name="in1" type="float" nodename="Turn_Tangent_Vector_5" />
+      <input name="in2" type="float" nodename="Turn_Tangent_Vector_2" />
+    </multiply>
+    <extract name="Turn_Tangent_Vector_7" type="float">
+      <input name="in" type="vector3" interfacename="Turn_Tangent_Rotation" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="Turn_Tangent_Vector_8" type="float">
+      <input name="in1" type="float" nodename="Turn_Tangent_Vector_7" />
+      <input name="in2" type="float" nodename="Turn_Tangent_Vector" />
+    </multiply>
+    <multiply name="Turn_Tangent_Vector_9" type="float">
+      <input name="in1" type="float" nodename="Turn_Tangent_Vector_8" />
+      <input name="in2" type="float" nodename="Turn_Tangent_Vector_2" />
+    </multiply>
+    <multiply name="Turn_Tangent_Vector_10" type="vector3">
+      <input name="in1" type="vector3" nodename="Normal_Map_World_Normal" />
+      <input name="in2" type="vector3" interfacename="Turn_Tangent_Scale" />
+    </multiply>
+    <rotate3d name="Turn_Tangent_Vector_11" type="vector3" nodedef="ND_rotate3d_vector3">
+      <input name="in" type="vector3" nodename="Turn_Tangent_Vector_10" />
+      <input name="amount" type="float" nodename="Turn_Tangent_Vector_3_2" />
+      <input name="axis" type="vector3" value="1, 0, 0" />
+    </rotate3d>
+    <rotate3d name="Turn_Tangent_Vector_12" type="vector3" nodedef="ND_rotate3d_vector3">
+      <input name="in" type="vector3" nodename="Turn_Tangent_Vector_11" />
+      <input name="amount" type="float" nodename="Turn_Tangent_Vector_6" />
+    </rotate3d>
+    <rotate3d name="Turn_Tangent_Vector_13" type="vector3" nodedef="ND_rotate3d_vector3">
+      <input name="in" type="vector3" nodename="Turn_Tangent_Vector_12" />
+      <input name="amount" type="float" nodename="Turn_Tangent_Vector_9" />
+      <input name="axis" type="vector3" value="0, 0, 1" />
+    </rotate3d>
+    <convert name="Normal_Map_Object_Color" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" nodename="Normal_Image_Color" />
+    </convert>
+    <normal name="Normal_Map_Object_Normal_normal" type="vector3">
+      <input name="space" type="string" value="world" />
+    </normal>
+    <tangent name="Normal_Map_Object_Normal_tangent" type="vector3">
+      <input name="space" type="string" value="world" />
+    </tangent>
+    <bitangent name="Normal_Map_Object_Normal_bitangent" type="vector3">
+      <input name="space" type="string" value="world" />
+    </bitangent>
+    <normalmap name="Normal_Map_Object_Normal" type="vector3">
+      <input name="in" type="vector3" nodename="Normal_Map_Object_Color" />
+      <input name="scale" type="float" interfacename="Normal_Map_Object_Strength" />
+      <input name="normal" type="vector3" nodename="Normal_Map_Object_Normal_normal" />
+      <input name="tangent" type="vector3" nodename="Normal_Map_Object_Normal_tangent" />
+      <input name="bitangent" type="vector3" nodename="Normal_Map_Object_Normal_bitangent" />
+    </normalmap>
+    <multiply name="Principled_BSDF_specular_weight" type="float">
+      <input name="in1" type="float" interfacename="Principled_BSDF_Specular_IOR_Level" />
+      <input name="in2" type="float" value="2" />
+    </multiply>
+    <multiply name="Principled_BSDF_thin_film_thickness" type="float">
+      <input name="in1" type="float" interfacename="Principled_BSDF_Thin_Film_Thickness" />
+      <input name="in2" type="float" value="0.001" />
+    </multiply>
+    <constant name="Principled_BSDF_thin_film_weight" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <ifgreater name="Principled_BSDF_thin_film_weight_2" type="float">
+      <input name="value1" type="float" interfacename="Principled_BSDF_Thin_Film_Thickness" />
+      <input name="value2" type="float" nodename="Principled_BSDF_thin_film_weight" />
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" nodename="Principled_BSDF_thin_film_weight" />
+    </ifgreater>
+    <dot name="Principled_BSDF_Diffuse_Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Diffuse_Roughness" />
+    </dot>
+    <dot name="Principled_BSDF_Metallic_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Metallic" />
+    </dot>
+    <dot name="Principled_BSDF_Specular_Tint_dot" type="color3">
+      <input name="in" type="color3" interfacename="Principled_BSDF_Specular_Tint" />
+    </dot>
+    <dot name="Principled_BSDF_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_IOR" />
+    </dot>
+    <dot name="Principled_BSDF_Anisotropic_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Anisotropic" />
+    </dot>
+    <dot name="Principled_BSDF_Transmission_Weight_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Transmission_Weight" />
+    </dot>
+    <dot name="Principled_BSDF_Subsurface_Weight_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Subsurface_Weight" />
+    </dot>
+    <dot name="Principled_BSDF_Subsurface_Scale_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Subsurface_Scale" />
+    </dot>
+    <dot name="Principled_BSDF_Subsurface_Anisotropy_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Subsurface_Anisotropy" />
+    </dot>
+    <dot name="Principled_BSDF_Sheen_Weight_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Sheen_Weight" />
+    </dot>
+    <dot name="Principled_BSDF_Sheen_Tint_dot" type="color3">
+      <input name="in" type="color3" interfacename="Principled_BSDF_Sheen_Tint" />
+    </dot>
+    <dot name="Principled_BSDF_Sheen_Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Sheen_Roughness" />
+    </dot>
+    <dot name="Principled_BSDF_Coat_Weight_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Coat_Weight" />
+    </dot>
+    <dot name="Principled_BSDF_Coat_Tint_dot" type="color3">
+      <input name="in" type="color3" interfacename="Principled_BSDF_Coat_Tint" />
+    </dot>
+    <dot name="Principled_BSDF_Coat_Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Coat_Roughness" />
+    </dot>
+    <dot name="Principled_BSDF_Coat_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Coat_IOR" />
+    </dot>
+    <dot name="Principled_BSDF_Thin_Film_IOR_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Thin_Film_IOR" />
+    </dot>
+    <dot name="Principled_BSDF_Emission_Strength_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Emission_Strength" />
+    </dot>
+    <dot name="Principled_BSDF_Alpha_dot" type="float">
+      <input name="in" type="float" interfacename="Principled_BSDF_Alpha" />
+    </dot>
+    <dot name="Principled_BSDF_Thin_Wall_dot" type="boolean">
+      <input name="in" type="boolean" interfacename="Principled_BSDF_Thin_Wall" />
+    </dot>
+    <output name="base_color" type="color3" nodename="Albedo_Color" />
+    <output name="base_diffuse_roughness" type="float" nodename="Principled_BSDF_Diffuse_Roughness_dot" />
+    <output name="base_metalness" type="float" nodename="Principled_BSDF_Metallic_dot" />
+    <output name="specular_weight" type="float" nodename="Principled_BSDF_specular_weight" />
+    <output name="specular_color" type="color3" nodename="Principled_BSDF_Specular_Tint_dot" />
+    <output name="specular_roughness" type="float" nodename="Principled_BSDF_Roughness_2" />
+    <output name="specular_ior" type="float" nodename="Principled_BSDF_IOR_dot" />
+    <output name="specular_roughness_anisotropy" type="float" nodename="Principled_BSDF_Anisotropic_dot" />
+    <output name="transmission_weight" type="float" nodename="Principled_BSDF_Transmission_Weight_dot" />
+    <output name="subsurface_weight" type="float" nodename="Principled_BSDF_Subsurface_Weight_dot" />
+    <output name="subsurface_radius" type="float" nodename="Principled_BSDF_Subsurface_Scale_dot" />
+    <output name="subsurface_radius_scale" type="color3" nodename="Principled_BSDF_Subsurface_Radius_2" />
+    <output name="subsurface_scatter_anisotropy" type="float" nodename="Principled_BSDF_Subsurface_Anisotropy_dot" />
+    <output name="fuzz_weight" type="float" nodename="Principled_BSDF_Sheen_Weight_dot" />
+    <output name="fuzz_color" type="color3" nodename="Principled_BSDF_Sheen_Tint_dot" />
+    <output name="fuzz_roughness" type="float" nodename="Principled_BSDF_Sheen_Roughness_dot" />
+    <output name="coat_weight" type="float" nodename="Principled_BSDF_Coat_Weight_dot" />
+    <output name="coat_color" type="color3" nodename="Principled_BSDF_Coat_Tint_dot" />
+    <output name="coat_roughness" type="float" nodename="Principled_BSDF_Coat_Roughness_dot" />
+    <output name="coat_ior" type="float" nodename="Principled_BSDF_Coat_IOR_dot" />
+    <output name="thin_film_weight" type="float" nodename="Principled_BSDF_thin_film_weight_2" />
+    <output name="thin_film_thickness" type="float" nodename="Principled_BSDF_thin_film_thickness" />
+    <output name="thin_film_ior" type="float" nodename="Principled_BSDF_Thin_Film_IOR_dot" />
+    <output name="emission_luminance" type="float" nodename="Principled_BSDF_Emission_Strength_dot" />
+    <output name="emission_color" type="color3" nodename="Mirror_Image_Color" />
+    <output name="geometry_opacity" type="float" nodename="Principled_BSDF_Alpha_dot" />
+    <output name="geometry_thin_walled" type="boolean" nodename="Principled_BSDF_Thin_Wall_dot" />
+    <output name="geometry_normal" type="vector3" nodename="Bump_Normal_20" />
+    <output name="geometry_coat_normal" type="vector3" nodename="Normal_Map_Object_Normal" />
+    <output name="geometry_tangent" type="vector3" nodename="Turn_Tangent_Vector_13" />
+  </nodegraph>
+  <open_pbr_surface name="textured_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_textured" output="base_color" />
+    <input name="base_diffuse_roughness" type="float" nodegraph="NG_textured" output="base_diffuse_roughness" />
+    <input name="base_metalness" type="float" nodegraph="NG_textured" output="base_metalness" />
+    <input name="specular_weight" type="float" nodegraph="NG_textured" output="specular_weight" />
+    <input name="specular_color" type="color3" nodegraph="NG_textured" output="specular_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG_textured" output="specular_roughness" />
+    <input name="specular_ior" type="float" nodegraph="NG_textured" output="specular_ior" />
+    <input name="specular_roughness_anisotropy" type="float" nodegraph="NG_textured" output="specular_roughness_anisotropy" />
+    <input name="transmission_weight" type="float" nodegraph="NG_textured" output="transmission_weight" />
+    <input name="transmission_color" type="color3" nodegraph="NG_textured" output="base_color" />
+    <input name="subsurface_weight" type="float" nodegraph="NG_textured" output="subsurface_weight" />
+    <input name="subsurface_color" type="color3" nodegraph="NG_textured" output="base_color" />
+    <input name="subsurface_radius" type="float" nodegraph="NG_textured" output="subsurface_radius" />
+    <input name="subsurface_radius_scale" type="color3" nodegraph="NG_textured" output="subsurface_radius_scale" />
+    <input name="subsurface_scatter_anisotropy" type="float" nodegraph="NG_textured" output="subsurface_scatter_anisotropy" />
+    <input name="fuzz_weight" type="float" nodegraph="NG_textured" output="fuzz_weight" />
+    <input name="fuzz_color" type="color3" nodegraph="NG_textured" output="fuzz_color" />
+    <input name="fuzz_roughness" type="float" nodegraph="NG_textured" output="fuzz_roughness" />
+    <input name="coat_weight" type="float" nodegraph="NG_textured" output="coat_weight" />
+    <input name="coat_color" type="color3" nodegraph="NG_textured" output="coat_color" />
+    <input name="coat_roughness" type="float" nodegraph="NG_textured" output="coat_roughness" />
+    <input name="coat_ior" type="float" nodegraph="NG_textured" output="coat_ior" />
+    <input name="thin_film_weight" type="float" nodegraph="NG_textured" output="thin_film_weight" />
+    <input name="thin_film_thickness" type="float" nodegraph="NG_textured" output="thin_film_thickness" />
+    <input name="thin_film_ior" type="float" nodegraph="NG_textured" output="thin_film_ior" />
+    <input name="emission_luminance" type="float" nodegraph="NG_textured" output="emission_luminance" />
+    <input name="emission_color" type="color3" nodegraph="NG_textured" output="emission_color" />
+    <input name="geometry_opacity" type="float" nodegraph="NG_textured" output="geometry_opacity" />
+    <input name="geometry_thin_walled" type="boolean" nodegraph="NG_textured" output="geometry_thin_walled" />
+    <input name="geometry_normal" type="vector3" nodegraph="NG_textured" output="geometry_normal" />
+    <input name="geometry_coat_normal" type="vector3" nodegraph="NG_textured" output="geometry_coat_normal" />
+    <input name="geometry_tangent" type="vector3" nodegraph="NG_textured" output="geometry_tangent" />
+  </open_pbr_surface>
+  <surfacematerial name="textured" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="textured_shader" />
+  </surfacematerial>
+  <nodedef name="ND_shadewire_dpdx_float" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="float" value="0.0" />
+    <output name="out" type="float" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdx_vector2" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="vector2" value="0.0, 0.0" />
+    <output name="out" type="vector2" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdx_vector3" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="vector3" value="0.0, 0.0, 0.0" />
+    <output name="out" type="vector3" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdx_vector4" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="vector4" value="0.0, 0.0, 0.0, 0.0" />
+    <output name="out" type="vector4" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdx_color3" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="color3" value="0.0, 0.0, 0.0" />
+    <output name="out" type="color3" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdx_color4" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="color4" value="0.0, 0.0, 0.0, 0.0" />
+    <output name="out" type="color4" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_float" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="float" value="0.0" />
+    <output name="out" type="float" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_vector2" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="vector2" value="0.0, 0.0" />
+    <output name="out" type="vector2" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_vector3" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="vector3" value="0.0, 0.0, 0.0" />
+    <output name="out" type="vector3" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_vector4" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="vector4" value="0.0, 0.0, 0.0, 0.0" />
+    <output name="out" type="vector4" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_color3" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="color3" value="0.0, 0.0, 0.0" />
+    <output name="out" type="color3" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_color4" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="color4" value="0.0, 0.0, 0.0, 0.0" />
+    <output name="out" type="color4" />
+  </nodedef>
+</materialx>

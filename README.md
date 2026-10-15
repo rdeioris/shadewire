@@ -47,16 +47,17 @@ caller (your code, the CLI, the C API) composes them.
 | `shadewire` | core: the IR, optimizer, CPU interpreter, reflection, errors; the shader tree every back end prints (`shader`: the material's code, the support libraries, the shared printing) | — |
 | `shadewire-nodes` | the node library: MaterialX's standard nodes and Shadewire's own, resolved and instantiated into the IR; what every front end lowers through (`Elaborator`, `instantiate`, `finish_model`, `finish_closure`) | `shadewire` |
 | `shadewire-mtlx` | front end: MaterialX 1.38/1.39 documents → IR (`to_ir`) | `shadewire`, `shadewire-nodes` |
+| `shadewire-blender` | front end: the Blender extension's material graph JSON → IR (`to_ir`) | `shadewire`, `shadewire-nodes`, `serde_json` |
 | `shadewire-wgsl` | back end: IR → WGSL + reflection (`compile`) | `shadewire` |
 | `shadewire-glsl` | back end: IR → a GLSL library (desktop from 330, ES from 300) + reflection | `shadewire` |
 | `shadewire-gdshader` | back end: IR → a complete Godot 4 spatial shader (`.gdshader`) + reflection: named models mapped onto Godot's outputs, or closure trees lit by MaterialX's reference lobes in `light()` | `shadewire` |
 | `shadewire-hlsl` | back end: IR → an HLSL library (shader model 5.1 and up) + reflection | `shadewire` |
 | `shadewire-msl` | back end: IR → a Metal Shading Language library + reflection | `shadewire` |
-| `shadewire-cli` | the `shadewire` command | all of the above |
-| `shadewire-capi` | C API (`shadewire.h`): MaterialX → code in any back end's language + reflection | `shadewire`, `shadewire-mtlx`, `shadewire-nodes`, the back ends |
+| `shadewire-cli` | the `shadewire` command: MaterialX documents or Blender graphs (`.json`) in, any back end out | all of the above |
+| `shadewire-capi` | C API (`shadewire.h`): MaterialX or Blender graphs → code in any back end's language + reflection | `shadewire`, `shadewire-mtlx`, `shadewire-blender`, `shadewire-nodes`, the back ends |
 | `shadewire-bevy` | Bevy 0.20: MaterialX → a `StandardMaterial` extension with a generated fragment shader (`ShadewirePlugin`, `FromMtlx`) | `shadewire`, `shadewire-mtlx`, `shadewire-nodes`, `shadewire-wgsl`, `bevy` |
 | `shadewire-godot` | Godot 4.4+ extension (gdext; its own workspace, Rust 1.94): `.mtlx` → `ShaderMaterial` at runtime (`Shadewire`, `load()`) and on import | `shadewire`, `shadewire-mtlx`, `shadewire-nodes`, `shadewire-gdshader`, `godot` |
-| `shadewire-py` | the `shadewire` Python module (PyO3, stable ABI from CPython 3.8): `shadewire.mtlx`, `.wgsl`, `.glsl`, `.hlsl`, `.msl` | `shadewire`, `shadewire-mtlx`, `shadewire-nodes`, the back ends |
+| `shadewire-py` | the `shadewire` Python module (PyO3, stable ABI from CPython 3.8): `shadewire.mtlx`, `.blender`, `.wgsl`, `.glsl`, `.hlsl`, `.msl` | `shadewire`, `shadewire-mtlx`, `shadewire-blender`, `shadewire-nodes`, the back ends |
 
 Each back end is a printer of the shared shader tree: everything they have in common (the material's code, the
 support libraries, operator precedence, declaration order, identifiers valid in every language) lives in the core.
@@ -73,6 +74,7 @@ back ends.
 | MaterialX → a Godot 4 shader (for a `ShaderMaterial`) | `shadewire-mtlx`, `shadewire-gdshader` | — |
 | MaterialX materials in a Godot project or game | the `shadewire-godot` addon ([its README](crates/shadewire-godot/README.md)) | — |
 | MaterialX → GLSL, GLSL ES, HLSL or MSL | `shadewire-mtlx`, `shadewire-glsl` / `-hlsl` / `-msl` | — |
+| Blender material graphs → the IR | `shadewire-blender` and a back end | — |
 | Your own IR (any source) → any of them | `shadewire` and the back end | — |
 | Your own graph format → the IR | `shadewire`, `shadewire-nodes` | — |
 | A command-line tool | `shadewire-cli` (the `shadewire` binary) | — |

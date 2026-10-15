@@ -1,0 +1,238 @@
+---
+source: crates/shadewire-blender/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_principled_everything">
+    <input name="Subsurface_Radius_Vector_X" type="float" value="0.5" />
+    <input name="Subsurface_Radius_Vector_Y" type="float" value="0.25" />
+    <input name="Subsurface_Radius_Vector_Z" type="float" value="0.125" />
+    <input name="Normal_Map_Strength" type="float" value="0.5" />
+    <input name="Normal_Map_Color" type="color3" value="0.5, 0.5, 1" />
+    <input name="Coat_Normal_Map_Strength" type="float" value="0.5" />
+    <input name="Coat_Normal_Map_Color" type="color3" value="0.5, 0.5, 1" />
+    <input name="Specular_IOR_Level_Value_Value" type="float" value="1.125" />
+    <input name="Thin_Film_Thickness_Value_Value" type="float" value="0.375" />
+    <input name="Base_Color_Color_Color" type="color3" value="0.8, 0.2, 0.1" />
+    <input name="Diffuse_Roughness_Value_Value" type="float" value="0.25" />
+    <input name="Metallic_Value_Value" type="float" value="0.25" />
+    <input name="Specular_Tint_Color_Color" type="color3" value="0.9, 0.8, 0.1" />
+    <input name="Roughness_Value_Value" type="float" value="0.375" />
+    <input name="IOR_Value_Value" type="float" value="1.5" />
+    <input name="Anisotropic_Value_Value" type="float" value="0.375" />
+    <input name="Transmission_Weight_Value_Value" type="float" value="0.75" />
+    <input name="Subsurface_Weight_Value_Value" type="float" value="0.375" />
+    <input name="Subsurface_Scale_Value_Value" type="float" value="0.625" />
+    <input name="Subsurface_Anisotropy_Value_Value" type="float" value="0.875" />
+    <input name="Sheen_Weight_Value_Value" type="float" value="0.625" />
+    <input name="Sheen_Tint_Color_Color" type="color3" value="0.9, 0.8, 0.1" />
+    <input name="Sheen_Roughness_Value_Value" type="float" value="0.75" />
+    <input name="Coat_Weight_Value_Value" type="float" value="0.875" />
+    <input name="Coat_Tint_Color_Color" type="color3" value="0.9, 0.8, 0.1" />
+    <input name="Coat_Roughness_Value_Value" type="float" value="0.125" />
+    <input name="Coat_IOR_Value_Value" type="float" value="1.25" />
+    <input name="Thin_Film_IOR_Value_Value" type="float" value="1.5" />
+    <input name="Emission_Strength_Value_Value" type="float" value="0.25" />
+    <input name="Emission_Color_Color_Color" type="color3" value="0.8, 0.2, 0.1" />
+    <input name="Alpha_Value_Value" type="float" value="0.625" />
+    <input name="Principled_BSDF_Thin_Wall" type="boolean" value="true" />
+    <combine3 name="Subsurface_Radius_Vector" type="vector3">
+      <input name="in1" type="float" interfacename="Subsurface_Radius_Vector_X" />
+      <input name="in2" type="float" interfacename="Subsurface_Radius_Vector_Y" />
+      <input name="in3" type="float" interfacename="Subsurface_Radius_Vector_Z" />
+    </combine3>
+    <convert name="Principled_BSDF_Subsurface_Radius" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="Subsurface_Radius_Vector" />
+    </convert>
+    <convert name="Normal_Map_Color_2" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" interfacename="Normal_Map_Color" />
+    </convert>
+    <normal name="Normal_Map_Normal_normal" type="vector3">
+      <input name="space" type="string" value="world" />
+    </normal>
+    <tangent name="Normal_Map_Normal_tangent" type="vector3">
+      <input name="space" type="string" value="world" />
+    </tangent>
+    <bitangent name="Normal_Map_Normal_bitangent" type="vector3">
+      <input name="space" type="string" value="world" />
+    </bitangent>
+    <normalmap name="Normal_Map_Normal" type="vector3">
+      <input name="in" type="vector3" nodename="Normal_Map_Color_2" />
+      <input name="scale" type="float" interfacename="Normal_Map_Strength" />
+      <input name="normal" type="vector3" nodename="Normal_Map_Normal_normal" />
+      <input name="tangent" type="vector3" nodename="Normal_Map_Normal_tangent" />
+      <input name="bitangent" type="vector3" nodename="Normal_Map_Normal_bitangent" />
+    </normalmap>
+    <convert name="Coat_Normal_Map_Color_2" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" interfacename="Coat_Normal_Map_Color" />
+    </convert>
+    <normal name="Coat_Normal_Map_Normal_normal" type="vector3">
+      <input name="space" type="string" value="world" />
+    </normal>
+    <tangent name="Coat_Normal_Map_Normal_tangent" type="vector3">
+      <input name="space" type="string" value="world" />
+    </tangent>
+    <bitangent name="Coat_Normal_Map_Normal_bitangent" type="vector3">
+      <input name="space" type="string" value="world" />
+    </bitangent>
+    <normalmap name="Coat_Normal_Map_Normal" type="vector3">
+      <input name="in" type="vector3" nodename="Coat_Normal_Map_Color_2" />
+      <input name="scale" type="float" interfacename="Coat_Normal_Map_Strength" />
+      <input name="normal" type="vector3" nodename="Coat_Normal_Map_Normal_normal" />
+      <input name="tangent" type="vector3" nodename="Coat_Normal_Map_Normal_tangent" />
+      <input name="bitangent" type="vector3" nodename="Coat_Normal_Map_Normal_bitangent" />
+    </normalmap>
+    <multiply name="Principled_BSDF_specular_weight" type="float">
+      <input name="in1" type="float" interfacename="Specular_IOR_Level_Value_Value" />
+      <input name="in2" type="float" value="2" />
+    </multiply>
+    <multiply name="Principled_BSDF_thin_film_thickness" type="float">
+      <input name="in1" type="float" interfacename="Thin_Film_Thickness_Value_Value" />
+      <input name="in2" type="float" value="0.001" />
+    </multiply>
+    <constant name="Principled_BSDF_thin_film_weight" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <ifgreater name="Principled_BSDF_thin_film_weight_2" type="float">
+      <input name="value1" type="float" interfacename="Thin_Film_Thickness_Value_Value" />
+      <input name="value2" type="float" nodename="Principled_BSDF_thin_film_weight" />
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" nodename="Principled_BSDF_thin_film_weight" />
+    </ifgreater>
+    <dot name="Base_Color_Color_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Base_Color_Color_Color" />
+    </dot>
+    <dot name="Diffuse_Roughness_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Diffuse_Roughness_Value_Value" />
+    </dot>
+    <dot name="Metallic_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Metallic_Value_Value" />
+    </dot>
+    <dot name="Specular_Tint_Color_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Specular_Tint_Color_Color" />
+    </dot>
+    <dot name="Roughness_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Roughness_Value_Value" />
+    </dot>
+    <dot name="IOR_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="IOR_Value_Value" />
+    </dot>
+    <dot name="Anisotropic_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Anisotropic_Value_Value" />
+    </dot>
+    <dot name="Transmission_Weight_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Transmission_Weight_Value_Value" />
+    </dot>
+    <dot name="Subsurface_Weight_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Subsurface_Weight_Value_Value" />
+    </dot>
+    <dot name="Subsurface_Scale_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Subsurface_Scale_Value_Value" />
+    </dot>
+    <dot name="Subsurface_Anisotropy_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Subsurface_Anisotropy_Value_Value" />
+    </dot>
+    <dot name="Sheen_Weight_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Sheen_Weight_Value_Value" />
+    </dot>
+    <dot name="Sheen_Tint_Color_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Sheen_Tint_Color_Color" />
+    </dot>
+    <dot name="Sheen_Roughness_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Sheen_Roughness_Value_Value" />
+    </dot>
+    <dot name="Coat_Weight_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Coat_Weight_Value_Value" />
+    </dot>
+    <dot name="Coat_Tint_Color_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Coat_Tint_Color_Color" />
+    </dot>
+    <dot name="Coat_Roughness_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Coat_Roughness_Value_Value" />
+    </dot>
+    <dot name="Coat_IOR_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Coat_IOR_Value_Value" />
+    </dot>
+    <dot name="Thin_Film_IOR_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Thin_Film_IOR_Value_Value" />
+    </dot>
+    <dot name="Emission_Strength_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Emission_Strength_Value_Value" />
+    </dot>
+    <dot name="Emission_Color_Color_Color_dot" type="color3">
+      <input name="in" type="color3" interfacename="Emission_Color_Color_Color" />
+    </dot>
+    <dot name="Alpha_Value_Value_dot" type="float">
+      <input name="in" type="float" interfacename="Alpha_Value_Value" />
+    </dot>
+    <dot name="Principled_BSDF_Thin_Wall_dot" type="boolean">
+      <input name="in" type="boolean" interfacename="Principled_BSDF_Thin_Wall" />
+    </dot>
+    <output name="base_color" type="color3" nodename="Base_Color_Color_Color_dot" />
+    <output name="base_diffuse_roughness" type="float" nodename="Diffuse_Roughness_Value_Value_dot" />
+    <output name="base_metalness" type="float" nodename="Metallic_Value_Value_dot" />
+    <output name="specular_weight" type="float" nodename="Principled_BSDF_specular_weight" />
+    <output name="specular_color" type="color3" nodename="Specular_Tint_Color_Color_dot" />
+    <output name="specular_roughness" type="float" nodename="Roughness_Value_Value_dot" />
+    <output name="specular_ior" type="float" nodename="IOR_Value_Value_dot" />
+    <output name="specular_roughness_anisotropy" type="float" nodename="Anisotropic_Value_Value_dot" />
+    <output name="transmission_weight" type="float" nodename="Transmission_Weight_Value_Value_dot" />
+    <output name="subsurface_weight" type="float" nodename="Subsurface_Weight_Value_Value_dot" />
+    <output name="subsurface_radius" type="float" nodename="Subsurface_Scale_Value_Value_dot" />
+    <output name="subsurface_radius_scale" type="color3" nodename="Principled_BSDF_Subsurface_Radius" />
+    <output name="subsurface_scatter_anisotropy" type="float" nodename="Subsurface_Anisotropy_Value_Value_dot" />
+    <output name="fuzz_weight" type="float" nodename="Sheen_Weight_Value_Value_dot" />
+    <output name="fuzz_color" type="color3" nodename="Sheen_Tint_Color_Color_dot" />
+    <output name="fuzz_roughness" type="float" nodename="Sheen_Roughness_Value_Value_dot" />
+    <output name="coat_weight" type="float" nodename="Coat_Weight_Value_Value_dot" />
+    <output name="coat_color" type="color3" nodename="Coat_Tint_Color_Color_dot" />
+    <output name="coat_roughness" type="float" nodename="Coat_Roughness_Value_Value_dot" />
+    <output name="coat_ior" type="float" nodename="Coat_IOR_Value_Value_dot" />
+    <output name="thin_film_weight" type="float" nodename="Principled_BSDF_thin_film_weight_2" />
+    <output name="thin_film_thickness" type="float" nodename="Principled_BSDF_thin_film_thickness" />
+    <output name="thin_film_ior" type="float" nodename="Thin_Film_IOR_Value_Value_dot" />
+    <output name="emission_luminance" type="float" nodename="Emission_Strength_Value_Value_dot" />
+    <output name="emission_color" type="color3" nodename="Emission_Color_Color_Color_dot" />
+    <output name="geometry_opacity" type="float" nodename="Alpha_Value_Value_dot" />
+    <output name="geometry_thin_walled" type="boolean" nodename="Principled_BSDF_Thin_Wall_dot" />
+    <output name="geometry_normal" type="vector3" nodename="Normal_Map_Normal" />
+    <output name="geometry_coat_normal" type="vector3" nodename="Coat_Normal_Map_Normal" />
+  </nodegraph>
+  <open_pbr_surface name="principled_everything_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_principled_everything" output="base_color" />
+    <input name="base_diffuse_roughness" type="float" nodegraph="NG_principled_everything" output="base_diffuse_roughness" />
+    <input name="base_metalness" type="float" nodegraph="NG_principled_everything" output="base_metalness" />
+    <input name="specular_weight" type="float" nodegraph="NG_principled_everything" output="specular_weight" />
+    <input name="specular_color" type="color3" nodegraph="NG_principled_everything" output="specular_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG_principled_everything" output="specular_roughness" />
+    <input name="specular_ior" type="float" nodegraph="NG_principled_everything" output="specular_ior" />
+    <input name="specular_roughness_anisotropy" type="float" nodegraph="NG_principled_everything" output="specular_roughness_anisotropy" />
+    <input name="transmission_weight" type="float" nodegraph="NG_principled_everything" output="transmission_weight" />
+    <input name="transmission_color" type="color3" nodegraph="NG_principled_everything" output="base_color" />
+    <input name="subsurface_weight" type="float" nodegraph="NG_principled_everything" output="subsurface_weight" />
+    <input name="subsurface_color" type="color3" nodegraph="NG_principled_everything" output="base_color" />
+    <input name="subsurface_radius" type="float" nodegraph="NG_principled_everything" output="subsurface_radius" />
+    <input name="subsurface_radius_scale" type="color3" nodegraph="NG_principled_everything" output="subsurface_radius_scale" />
+    <input name="subsurface_scatter_anisotropy" type="float" nodegraph="NG_principled_everything" output="subsurface_scatter_anisotropy" />
+    <input name="fuzz_weight" type="float" nodegraph="NG_principled_everything" output="fuzz_weight" />
+    <input name="fuzz_color" type="color3" nodegraph="NG_principled_everything" output="fuzz_color" />
+    <input name="fuzz_roughness" type="float" nodegraph="NG_principled_everything" output="fuzz_roughness" />
+    <input name="coat_weight" type="float" nodegraph="NG_principled_everything" output="coat_weight" />
+    <input name="coat_color" type="color3" nodegraph="NG_principled_everything" output="coat_color" />
+    <input name="coat_roughness" type="float" nodegraph="NG_principled_everything" output="coat_roughness" />
+    <input name="coat_ior" type="float" nodegraph="NG_principled_everything" output="coat_ior" />
+    <input name="thin_film_weight" type="float" nodegraph="NG_principled_everything" output="thin_film_weight" />
+    <input name="thin_film_thickness" type="float" nodegraph="NG_principled_everything" output="thin_film_thickness" />
+    <input name="thin_film_ior" type="float" nodegraph="NG_principled_everything" output="thin_film_ior" />
+    <input name="emission_luminance" type="float" nodegraph="NG_principled_everything" output="emission_luminance" />
+    <input name="emission_color" type="color3" nodegraph="NG_principled_everything" output="emission_color" />
+    <input name="geometry_opacity" type="float" nodegraph="NG_principled_everything" output="geometry_opacity" />
+    <input name="geometry_thin_walled" type="boolean" nodegraph="NG_principled_everything" output="geometry_thin_walled" />
+    <input name="geometry_normal" type="vector3" nodegraph="NG_principled_everything" output="geometry_normal" />
+    <input name="geometry_coat_normal" type="vector3" nodegraph="NG_principled_everything" output="geometry_coat_normal" />
+  </open_pbr_surface>
+  <surfacematerial name="principled_everything" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="principled_everything_shader" />
+  </surfacematerial>
+</materialx>

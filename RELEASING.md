@@ -6,14 +6,14 @@ from `crates/shadewire-py/Cargo.toml` and the Blender extension from `blender/sh
 
 ## crates.io
 
-Ten crates, published together (Cargo orders them by their dependencies):
+Eleven crates, published together (Cargo orders them by their dependencies):
 
 ```
 cargo publish --workspace --exclude shadewire-capi --exclude shadewire-capi-ctest --exclude shadewire-py --dry-run
 cargo publish --workspace --exclude shadewire-capi --exclude shadewire-capi-ctest --exclude shadewire-py
 ```
 
-`shadewire`, `shadewire-nodes`, `shadewire-mtlx`, `shadewire-wgsl`, `shadewire-glsl`, `shadewire-hlsl`, `shadewire-msl`,
+`shadewire`, `shadewire-nodes`, `shadewire-mtlx`, `shadewire-blender`, `shadewire-wgsl`, `shadewire-glsl`, `shadewire-hlsl`, `shadewire-msl`,
 `shadewire-gdshader`, `shadewire-cli` and `shadewire-bevy`. The C API and the Python module are `publish = false`: they ship as binaries and on PyPI.
 Publishing needs a crates.io token (`cargo login`). Rust 1.88 builds all but `shadewire-bevy` (1.97, Bevy's minimum).
 

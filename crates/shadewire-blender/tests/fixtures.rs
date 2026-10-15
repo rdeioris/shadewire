@@ -1,5 +1,5 @@
 //! Every fixture under blender/fixtures/graphs lowers, its WGSL validates, every back end compiles it; the warnings
-//! are snapshots, so a handler that lands shows up as fewer of them.
+//! are snapshots, so a handler that lands shows up as fewer of them, and so is the MaterialX each material writes.
 
 use std::path::{Path, PathBuf};
 
@@ -39,6 +39,11 @@ fn every_fixture_lowers_and_its_warnings_are_the_snapshots() {
             for (mode, options) in modes() {
                 let Some(ir) = lower(&name, &text, &material, mode, &options) else { continue };
                 insta::assert_snapshot!(format!("{name}_{material}_{mode}_warnings"), ir.warnings.join("\n"));
+                if mode == "models" {
+                    let write = shadewire_mtlx::WriteOptions { name: material.clone(), ..Default::default() };
+                    let written = shadewire_mtlx::from_ir(&ir.dag, &write).unwrap();
+                    insta::assert_snapshot!(format!("{name}_{material}_mtlx"), written.text);
+                }
                 assert_eq!(ir.source.source, "blender");
             }
         }

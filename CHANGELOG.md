@@ -26,11 +26,16 @@ Since `f5039f8` (readme: c example compiles).
 - **Blender: material graphs as JSON.** File > Export/Import > Material Graph (Shadewire JSON) saves a material's node
   tree exactly as Blender holds it and loads it back (`shadewire-blender-graph` version 1); the fixtures under
   `blender/fixtures/graphs` are such dumps, for the Rust front end that reads them.
+- **A Blender front end.** `shadewire-blender` reads the material graph JSON the Blender extension writes and lowers
+  it through `shadewire-nodes`: a Principled BSDF is `open_pbr_surface`, Blender's BSDFs a closure tree, its math,
+  color, texture and procedural nodes the matching MaterialX nodes, with a warning for every approximation
+  (`MaterialIr.warnings`).
 
 ### Breaking changes
 
 No compatibility shims: old names are gone.
 
+- **Rust:** `MaterialIr` lives in `shadewire-nodes` (re-exported by `shadewire-mtlx`) and carries `warnings`.
 - **Rust:** `shadewire_mtlx::MtlxOptions` and `ElaborateOptions` are `shadewire_nodes::IrOptions`; `to_ir` takes
   the `Resolver` as its own argument. `shadewire_mtlx::{document, elaborate, element, index, library, parse,
   resolve_nodedef, surface, version}` are `shadewire_nodes::…`. `shadewire_bevy::BuildOptions::mtlx` is `ir`; its include
