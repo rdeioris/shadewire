@@ -115,8 +115,10 @@ shadewire compile material.mtlx --lang hlsl -o material.hlsl
 shadewire compile material.mtlx --lang gdshader -o material.gdshader
 shadewire ir material.mtlx               # print the IR (optimized; --no-optimize for the raw graph; --json)
 shadewire list scene.mtlx                # the document's material names
+shadewire mtlx material.mtlx [--material NAME] [--inline] [--optimize] [-o out.mtlx]
 ```
 
+- `shadewire mtlx` writes the material back as MaterialX: includes resolved, 1.38 upgraded, library nodes kept as nodes (`--inline` expands them, `--optimize` folds first).
 - `--material NAME` picks the material when the document has several.
 - `--model MODEL` (repeatable) names the surface models the host accepts: an accepted model comes out as its struct, filled by `shadewire_eval_surface()`, for the host to light. By default `open_pbr_surface`, `standard_surface`, `gltf_pbr` and `surface_unlit`. A material of another model is an error, not a translation, unless `surface` is accepted: then it opens into its closure tree.
 - `--lobes` accepts only `surface` and `surface_unlit`, so every material opens into its closure tree and the shader brings MaterialX's reference lobes to light it (`shadewire_eval_bsdf` and the rest), on every back end. It cannot be combined with `--model`; `ir` takes it too.
@@ -168,6 +170,7 @@ The C API follows the Python module name for name:
 |---|---|
 | `shadewire.mtlx.to_ir(text, location, material, models, working_colorspace, values_as_uniforms)` | `shadewire_mtlx_to_ir(text, len, location, material, &mtlx_options, &ir, &err)` |
 | `shadewire.mtlx.material_names(text, location)` | `shadewire_mtlx_material_names(text, len, location, &mtlx_options, &strings, &err)`, then `shadewire_strings_count` / `_get` |
+| `shadewire.mtlx.from_ir(ir, inline, name)` (text and warnings) | `shadewire_ir_to_mtlx(ir, inline_nodes, name, &doc, &err)`, then `shadewire_document_text`, `_warning_count` / `_warning`, `_free` |
 | `Ir.optimize()`, `.dump()`, `.to_dict()` | `shadewire_ir_optimize(ir, &optimized, &err)`, `shadewire_ir_dump`, `shadewire_ir_json` |
 | `Ir.model`, `.source`, `.structure_hash` | `shadewire_ir_model`, `shadewire_ir_source` and `_source_version`, `shadewire_ir_structure_hash` |
 | `shadewire.wgsl.compile(ir, ...)` (and `glsl`, `hlsl`, `msl`) | `shadewire_compile(ir, target, &compile_options, &compiled, &err)` |
@@ -295,9 +298,10 @@ compiled = glsl.compile(ir, version=420)          # or shadewire.wgsl / .hlsl / 
 print(compiled.code, compiled.reflection["uniforms"])
 ```
 
-The module mirrors the crates: `shadewire.mtlx` (`to_ir`, `material_names`, `list_dependencies`), `shadewire.Ir`
-(`optimize`, `dump`, `to_dict`, `model`, `structure_hash`) and one `compile` per back end, each returning a
-`Compiled` (`code`, `language`, `reflection`, `model_struct`). One wheel per platform serves every CPython from 3.8
+The module mirrors the crates: `shadewire.mtlx` (`to_ir`, `material_names`, `list_dependencies`, `from_ir`),
+`shadewire.Ir` (`optimize`, `dump`, `to_dict`, `model`, `structure_hash`) and one `compile` per back end, each returning a
+`Compiled` (`code`, `language`, `reflection`, `model_struct`). `mtlx.from_ir(ir, inline=False, name="material")`
+writes an IR back as MaterialX and returns `(text, warnings)`. One wheel per platform serves every CPython from 3.8
 (Windows x64/ARM64, macOS x64/arm64, manylinux2014 x64/aarch64). `crates/shadewire-py/examples` has complete
 renderers: OpenGL with pygame (one lighting MaterialX's lobes, one with its own PBR over the named models) and
 wgpu-py. See [its README](crates/shadewire-py/README.md).

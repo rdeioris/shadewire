@@ -20,6 +20,9 @@ Since `f5039f8` (readme: c example compiles).
   move out of `shadewire-mtlx`, which is now the MaterialX reader alone. A front end without a document
   (`Elaborator::standalone`) asks for nodes by name (`instantiate`) and finishes a material as a model or a closure
   tree (`finish_model`, `finish_closure`). The IR records the library nodes it was built from (`Dag::compounds`).
+- **A MaterialX writer.** `shadewire_mtlx::from_ir` writes any IR back as a 1.39 document, library nodes as single nodes
+  through the IR's compounds (`shadewire mtlx`, `shadewire.mtlx.from_ir`, `shadewire_ir_to_mtlx`); IR-only nodes
+  (hextile, derivatives) are Shadewire nodedefs the reader also accepts.
 
 ### Breaking changes
 
