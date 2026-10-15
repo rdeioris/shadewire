@@ -89,6 +89,24 @@ fn closure_trees_and_uniforms_survive_a_round_trip() {
 }
 
 #[test]
+fn ui_hints_on_a_shader_value_survive_a_round_trip() {
+    let text = r#"<materialx version="1.39">
+      <standard_surface name="s" type="surfaceshader">
+        <input name="base" type="float" value="0.6" uisoftmin="0.2" uimax="0.9" uifolder="Mine/Sub"/>
+      </standard_surface>
+      <surfacematerial name="m" type="material">
+        <input name="surfaceshader" type="surfaceshader" nodename="s"/>
+      </surfacematerial>
+    </materialx>"#;
+    for inline in [false, true] {
+        let (a, written, b) =
+            roundtrip(text, &IrOptions::default(), &WriteOptions { inline, ..WriteOptions::default() });
+        assert!(a.uniform_ui.contains_key("base"), "{:?}", a.uniform_ui);
+        assert_same_material(&a, &b, &written);
+    }
+}
+
+#[test]
 fn a_user_nodedef_compound_is_expanded_with_a_warning() {
     let text = r#"<materialx version="1.39">
       <nodedef name="ND_twice" node="twice"><input name="in" type="float" value="0"/><output name="out" type="float"/></nodedef>

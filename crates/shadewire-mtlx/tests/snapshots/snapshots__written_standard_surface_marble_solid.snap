@@ -64,10 +64,10 @@ expression: "written(&path, \"Marble_3D\", &IrOptions::default())"
     <output name="base_color" type="color3" nodename="color_mix" />
   </nodegraph>
   <standard_surface name="Marble_3D_shader" type="surfaceshader">
-    <input name="base" type="float" value="1" />
+    <input name="base" type="float" value="1" uifolder="Base" uimax="1" uimin="0" />
     <input name="base_color" type="color3" nodegraph="NG_Marble_3D" output="base_color" />
-    <input name="specular_roughness" type="float" value="0.1" />
-    <input name="subsurface" type="float" value="0.4" />
+    <input name="specular_roughness" type="float" value="0.1" uifolder="Specular" uimax="1" uimin="0" />
+    <input name="subsurface" type="float" value="0.4" uifolder="Subsurface" uimax="1" uimin="0" />
     <input name="subsurface_color" type="color3" nodegraph="NG_Marble_3D" output="base_color" />
   </standard_surface>
   <surfacematerial name="Marble_3D" type="material">

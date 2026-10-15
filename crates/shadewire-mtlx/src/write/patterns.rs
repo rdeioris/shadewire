@@ -7,7 +7,7 @@ use shadewire_nodes::Index;
 
 use super::WriteOptions;
 use super::elements::{constant_element, context_category, context_element, uniform_element};
-use super::names::Names;
+use super::names::{Names, sanitize_name};
 use super::plan::Plan;
 use super::shader::shader_reads;
 use super::xml::Element;
@@ -44,7 +44,8 @@ pub struct Patterns<'a> {
     pub(super) reached: HashMap<NodeId, String>,
 }
 
-/// Writes every node the plan does not skip, in dag order, into a nodegraph named `NG_{options.name}`.
+/// Writes every node the plan does not skip, in dag order, into a nodegraph named `NG_{name}`, `name` the
+/// sanitized `options.name`.
 pub fn write_patterns<'a>(
     dag: &'a Dag,
     plan: &Plan,
@@ -53,7 +54,7 @@ pub fn write_patterns<'a>(
     names: &mut Names,
 ) -> Result<Patterns<'a>, Error> {
     let mut patterns = Patterns {
-        graph_name: names.unique(&format!("NG_{}", options.name)),
+        graph_name: names.unique(&format!("NG_{}", sanitize_name(&options.name))),
         inputs: Vec::new(),
         nodes: Vec::new(),
         outputs: Vec::new(),
@@ -104,12 +105,13 @@ pub fn write_patterns<'a>(
 }
 
 impl<'a> Patterns<'a> {
-    /// Reserves every uniform's name exactly and prepares its nodegraph input.
+    /// Reserves every uniform's sanitized name (suffixed `_2`, ... when taken) and prepares its nodegraph input.
     fn name_uniforms(&mut self, dag: &'a Dag) {
         for (position, node) in dag.nodes.iter().enumerate() {
             let NodeKind::Uniform { name, value } = &node.kind else { continue };
             let id = NodeId(position as u32);
-            let written = if self.names.reserve(name) { name.clone() } else { self.names.unique(name) };
+            let wanted = sanitize_name(name);
+            let written = if self.names.reserve(&wanted) { wanted } else { self.names.unique(&wanted) };
             let element = uniform_element(&written, node.ty, value, dag.uniform_ui.get(name));
             self.pending_uniforms.insert(id, element);
             self.uniform_names.insert(id, name);
@@ -221,6 +223,26 @@ mod tests {
         let (_, text) = written(&dag, false);
         assert!(text.contains(r#"<input name="gain" type="float" value="0.5" uimax="1" uimin="0" />"#), "{text}");
         assert!(text.contains(r#"<input name="in" type="float" interfacename="gain" />"#), "{text}");
+    }
+
+    #[test]
+    fn uniform_and_graph_names_are_sanitized_and_unique() {
+        let mut dag = Dag::new("surface_unlit");
+        let spaced = dag.add(node(NodeKind::Uniform { name: "a b".into(), value: Value::Float(0.5) }, Type::Float, ""));
+        let plain = dag.add(node(NodeKind::Uniform { name: "a_b".into(), value: Value::Float(0.25) }, Type::Float, ""));
+        let s = dag.add(node(NodeKind::Op { op: Op::Add, args: vec![spaced, plain] }, Type::Float, "g/s"));
+        dag.surface.fields.push(SurfaceField { name: "emission".into(), ty: Type::Float, node: s });
+        let index = Index::new(empty_document(), standard());
+        let plan = plan(&dag, &index, false);
+        let options = WriteOptions { name: "my material/v2".into(), ..WriteOptions::default() };
+        let patterns = write_patterns(&dag, &plan, &index, &options, &mut Names::new()).unwrap();
+        assert_eq!(patterns.graph_name, "NG_my_material_v2");
+        let mut graph = Element::new("nodegraph");
+        graph.children = patterns.inputs.iter().chain(&patterns.nodes).cloned().collect();
+        let text = to_text(&graph);
+        assert!(text.contains(r#"<input name="a_b" type="float" value="0.5" />"#), "{text}");
+        assert!(text.contains(r#"<input name="a_b_2" type="float" value="0.25" />"#), "{text}");
+        assert!(text.contains(r#"<input name="in2" type="float" interfacename="a_b_2" />"#), "{text}");
     }
 
     #[test]

@@ -38,7 +38,12 @@ fn value_input(name: &str, ty: &str, value: impl Into<String>) -> Element {
 
 /// A nodegraph input for a uniform, with its ui hints.
 pub fn uniform_element(name: &str, ty: Type, value: &Value, ui: Option<&UiHints>) -> Element {
-    let mut element = value_input(name, ty.mtlx_name(), value_text(value));
+    with_ui_hints(value_input(name, ty.mtlx_name(), value_text(value)), ui)
+}
+
+/// `element` with a uniform's `uimin`, `uimax`, `uisoftmin`, `uisoftmax` and `uifolder`, those it has.
+pub fn with_ui_hints(element: Element, ui: Option<&UiHints>) -> Element {
+    let mut element = element;
     let Some(ui) = ui else { return element };
     let limits = [("uimin", &ui.min), ("uimax", &ui.max), ("uisoftmin", &ui.soft_min), ("uisoftmax", &ui.soft_max)];
     for (key, limit) in limits {

@@ -132,6 +132,8 @@ fn same_material(a: &Dag, b: &Dag, written: &str, texture_colorspaces: bool) {
     let fields = |d: &Dag| d.surface.fields.iter().map(|f| (f.name.clone(), f.ty.mtlx_name())).collect::<BTreeSet<_>>();
     assert_eq!(fields(a), fields(b), "fields\n{written}");
     assert_eq!(uniforms(a), uniforms(b), "uniforms\n{written}");
+    assert_eq!(a.uniform_ui, b.uniform_ui, "uniform ui hints\n{written}");
+    assert_eq!(a.geomprop_defaults, b.geomprop_defaults, "geomprop defaults\n{written}");
     let texture = |t: &TextureDesc| match texture_colorspaces {
         true => format!("{t:?}"),
         false => format!("{:?}", TextureDesc { colorspace: None, ..t.clone() }),

@@ -22,7 +22,7 @@ expression: "written(\"crates/shadewire-mtlx/tests/fixtures/porcelain.mtlx\", \"
     <output name="mix_out" type="float" nodename="mix_2_dot" />
   </nodegraph>
   <dielectric_bsdf name="dielectric_bsdf_0" type="BSDF">
-    <input name="weight" type="float" value="0.35" />
+    <input name="weight" type="float" value="0.35" uimax="1" uimin="0" />
     <input name="distribution" type="string" value="ggx" />
     <input name="scatter_mode" type="string" value="R" />
   </dielectric_bsdf>
@@ -36,7 +36,7 @@ expression: "written(\"crates/shadewire-mtlx/tests/fixtures/porcelain.mtlx\", \"
   <mix name="mix_3" type="BSDF">
     <input name="fg" type="BSDF" nodename="subsurface_bsdf_1" />
     <input name="bg" type="BSDF" nodename="subsurface_bsdf_2" />
-    <input name="mix" type="float" value="0.35" />
+    <input name="mix" type="float" value="0.35" uimax="1" uimin="0" />
   </mix>
   <oren_nayar_diffuse_bsdf name="oren_nayar_diffuse_bsdf_4" type="BSDF">
     <input name="color" type="color3" nodegraph="NG_porcelain" output="color_out_2" />

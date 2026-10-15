@@ -21,7 +21,7 @@ use shadewire_nodes::library::standard;
 
 use catalog::is_shadewire_category;
 use elements::{Source, input};
-use names::Names;
+use names::{Names, sanitize_name};
 use patterns::write_patterns;
 use plan::plan;
 use shadewire_defs::shadewire_declarations;
@@ -61,9 +61,10 @@ pub fn from_ir(dag: &Dag, options: &WriteOptions) -> Result<Written, Error> {
     let index = Index::new(empty_document(), standard());
     let plan = plan(dag, &index, options.inline);
     let mut names = Names::new();
-    names.reserve(&options.name);
+    let name = sanitize_name(&options.name);
+    names.reserve(&name);
     let mut patterns = write_patterns(dag, &plan, &index, options, &mut names)?;
-    let shader_name = names.unique(&format!("{}_shader", options.name));
+    let shader_name = names.unique(&format!("{name}_shader"));
     let shader_level = write_surface(dag, &index, &mut patterns, &mut names, &shader_name)?;
     let mut document = Element::new("materialx").attr("version", "1.39");
     let graph: Vec<Element> = patterns.inputs.iter().chain(&patterns.nodes).chain(&patterns.outputs).cloned().collect();
@@ -81,7 +82,28 @@ pub fn from_ir(dag: &Dag, options: &WriteOptions) -> Result<Written, Error> {
     }
     document.children.extend(shader_level);
     let shader = input("surfaceshader", "surfaceshader", &Source::Node { name: shader_name, output: None });
-    document.push(Element::new("surfacematerial").attr("name", &options.name).attr("type", "material").child(shader));
+    document.push(Element::new("surfacematerial").attr("name", &name).attr("type", "material").child(shader));
     document.children.extend(declarations);
     Ok(Written { text: to_text(&document), warnings: patterns.warnings })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{WriteOptions, from_ir};
+    use crate::{IrOptions, Resolver};
+
+    #[test]
+    fn the_material_name_is_sanitized() {
+        let text = r#"<materialx version="1.39">
+          <surface_unlit name="s" type="surfaceshader"><input name="emission" type="float" value="0.5"/></surface_unlit>
+          <surfacematerial name="m" type="material">
+            <input name="surfaceshader" type="surfaceshader" nodename="s"/>
+          </surfacematerial>
+        </materialx>"#;
+        let dag = crate::to_ir(text, None, None, &IrOptions::default(), &Resolver::default()).unwrap().dag;
+        let written = from_ir(&dag, &WriteOptions { name: "my material/v2".into(), ..WriteOptions::default() });
+        let written = written.unwrap().text;
+        assert!(written.contains(r#"<surfacematerial name="my_material_v2""#), "{written}");
+        assert!(written.contains(r#"name="my_material_v2_shader""#), "{written}");
+    }
 }

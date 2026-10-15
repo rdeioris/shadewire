@@ -5,8 +5,13 @@ use std::collections::HashSet;
 /// Turns an IR origin into a valid MaterialX name: the last `/` component with every character
 /// outside `[A-Za-z0-9_]` replaced by `_`, a leading digit prefixed with `_`, and `node` when empty.
 pub fn sanitize(origin: &str) -> String {
-    let last = origin.rsplit('/').next().unwrap_or("");
-    let mut name: String = last.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' { c } else { '_' }).collect();
+    sanitize_name(origin.rsplit('/').next().unwrap_or(""))
+}
+
+/// Turns a whole name (a material's, a uniform's) into a valid MaterialX name: every character outside
+/// `[A-Za-z0-9_]` replaced by `_`, a leading digit prefixed with `_`, and `node` when empty.
+pub fn sanitize_name(name: &str) -> String {
+    let mut name: String = name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '_' { c } else { '_' }).collect();
     if name.is_empty() {
         return "node".to_string();
     }
@@ -64,5 +69,13 @@ mod tests {
         assert!(names.reserve("fresh"));
         assert!(!names.reserve("fresh"));
         assert_eq!(names.unique("fresh"), "fresh_2");
+    }
+
+    #[test]
+    fn a_whole_name_is_sanitized() {
+        assert_eq!(sanitize_name("my material/v2"), "my_material_v2");
+        assert_eq!(sanitize_name("Material.001"), "Material_001");
+        assert_eq!(sanitize_name("2nd"), "_2nd");
+        assert_eq!(sanitize_name(""), "node");
     }
 }

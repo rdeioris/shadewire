@@ -4,7 +4,7 @@
 use shadewire::{Dag, Error};
 use shadewire_nodes::Index;
 
-use super::elements::{Source, input};
+use super::elements::{Source, input, with_ui_hints};
 use super::names::Names;
 use super::patterns::{Patterns, Reach};
 use super::shader::{Read, shader_nodes};
@@ -31,7 +31,10 @@ pub fn write_surface(
         for (input_name, ty, read) in &node.inputs {
             let child = match read {
                 Read::Field { node, value_allowed } => match patterns.reach(*node, input_name, *value_allowed, dag) {
-                    Reach::Value(text) => input(input_name, ty, &Source::Value(text)),
+                    // A value is a uniform named after the input: its ui hints go on the input.
+                    Reach::Value(text) => {
+                        with_ui_hints(input(input_name, ty, &Source::Value(text)), dag.uniform_ui.get(input_name))
+                    }
                     Reach::Output(output) => Element::new("input")
                         .attr("name", input_name)
                         .attr("type", ty)
