@@ -78,6 +78,8 @@ files.
   load; `--flatten` also imports each scene flattened, its MaterialX inline.
 - `blender -b --python-exit-code 1 -P blender/test_graph.py` runs the graph tests: dump, load, round trips and the
   Save and Load operators. Keep the flag: without it Blender exits 0 when the script errors.
+- `blender -b --python-exit-code 1 -P blender/make_fixtures.py` rewrites the graph fixtures in
+  `blender/fixtures/graphs` from the materials it builds; `test_graph.py` fails when they are stale.
 
 Both scripts load the add-on from `blender/shadewire` under the module name `shadewire_addon` (its folder is not put
 on `sys.path`, where it would hide the `shadewire` compiler module). With `--installed` they use the extension

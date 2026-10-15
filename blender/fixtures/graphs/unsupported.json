@@ -1,0 +1,1118 @@
+{
+  "format": "shadewire-blender-graph",
+  "version": 1,
+  "producer": "Blender 5.2.1 LTS",
+  "materials": [
+    {
+      "name": "unsupported",
+      "settings": {
+        "surface_render_method": "DITHERED",
+        "blend_method": "HASHED",
+        "use_backface_culling": false,
+        "displacement_method": "BUMP"
+      },
+      "output": "Material Output",
+      "nodes": [
+        {
+          "name": "Principled BSDF",
+          "type": "ShaderNodeBsdfPrincipled",
+          "label": "",
+          "location": [
+            -200.0,
+            100.0
+          ],
+          "width": 240.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "distribution": "MULTI_GGX",
+            "subsurface_method": "RANDOM_WALK"
+          },
+          "inputs": [
+            {
+              "identifier": "Base Color",
+              "name": "Base Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Metallic",
+              "name": "Metallic",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Roughness",
+              "name": "Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "IOR",
+              "name": "IOR",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.5
+            },
+            {
+              "identifier": "Alpha",
+              "name": "Alpha",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Thin Wall",
+              "name": "Thin Wall",
+              "type": "BOOLEAN",
+              "enabled": true,
+              "value": false
+            },
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Weight",
+              "name": "Weight",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Diffuse Roughness",
+              "name": "Diffuse Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Subsurface Weight",
+              "name": "Subsurface Weight",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Subsurface Radius",
+              "name": "Subsurface Radius",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                1.0,
+                0.20000000298023224,
+                0.10000000149011612
+              ]
+            },
+            {
+              "identifier": "Subsurface Scale",
+              "name": "Subsurface Scale",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.004999999888241291
+            },
+            {
+              "identifier": "Subsurface IOR",
+              "name": "Subsurface IOR",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.399999976158142
+            },
+            {
+              "identifier": "Subsurface Anisotropy",
+              "name": "Subsurface Anisotropy",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Specular IOR Level",
+              "name": "Specular IOR Level",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Specular Tint",
+              "name": "Specular Tint",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Anisotropic",
+              "name": "Anisotropic",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Anisotropic Rotation",
+              "name": "Anisotropic Rotation",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Tangent",
+              "name": "Tangent",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Transmission Weight",
+              "name": "Transmission Weight",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Coat Weight",
+              "name": "Coat Weight",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Coat Roughness",
+              "name": "Coat Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.029999999329447746
+            },
+            {
+              "identifier": "Coat IOR",
+              "name": "Coat IOR",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.5
+            },
+            {
+              "identifier": "Coat Tint",
+              "name": "Coat Tint",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Coat Normal",
+              "name": "Coat Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Sheen Weight",
+              "name": "Sheen Weight",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Sheen Roughness",
+              "name": "Sheen Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Sheen Tint",
+              "name": "Sheen Tint",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Emission Color",
+              "name": "Emission Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Emission Strength",
+              "name": "Emission Strength",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Thin Film Thickness",
+              "name": "Thin Film Thickness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Thin Film IOR",
+              "name": "Thin Film IOR",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.3300000429153442
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "BSDF",
+              "name": "BSDF",
+              "type": "SHADER",
+              "enabled": true
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Material Output",
+          "type": "ShaderNodeOutputMaterial",
+          "label": "",
+          "location": [
+            200.0,
+            100.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "is_active_output": true,
+            "target": "ALL"
+          },
+          "inputs": [
+            {
+              "identifier": "Surface",
+              "name": "Surface",
+              "type": "SHADER",
+              "enabled": true
+            },
+            {
+              "identifier": "Volume",
+              "name": "Volume",
+              "type": "SHADER",
+              "enabled": true
+            },
+            {
+              "identifier": "Displacement",
+              "name": "Displacement",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Thickness",
+              "name": "Thickness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "outputs": [],
+          "internal_links": []
+        },
+        {
+          "name": "Layer Weight",
+          "type": "ShaderNodeLayerWeight",
+          "label": "",
+          "location": [
+            -1300.0,
+            0.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Blend",
+              "name": "Blend",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Fresnel",
+              "name": "Fresnel",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Facing",
+              "name": "Facing",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Blend",
+              "Fresnel"
+            ],
+            [
+              "Blend",
+              "Facing"
+            ]
+          ]
+        },
+        {
+          "name": "Fresnel",
+          "type": "ShaderNodeFresnel",
+          "label": "",
+          "location": [
+            -1300.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "IOR",
+              "name": "IOR",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.5
+            },
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Fac",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "IOR",
+              "Fac"
+            ]
+          ]
+        },
+        {
+          "name": "Light Path",
+          "type": "ShaderNodeLightPath",
+          "label": "",
+          "location": [
+            -1300.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [],
+          "outputs": [
+            {
+              "identifier": "Is Camera Ray",
+              "name": "Is Camera Ray",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Is Shadow Ray",
+              "name": "Is Shadow Ray",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Is Diffuse Ray",
+              "name": "Is Diffuse Ray",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Is Glossy Ray",
+              "name": "Is Glossy Ray",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Is Singular Ray",
+              "name": "Is Singular Ray",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Is Reflection Ray",
+              "name": "Is Reflection Ray",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Is Transmission Ray",
+              "name": "Is Transmission Ray",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Is Volume Scatter Ray",
+              "name": "Is Volume Scatter Ray",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Ray Length",
+              "name": "Ray Length",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Ray Depth",
+              "name": "Ray Depth",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Diffuse Depth",
+              "name": "Diffuse Depth",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Glossy Depth",
+              "name": "Glossy Depth",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Transparent Depth",
+              "name": "Transparent Depth",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Transmission Depth",
+              "name": "Transmission Depth",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Portal Depth",
+              "name": "Portal Depth",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Object Info",
+          "type": "ShaderNodeObjectInfo",
+          "label": "",
+          "location": [
+            -1300.0,
+            -1380.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [],
+          "outputs": [
+            {
+              "identifier": "Location",
+              "name": "Location",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Alpha",
+              "name": "Alpha",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Object Index",
+              "name": "Object Index",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Material Index",
+              "name": "Material Index",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Random",
+              "name": "Random",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Blackbody",
+          "type": "ShaderNodeBlackbody",
+          "label": "",
+          "location": [
+            -1300.0,
+            -1840.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Temperature",
+              "name": "Temperature",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 6500.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Temperature",
+              "Color"
+            ]
+          ]
+        },
+        {
+          "name": "Color Ramp",
+          "type": "ShaderNodeValToRGB",
+          "label": "",
+          "location": [
+            -1040.0,
+            -460.0
+          ],
+          "width": 240.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "color_ramp": {
+              "interpolation": "LINEAR",
+              "color_mode": "RGB",
+              "hue_interpolation": "NEAR",
+              "elements": [
+                {
+                  "position": 0.0,
+                  "color": [
+                    0.10000000149011612,
+                    0.20000000298023224,
+                    0.30000001192092896,
+                    1.0
+                  ]
+                },
+                {
+                  "position": 0.5,
+                  "color": [
+                    0.800000011920929,
+                    0.4000000059604645,
+                    0.10000000149011612,
+                    1.0
+                  ]
+                },
+                {
+                  "position": 0.8999999761581421,
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                }
+              ]
+            }
+          },
+          "inputs": [
+            {
+              "identifier": "Fac",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Alpha",
+              "name": "Alpha",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Fac",
+              "Color"
+            ],
+            [
+              "Fac",
+              "Alpha"
+            ]
+          ]
+        },
+        {
+          "name": "RGB Curves",
+          "type": "ShaderNodeRGBCurve",
+          "label": "",
+          "location": [
+            -780.0,
+            -460.0
+          ],
+          "width": 240.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "mapping": {
+              "extend": "EXTRAPOLATED",
+              "tone": "STANDARD",
+              "clip_min_x": 0.0,
+              "clip_min_y": 0.0,
+              "clip_max_x": 1.0,
+              "clip_max_y": 1.0,
+              "use_clip": true,
+              "curves": [
+                [
+                  {
+                    "location": [
+                      0.0,
+                      0.0
+                    ],
+                    "handle_type": "AUTO"
+                  },
+                  {
+                    "location": [
+                      1.0,
+                      1.0
+                    ],
+                    "handle_type": "AUTO"
+                  }
+                ],
+                [
+                  {
+                    "location": [
+                      0.0,
+                      0.0
+                    ],
+                    "handle_type": "AUTO"
+                  },
+                  {
+                    "location": [
+                      1.0,
+                      1.0
+                    ],
+                    "handle_type": "AUTO"
+                  }
+                ],
+                [
+                  {
+                    "location": [
+                      0.0,
+                      0.0
+                    ],
+                    "handle_type": "AUTO"
+                  },
+                  {
+                    "location": [
+                      1.0,
+                      1.0
+                    ],
+                    "handle_type": "AUTO"
+                  }
+                ],
+                [
+                  {
+                    "location": [
+                      0.0,
+                      0.0
+                    ],
+                    "handle_type": "AUTO"
+                  },
+                  {
+                    "location": [
+                      0.5,
+                      0.699999988079071
+                    ],
+                    "handle_type": "AUTO"
+                  },
+                  {
+                    "location": [
+                      1.0,
+                      1.0
+                    ],
+                    "handle_type": "AUTO"
+                  }
+                ]
+              ]
+            }
+          },
+          "inputs": [
+            {
+              "identifier": "Fac",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Color",
+              "Color"
+            ]
+          ]
+        },
+        {
+          "name": "Float Curve",
+          "type": "ShaderNodeFloatCurve",
+          "label": "",
+          "location": [
+            -1040.0,
+            0.0
+          ],
+          "width": 240.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "mapping": {
+              "extend": "EXTRAPOLATED",
+              "tone": "STANDARD",
+              "clip_min_x": 0.0,
+              "clip_min_y": 0.0,
+              "clip_max_x": 1.0,
+              "clip_max_y": 1.0,
+              "use_clip": true,
+              "curves": [
+                [
+                  {
+                    "location": [
+                      0.0,
+                      0.0
+                    ],
+                    "handle_type": "AUTO"
+                  },
+                  {
+                    "location": [
+                      0.5,
+                      0.8999999761581421
+                    ],
+                    "handle_type": "AUTO"
+                  },
+                  {
+                    "location": [
+                      1.0,
+                      1.0
+                    ],
+                    "handle_type": "AUTO"
+                  }
+                ]
+              ]
+            }
+          },
+          "inputs": [
+            {
+              "identifier": "Factor",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        }
+      ],
+      "links": [
+        {
+          "from": [
+            "Principled BSDF",
+            "BSDF"
+          ],
+          "to": [
+            "Material Output",
+            "Surface"
+          ]
+        },
+        {
+          "from": [
+            "Fresnel",
+            "Fac"
+          ],
+          "to": [
+            "Color Ramp",
+            "Fac"
+          ]
+        },
+        {
+          "from": [
+            "Color Ramp",
+            "Color"
+          ],
+          "to": [
+            "RGB Curves",
+            "Color"
+          ]
+        },
+        {
+          "from": [
+            "RGB Curves",
+            "Color"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Base Color"
+          ]
+        },
+        {
+          "from": [
+            "Layer Weight",
+            "Facing"
+          ],
+          "to": [
+            "Float Curve",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Float Curve",
+            "Value"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Metallic"
+          ]
+        },
+        {
+          "from": [
+            "Layer Weight",
+            "Fresnel"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Roughness"
+          ]
+        },
+        {
+          "from": [
+            "Light Path",
+            "Is Camera Ray"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Alpha"
+          ]
+        },
+        {
+          "from": [
+            "Blackbody",
+            "Color"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Emission Color"
+          ]
+        },
+        {
+          "from": [
+            "Object Info",
+            "Random"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Emission Strength"
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [],
+  "images": []
+}

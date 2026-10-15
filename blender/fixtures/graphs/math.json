@@ -1,0 +1,5005 @@
+{
+  "format": "shadewire-blender-graph",
+  "version": 1,
+  "producer": "Blender 5.2.1 LTS",
+  "materials": [
+    {
+      "name": "math",
+      "settings": {
+        "surface_render_method": "DITHERED",
+        "blend_method": "HASHED",
+        "use_backface_culling": false,
+        "displacement_method": "BUMP"
+      },
+      "output": "Material Output",
+      "nodes": [
+        {
+          "name": "Material Output",
+          "type": "ShaderNodeOutputMaterial",
+          "label": "",
+          "location": [
+            200.0,
+            100.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "is_active_output": true,
+            "target": "ALL"
+          },
+          "inputs": [
+            {
+              "identifier": "Surface",
+              "name": "Surface",
+              "type": "SHADER",
+              "enabled": true
+            },
+            {
+              "identifier": "Volume",
+              "name": "Volume",
+              "type": "SHADER",
+              "enabled": true
+            },
+            {
+              "identifier": "Displacement",
+              "name": "Displacement",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Thickness",
+              "name": "Thickness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "outputs": [],
+          "internal_links": []
+        },
+        {
+          "name": "Emission",
+          "type": "ShaderNodeEmission",
+          "label": "",
+          "location": [
+            2080.0,
+            0.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Strength",
+              "name": "Strength",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Weight",
+              "name": "Weight",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Emission",
+              "name": "Emission",
+              "type": "SHADER",
+              "enabled": true
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Start",
+          "type": "ShaderNodeValue",
+          "label": "",
+          "location": [
+            -520.0,
+            0.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.75
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Math ADD",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            -260.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "ADD",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math SUBTRACT",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            0.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SUBTRACT",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math MULTIPLY",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            260.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "MULTIPLY",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math DIVIDE",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            520.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "DIVIDE",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math MULTIPLY_ADD",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            780.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "MULTIPLY_ADD",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math POWER",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1040.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "POWER",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math LOGARITHM",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1300.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "LOGARITHM",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math SQRT",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1560.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SQRT",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math INVERSE_SQRT",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1820.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "INVERSE_SQRT",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math ABSOLUTE",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            2080.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "ABSOLUTE",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math EXPONENT",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            -260.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "EXPONENT",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math MINIMUM",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            0.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "MINIMUM",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math MAXIMUM",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            260.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "MAXIMUM",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math LESS_THAN",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            520.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "LESS_THAN",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math GREATER_THAN",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            780.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "GREATER_THAN",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math SIGN",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1040.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SIGN",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math COMPARE",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1300.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "COMPARE",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math SMOOTH_MIN",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1560.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SMOOTH_MIN",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math SMOOTH_MAX",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1820.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SMOOTH_MAX",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math ROUND",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            2080.0,
+            -460.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "ROUND",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math FLOOR",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            -260.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "FLOOR",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math CEIL",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            0.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "CEIL",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math TRUNC",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            260.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "TRUNC",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math FRACT",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            520.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "FRACT",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math MODULO",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            780.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "MODULO",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math FLOORED_MODULO",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1040.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "FLOORED_MODULO",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math WRAP",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1300.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "WRAP",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math SNAP",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1560.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SNAP",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math PINGPONG",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1820.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "PINGPONG",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math SINE",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            2080.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SINE",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math COSINE",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            -260.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "COSINE",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math TANGENT",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            0.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "TANGENT",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math ARCSINE",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            260.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "ARCSINE",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math ARCCOSINE",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            520.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "ARCCOSINE",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math ARCTANGENT",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            780.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "ARCTANGENT",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math ARCTAN2",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1040.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "ARCTAN2",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math SINH",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1300.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SINH",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math COSH",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1560.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "COSH",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math TANH",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            1820.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "TANH",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math RADIANS",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            2080.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "RADIANS",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Math DEGREES",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            -260.0,
+            -1150.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "DEGREES",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Combine XYZ",
+          "type": "ShaderNodeCombineXYZ",
+          "label": "",
+          "location": [
+            0.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "X",
+              "name": "X",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Y",
+              "name": "Y",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.25
+            },
+            {
+              "identifier": "Z",
+              "name": "Z",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "X",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector ADD",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            260.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "ADD"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector MULTIPLY",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            520.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "MULTIPLY"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector CROSS_PRODUCT",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            780.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "CROSS_PRODUCT"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector NORMALIZE",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            1040.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "NORMALIZE"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Mix Vector",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            1300.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "VECTOR",
+            "factor_mode": "NON_UNIFORM",
+            "blend_type": "MIX",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.20000000298023224,
+                0.5,
+                0.800000011920929
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                1.0,
+                0.5,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": false,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Vector",
+              "Result_Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Separate XYZ",
+          "type": "ShaderNodeSeparateXYZ",
+          "label": "",
+          "location": [
+            1560.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "X",
+              "name": "X",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Y",
+              "name": "Y",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Z",
+              "name": "Z",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "X"
+            ],
+            [
+              "Vector",
+              "Y"
+            ],
+            [
+              "Vector",
+              "Z"
+            ]
+          ]
+        },
+        {
+          "name": "Clamp",
+          "type": "ShaderNodeClamp",
+          "label": "",
+          "location": [
+            0.0,
+            -2070.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "clamp_type": "MINMAX"
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Min",
+              "name": "Min",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.10000000149011612
+            },
+            {
+              "identifier": "Max",
+              "name": "Max",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.8999999761581421
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Result"
+            ]
+          ]
+        },
+        {
+          "name": "Map Range Linear",
+          "type": "ShaderNodeMapRange",
+          "label": "",
+          "location": [
+            260.0,
+            -2070.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "clamp": true,
+            "interpolation_type": "LINEAR",
+            "data_type": "FLOAT"
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "From Min",
+              "name": "From Min",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "From Max",
+              "name": "From Max",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "To Min",
+              "name": "To Min",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.20000000298023224
+            },
+            {
+              "identifier": "To Max",
+              "name": "To Max",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.800000011920929
+            },
+            {
+              "identifier": "Steps",
+              "name": "Steps",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 4.0
+            },
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "From_Min_FLOAT3",
+              "name": "From Min",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "From_Max_FLOAT3",
+              "name": "From Max",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "To_Min_FLOAT3",
+              "name": "To Min",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "To_Max_FLOAT3",
+              "name": "To Max",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Steps_FLOAT3",
+              "name": "Steps",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                4.0,
+                4.0,
+                4.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Result"
+            ]
+          ]
+        },
+        {
+          "name": "Map Range Smooth",
+          "type": "ShaderNodeMapRange",
+          "label": "",
+          "location": [
+            520.0,
+            -2070.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "clamp": true,
+            "interpolation_type": "SMOOTHSTEP",
+            "data_type": "FLOAT"
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "From Min",
+              "name": "From Min",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "From Max",
+              "name": "From Max",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "To Min",
+              "name": "To Min",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "To Max",
+              "name": "To Max",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Steps",
+              "name": "Steps",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 4.0
+            },
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "From_Min_FLOAT3",
+              "name": "From Min",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "From_Max_FLOAT3",
+              "name": "From Max",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "To_Min_FLOAT3",
+              "name": "To Min",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "To_Max_FLOAT3",
+              "name": "To Max",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Steps_FLOAT3",
+              "name": "Steps",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                4.0,
+                4.0,
+                4.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Result"
+            ]
+          ]
+        },
+        {
+          "name": "Mix Float",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            780.0,
+            -2070.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "FLOAT",
+            "factor_mode": "UNIFORM",
+            "blend_type": "MIX",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.30000001192092896
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": false,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Float",
+              "Result_Float"
+            ]
+          ]
+        },
+        {
+          "name": "Combine RGB",
+          "type": "ShaderNodeCombineColor",
+          "label": "",
+          "location": [
+            0.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "mode": "RGB"
+          },
+          "inputs": [
+            {
+              "identifier": "Red",
+              "name": "Red",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Green",
+              "name": "Green",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Blue",
+              "name": "Blue",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Red",
+              "Color"
+            ]
+          ]
+        },
+        {
+          "name": "Separate HSV",
+          "type": "ShaderNodeSeparateColor",
+          "label": "",
+          "location": [
+            260.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "mode": "HSV"
+          },
+          "inputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Red",
+              "name": "Red",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Green",
+              "name": "Green",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Blue",
+              "name": "Blue",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Color",
+              "Red"
+            ],
+            [
+              "Color",
+              "Green"
+            ],
+            [
+              "Color",
+              "Blue"
+            ]
+          ]
+        },
+        {
+          "name": "Combine HSV",
+          "type": "ShaderNodeCombineColor",
+          "label": "",
+          "location": [
+            520.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "mode": "HSV"
+          },
+          "inputs": [
+            {
+              "identifier": "Red",
+              "name": "Red",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Green",
+              "name": "Green",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Blue",
+              "name": "Blue",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Red",
+              "Color"
+            ]
+          ]
+        },
+        {
+          "name": "Separate RGB",
+          "type": "ShaderNodeSeparateColor",
+          "label": "",
+          "location": [
+            780.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "mode": "RGB"
+          },
+          "inputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Red",
+              "name": "Red",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Green",
+              "name": "Green",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Blue",
+              "name": "Blue",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Color",
+              "Red"
+            ],
+            [
+              "Color",
+              "Green"
+            ],
+            [
+              "Color",
+              "Blue"
+            ]
+          ]
+        },
+        {
+          "name": "Combine RGB Again",
+          "type": "ShaderNodeCombineColor",
+          "label": "",
+          "location": [
+            1040.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "mode": "RGB"
+          },
+          "inputs": [
+            {
+              "identifier": "Red",
+              "name": "Red",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Green",
+              "name": "Green",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Blue",
+              "name": "Blue",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Red",
+              "Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix Color",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            1300.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "MULTIPLY",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.6000000238418579
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.8999999761581421,
+                0.699999988079071,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Invert Color",
+          "type": "ShaderNodeInvert",
+          "label": "",
+          "location": [
+            1560.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Fac",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Color",
+              "Color"
+            ]
+          ]
+        },
+        {
+          "name": "Gamma",
+          "type": "ShaderNodeGamma",
+          "label": "",
+          "location": [
+            1820.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Gamma",
+              "name": "Gamma",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Color",
+              "Color"
+            ]
+          ]
+        },
+        {
+          "name": "Brightness/Contrast",
+          "type": "ShaderNodeBrightContrast",
+          "label": "",
+          "location": [
+            2080.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Bright",
+              "name": "Brightness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Contrast",
+              "name": "Contrast",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Color",
+              "Color"
+            ]
+          ]
+        },
+        {
+          "name": "Hue/Saturation/Value",
+          "type": "ShaderNodeHueSaturation",
+          "label": "",
+          "location": [
+            2340.0,
+            -2300.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Hue",
+              "name": "Hue",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Saturation",
+              "name": "Saturation",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Fac",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Color",
+              "Color"
+            ]
+          ]
+        }
+      ],
+      "links": [
+        {
+          "from": [
+            "Emission",
+            "Emission"
+          ],
+          "to": [
+            "Material Output",
+            "Surface"
+          ]
+        },
+        {
+          "from": [
+            "Start",
+            "Value"
+          ],
+          "to": [
+            "Math ADD",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math ADD",
+            "Value"
+          ],
+          "to": [
+            "Math SUBTRACT",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math SUBTRACT",
+            "Value"
+          ],
+          "to": [
+            "Math MULTIPLY",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math MULTIPLY",
+            "Value"
+          ],
+          "to": [
+            "Math DIVIDE",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math DIVIDE",
+            "Value"
+          ],
+          "to": [
+            "Math MULTIPLY_ADD",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math MULTIPLY_ADD",
+            "Value"
+          ],
+          "to": [
+            "Math POWER",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math POWER",
+            "Value"
+          ],
+          "to": [
+            "Math LOGARITHM",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math LOGARITHM",
+            "Value"
+          ],
+          "to": [
+            "Math SQRT",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math SQRT",
+            "Value"
+          ],
+          "to": [
+            "Math INVERSE_SQRT",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math INVERSE_SQRT",
+            "Value"
+          ],
+          "to": [
+            "Math ABSOLUTE",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math ABSOLUTE",
+            "Value"
+          ],
+          "to": [
+            "Math EXPONENT",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math EXPONENT",
+            "Value"
+          ],
+          "to": [
+            "Math MINIMUM",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math MINIMUM",
+            "Value"
+          ],
+          "to": [
+            "Math MAXIMUM",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math MAXIMUM",
+            "Value"
+          ],
+          "to": [
+            "Math LESS_THAN",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math LESS_THAN",
+            "Value"
+          ],
+          "to": [
+            "Math GREATER_THAN",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math GREATER_THAN",
+            "Value"
+          ],
+          "to": [
+            "Math SIGN",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math SIGN",
+            "Value"
+          ],
+          "to": [
+            "Math COMPARE",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math COMPARE",
+            "Value"
+          ],
+          "to": [
+            "Math SMOOTH_MIN",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math SMOOTH_MIN",
+            "Value"
+          ],
+          "to": [
+            "Math SMOOTH_MAX",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math SMOOTH_MAX",
+            "Value"
+          ],
+          "to": [
+            "Math ROUND",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math ROUND",
+            "Value"
+          ],
+          "to": [
+            "Math FLOOR",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math FLOOR",
+            "Value"
+          ],
+          "to": [
+            "Math CEIL",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math CEIL",
+            "Value"
+          ],
+          "to": [
+            "Math TRUNC",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math TRUNC",
+            "Value"
+          ],
+          "to": [
+            "Math FRACT",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math FRACT",
+            "Value"
+          ],
+          "to": [
+            "Math MODULO",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math MODULO",
+            "Value"
+          ],
+          "to": [
+            "Math FLOORED_MODULO",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math FLOORED_MODULO",
+            "Value"
+          ],
+          "to": [
+            "Math WRAP",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math WRAP",
+            "Value"
+          ],
+          "to": [
+            "Math SNAP",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math SNAP",
+            "Value"
+          ],
+          "to": [
+            "Math PINGPONG",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math PINGPONG",
+            "Value"
+          ],
+          "to": [
+            "Math SINE",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math SINE",
+            "Value"
+          ],
+          "to": [
+            "Math COSINE",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math COSINE",
+            "Value"
+          ],
+          "to": [
+            "Math TANGENT",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math TANGENT",
+            "Value"
+          ],
+          "to": [
+            "Math ARCSINE",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math ARCSINE",
+            "Value"
+          ],
+          "to": [
+            "Math ARCCOSINE",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math ARCCOSINE",
+            "Value"
+          ],
+          "to": [
+            "Math ARCTANGENT",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math ARCTANGENT",
+            "Value"
+          ],
+          "to": [
+            "Math ARCTAN2",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math ARCTAN2",
+            "Value"
+          ],
+          "to": [
+            "Math SINH",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math SINH",
+            "Value"
+          ],
+          "to": [
+            "Math COSH",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math COSH",
+            "Value"
+          ],
+          "to": [
+            "Math TANH",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math TANH",
+            "Value"
+          ],
+          "to": [
+            "Math RADIANS",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math RADIANS",
+            "Value"
+          ],
+          "to": [
+            "Math DEGREES",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Math DEGREES",
+            "Value"
+          ],
+          "to": [
+            "Combine XYZ",
+            "X"
+          ]
+        },
+        {
+          "from": [
+            "Combine XYZ",
+            "Vector"
+          ],
+          "to": [
+            "Vector ADD",
+            "Vector"
+          ]
+        },
+        {
+          "from": [
+            "Vector ADD",
+            "Vector"
+          ],
+          "to": [
+            "Vector MULTIPLY",
+            "Vector"
+          ]
+        },
+        {
+          "from": [
+            "Vector MULTIPLY",
+            "Vector"
+          ],
+          "to": [
+            "Vector CROSS_PRODUCT",
+            "Vector"
+          ]
+        },
+        {
+          "from": [
+            "Vector CROSS_PRODUCT",
+            "Vector"
+          ],
+          "to": [
+            "Vector NORMALIZE",
+            "Vector"
+          ]
+        },
+        {
+          "from": [
+            "Vector NORMALIZE",
+            "Vector"
+          ],
+          "to": [
+            "Mix Vector",
+            "A_Vector"
+          ]
+        },
+        {
+          "from": [
+            "Mix Vector",
+            "Result_Vector"
+          ],
+          "to": [
+            "Separate XYZ",
+            "Vector"
+          ]
+        },
+        {
+          "from": [
+            "Separate XYZ",
+            "X"
+          ],
+          "to": [
+            "Clamp",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Clamp",
+            "Result"
+          ],
+          "to": [
+            "Map Range Linear",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Map Range Linear",
+            "Result"
+          ],
+          "to": [
+            "Map Range Smooth",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Map Range Smooth",
+            "Result"
+          ],
+          "to": [
+            "Mix Float",
+            "A_Float"
+          ]
+        },
+        {
+          "from": [
+            "Separate XYZ",
+            "Y"
+          ],
+          "to": [
+            "Mix Float",
+            "B_Float"
+          ]
+        },
+        {
+          "from": [
+            "Map Range Smooth",
+            "Result"
+          ],
+          "to": [
+            "Emission",
+            "Strength"
+          ]
+        },
+        {
+          "from": [
+            "Mix Float",
+            "Result_Float"
+          ],
+          "to": [
+            "Combine RGB",
+            "Red"
+          ]
+        },
+        {
+          "from": [
+            "Separate XYZ",
+            "Z"
+          ],
+          "to": [
+            "Combine RGB",
+            "Green"
+          ]
+        },
+        {
+          "from": [
+            "Combine RGB",
+            "Color"
+          ],
+          "to": [
+            "Separate HSV",
+            "Color"
+          ]
+        },
+        {
+          "from": [
+            "Separate HSV",
+            "Red"
+          ],
+          "to": [
+            "Combine HSV",
+            "Red"
+          ]
+        },
+        {
+          "from": [
+            "Separate HSV",
+            "Green"
+          ],
+          "to": [
+            "Combine HSV",
+            "Green"
+          ]
+        },
+        {
+          "from": [
+            "Separate HSV",
+            "Blue"
+          ],
+          "to": [
+            "Combine HSV",
+            "Blue"
+          ]
+        },
+        {
+          "from": [
+            "Combine HSV",
+            "Color"
+          ],
+          "to": [
+            "Separate RGB",
+            "Color"
+          ]
+        },
+        {
+          "from": [
+            "Separate RGB",
+            "Red"
+          ],
+          "to": [
+            "Combine RGB Again",
+            "Red"
+          ]
+        },
+        {
+          "from": [
+            "Separate RGB",
+            "Green"
+          ],
+          "to": [
+            "Combine RGB Again",
+            "Green"
+          ]
+        },
+        {
+          "from": [
+            "Separate RGB",
+            "Blue"
+          ],
+          "to": [
+            "Combine RGB Again",
+            "Blue"
+          ]
+        },
+        {
+          "from": [
+            "Combine RGB Again",
+            "Color"
+          ],
+          "to": [
+            "Mix Color",
+            "A_Color"
+          ]
+        },
+        {
+          "from": [
+            "Mix Color",
+            "Result_Color"
+          ],
+          "to": [
+            "Invert Color",
+            "Color"
+          ]
+        },
+        {
+          "from": [
+            "Invert Color",
+            "Color"
+          ],
+          "to": [
+            "Gamma",
+            "Color"
+          ]
+        },
+        {
+          "from": [
+            "Gamma",
+            "Color"
+          ],
+          "to": [
+            "Brightness/Contrast",
+            "Color"
+          ]
+        },
+        {
+          "from": [
+            "Brightness/Contrast",
+            "Color"
+          ],
+          "to": [
+            "Hue/Saturation/Value",
+            "Color"
+          ]
+        },
+        {
+          "from": [
+            "Hue/Saturation/Value",
+            "Color"
+          ],
+          "to": [
+            "Emission",
+            "Color"
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [],
+  "images": []
+}

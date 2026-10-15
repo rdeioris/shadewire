@@ -383,7 +383,9 @@ def load_node(tree, entry, where, loader):
     node.width = entry["width"]
     node.hide = entry["hide"]
     node.mute = entry["mute"]
-    set_inputs(node, entry.get("inputs", []), where, loader)
+    set_values(node, node.inputs, entry.get("inputs", []), "input", where, loader)
+    # A Value or RGB node holds its value on its output socket.
+    set_values(node, node.outputs, entry.get("outputs", []), "output", where, loader)
     return node
 
 
@@ -496,18 +498,18 @@ def set_mapping(mapping, spec):
     mapping.update()
 
 
-def set_inputs(node, inputs, where, loader):
-    """Input values by socket identifier; an identifier the node does not have is a warning."""
-    sockets = {socket.identifier: socket for socket in reversed(node.inputs)}
-    for entry in inputs:
-        socket = sockets.get(entry["identifier"])
+def set_values(node, sockets, entries, kind, where, loader):
+    """Socket values by identifier; an identifier the node does not have is a warning."""
+    by_identifier = {socket.identifier: socket for socket in reversed(sockets)}
+    for entry in entries:
+        socket = by_identifier.get(entry["identifier"])
         if socket is None:
-            loader.warn(where, f"{node.name}: no input {entry['identifier']}")
+            loader.warn(where, f"{node.name}: no {kind} {entry['identifier']}")
         elif "value" in entry:
             try:
                 socket.default_value = entry["value"]
             except Exception as error:
-                loader.warn(where, f"{node.name}: input {entry['identifier']}: {error}")
+                loader.warn(where, f"{node.name}: {kind} {entry['identifier']}: {error}")
 
 
 def load_links(tree, links, nodes, where, loader):

@@ -1,0 +1,851 @@
+{
+  "format": "shadewire-blender-graph",
+  "version": 1,
+  "producer": "Blender 5.2.1 LTS",
+  "materials": [
+    {
+      "name": "structure",
+      "settings": {
+        "surface_render_method": "DITHERED",
+        "blend_method": "HASHED",
+        "use_backface_culling": false,
+        "displacement_method": "BUMP"
+      },
+      "output": "Material Output",
+      "nodes": [
+        {
+          "name": "Principled BSDF",
+          "type": "ShaderNodeBsdfPrincipled",
+          "label": "",
+          "location": [
+            -200.0,
+            100.0
+          ],
+          "width": 240.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "distribution": "MULTI_GGX",
+            "subsurface_method": "RANDOM_WALK"
+          },
+          "inputs": [
+            {
+              "identifier": "Base Color",
+              "name": "Base Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Metallic",
+              "name": "Metallic",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Roughness",
+              "name": "Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "IOR",
+              "name": "IOR",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.5
+            },
+            {
+              "identifier": "Alpha",
+              "name": "Alpha",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Thin Wall",
+              "name": "Thin Wall",
+              "type": "BOOLEAN",
+              "enabled": true,
+              "value": false
+            },
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Weight",
+              "name": "Weight",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Diffuse Roughness",
+              "name": "Diffuse Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Subsurface Weight",
+              "name": "Subsurface Weight",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Subsurface Radius",
+              "name": "Subsurface Radius",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                1.0,
+                0.20000000298023224,
+                0.10000000149011612
+              ]
+            },
+            {
+              "identifier": "Subsurface Scale",
+              "name": "Subsurface Scale",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.004999999888241291
+            },
+            {
+              "identifier": "Subsurface IOR",
+              "name": "Subsurface IOR",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.399999976158142
+            },
+            {
+              "identifier": "Subsurface Anisotropy",
+              "name": "Subsurface Anisotropy",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Specular IOR Level",
+              "name": "Specular IOR Level",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Specular Tint",
+              "name": "Specular Tint",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Anisotropic",
+              "name": "Anisotropic",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Anisotropic Rotation",
+              "name": "Anisotropic Rotation",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Tangent",
+              "name": "Tangent",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Transmission Weight",
+              "name": "Transmission Weight",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Coat Weight",
+              "name": "Coat Weight",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Coat Roughness",
+              "name": "Coat Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.029999999329447746
+            },
+            {
+              "identifier": "Coat IOR",
+              "name": "Coat IOR",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.5
+            },
+            {
+              "identifier": "Coat Tint",
+              "name": "Coat Tint",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Coat Normal",
+              "name": "Coat Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Sheen Weight",
+              "name": "Sheen Weight",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Sheen Roughness",
+              "name": "Sheen Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Sheen Tint",
+              "name": "Sheen Tint",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Emission Color",
+              "name": "Emission Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Emission Strength",
+              "name": "Emission Strength",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Thin Film Thickness",
+              "name": "Thin Film Thickness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Thin Film IOR",
+              "name": "Thin Film IOR",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.3300000429153442
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "BSDF",
+              "name": "BSDF",
+              "type": "SHADER",
+              "enabled": true
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Material Output",
+          "type": "ShaderNodeOutputMaterial",
+          "label": "",
+          "location": [
+            200.0,
+            100.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "is_active_output": true,
+            "target": "ALL"
+          },
+          "inputs": [
+            {
+              "identifier": "Surface",
+              "name": "Surface",
+              "type": "SHADER",
+              "enabled": true
+            },
+            {
+              "identifier": "Volume",
+              "name": "Volume",
+              "type": "SHADER",
+              "enabled": true
+            },
+            {
+              "identifier": "Displacement",
+              "name": "Displacement",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Thickness",
+              "name": "Thickness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "outputs": [],
+          "internal_links": []
+        },
+        {
+          "name": "Gain",
+          "type": "ShaderNodeGroup",
+          "label": "",
+          "location": [
+            -520.0,
+            0.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "node_tree": "Gain"
+          },
+          "inputs": [
+            {
+              "identifier": "Socket_0",
+              "name": "Amount",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Socket_1",
+              "name": "Out",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Socket_0",
+              "Socket_1"
+            ]
+          ]
+        },
+        {
+          "name": "Frame",
+          "type": "NodeFrame",
+          "label": "Muted",
+          "location": [
+            -1040.0,
+            -460.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "text": null,
+            "shrink": true,
+            "label_size": 20
+          },
+          "inputs": [],
+          "outputs": [],
+          "internal_links": []
+        },
+        {
+          "name": "Source",
+          "type": "ShaderNodeValue",
+          "label": "",
+          "location": [
+            -1300.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Muted Add",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            0.0,
+            -230.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": true,
+          "parent": "Frame",
+          "properties": {
+            "operation": "ADD",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.25
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Reroute",
+          "type": "NodeReroute",
+          "label": "",
+          "location": [
+            -780.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "socket_idname": "NodeSocketFloat"
+          },
+          "inputs": [
+            {
+              "identifier": "Input",
+              "name": "Input",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Output",
+              "name": "Output",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Input",
+              "Output"
+            ]
+          ]
+        },
+        {
+          "name": "Tint",
+          "type": "ShaderNodeRGB",
+          "label": "Labelled",
+          "location": [
+            -780.0,
+            -1150.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.20000000298023224,
+                0.4000000059604645,
+                0.6000000238418579,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Unused Output",
+          "type": "ShaderNodeOutputMaterial",
+          "label": "",
+          "location": [
+            520.0,
+            -690.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "is_active_output": false,
+            "target": "ALL"
+          },
+          "inputs": [
+            {
+              "identifier": "Surface",
+              "name": "Surface",
+              "type": "SHADER",
+              "enabled": true
+            },
+            {
+              "identifier": "Volume",
+              "name": "Volume",
+              "type": "SHADER",
+              "enabled": true
+            },
+            {
+              "identifier": "Displacement",
+              "name": "Displacement",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Thickness",
+              "name": "Thickness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "outputs": [],
+          "internal_links": []
+        }
+      ],
+      "links": [
+        {
+          "from": [
+            "Principled BSDF",
+            "BSDF"
+          ],
+          "to": [
+            "Material Output",
+            "Surface"
+          ]
+        },
+        {
+          "from": [
+            "Gain",
+            "Socket_1"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Roughness"
+          ]
+        },
+        {
+          "from": [
+            "Source",
+            "Value"
+          ],
+          "to": [
+            "Muted Add",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Muted Add",
+            "Value"
+          ],
+          "to": [
+            "Reroute",
+            "Input"
+          ]
+        },
+        {
+          "from": [
+            "Reroute",
+            "Output"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Metallic"
+          ]
+        },
+        {
+          "from": [
+            "Tint",
+            "Color"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Base Color"
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "name": "Gain",
+      "interface": [
+        {
+          "identifier": "Socket_1",
+          "name": "Out",
+          "in_out": "OUTPUT",
+          "socket_type": "NodeSocketFloat"
+        },
+        {
+          "identifier": "Socket_0",
+          "name": "Amount",
+          "in_out": "INPUT",
+          "socket_type": "NodeSocketFloat",
+          "value": 0.5
+        }
+      ],
+      "nodes": [
+        {
+          "name": "Group Input",
+          "type": "NodeGroupInput",
+          "label": "",
+          "location": [
+            -260.0,
+            0.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [],
+          "outputs": [
+            {
+              "identifier": "Socket_0",
+              "name": "Amount",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "__extend__",
+              "name": "",
+              "type": "CUSTOM",
+              "enabled": true
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Scale",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            0.0,
+            0.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "MULTIPLY",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 2.0
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Group Output",
+          "type": "NodeGroupOutput",
+          "label": "",
+          "location": [
+            260.0,
+            0.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "is_active_output": true
+          },
+          "inputs": [
+            {
+              "identifier": "Socket_1",
+              "name": "Out",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "__extend__",
+              "name": "",
+              "type": "CUSTOM",
+              "enabled": true
+            }
+          ],
+          "outputs": [],
+          "internal_links": []
+        }
+      ],
+      "links": [
+        {
+          "from": [
+            "Group Input",
+            "Socket_0"
+          ],
+          "to": [
+            "Scale",
+            "Value"
+          ]
+        },
+        {
+          "from": [
+            "Scale",
+            "Value"
+          ],
+          "to": [
+            "Group Output",
+            "Socket_1"
+          ]
+        }
+      ]
+    }
+  ],
+  "images": []
+}

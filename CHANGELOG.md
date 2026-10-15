@@ -23,6 +23,9 @@ Since `f5039f8` (readme: c example compiles).
 - **A MaterialX writer.** `shadewire_mtlx::from_ir` writes any IR back as a 1.39 document, library nodes as single nodes
   through the IR's compounds (`shadewire mtlx`, `shadewire.mtlx.from_ir`, `shadewire_ir_to_mtlx`); IR-only nodes
   (hextile, derivatives) are Shadewire nodedefs the reader also accepts.
+- **Blender: material graphs as JSON.** File > Export/Import > Material Graph (Shadewire JSON) saves a material's node
+  tree exactly as Blender holds it and loads it back (`shadewire-blender-graph` version 1); the fixtures under
+  `blender/fixtures/graphs` are such dumps, for the Rust front end that reads them.
 
 ### Breaking changes
 

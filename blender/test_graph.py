@@ -280,6 +280,27 @@ def test_operators():
         check(bpy.data.images["wood_albedo"].filepath.replace("\\", "/").endswith("textures/wood_albedo.png"), "image loaded from the copied file")
 
 
+def test_fixtures_are_current(graph):
+    """Regenerating the fixtures in this Blender changes nothing but the producer line."""
+    spec = importlib.util.spec_from_file_location("make_fixtures", os.path.join(here, "make_fixtures.py"))
+    make = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(make)
+    folder = os.path.join(here, "fixtures", "graphs")
+    for name, build in make.FIXTURES.items():
+        bpy.ops.wm.read_homefile(use_empty=True)
+        doc = graph.dump([build()])
+        path = os.path.join(folder, f"{name}.json")
+        check(os.path.isfile(path), f"fixture {name}.json missing: run make_fixtures.py")
+        if os.path.isfile(path):
+            on_disk = json.load(open(path, encoding="utf-8"))
+            on_disk["producer"] = doc["producer"]
+            check(on_disk == doc, f"fixture {name}.json is stale: run make_fixtures.py")
+        clear_data()  # a loaded material keeps its name only when the built one is gone
+        materials, warnings = graph.load(doc)
+        check(warnings == [], f"{name}: load warnings {warnings}")
+        check(graph.dump(materials) == doc, f"{name}: dump → load → dump differs")
+
+
 bpy.ops.wm.read_homefile(use_empty=True)
 addon = load_addon()
 test_dump_shape(addon.graph)
@@ -288,5 +309,6 @@ test_load_warnings(addon.graph)
 test_group_identifier_gap(addon.graph)
 test_stress_round_trip(addon.graph)
 test_operators()
+test_fixtures_are_current(addon.graph)
 print("FAILURES", len(failures))
 sys.exit(1 if failures else 0)
