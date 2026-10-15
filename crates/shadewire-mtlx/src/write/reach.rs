@@ -16,16 +16,18 @@ pub enum Reach {
 
 impl Patterns<'_> {
     /// How a shader-level input named `input_name` reads `node`. A uniform of that name read there only (its
-    /// nodegraph input not written for another reader) is the input's value; anything else is a nodegraph output, made once per node and named after the first input
-    /// that asks: a const through a `constant` node (a value on a shader input would read back as a uniform),
-    /// another uniform through a `dot` reading its nodegraph input.
+    /// nodegraph input not written for another reader) is the input's value, when `value_allowed` (an input with
+    /// a `defaultgeomprop` ignores a value on read). Anything else is a nodegraph output, made once per node and
+    /// named after the first input that asks: a const through a `constant` node (a value on a shader input would
+    /// read back as a uniform), another uniform through a `dot` reading its nodegraph input.
     ///
     /// Panics when `node` is inside a kept compound without being one of its outputs: the plan counts every
     /// shader read, so such a node is never asked for.
-    pub fn reach(&mut self, node: NodeId, input_name: &str, dag: &Dag) -> Reach {
+    pub fn reach(&mut self, node: NodeId, input_name: &str, value_allowed: bool, dag: &Dag) -> Reach {
         let node = self.aliases.get(&node).copied().unwrap_or(node);
         let n = dag.node(node);
         if let NodeKind::Uniform { value, .. } = &n.kind
+            && value_allowed
             && self.uniform_names.get(&node) == Some(&input_name)
             && self.readers.get(&node) == Some(&1)
             && self.pending_uniforms.contains_key(&node)
@@ -80,7 +82,7 @@ mod tests {
         let mut names = Names::new();
         let mut patterns = write_patterns(dag, &plan, &index, &WriteOptions::default(), &mut names).unwrap();
         let wanted = dag.surface.fields.iter().filter(|f| fields.contains(&f.name.as_str()));
-        let reaches = wanted.map(|f| patterns.reach(f.node, &f.name, dag)).collect();
+        let reaches = wanted.map(|f| patterns.reach(f.node, &f.name, true, dag)).collect();
         let mut graph = super::super::xml::Element::new("nodegraph");
         for e in patterns.inputs.iter().chain(&patterns.nodes).chain(&patterns.outputs) {
             graph.push(e.clone());
@@ -107,7 +109,7 @@ mod tests {
         let index = Index::new(empty_document(), standard());
         let plan = plan(&dag, &index, false);
         let mut patterns = write_patterns(&dag, &plan, &index, &WriteOptions::default(), &mut Names::new()).unwrap();
-        assert_eq!(patterns.reach(u, "emission", &dag), Reach::Output("emission_out".into()));
+        assert_eq!(patterns.reach(u, "emission", true, &dag), Reach::Output("emission_out".into()));
         assert_eq!(patterns.inputs.len(), 1, "one nodegraph input, read by the op and the output");
     }
 

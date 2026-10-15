@@ -45,11 +45,13 @@ fn every_readable_example_survives_a_round_trip() {
             }
         }
     }
-    assert!(count > 40, "{count} round trips");
+    assert!(count >= 200, "{count} round trips");
 }
 
-const PORCELAIN: &str = include_str!("fixtures/porcelain.mtlx"); // copy of the 1.39 PORCELAIN document from shadewire-nodes' closure_tests.rs
-const UNIFORMS_AND_IMAGE: &str = include_str!("fixtures/uniforms_and_image.mtlx"); // the image/uniform document of Task 3's tests with a uniform nodegraph input
+/// A copy of the 1.39 PORCELAIN document from shadewire-nodes' closure_tests.rs.
+const PORCELAIN: &str = include_str!("fixtures/porcelain.mtlx");
+/// The image/uniform document of the writer's pattern tests, with a uniform nodegraph input.
+const UNIFORMS_AND_IMAGE: &str = include_str!("fixtures/uniforms_and_image.mtlx");
 
 #[test]
 fn closure_trees_and_uniforms_survive_a_round_trip() {
@@ -80,4 +82,31 @@ fn a_user_nodedef_compound_is_expanded_with_a_warning() {
     assert!(written.text.contains("<multiply"), "{}", written.text);
     assert!(!written.text.contains("<twice"), "{}", written.text);
     assert_eq!(written.warnings, ["compound ND_twice at g/t written expanded: not a library nodedef"]);
+}
+
+#[test]
+fn a_uniform_on_an_input_with_a_defaultgeomprop_is_reached_through_the_nodegraph() {
+    // The reader ignores a value on `normal` (it reads the geometric property): the uniform must stay connected.
+    let text = r#"<materialx version="1.39">
+      <nodegraph name="g">
+        <input name="normal" type="vector3" value="0, 0, 1"/>
+        <dot name="d" type="vector3"><input name="in" type="vector3" interfacename="normal"/></dot>
+        <output name="out" type="vector3" nodename="d"/>
+      </nodegraph>
+      <standard_surface name="s" type="surfaceshader">
+        <input name="normal" type="vector3" nodegraph="g" output="out"/>
+      </standard_surface>
+      <surfacematerial name="m" type="material">
+        <input name="surfaceshader" type="surfaceshader" nodename="s"/>
+      </surfacematerial>
+    </materialx>"#;
+    for inline in [false, true] {
+        let write = WriteOptions { inline, ..WriteOptions::default() };
+        let (a, written, b) = roundtrip(text, &IrOptions::default(), &write);
+        assert_same_material(&a, &b, &written);
+        // The nodegraph input carries the value; the shader's `normal` must not.
+        let start = written.find("<standard_surface").unwrap();
+        let shader = &written[start..written[start..].find("</standard_surface>").unwrap() + start];
+        assert!(!shader.contains(r#"name="normal" type="vector3" value="#), "{written}");
+    }
 }

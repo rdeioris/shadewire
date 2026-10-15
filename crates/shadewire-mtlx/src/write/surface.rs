@@ -30,7 +30,7 @@ pub fn write_surface(
         let mut element = Element::new(&node.category).attr("name", &name).attr("type", &node.ty);
         for (input_name, ty, read) in &node.inputs {
             let child = match read {
-                Read::Field(id) => match patterns.reach(*id, input_name, dag) {
+                Read::Field { node, value_allowed } => match patterns.reach(*node, input_name, *value_allowed, dag) {
                     Reach::Value(text) => input(input_name, ty, &Source::Value(text)),
                     Reach::Output(output) => Element::new("input")
                         .attr("name", input_name)

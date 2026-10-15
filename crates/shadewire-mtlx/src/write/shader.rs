@@ -11,8 +11,9 @@ use shadewire_nodes::resolve_nodedef;
 /// What one input of a shader-level node reads.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Read {
-    /// A dag node, reached through the nodegraph or written as a value.
-    Field(NodeId),
+    /// A dag node, reached through the nodegraph or, when `value_allowed` (the port has no `defaultgeomprop`),
+    /// written as a value.
+    Field { node: NodeId, value_allowed: bool },
     /// A string setting.
     Text(String),
     /// Another shader-level node, by position.
@@ -70,7 +71,7 @@ pub fn shader_nodes(dag: &Dag, index: &Index) -> Result<Vec<ShaderNode>, Error> 
 pub fn shader_reads(dag: &Dag, index: &Index) -> Vec<NodeId> {
     let nodes = shader_nodes(dag, index).unwrap_or_default();
     let reads = nodes.into_iter().flat_map(|n| n.inputs);
-    reads.filter_map(|(_, _, read)| if let Read::Field(id) = read { Some(id) } else { None }).collect()
+    reads.filter_map(|(_, _, read)| if let Read::Field { node, .. } = read { Some(node) } else { None }).collect()
 }
 
 /// One closure node: a lobe with its value inputs, settings and closure inputs; an operator with its closures and
@@ -146,7 +147,8 @@ fn field_input(dag: &Dag, port: Option<&PortDef>, input: &str, field: &str) -> O
         Some(PortType::Value(ty)) => ty.mtlx_name(),
         _ => found.ty.mtlx_name(),
     };
-    Some((input.to_string(), ty.to_string(), Read::Field(found.node)))
+    let value_allowed = port.is_none_or(|p| p.default_geomprop.is_none());
+    Some((input.to_string(), ty.to_string(), Read::Field { node: found.node, value_allowed }))
 }
 
 /// Whether `node` is what an input of `port` left out reads: its `defaultgeomprop`, else its value (zero when
