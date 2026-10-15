@@ -22,6 +22,8 @@ pub mod shader;
 mod space;
 mod structure_hash;
 mod surface;
+#[cfg(feature = "test-support")]
+pub mod testing;
 mod texture;
 mod types;
 mod ui;

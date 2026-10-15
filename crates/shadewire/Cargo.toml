@@ -12,6 +12,10 @@ homepage.workspace = true
 keywords = ["materialx", "shader", "material", "compiler", "pbr"]
 categories = ["graphics", "rendering", "compilers"]
 
+[features]
+# The deterministic probes and the "same material" assertions front-end tests share (`shadewire::testing`).
+test-support = []
+
 [dependencies]
 serde.workspace = true
 thiserror.workspace = true

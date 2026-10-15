@@ -14,6 +14,6 @@ pub mod write;
 pub use dependencies::{Dependencies, list_dependencies};
 pub use include::{ResolveFn, Resolved, Resolver};
 /// The options type of [`to_ir`], re-exported so a MaterialX user needs one crate.
-pub use shadewire_nodes::IrOptions;
-pub use to_ir::{MaterialIr, material_names, to_ir};
+pub use shadewire_nodes::{IrOptions, MaterialIr};
+pub use to_ir::{material_names, to_ir};
 pub use write::{WriteOptions, Written, from_ir};

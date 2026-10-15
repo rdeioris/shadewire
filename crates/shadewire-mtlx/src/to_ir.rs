@@ -1,21 +1,14 @@
 //! The MaterialX front end in one call: text to the IR.
 
-use shadewire::{Dag, Error, SourceInfo};
+use shadewire::{Error, SourceInfo};
 
 use crate::include::{Resolver, resolve_includes};
 use crate::upgrade::upgrade;
-use shadewire_nodes::IrOptions;
 use shadewire_nodes::document::build::build;
 use shadewire_nodes::elaborate::elaborate;
 use shadewire_nodes::library::standard;
 use shadewire_nodes::parse::parse_str;
-
-/// One material lowered to the IR, with where it came from (for reflection).
-#[derive(Clone, Debug)]
-pub struct MaterialIr {
-    pub dag: Dag,
-    pub source: SourceInfo,
-}
+use shadewire_nodes::{IrOptions, MaterialIr};
 
 /// MaterialX text to the IR: parse, includes, build, upgrade, elaborate. Not optimized.
 /// `location` names the document (in messages, and as the base `resolver` joins includes to): an OS path, or any
@@ -35,7 +28,7 @@ pub fn to_ir(
     let document = upgrade(document)?;
     let dag = elaborate(&document, standard(), options, material)?;
     let source = SourceInfo { source: "mtlx".to_string(), mtlx_version: format!("{major}.{minor}") };
-    Ok(MaterialIr { dag, source })
+    Ok(MaterialIr { dag, source, warnings: Vec::new() })
 }
 
 /// The names of the document's materials (`surfacematerial` nodes), in document order.

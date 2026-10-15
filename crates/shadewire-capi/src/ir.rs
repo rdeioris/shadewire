@@ -120,7 +120,11 @@ pub unsafe extern "C" fn shadewire_ir_optimize(
                 }
                 let ir = borrow(ir)?;
                 let dag = shadewire::optimize::optimize(&ir.dag);
-                *out = Box::into_raw(Box::new(shadewire_ir::new(MaterialIr { dag, source: ir.source.clone() })));
+                *out = Box::into_raw(Box::new(shadewire_ir::new(MaterialIr {
+                    dag,
+                    source: ir.source.clone(),
+                    warnings: ir.warnings.clone(),
+                })));
                 Ok(())
             }),
         )
