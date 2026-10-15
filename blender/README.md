@@ -56,14 +56,16 @@ From a source checkout, without the module, the add-on falls back to the `shadew
   was built with.
 - **File > Export > Material Graph (Shadewire JSON)** (and Save Graph in the Material properties panel) writes
   materials as a JSON document: the selected objects' materials, the active one, or all of them, with their node
-  groups and image references. "Copy Textures" writes the images into a `textures` folder beside the file, packed
-  and generated ones as PNG, and points the document at them.
+  groups and image references. "Copy Textures" writes the images into a `textures` folder beside the file and
+  points the document at them: a file is copied, a packed image written from its packed bytes, a generated or
+  painted one saved as PNG, none through the view transform; two images of one file name get `name.1.ext`, ...
 - **File > Import > Material Graph (Shadewire JSON)** (and Load Graph) creates the document's materials, node
   groups and images; "Replace Existing" rebuilds a material of the same name in place instead. Whatever this
   Blender cannot set (a node type or property it lacks) is skipped and reported as a warning.
 
 The document holds the node tree as Blender has it, for Shadewire's front end and for moving materials between
-files.
+files. This first version does not carry collection properties (such as the items of zones and menus), interface
+sockets' subtype, min, max and description, or node colors and frame sizes.
 
 ## Scripts
 
