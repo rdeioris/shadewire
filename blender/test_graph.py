@@ -420,7 +420,17 @@ def test_operators():
             sources.append(source)
         for source in (sources[0], sources[1], sources[0]):
             m.node_tree.nodes.new("ShaderNodeTexImage").image = bpy.data.images.load(source, check_existing=False)
-        expected = {"wood_albedo": albedo.pixels[:], "painted": painted.pixels[:], "linear": linear.pixels[:]}
+        # A file image edited in memory and not saved: its edits are what is exported, not the file.
+        os.makedirs(os.path.join(folder, "d"))
+        write_png(os.path.join(folder, "d", "edit.png"), PIXELS)
+        edit = bpy.data.images.load(os.path.join(folder, "d", "edit.png"))
+        edited = list(edit.pixels)
+        edited[0:4] = [0.0, 1.0, 0.0, 1.0]
+        edit.pixels = edited
+        check(edit.is_dirty, "the edited image is dirty")
+        m.node_tree.nodes.new("ShaderNodeTexImage").image = edit
+        expected = {"wood_albedo": albedo.pixels[:], "painted": painted.pixels[:], "linear": linear.pixels[:],
+                    "edit.png": edit.pixels[:]}
         cube = bpy.data.objects.new("Cube", bpy.data.meshes.new("Cube"))
         cube.data.materials.append(m)
         bpy.context.scene.collection.objects.link(cube)
@@ -443,7 +453,8 @@ def test_operators():
             check(os.path.isfile(written) and open(source, "rb").read() == open(written, "rb").read(),
                   f"{written} is a copy of {source}")
         written = sorted(os.listdir(os.path.join(folder, "textures")))
-        check(written == ["linear.exr", "painted.png", "twin.1.png", "twin.png", "wood_albedo.png"],
+        check(paths["edit.png"].endswith("textures/edit.png"), f"the edited image's file: {paths['edit.png']}")
+        check(written == ["edit.png", "linear.exr", "painted.png", "twin.1.png", "twin.png", "wood_albedo.png"],
               f"textures written: {written}")
         bpy.ops.wm.read_homefile(use_empty=True)
         result = bpy.ops.shadewire.import_graph(filepath=path)
@@ -453,6 +464,33 @@ def test_operators():
             back = bpy.data.images[name].pixels[:]
             wrong = [(i, round(x, 3), round(y, 3)) for i, (x, y) in enumerate(zip(back, pixels)) if abs(x - y) > 1 / 255]
             check(close(back, pixels), f"{name} pixels after copy and load (index, read, expected): {wrong[:8]}")
+
+        # Exporting again into the same folder: the images loaded from textures/ stay where they are, under their
+        # own names, even when another file of the same name comes first and has to step aside.
+        os.makedirs(os.path.join(folder, "c"))
+        third = os.path.join(folder, "c", "twin.png")
+        write_png(third, [min(1.0, x + 0.25) for x in PIXELS])
+        in_place = [next(i for i in bpy.data.images if i.filepath.replace("\\", "/").endswith(f"textures/{name}"))
+                    for name in ("twin.png", "twin.1.png")]
+        again = bpy.data.materials.new("Again")
+        again.use_nodes = True
+        newcomer = bpy.data.images.load(third, check_existing=False)
+        for image in [newcomer] + in_place:
+            again.node_tree.nodes.new("ShaderNodeTexImage").image = image
+        bpy.data.materials["Wood"].node_tree.nodes.clear()
+        result = bpy.ops.shadewire.export_graph(filepath=os.path.join(folder, "again.json"), scope="ALL",
+                                                copy_textures=True)
+        check(result == {"FINISHED"}, f"export again: {result}")
+        doc2 = json.load(open(os.path.join(folder, "again.json"), encoding="utf-8"))
+        paths2 = {entry["name"]: entry["filepath"] for entry in doc2["images"]}
+        check([paths2[image.name] for image in in_place] == twins[:2],
+              f"the images in textures/ keep their files: {[paths2[image.name] for image in in_place]} {twins[:2]}")
+        check(paths2[newcomer.name].endswith("textures/twin.2.png"), f"the new file steps aside: {paths2}")
+        for source, written in zip(sources + [third], twins[:2] + [paths2[newcomer.name]]):
+            check(os.path.isfile(written) and open(source, "rb").read() == open(written, "rb").read(),
+                  f"after the second export {written} is a copy of {source}")
+        written = sorted(f for f in os.listdir(os.path.join(folder, "textures")) if f.startswith("twin"))
+        check(written == ["twin.1.png", "twin.2.png", "twin.png"], f"twins written: {written}")
 
 
 def test_fixtures_are_current(graph):

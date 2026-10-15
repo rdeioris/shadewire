@@ -204,12 +204,19 @@ PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 class TextureFolder:
     """The textures folder of one export: each source is written once, under its own file name unless another source
-    of this export took that name first (then `name.1.ext`, `name.2.ext`, ...)."""
+    of this export took that name first (then `name.1.ext`, `name.2.ext`, ...). A file already in the folder (an
+    export again over the same folder) is kept where it is, its name taken before any other source is placed."""
 
-    def __init__(self, folder):
+    def __init__(self, folder, entries):
         self.folder = folder
         self.paths = {}
         self.taken = set()
+        for entry in entries:
+            source = file_source(entry, bpy.data.images.get(entry["name"]))
+            if source and os.path.normcase(source) == os.path.normcase(
+                    os.path.abspath(os.path.join(folder, os.path.basename(source)))):
+                self.taken.add(os.path.normcase(source))
+                self.paths[os.path.normcase(source)] = source
 
     def place(self, key, stem, ext):
         """The path for the source `key` and whether it still has to be written there."""
@@ -232,6 +239,22 @@ def packed_name(image, data):
     if stem and ext:
         return stem, ext
     return bpy.path.clean_name(image.name), ".png" if data.startswith(PNG_SIGNATURE) else ".bin"
+
+
+def file_source(entry, image):
+    """The absolute path of the file an image is exported from by copying it, or None when it is not: an image edited
+    in memory (dirty) or packed is exported from what Blender holds, not from its file."""
+    source = entry["filepath"]
+    if image is not None and (image.is_dirty or image.packed_file is not None):
+        return None
+    if entry["source"] != "FILE" or not source or not os.path.isfile(source):
+        return None
+    return os.path.abspath(source)
+
+
+def pixels_stem(image):
+    """The file name stem of an image saved from its pixels: its file's, else its name."""
+    return os.path.splitext(bpy.path.basename(image.filepath))[0] or bpy.path.clean_name(image.name)
 
 
 def saved_format(image):
@@ -262,26 +285,27 @@ def save_pixels(image, path, file_format):
 
 
 def copy_texture(operator, entry, textures):
-    """Put one dumped image into the export's textures folder and point its entry there, its pixels as they are: a
-    packed image's bytes are written as they are, a file is copied, anything else is saved as PNG (OpenEXR when its
-    pixels are floats)."""
+    """Put one dumped image into the export's textures folder and point its entry there, its pixels as they are: an
+    image edited in memory is saved from its pixels, a packed image's bytes are written as they are, a file is
+    copied (or kept, when it is already in the folder), anything else is saved from its pixels as PNG (OpenEXR when
+    they are floats)."""
     image = bpy.data.images.get(entry["name"])
-    source = entry["filepath"]
+    source = file_source(entry, image)
     try:
-        if image is not None and image.packed_file is not None:
+        if image is not None and image.packed_file is not None and not image.is_dirty:
             data = image.packed_file.data
             target, new = textures.place(("packed", image.name), *packed_name(image, data))
             if new:
                 with open(target, "wb") as f:
                     f.write(data)
-        elif entry["source"] == "FILE" and source and os.path.isfile(source):
+        elif source is not None:
             stem, ext = os.path.splitext(os.path.basename(source))
-            target, new = textures.place(os.path.normcase(os.path.abspath(source)), stem, ext)
+            target, new = textures.place(os.path.normcase(source), stem, ext)
             if new and not (os.path.exists(target) and os.path.samefile(source, target)):
                 shutil.copy2(source, target)
         elif image is not None:
             file_format, ext = saved_format(image)
-            target, new = textures.place(("image", image.name), bpy.path.clean_name(image.name), ext)
+            target, new = textures.place(("image", image.name), pixels_stem(image), ext)
             if new:
                 save_pixels(image, target, file_format)
         else:
@@ -326,7 +350,7 @@ class SHADEWIRE_OT_export_graph(bpy.types.Operator, ExportHelper):
             if self.copy_textures and doc["images"]:
                 folder = os.path.join(os.path.dirname(self.filepath), "textures")
                 os.makedirs(folder, exist_ok=True)
-                textures = TextureFolder(folder)
+                textures = TextureFolder(folder, doc["images"])
                 for entry in doc["images"]:
                     copy_texture(self, entry, textures)
             text = graph.to_text(doc)
