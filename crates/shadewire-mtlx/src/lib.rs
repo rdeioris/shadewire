@@ -8,6 +8,7 @@ pub mod dependencies;
 pub mod include;
 pub mod to_ir;
 pub mod upgrade;
+pub mod write;
 
 pub use dependencies::{Dependencies, list_dependencies};
 pub use include::{ResolveFn, Resolved, Resolver};
