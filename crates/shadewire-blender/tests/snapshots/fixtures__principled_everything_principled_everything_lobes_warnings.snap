@@ -2,7 +2,4 @@
 source: crates/shadewire-blender/tests/fixtures.rs
 expression: "ir.warnings.join(\"\\n\")"
 ---
-ShaderNodeNormalMap "Normal Map": not lowered, output Normal is its default value
-ShaderNodeTangent "Tangent": not lowered, output Tangent is its default value
-ShaderNodeNormalMap "Coat Normal Map": not lowered, output Normal is its default value
 ShaderNodeBsdfPrincipled "Principled BSDF": Anisotropic Rotation dropped (OpenPBR rotates the tangent instead)

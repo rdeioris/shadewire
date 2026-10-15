@@ -7,6 +7,7 @@ pub mod lobes;
 pub mod math;
 pub mod principled;
 pub mod surface;
+pub mod texture;
 pub mod values;
 
 #[cfg(test)]
@@ -21,6 +22,8 @@ mod math_tests;
 mod principled_tests;
 #[cfg(test)]
 pub(crate) mod tests;
+#[cfg(test)]
+mod texture_tests;
 
 use std::collections::{HashMap, HashSet};
 
@@ -109,6 +112,16 @@ impl<'a> Lowerer<'a> {
             "ShaderNodeVectorMath" => math::vector_math(self, node, socket),
             "ShaderNodeClamp" => math::clamp(self, node, socket),
             "ShaderNodeMapRange" => math::map_range(self, node, socket),
+            "ShaderNodeTexImage" => texture::image(self, node, socket),
+            "ShaderNodeTexCoord" => texture::tex_coord(self, node, socket),
+            "ShaderNodeUVMap" => texture::uv_map(self, node, socket),
+            "ShaderNodeAttribute" => texture::attribute(self, node, socket),
+            "ShaderNodeVertexColor" => texture::color_attribute(self, node, socket),
+            "ShaderNodeNewGeometry" => texture::geometry(self, node, socket),
+            "ShaderNodeNormalMap" => texture::normal_map(self, node, socket),
+            "ShaderNodeBump" => texture::bump(self, node, socket),
+            "ShaderNodeMapping" => texture::mapping(self, node, socket),
+            "ShaderNodeTangent" => texture::tangent(self, node, socket),
             _ => fallback::default_output(self, node, socket),
         }
     }
