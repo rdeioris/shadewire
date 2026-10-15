@@ -199,8 +199,9 @@ pub unsafe extern "C" fn shadewire_ir_dump(ir: *const shadewire_ir, len: *mut us
 }
 
 /// The IR as a JSON document (nodes, textures, fields, the closure tree; format SHADEWIRE_IR_FORMAT_VERSION): what
-/// `shadewire ir --json` prints and Python's `Ir.to_dict` returns. Built on first call and valid until `ir` is freed;
-/// see `shadewire_ir_dump` for `len` and NULL.
+/// `shadewire ir --json` prints and Python's `Ir.to_dict` returns. A `sample` node whose lookup takes explicit
+/// gradients carries `grad`, the indices of its `[dx, dy]` nodes; without it the GPU derives them from `uv`.
+/// Built on first call and valid until `ir` is freed; see `shadewire_ir_dump` for `len` and NULL.
 ///
 /// # Safety
 /// As `shadewire_ir_dump`.

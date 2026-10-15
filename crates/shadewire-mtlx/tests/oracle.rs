@@ -259,8 +259,18 @@ fn uv_convention() -> VConvention {
 const IMAGE_MATERIALS: [&str; 2] = ["hextile_grid", "image_grid"];
 
 /// Materials whose graph also drives `specular_roughness` (the scalar ops).
-const SCALAR_MATERIALS: [&str; 8] =
-    ["cellnoise2d", "fractal3d", "logic_switch", "math_ops", "noise2d", "noise3d", "trig_ops", "worley2d"];
+const SCALAR_MATERIALS: [&str; 10] = [
+    "cellnoise2d",
+    "compositing",
+    "fractal2d",
+    "fractal3d",
+    "logic_switch",
+    "math_ops",
+    "noise2d",
+    "noise3d",
+    "trig_ops",
+    "worley2d",
+];
 
 fn expected_fields(material: &str) -> Vec<&'static str> {
     if material == "unlit_basic" {
@@ -287,7 +297,7 @@ fn interpreter_matches_materialx_glsl() {
         .filter(|p| p.extension().is_some_and(|e| e == "json"))
         .collect();
     paths.sort();
-    assert_eq!(paths.len(), 17, "one baked json per oracle material");
+    assert_eq!(paths.len(), 20, "one baked json per oracle material");
     let mut report = Vec::new();
     let mut failed = false;
     for path in &paths {

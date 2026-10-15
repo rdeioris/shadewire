@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!-- The compositing nodes upstream implements only as genglsl source (plus, minus, difference, screen, burn,
+     dodge), chained in color3 for base_color and in float for specular_roughness. fg stays in [0.2, 0.8]. -->
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <extract name="u" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="0" /></extract>
+    <extract name="v" type="float"><input name="in" type="vector2" nodename="uv" /><input name="index" type="integer" value="1" /></extract>
+    <remap name="fu" type="float"><input name="in" type="float" nodename="u" /><input name="outlow" type="float" value="0.2" /><input name="outhigh" type="float" value="0.8" /></remap>
+    <remap name="fv" type="float"><input name="in" type="float" nodename="v" /><input name="outlow" type="float" value="0.2" /><input name="outhigh" type="float" value="0.8" /></remap>
+    <combine3 name="fg" type="color3"><input name="in1" type="float" nodename="fu" /><input name="in2" type="float" nodename="fv" /><input name="in3" type="float" value="0.5" /></combine3>
+    <combine3 name="bg" type="color3"><input name="in1" type="float" nodename="v" /><input name="in2" type="float" nodename="u" /><input name="in3" type="float" value="0.3" /></combine3>
+    <difference name="c_difference" type="color3"><input name="fg" type="color3" nodename="fg" /><input name="bg" type="color3" nodename="bg" /><input name="mix" type="float" value="0.7" /></difference>
+    <screen name="c_screen" type="color3"><input name="fg" type="color3" nodename="c_difference" /><input name="bg" type="color3" nodename="bg" /><input name="mix" type="float" value="0.8" /></screen>
+    <plus name="c_plus" type="color3"><input name="fg" type="color3" nodename="c_screen" /><input name="bg" type="color3" nodename="fg" /><input name="mix" type="float" value="0.5" /></plus>
+    <minus name="c_minus" type="color3"><input name="fg" type="color3" nodename="bg" /><input name="bg" type="color3" nodename="c_plus" /><input name="mix" type="float" value="0.6" /></minus>
+    <burn name="c_burn" type="color3"><input name="fg" type="color3" nodename="fg" /><input name="bg" type="color3" nodename="c_minus" /><input name="mix" type="float" value="0.9" /></burn>
+    <dodge name="c_dodge" type="color3"><input name="fg" type="color3" nodename="fg" /><input name="bg" type="color3" nodename="c_burn" /><input name="mix" type="float" value="0.75" /></dodge>
+    <difference name="f_difference" type="float"><input name="fg" type="float" nodename="fu" /><input name="bg" type="float" nodename="v" /></difference>
+    <screen name="f_screen" type="float"><input name="fg" type="float" nodename="f_difference" /><input name="bg" type="float" nodename="u" /><input name="mix" type="float" value="0.4" /></screen>
+    <burn name="f_burn" type="float"><input name="fg" type="float" nodename="fv" /><input name="bg" type="float" nodename="f_screen" /></burn>
+    <dodge name="f_dodge" type="float"><input name="fg" type="float" nodename="fu" /><input name="bg" type="float" nodename="f_burn" /><input name="mix" type="float" value="0.5" /></dodge>
+    <output name="out_color" type="color3" nodename="c_dodge" />
+    <output name="out_rough" type="float" nodename="f_dodge" />
+  </nodegraph>
+  <standard_surface name="SS" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="out_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG" output="out_rough" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS" />
+  </surfacematerial>
+</materialx>

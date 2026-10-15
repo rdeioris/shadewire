@@ -27,7 +27,7 @@ pub fn upgrade(mut doc: Document) -> Result<Document, Error> {
             swizzle::apply(&mut doc);
             atan2::apply(&mut doc);
             switch::apply(&mut doc);
-            normalmap::apply(&mut doc)?;
+            normalmap::apply(&mut doc);
             subsurface::apply(&mut doc);
             doc.version = (1, 39);
             Ok(doc)

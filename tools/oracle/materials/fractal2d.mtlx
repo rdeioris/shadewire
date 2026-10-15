@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG">
+    <texcoord name="uv" type="vector2" />
+    <multiply name="uv8" type="vector2"><input name="in1" type="vector2" nodename="uv" /><input name="in2" type="float" value="8" /></multiply>
+    <fractal2d name="color" type="color3"><input name="texcoord" type="vector2" nodename="uv8" /><input name="amplitude" type="vector3" value="0.5, 0.5, 0.5" /></fractal2d>
+    <fractal2d name="rough" type="float"><input name="texcoord" type="vector2" nodename="uv8" /><input name="octaves" type="integer" value="4" /><input name="lacunarity" type="float" value="1.7" /><input name="diminish" type="float" value="0.6" /></fractal2d>
+    <output name="out_color" type="color3" nodename="color" />
+    <output name="out_rough" type="float" nodename="rough" />
+  </nodegraph>
+  <standard_surface name="SS" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG" output="out_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG" output="out_rough" />
+  </standard_surface>
+  <surfacematerial name="M" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="SS" />
+  </surfacematerial>
+</materialx>

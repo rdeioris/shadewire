@@ -58,7 +58,7 @@ pub fn needs(op: &Op) -> &'static [&'static str] {
         Op::Rotate2d => &["vector"],
         Op::HextileCoord(_) | Op::HextileGrad(_) | Op::HextileWeights => &["hextile"],
         Op::Noise2d | Op::Noise3d => &["noise_basics", "noise_hash", "noise_perlin"],
-        Op::Fractal3d => &["noise_basics", "noise_hash", "noise_perlin", "noise_fractal"],
+        Op::Fractal2d | Op::Fractal3d => &["noise_basics", "noise_hash", "noise_perlin", "noise_fractal"],
         Op::CellNoise2d | Op::CellNoise3d => &["noise_basics", "noise_hash", "noise_cell"],
         Op::WorleyNoise2d | Op::WorleyNoise3d => &["noise_basics", "noise_hash", "noise_cell", "noise_worley"],
         _ => &[],

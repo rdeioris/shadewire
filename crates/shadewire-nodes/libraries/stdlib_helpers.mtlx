@@ -1,9 +1,19 @@
 <?xml version="1.0"?>
 <!--
   Shadewire (MIT): nodegraph implementations of stdlib nodes upstream implements only per language
-  (stdlib/genglsl/mx_*.glsl). Each graph follows the upstream GLSL function it names.
+  (stdlib/genglsl/mx_*.glsl, or inline genglsl sourcecode). Each graph follows the upstream GLSL it names.
+  Also the nodedefs the specification describes but upstream's libraries do not ship.
 -->
 <materialx version="1.39">
+
+  <!--
+    viewdirection (Specification, Geometric Nodes): the direction from the camera toward the surface, in
+    `space`. Upstream's libraries define no nodedef for it; shadewire reads it from the host.
+  -->
+  <nodedef name="ND_viewdirection_vector3" node="viewdirection" nodegroup="geometric">
+    <input name="space" type="string" value="world" enum="model,object,world" uniform="true" />
+    <output name="out" type="vector3" default="0.0, 0.0, 1.0" />
+  </nodedef>
 
   <!-- mx_rotate_vector3: Rodrigues' rotation with MaterialX's row-vector order, cross(in, axis). -->
   <nodegraph name="NG_shadewire_rotate3d_vector3" nodedef="ND_rotate3d_vector3">
@@ -57,6 +67,483 @@
       <input name="in2" type="vector3" nodename="term3" />
     </add>
     <output name="out" type="vector3" nodename="result" />
+  </nodegraph>
+
+  <!-- plus: bg + fg. -->
+  <nodegraph name="NG_shadewire_plus_float" nodedef="ND_plus_float">
+    <add name="x" type="float">
+      <input name="in1" type="float" interfacename="bg" />
+      <input name="in2" type="float" interfacename="fg" />
+    </add>
+    <mix name="blend" type="float">
+      <input name="fg" type="float" nodename="x" />
+      <input name="bg" type="float" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="float" nodename="blend" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_plus_color3" nodedef="ND_plus_color3">
+    <add name="x" type="color3">
+      <input name="in1" type="color3" interfacename="bg" />
+      <input name="in2" type="color3" interfacename="fg" />
+    </add>
+    <mix name="blend" type="color3">
+      <input name="fg" type="color3" nodename="x" />
+      <input name="bg" type="color3" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="color3" nodename="blend" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_plus_color4" nodedef="ND_plus_color4">
+    <add name="x" type="color4">
+      <input name="in1" type="color4" interfacename="bg" />
+      <input name="in2" type="color4" interfacename="fg" />
+    </add>
+    <mix name="blend" type="color4">
+      <input name="fg" type="color4" nodename="x" />
+      <input name="bg" type="color4" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="color4" nodename="blend" />
+  </nodegraph>
+
+  <!-- minus: bg - fg. -->
+  <nodegraph name="NG_shadewire_minus_float" nodedef="ND_minus_float">
+    <subtract name="x" type="float">
+      <input name="in1" type="float" interfacename="bg" />
+      <input name="in2" type="float" interfacename="fg" />
+    </subtract>
+    <mix name="blend" type="float">
+      <input name="fg" type="float" nodename="x" />
+      <input name="bg" type="float" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="float" nodename="blend" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_minus_color3" nodedef="ND_minus_color3">
+    <subtract name="x" type="color3">
+      <input name="in1" type="color3" interfacename="bg" />
+      <input name="in2" type="color3" interfacename="fg" />
+    </subtract>
+    <mix name="blend" type="color3">
+      <input name="fg" type="color3" nodename="x" />
+      <input name="bg" type="color3" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="color3" nodename="blend" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_minus_color4" nodedef="ND_minus_color4">
+    <subtract name="x" type="color4">
+      <input name="in1" type="color4" interfacename="bg" />
+      <input name="in2" type="color4" interfacename="fg" />
+    </subtract>
+    <mix name="blend" type="color4">
+      <input name="fg" type="color4" nodename="x" />
+      <input name="bg" type="color4" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="color4" nodename="blend" />
+  </nodegraph>
+
+  <!-- difference: abs(bg - fg). -->
+  <nodegraph name="NG_shadewire_difference_float" nodedef="ND_difference_float">
+    <subtract name="d" type="float">
+      <input name="in1" type="float" interfacename="bg" />
+      <input name="in2" type="float" interfacename="fg" />
+    </subtract>
+    <absval name="x" type="float">
+      <input name="in" type="float" nodename="d" />
+    </absval>
+    <mix name="blend" type="float">
+      <input name="fg" type="float" nodename="x" />
+      <input name="bg" type="float" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="float" nodename="blend" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_difference_color3" nodedef="ND_difference_color3">
+    <subtract name="d" type="color3">
+      <input name="in1" type="color3" interfacename="bg" />
+      <input name="in2" type="color3" interfacename="fg" />
+    </subtract>
+    <absval name="x" type="color3">
+      <input name="in" type="color3" nodename="d" />
+    </absval>
+    <mix name="blend" type="color3">
+      <input name="fg" type="color3" nodename="x" />
+      <input name="bg" type="color3" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="color3" nodename="blend" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_difference_color4" nodedef="ND_difference_color4">
+    <subtract name="d" type="color4">
+      <input name="in1" type="color4" interfacename="bg" />
+      <input name="in2" type="color4" interfacename="fg" />
+    </subtract>
+    <absval name="x" type="color4">
+      <input name="in" type="color4" nodename="d" />
+    </absval>
+    <mix name="blend" type="color4">
+      <input name="fg" type="color4" nodename="x" />
+      <input name="bg" type="color4" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="color4" nodename="blend" />
+  </nodegraph>
+
+  <!-- screen: 1 - (1 - fg) * (1 - bg). -->
+  <nodegraph name="NG_shadewire_screen_float" nodedef="ND_screen_float">
+    <invert name="ifg" type="float">
+      <input name="in" type="float" interfacename="fg" />
+    </invert>
+    <invert name="ibg" type="float">
+      <input name="in" type="float" interfacename="bg" />
+    </invert>
+    <multiply name="p" type="float">
+      <input name="in1" type="float" nodename="ifg" />
+      <input name="in2" type="float" nodename="ibg" />
+    </multiply>
+    <invert name="x" type="float">
+      <input name="in" type="float" nodename="p" />
+    </invert>
+    <mix name="blend" type="float">
+      <input name="fg" type="float" nodename="x" />
+      <input name="bg" type="float" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="float" nodename="blend" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_screen_color3" nodedef="ND_screen_color3">
+    <invert name="ifg" type="color3">
+      <input name="in" type="color3" interfacename="fg" />
+    </invert>
+    <invert name="ibg" type="color3">
+      <input name="in" type="color3" interfacename="bg" />
+    </invert>
+    <multiply name="p" type="color3">
+      <input name="in1" type="color3" nodename="ifg" />
+      <input name="in2" type="color3" nodename="ibg" />
+    </multiply>
+    <invert name="x" type="color3">
+      <input name="in" type="color3" nodename="p" />
+    </invert>
+    <mix name="blend" type="color3">
+      <input name="fg" type="color3" nodename="x" />
+      <input name="bg" type="color3" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="color3" nodename="blend" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_screen_color4" nodedef="ND_screen_color4">
+    <invert name="ifg" type="color4">
+      <input name="in" type="color4" interfacename="fg" />
+    </invert>
+    <invert name="ibg" type="color4">
+      <input name="in" type="color4" interfacename="bg" />
+    </invert>
+    <multiply name="p" type="color4">
+      <input name="in1" type="color4" nodename="ifg" />
+      <input name="in2" type="color4" nodename="ibg" />
+    </multiply>
+    <invert name="x" type="color4">
+      <input name="in" type="color4" nodename="p" />
+    </invert>
+    <mix name="blend" type="color4">
+      <input name="fg" type="color4" nodename="x" />
+      <input name="bg" type="color4" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <output name="out" type="color4" nodename="blend" />
+  </nodegraph>
+
+  <!-- burn: 1 - (1 - bg) / fg; 0 where |fg| < M_FLOAT_EPS. -->
+  <nodegraph name="NG_shadewire_burn_float" nodedef="ND_burn_float">
+    <dot name="g" type="float">
+      <input name="in" type="float" interfacename="fg" />
+    </dot>
+    <absval name="guard" type="float">
+      <input name="in" type="float" nodename="g" />
+    </absval>
+    <ifgreatereq name="safe" type="float">
+      <input name="value1" type="float" nodename="guard" />
+      <input name="value2" type="float" value="1e-8" />
+      <input name="in1" type="float" nodename="g" />
+      <input name="in2" type="float" value="1.0" />
+    </ifgreatereq>
+    <subtract name="ibg" type="float">
+      <input name="in1" type="float" value="1.0" />
+      <input name="in2" type="float" interfacename="bg" />
+    </subtract>
+    <divide name="q" type="float">
+      <input name="in1" type="float" nodename="ibg" />
+      <input name="in2" type="float" nodename="safe" />
+    </divide>
+    <subtract name="x" type="float">
+      <input name="in1" type="float" value="1.0" />
+      <input name="in2" type="float" nodename="q" />
+    </subtract>
+    <mix name="blend" type="float">
+      <input name="fg" type="float" nodename="x" />
+      <input name="bg" type="float" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <ifgreatereq name="result" type="float">
+      <input name="value1" type="float" nodename="guard" />
+      <input name="value2" type="float" value="1e-8" />
+      <input name="in1" type="float" nodename="blend" />
+      <input name="in2" type="float" value="0.0" />
+    </ifgreatereq>
+    <output name="out" type="float" nodename="result" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_burn_color3" nodedef="ND_burn_color3">
+    <extract name="fg_r" type="float">
+      <input name="in" type="color3" interfacename="fg" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="fg_g" type="float">
+      <input name="in" type="color3" interfacename="fg" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="fg_b" type="float">
+      <input name="in" type="color3" interfacename="fg" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <extract name="bg_r" type="float">
+      <input name="in" type="color3" interfacename="bg" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="bg_g" type="float">
+      <input name="in" type="color3" interfacename="bg" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="bg_b" type="float">
+      <input name="in" type="color3" interfacename="bg" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <burn name="burn_r" type="float" nodedef="ND_burn_float">
+      <input name="fg" type="float" nodename="fg_r" />
+      <input name="bg" type="float" nodename="bg_r" />
+      <input name="mix" type="float" interfacename="mix" />
+    </burn>
+    <burn name="burn_g" type="float" nodedef="ND_burn_float">
+      <input name="fg" type="float" nodename="fg_g" />
+      <input name="bg" type="float" nodename="bg_g" />
+      <input name="mix" type="float" interfacename="mix" />
+    </burn>
+    <burn name="burn_b" type="float" nodedef="ND_burn_float">
+      <input name="fg" type="float" nodename="fg_b" />
+      <input name="bg" type="float" nodename="bg_b" />
+      <input name="mix" type="float" interfacename="mix" />
+    </burn>
+    <combine3 name="result" type="color3">
+      <input name="in1" type="float" nodename="burn_r" />
+      <input name="in2" type="float" nodename="burn_g" />
+      <input name="in3" type="float" nodename="burn_b" />
+    </combine3>
+    <output name="out" type="color3" nodename="result" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_burn_color4" nodedef="ND_burn_color4">
+    <extract name="fg_r" type="float">
+      <input name="in" type="color4" interfacename="fg" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="fg_g" type="float">
+      <input name="in" type="color4" interfacename="fg" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="fg_b" type="float">
+      <input name="in" type="color4" interfacename="fg" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <extract name="fg_a" type="float">
+      <input name="in" type="color4" interfacename="fg" />
+      <input name="index" type="integer" value="3" />
+    </extract>
+    <extract name="bg_r" type="float">
+      <input name="in" type="color4" interfacename="bg" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="bg_g" type="float">
+      <input name="in" type="color4" interfacename="bg" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="bg_b" type="float">
+      <input name="in" type="color4" interfacename="bg" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <extract name="bg_a" type="float">
+      <input name="in" type="color4" interfacename="bg" />
+      <input name="index" type="integer" value="3" />
+    </extract>
+    <burn name="burn_r" type="float" nodedef="ND_burn_float">
+      <input name="fg" type="float" nodename="fg_r" />
+      <input name="bg" type="float" nodename="bg_r" />
+      <input name="mix" type="float" interfacename="mix" />
+    </burn>
+    <burn name="burn_g" type="float" nodedef="ND_burn_float">
+      <input name="fg" type="float" nodename="fg_g" />
+      <input name="bg" type="float" nodename="bg_g" />
+      <input name="mix" type="float" interfacename="mix" />
+    </burn>
+    <burn name="burn_b" type="float" nodedef="ND_burn_float">
+      <input name="fg" type="float" nodename="fg_b" />
+      <input name="bg" type="float" nodename="bg_b" />
+      <input name="mix" type="float" interfacename="mix" />
+    </burn>
+    <burn name="burn_a" type="float" nodedef="ND_burn_float">
+      <input name="fg" type="float" nodename="fg_a" />
+      <input name="bg" type="float" nodename="bg_a" />
+      <input name="mix" type="float" interfacename="mix" />
+    </burn>
+    <combine4 name="result" type="color4">
+      <input name="in1" type="float" nodename="burn_r" />
+      <input name="in2" type="float" nodename="burn_g" />
+      <input name="in3" type="float" nodename="burn_b" />
+      <input name="in4" type="float" nodename="burn_a" />
+    </combine4>
+    <output name="out" type="color4" nodename="result" />
+  </nodegraph>
+
+  <!-- dodge: bg / (1 - fg); 0 where |1 - fg| < M_FLOAT_EPS. -->
+  <nodegraph name="NG_shadewire_dodge_float" nodedef="ND_dodge_float">
+    <subtract name="g" type="float">
+      <input name="in1" type="float" value="1.0" />
+      <input name="in2" type="float" interfacename="fg" />
+    </subtract>
+    <absval name="guard" type="float">
+      <input name="in" type="float" nodename="g" />
+    </absval>
+    <ifgreatereq name="safe" type="float">
+      <input name="value1" type="float" nodename="guard" />
+      <input name="value2" type="float" value="1e-8" />
+      <input name="in1" type="float" nodename="g" />
+      <input name="in2" type="float" value="1.0" />
+    </ifgreatereq>
+    <divide name="x" type="float">
+      <input name="in1" type="float" interfacename="bg" />
+      <input name="in2" type="float" nodename="safe" />
+    </divide>
+    <mix name="blend" type="float">
+      <input name="fg" type="float" nodename="x" />
+      <input name="bg" type="float" interfacename="bg" />
+      <input name="mix" type="float" interfacename="mix" />
+    </mix>
+    <ifgreatereq name="result" type="float">
+      <input name="value1" type="float" nodename="guard" />
+      <input name="value2" type="float" value="1e-8" />
+      <input name="in1" type="float" nodename="blend" />
+      <input name="in2" type="float" value="0.0" />
+    </ifgreatereq>
+    <output name="out" type="float" nodename="result" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_dodge_color3" nodedef="ND_dodge_color3">
+    <extract name="fg_r" type="float">
+      <input name="in" type="color3" interfacename="fg" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="fg_g" type="float">
+      <input name="in" type="color3" interfacename="fg" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="fg_b" type="float">
+      <input name="in" type="color3" interfacename="fg" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <extract name="bg_r" type="float">
+      <input name="in" type="color3" interfacename="bg" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="bg_g" type="float">
+      <input name="in" type="color3" interfacename="bg" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="bg_b" type="float">
+      <input name="in" type="color3" interfacename="bg" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <dodge name="dodge_r" type="float" nodedef="ND_dodge_float">
+      <input name="fg" type="float" nodename="fg_r" />
+      <input name="bg" type="float" nodename="bg_r" />
+      <input name="mix" type="float" interfacename="mix" />
+    </dodge>
+    <dodge name="dodge_g" type="float" nodedef="ND_dodge_float">
+      <input name="fg" type="float" nodename="fg_g" />
+      <input name="bg" type="float" nodename="bg_g" />
+      <input name="mix" type="float" interfacename="mix" />
+    </dodge>
+    <dodge name="dodge_b" type="float" nodedef="ND_dodge_float">
+      <input name="fg" type="float" nodename="fg_b" />
+      <input name="bg" type="float" nodename="bg_b" />
+      <input name="mix" type="float" interfacename="mix" />
+    </dodge>
+    <combine3 name="result" type="color3">
+      <input name="in1" type="float" nodename="dodge_r" />
+      <input name="in2" type="float" nodename="dodge_g" />
+      <input name="in3" type="float" nodename="dodge_b" />
+    </combine3>
+    <output name="out" type="color3" nodename="result" />
+  </nodegraph>
+  <nodegraph name="NG_shadewire_dodge_color4" nodedef="ND_dodge_color4">
+    <extract name="fg_r" type="float">
+      <input name="in" type="color4" interfacename="fg" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="fg_g" type="float">
+      <input name="in" type="color4" interfacename="fg" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="fg_b" type="float">
+      <input name="in" type="color4" interfacename="fg" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <extract name="fg_a" type="float">
+      <input name="in" type="color4" interfacename="fg" />
+      <input name="index" type="integer" value="3" />
+    </extract>
+    <extract name="bg_r" type="float">
+      <input name="in" type="color4" interfacename="bg" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="bg_g" type="float">
+      <input name="in" type="color4" interfacename="bg" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="bg_b" type="float">
+      <input name="in" type="color4" interfacename="bg" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <extract name="bg_a" type="float">
+      <input name="in" type="color4" interfacename="bg" />
+      <input name="index" type="integer" value="3" />
+    </extract>
+    <dodge name="dodge_r" type="float" nodedef="ND_dodge_float">
+      <input name="fg" type="float" nodename="fg_r" />
+      <input name="bg" type="float" nodename="bg_r" />
+      <input name="mix" type="float" interfacename="mix" />
+    </dodge>
+    <dodge name="dodge_g" type="float" nodedef="ND_dodge_float">
+      <input name="fg" type="float" nodename="fg_g" />
+      <input name="bg" type="float" nodename="bg_g" />
+      <input name="mix" type="float" interfacename="mix" />
+    </dodge>
+    <dodge name="dodge_b" type="float" nodedef="ND_dodge_float">
+      <input name="fg" type="float" nodename="fg_b" />
+      <input name="bg" type="float" nodename="bg_b" />
+      <input name="mix" type="float" interfacename="mix" />
+    </dodge>
+    <dodge name="dodge_a" type="float" nodedef="ND_dodge_float">
+      <input name="fg" type="float" nodename="fg_a" />
+      <input name="bg" type="float" nodename="bg_a" />
+      <input name="mix" type="float" interfacename="mix" />
+    </dodge>
+    <combine4 name="result" type="color4">
+      <input name="in1" type="float" nodename="dodge_r" />
+      <input name="in2" type="float" nodename="dodge_g" />
+      <input name="in3" type="float" nodename="dodge_b" />
+      <input name="in4" type="float" nodename="dodge_a" />
+    </combine4>
+    <output name="out" type="color4" nodename="result" />
   </nodegraph>
 
 </materialx>

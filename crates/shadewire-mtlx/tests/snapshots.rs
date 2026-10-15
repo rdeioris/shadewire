@@ -96,3 +96,18 @@ fn written_porcelain() {
     let lobes = IrOptions::with_models(&["surface", "surface_unlit"]);
     insta::assert_snapshot!(written("crates/shadewire-mtlx/tests/fixtures/porcelain.mtlx", "porcelain", &lobes));
 }
+
+#[test]
+fn compositing() {
+    snapshot("compositing", "tools/oracle/materials/compositing.mtlx");
+}
+
+#[test]
+fn fractal2d() {
+    snapshot("fractal2d", "tools/oracle/materials/fractal2d.mtlx");
+}
+
+#[test]
+fn normalmap_object_1_38() {
+    snapshot("normalmap_object", "tools/oracle/materials/normalmap_object.mtlx");
+}

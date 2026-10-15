@@ -11,7 +11,8 @@ use crate::parse::parse_str;
 
 static LIBRARIES: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/materialx/libraries");
 
-/// Shadewire's graphs for library nodedefs upstream implements only per language; named `shadewire/...`.
+/// Shadewire's graphs for library nodedefs upstream implements only per language, and the nodedefs the
+/// specification describes that upstream does not ship; named `shadewire/...`.
 static OWN_LIBRARIES: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/libraries");
 
 pub struct Library {

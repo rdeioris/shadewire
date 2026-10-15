@@ -6,6 +6,11 @@
 //! `index` on `extract`, `transform_kind`/`from`/`to` on `transform`, and `tile` on the hextile ops. Values are
 //! numbers, lists of numbers (vectors, colors), or booleans. `compounds` lists the library nodes the graph was built
 //! from (`Compound`), by node index.
+//!
+//! A `sample` names its `texture`, its `uv` node and its `value` (the default), and, when the lookup takes
+//! explicit gradients, `grad`: the `[dx, dy]` nodes holding the screen-space derivatives of `uv` along x and y
+//! (`textureSampleGrad`, HLSL `SampleGrad`). Without `grad` the GPU takes the derivatives from `uv` itself.
+//! `grad` was added within version 1: a reader that ignores it samples with implicit derivatives, as before.
 
 use std::collections::BTreeMap;
 
@@ -70,6 +75,9 @@ pub struct ExportNode {
     /// A sample's texture coordinate node.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uv: Option<u32>,
+    /// A sample's explicit gradients: the nodes of d(uv)/dx and d(uv)/dy.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grad: Option<[u32; 2]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub origin: Option<String>,
 }
@@ -137,6 +145,7 @@ fn empty(kind: &'static str, ty: Type) -> ExportNode {
         to: None,
         texture: None,
         uv: None,
+        grad: None,
         origin: None,
     }
 }
@@ -202,9 +211,10 @@ pub fn export(dag: &Dag) -> ExportDocument {
                     ExportNode { value: Some(value.into()), name: Some(name.clone()), ..empty("uniform", n.ty) }
                 }
                 NodeKind::Context(read) => context_node(read, n.ty),
-                NodeKind::Sample { texture, uv, default, grad: _ } => ExportNode {
+                NodeKind::Sample { texture, uv, default, grad } => ExportNode {
                     texture: Some(*texture),
                     uv: Some(uv.0),
+                    grad: grad.map(|[dx, dy]| [dx.0, dy.0]),
                     value: Some(default.into()),
                     ..empty("sample", n.ty)
                 },
@@ -271,6 +281,40 @@ mod tests {
             json,
             r#"[{"kind":"const","type":"color3","value":[1.0,0.5,0.25]},{"kind":"op","type":"float","index":1,"op":"extract","args":[0]},{"kind":"op","type":"float","op":"safe_power","args":[1,1],"origin":"g/pow"}]"#
         );
+    }
+
+    #[test]
+    fn samples_carry_their_gradients_when_they_have_them() {
+        let mut dag = Dag::new("m");
+        let t = 0;
+        let uv = dag.add(Node {
+            kind: NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }),
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
+        let dx = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Dpdx, args: vec![uv] },
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
+        let dy = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Dpdy, args: vec![uv] },
+            ty: Type::Vector2,
+            origin: String::new(),
+        });
+        for grad in [None, Some([dx, dy])] {
+            dag.add(Node {
+                kind: NodeKind::Sample { texture: t, uv, default: Value::Float(0.0), grad },
+                ty: Type::Float,
+                origin: String::new(),
+            });
+        }
+        let json = serde_json::to_value(&export(&dag).nodes).unwrap();
+        assert_eq!(
+            json[3],
+            serde_json::json!({"kind": "sample", "type": "float", "value": [0.0], "texture": 0, "uv": 0})
+        );
+        assert_eq!(json[4]["grad"], serde_json::json!([1, 2]));
     }
 
     #[test]
