@@ -120,7 +120,7 @@ fn socket_kind(idname: &str) -> String {
         "Rotation" => "ROTATION",
         "String" => "STRING",
         "Shader" => "SHADER",
-        "Vector" | "Translation" | "Direction" | "Velocity" | "Acceleration" | "Euler" | "XYZ" => "VECTOR",
+        n if n.starts_with("Vector") => "VECTOR",
         other => return other.to_uppercase(),
     };
     kind.to_string()
@@ -564,6 +564,66 @@ mod tests {
         let doc = document(&[], &[twice.clone(), twice], &[]);
         let err = Graph::flatten(&doc, &doc.materials[0]).unwrap_err();
         assert!(err.to_string().contains("two nodes named A"), "{err}");
+    }
+
+    #[test]
+    fn a_group_used_twice_has_one_value_node_per_use_and_a_reroute_inside_reaches_the_group_output() {
+        let inner = group(
+            "S",
+            &[
+                node("GI", GROUP_INPUT, "{}", &[], &["S"]),
+                node("Mul", "ShaderNodeMath", "{}", &["Value"], &["Value"]),
+                node("R", REROUTE, "{}", &["Input"], &["Output"]),
+                node("GO", GROUP_OUTPUT, "{}", &["Out"], &[]),
+            ],
+            &[
+                link(("GI", "S"), ("Mul", "Value")),
+                link(("Mul", "Value"), ("R", "Input")),
+                link(("R", "Output"), ("GO", "Out")),
+            ],
+        );
+        let nodes = [
+            node("P1", GROUP, r#"{"node_tree": "S"}"#, &["S"], &["Out"]),
+            node("P2", GROUP, r#"{"node_tree": "S"}"#, &["S"], &["Out"]),
+            node("B", "ShaderNodeMath", "{}", &["Value", "Value_001"], &[]),
+        ];
+        let links = [link(("P1", "Out"), ("B", "Value")), link(("P2", "Out"), ("B", "Value_001"))];
+        let doc = document(&[inner], &nodes, &links);
+        let (g, warnings) = Graph::flatten(&doc, &doc.materials[0]).unwrap();
+        assert!(warnings.is_empty(), "{warnings:?}");
+        assert_eq!(g.source("B", "Value"), Some(("P1/Mul", "Value")));
+        assert_eq!(g.source("B", "Value_001"), Some(("P2/Mul", "Value")));
+        assert_eq!(g.source("P1/Mul", "Value"), Some(("P1.S", "Value")));
+        assert_eq!(g.source("P2/Mul", "Value"), Some(("P2.S", "Value")));
+        assert_eq!(g.node("P1.S").unwrap().kind, VALUE_KIND);
+        assert_eq!(g.node("P2.S").unwrap().kind, VALUE_KIND);
+    }
+
+    #[test]
+    fn a_group_input_missing_on_the_group_node_takes_its_kind_and_value_from_the_interface() {
+        let text = r#"{"format": "shadewire-blender-graph", "version": 1, "materials": [{"name": "m", "output": null,
+            "nodes": [{"name": "G", "type": "ShaderNodeGroup", "properties": {"node_tree": "D"}, "inputs": [],
+                       "outputs": [{"identifier": "Out", "name": "Out", "type": "VECTOR", "enabled": true}]},
+                      {"name": "B", "type": "ShaderNodeVectorMath", "inputs": [
+                         {"identifier": "Vector", "name": "Vector", "type": "VECTOR", "enabled": true, "value": [0, 0, 0]}],
+                       "outputs": []}],
+            "links": [{"from": ["G", "Out"], "to": ["B", "Vector"]}]}],
+          "groups": [{"name": "D", "interface": [
+              {"identifier": "Socket_0", "name": "Dir", "in_out": "INPUT", "socket_type": "NodeSocketVectorDirection",
+               "value": [0.0, 0.0, 1.0]},
+              {"identifier": "Socket_1", "name": "Out", "in_out": "OUTPUT", "socket_type": "NodeSocketVector"}],
+            "nodes": [{"name": "GI", "type": "NodeGroupInput", "inputs": [],
+                       "outputs": [{"identifier": "Socket_0", "name": "Dir", "type": "VECTOR", "enabled": true}]},
+                      {"name": "GO", "type": "NodeGroupOutput", "inputs": [
+                         {"identifier": "Out", "name": "Out", "type": "VECTOR", "enabled": true}], "outputs": []}],
+            "links": [{"from": ["GI", "Socket_0"], "to": ["GO", "Out"]}]}]}"#;
+        let doc = parse(text).unwrap();
+        let (g, warnings) = Graph::flatten(&doc, &doc.materials[0]).unwrap();
+        assert!(warnings.is_empty(), "{warnings:?}");
+        assert_eq!(g.source("B", "Vector"), Some(("G.Socket_0", "Value")));
+        let value = g.node("G.Socket_0").unwrap();
+        assert_eq!(value.outputs[0].kind, "VECTOR");
+        assert_eq!(value.outputs[0].value, Some(serde_json::json!([0.0, 0.0, 1.0])));
     }
 
     #[test]
