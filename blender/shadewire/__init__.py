@@ -19,7 +19,7 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
-from . import builder, compiler, usd
+from . import builder, compiler, graph, usd
 
 
 def configured_executable(context):
