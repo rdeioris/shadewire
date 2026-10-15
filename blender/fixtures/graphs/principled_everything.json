@@ -1224,7 +1224,9 @@
           "to": [
             "Material Output",
             "Surface"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1234,7 +1236,9 @@
           "to": [
             "Principled BSDF",
             "Base Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1244,7 +1248,9 @@
           "to": [
             "Principled BSDF",
             "Metallic"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1254,7 +1260,9 @@
           "to": [
             "Principled BSDF",
             "Roughness"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1264,7 +1272,9 @@
           "to": [
             "Principled BSDF",
             "IOR"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1274,7 +1284,9 @@
           "to": [
             "Principled BSDF",
             "Alpha"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1284,7 +1296,9 @@
           "to": [
             "Principled BSDF",
             "Normal"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1294,7 +1308,9 @@
           "to": [
             "Principled BSDF",
             "Diffuse Roughness"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1304,7 +1320,9 @@
           "to": [
             "Principled BSDF",
             "Subsurface Weight"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1314,7 +1332,9 @@
           "to": [
             "Principled BSDF",
             "Subsurface Radius"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1324,7 +1344,9 @@
           "to": [
             "Principled BSDF",
             "Subsurface Scale"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1334,7 +1356,9 @@
           "to": [
             "Principled BSDF",
             "Subsurface Anisotropy"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1344,7 +1368,9 @@
           "to": [
             "Principled BSDF",
             "Specular IOR Level"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1354,7 +1380,9 @@
           "to": [
             "Principled BSDF",
             "Specular Tint"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1364,7 +1392,9 @@
           "to": [
             "Principled BSDF",
             "Anisotropic"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1374,7 +1404,9 @@
           "to": [
             "Principled BSDF",
             "Anisotropic Rotation"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1384,7 +1416,9 @@
           "to": [
             "Principled BSDF",
             "Tangent"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1394,7 +1428,9 @@
           "to": [
             "Principled BSDF",
             "Transmission Weight"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1404,7 +1440,9 @@
           "to": [
             "Principled BSDF",
             "Coat Weight"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1414,7 +1452,9 @@
           "to": [
             "Principled BSDF",
             "Coat Roughness"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1424,7 +1464,9 @@
           "to": [
             "Principled BSDF",
             "Coat IOR"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1434,7 +1476,9 @@
           "to": [
             "Principled BSDF",
             "Coat Tint"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1444,7 +1488,9 @@
           "to": [
             "Principled BSDF",
             "Coat Normal"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1454,7 +1500,9 @@
           "to": [
             "Principled BSDF",
             "Sheen Weight"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1464,7 +1512,9 @@
           "to": [
             "Principled BSDF",
             "Sheen Roughness"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1474,7 +1524,9 @@
           "to": [
             "Principled BSDF",
             "Sheen Tint"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1484,7 +1536,9 @@
           "to": [
             "Principled BSDF",
             "Emission Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1494,7 +1548,9 @@
           "to": [
             "Principled BSDF",
             "Emission Strength"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1504,7 +1560,9 @@
           "to": [
             "Principled BSDF",
             "Thin Film Thickness"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1514,7 +1572,9 @@
           "to": [
             "Principled BSDF",
             "Thin Film IOR"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         }
       ]
     }

@@ -27,6 +27,20 @@ STRUCTS = ("color_ramp", "mapping")
 # Socket types that carry a `default_value` in the document.
 VALUE_SOCKETS = {"VALUE", "INT", "BOOLEAN", "VECTOR", "ROTATION", "RGBA", "STRING"}
 
+# A curve mapping's settings, besides its curves.
+MAPPING_KEYS = ("extend", "tone", "clip_min_x", "clip_min_y", "clip_max_x", "clip_max_y", "use_clip", "black_level",
+                "white_level")
+
+# The nodes whose sockets are a group's interface sockets: they find them through the group's identifier map.
+GROUP_NODE = "ShaderNodeGroup"
+GROUP_IO_NODES = ("NodeGroupInput", "NodeGroupOutput")
+
+
+def own_property(prop):
+    """Whether a node property is the node's own state: not a base property every shader node has, and writable
+    (or a read-only pointer to a struct the node owns)."""
+    return prop.identifier not in BASE_PROPERTIES and (not prop.is_readonly or prop.identifier in STRUCTS)
+
 
 class Collector:
     """The groups and images met while walking, in first-use order."""
@@ -71,7 +85,7 @@ def dump(materials):
 def dump_material(material, collector):
     """One material: its settings, output node, nodes and links."""
     tree = material.node_tree
-    output = tree.get_output_node("ALL") if tree else None
+    output = active_output(tree) if tree else None
     return {
         "name": material.name,
         "settings": {key: getattr(material, key) for key in SETTINGS},
@@ -79,6 +93,16 @@ def dump_material(material, collector):
         "nodes": [dump_node(node, collector) for node in tree.nodes] if tree else [],
         "links": dump_links(tree) if tree else [],
     }
+
+
+def active_output(tree):
+    """Blender's output node for all engines, else for EEVEE, else for Cycles: a material whose outputs all target one
+    engine still has one."""
+    for target in ("ALL", "EEVEE", "CYCLES"):
+        output = tree.get_output_node(target)
+        if output is not None:
+            return output
+    return None
 
 
 def dump_node(node, collector):
@@ -100,12 +124,15 @@ def dump_node(node, collector):
 
 
 def dump_properties(node, collector):
-    """The node's own writable properties, by RNA identifier."""
+    """The node's own writable properties, by RNA identifier; one Blender cannot read is left out."""
     result = {}
     for prop in node.bl_rna.properties:
-        if prop.identifier in BASE_PROPERTIES or (prop.is_readonly and prop.identifier not in STRUCTS):
+        if not own_property(prop):
             continue
-        value = getattr(node, prop.identifier)
+        try:
+            value = getattr(node, prop.identifier)
+        except Exception:
+            continue
         if prop.type == "POINTER":
             result[prop.identifier] = dump_pointer(prop.identifier, value, collector)
         elif prop.type == "ENUM":
@@ -148,15 +175,9 @@ def dump_ramp(ramp):
 
 
 def dump_mapping(mapping):
-    """A curve mapping: its clipping and the points of each curve."""
+    """A curve mapping: its clipping, levels and the points of each curve."""
     return {
-        "extend": mapping.extend,
-        "tone": mapping.tone,
-        "clip_min_x": float(mapping.clip_min_x),
-        "clip_min_y": float(mapping.clip_min_y),
-        "clip_max_x": float(mapping.clip_max_x),
-        "clip_max_y": float(mapping.clip_max_y),
-        "use_clip": mapping.use_clip,
+        **{key: plain(getattr(mapping, key)) for key in MAPPING_KEYS},
         "curves": [
             [{"location": plain(point.location), "handle_type": point.handle_type} for point in curve.points]
             for curve in mapping.curves
@@ -181,10 +202,13 @@ def socket_value(socket):
 
 
 def dump_links(tree):
-    """The tree's links by node name and socket identifier, the invalid ones too."""
+    """The tree's links by node name and socket identifier, whether they are muted and whether Blender finds them
+    valid (the invalid ones are dumped too)."""
     return [
         {"from": [link.from_node.name, link.from_socket.identifier],
-         "to": [link.to_node.name, link.to_socket.identifier]}
+         "to": [link.to_node.name, link.to_socket.identifier],
+         "muted": link.is_muted,
+         "valid": link.is_valid}
         for link in tree.links
     ]
 
@@ -209,7 +233,7 @@ def dump_group(tree, collector):
 
 def dump_image(image):
     """An image: where it comes from and how it is read."""
-    path = bpy.path.abspath(image.filepath) if image.filepath else ""
+    path = bpy.path.abspath(image.filepath, library=image.library) if image.filepath else ""
     return {
         "name": image.name,
         "filepath": path.replace("\\", "/"),
@@ -221,8 +245,23 @@ def dump_image(image):
 
 
 def to_text(doc):
-    """The document as text: two-space indent, insertion order, trailing newline."""
-    return json.dumps(doc, indent=2) + "\n"
+    """The document as text: two-space indent, insertion order, trailing newline. JSON has no NaN or infinity, so a
+    document holding one is refused, naming the materials and groups that hold it."""
+    try:
+        return json.dumps(doc, indent=2, allow_nan=False) + "\n"
+    except ValueError:
+        entries = doc.get("materials", []) + doc.get("groups", [])
+        where = ", ".join(entry["name"] for entry in entries if not json_safe(entry)) or "outside its materials"
+        raise ValueError(f"the document holds a NaN or infinite value: {where}") from None
+
+
+def json_safe(value):
+    """Whether the value is JSON without NaN or infinity."""
+    try:
+        json.dumps(value, allow_nan=False)
+    except ValueError:
+        return False
+    return True
 
 
 def from_text(text):
@@ -240,7 +279,8 @@ MAX_IDENTIFIER_GAP = 1000
 
 
 class Loader:
-    """What loading one document needs: the warnings so far, the document's images, the groups and images made."""
+    """What loading one document needs: the warnings so far, the document's images, the groups and images made, and
+    each made group's map from the document's socket identifiers to the ones Blender gave (when they differ)."""
 
     def __init__(self, doc, replace):
         self.replace = replace
@@ -248,12 +288,24 @@ class Loader:
         self.image_docs = {entry["name"]: entry for entry in doc.get("images", [])}
         self.images = {}
         self.groups = {}
+        self.identifiers = {}
 
     def warn(self, where, message):
         self.warnings.append(f"{where}: {message}")
 
+    def socket_map(self, node):
+        """The identifier map for a node's sockets: its group's for a group node, its tree's for a Group Input or
+        Output node (both show the group's interface sockets), none for any other node."""
+        if node.bl_idname == GROUP_NODE:
+            tree = node.node_tree
+        elif node.bl_idname in GROUP_IO_NODES:
+            tree = node.id_data
+        else:
+            return {}
+        return self.identifiers.get(tree.as_pointer(), {}) if tree is not None else {}
 
-def load(doc, replace=False):
+
+def load(doc, *, replace=False):
     """Instantiate a document: its node groups, then its materials. Returns (materials, warnings).
 
     A material or group that already has the name is a new one (Blender numbers it) unless `replace`, which rebuilds
@@ -274,23 +326,36 @@ def load(doc, replace=False):
 def make_group(entry, loader):
     """A node group with the entry's name and interface (empty of nodes).
 
-    Replacing builds a new group and hands the old one's users to it: an emptied interface would keep counting its
-    socket identifiers from where it stopped, and the document's identifiers would no longer be the ones Blender gives.
+    Replacing builds a new group and hands the old one's users (and fake user) to it: an emptied interface would keep
+    counting its socket identifiers from where it stopped, and the document's identifiers would no longer be the ones
+    Blender gives. Only a shader group is replaced; another kind of node group of the name is left alone, its users
+    with it, and the new group gets a numbered name.
     """
-    old = bpy.data.node_groups.get(entry["name"]) if loader.replace else None
-    tree = bpy.data.node_groups.new(entry["name"], "ShaderNodeTree")
+    name = entry["name"]
+    old = bpy.data.node_groups.get(name) if loader.replace else None
+    if old is not None and old.bl_idname != "ShaderNodeTree":
+        loader.warn(f"group {name}", "an existing non-shader node group of that name was left alone")
+        old = None
+    tree = bpy.data.node_groups.new(name, "ShaderNodeTree")
     if old is not None:
+        fake_user = old.use_fake_user
         old.user_remap(tree)
         bpy.data.node_groups.remove(old)
-        tree.name = entry["name"]
-    load_interface(tree, entry.get("interface", []), f"group {entry['name']}", loader)
+        tree.name = name
+        tree.use_fake_user = fake_user
+    load_interface(tree, entry.get("interface", []), f"group {name}", loader)
     return tree
 
 
 def load_interface(tree, items, where, loader):
-    """The group's interface sockets, created in the order Blender numbered them so the identifiers match."""
+    """The group's interface sockets, created in the order Blender numbered them so the identifiers match.
+
+    An identifier Blender does not give any more (`Input_0`, `Output_1` from a group made before Blender 4.0) is
+    mapped to the socket's new one, which the group's nodes and links then use.
+    """
     order = sorted(range(len(items)), key=lambda i: (identifier_number(items[i]["identifier"]), i))
     created = {}
+    renamed = loader.identifiers.setdefault(tree.as_pointer(), {})
     for index in order:
         item = items[index]
         try:
@@ -301,7 +366,9 @@ def load_interface(tree, items, where, loader):
             loader.warn(where, f"interface {item['name']}: {error}")
             continue
         if socket.identifier != item["identifier"]:
-            loader.warn(where, f"interface {item['name']} is {socket.identifier}, not {item['identifier']}")
+            renamed[item["identifier"]] = socket.identifier
+            if identifier_number(item["identifier"]) != float("inf"):
+                loader.warn(where, f"interface {item['name']} is {socket.identifier}, not {item['identifier']}")
         created[index] = socket
     # Creation order is not the document's order when the identifiers were not numbered in it.
     for position, socket in enumerate(created[index] for index in sorted(created)):
@@ -323,9 +390,9 @@ def new_interface_socket(interface, item, where, loader):
 
 
 def identifier_number(identifier):
-    """The number at the end of an interface identifier (`Socket_3` is 3); identifiers without one go last."""
-    tail = identifier.rpartition("_")[2]
-    return int(tail) if tail.isdigit() else float("inf")
+    """The number of a `Socket_N` interface identifier (`Socket_3` is 3); any other identifier goes last."""
+    prefix, _, tail = identifier.partition("_")
+    return int(tail) if prefix == "Socket" and tail.isdigit() else float("inf")
 
 
 def load_material(entry, loader):
@@ -393,7 +460,7 @@ def set_properties(node, properties, where, loader):
     """Each property by RNA identifier; unknown, read-only and rejected ones become warnings."""
     for key, value in properties.items():
         prop = node.bl_rna.properties.get(key)
-        if prop is None or key in BASE_PROPERTIES or (prop.is_readonly and key not in STRUCTS):
+        if prop is None or not own_property(prop):
             loader.warn(where, f"{node.name}: no property {key}")
             continue
         try:
@@ -482,8 +549,9 @@ def set_ramp(ramp, spec):
 
 
 def set_mapping(mapping, spec):
-    """Write a curve mapping back: its clipping, then the points of each curve (Blender keeps at least two)."""
-    for key in ("extend", "tone", "clip_min_x", "clip_min_y", "clip_max_x", "clip_max_y", "use_clip"):
+    """Write a curve mapping back: its clipping and levels, then the points of each curve (Blender keeps at least
+    two)."""
+    for key in MAPPING_KEYS:
         setattr(mapping, key, spec[key])
     for curve, points in zip(mapping.curves, spec["curves"]):
         while len(curve.points) > max(len(points), 2):
@@ -501,8 +569,9 @@ def set_mapping(mapping, spec):
 def set_values(node, sockets, entries, kind, where, loader):
     """Socket values by identifier; an identifier the node does not have is a warning."""
     by_identifier = {socket.identifier: socket for socket in reversed(sockets)}
+    renamed = loader.socket_map(node)
     for entry in entries:
-        socket = by_identifier.get(entry["identifier"])
+        socket = by_identifier.get(renamed.get(entry["identifier"], entry["identifier"]))
         if socket is None:
             loader.warn(where, f"{node.name}: no {kind} {entry['identifier']}")
         elif "value" in entry:
@@ -513,19 +582,26 @@ def set_values(node, sockets, entries, kind, where, loader):
 
 
 def load_links(tree, links, nodes, where, loader):
-    """Links by node name and socket identifier; one whose node or socket is missing is skipped with a warning."""
+    """Links by node name and socket identifier, muted as the entry says (Blender works out whether each is valid);
+    one whose node or socket is missing is skipped with a warning."""
     for link in links:
         (from_name, from_id), (to_name, to_id) = link["from"], link["to"]
         label = f"link {from_name}.{from_id} -> {to_name}.{to_id} skipped"
         if from_name not in nodes or to_name not in nodes:
             loader.warn(where, f"{label}: unknown node")
             continue
-        source = next((s for s in nodes[from_name].outputs if s.identifier == from_id), None)
-        target = next((s for s in nodes[to_name].inputs if s.identifier == to_id), None)
+        source = find_socket(nodes[from_name], nodes[from_name].outputs, from_id, loader)
+        target = find_socket(nodes[to_name], nodes[to_name].inputs, to_id, loader)
         if source is None or target is None:
             loader.warn(where, f"{label}: no socket {from_id if source is None else to_id}")
             continue
         try:
-            tree.links.new(source, target, verify_limits=False)
+            tree.links.new(source, target, verify_limits=False).is_muted = link.get("muted", False)
         except Exception as error:
             loader.warn(where, f"{label}: {error}")
+
+
+def find_socket(node, sockets, identifier, loader):
+    """The node's socket of that document identifier, through its group's identifier map; None when there is none."""
+    identifier = loader.socket_map(node).get(identifier, identifier)
+    return next((socket for socket in sockets if socket.identifier == identifier), None)

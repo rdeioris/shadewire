@@ -629,7 +629,9 @@
           "to": [
             "Material Output",
             "Surface"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -639,7 +641,9 @@
           "to": [
             "Principled BSDF",
             "Roughness"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -649,7 +653,9 @@
           "to": [
             "Muted Add",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -659,7 +665,9 @@
           "to": [
             "Reroute",
             "Input"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -669,7 +677,9 @@
           "to": [
             "Principled BSDF",
             "Metallic"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -679,7 +689,9 @@
           "to": [
             "Principled BSDF",
             "Base Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         }
       ]
     }
@@ -832,7 +844,9 @@
           "to": [
             "Scale",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -842,7 +856,9 @@
           "to": [
             "Group Output",
             "Socket_1"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         }
       ]
     }

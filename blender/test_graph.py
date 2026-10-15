@@ -89,7 +89,8 @@ def test_dump_shape(graph):
     check(by_name["Principled BSDF"]["inputs"][0]["value"] == [0.8, 0.8, 0.8, 1.0]
           or len(by_name["Principled BSDF"]["inputs"][0]["value"]) == 4, "RGBA value is four floats")
     check("value" not in by_name["Principled BSDF"]["outputs"][0], "shader sockets have no value")
-    check({"from": ["Albedo", "Color"], "to": ["Principled BSDF", "Base Color"]} in material["links"], "link by identifiers")
+    check({"from": ["Albedo", "Color"], "to": ["Principled BSDF", "Base Color"], "muted": False, "valid": True}
+          in material["links"], "link by identifiers")
     check(by_name["Reroute"]["type"] == "NodeReroute" and by_name["Frame"]["type"] == "NodeFrame", "reroute and frame")
     ramp = by_name["Color Ramp"]["properties"]["color_ramp"]
     check(ramp["interpolation"] == "LINEAR" and len(ramp["elements"]) == 2
@@ -224,6 +225,7 @@ def test_stress_round_trip(graph):
     rgb.curves[0].points.new(0.3, 0.6)
     rgb.curves[0].points.new(0.6, 0.2)
     rgb.curves[0].points[1].handle_type = "VECTOR"
+    rgb.black_level, rgb.white_level = (0.1, 0.05, 0.0), (0.9, 0.95, 1.0)
     rgb.update()
     t.nodes.new("ShaderNodeFloatCurve").mapping.curves[0].points.new(0.5, 0.9)
     t.nodes.new("ShaderNodeVectorCurve")
@@ -255,6 +257,128 @@ def test_stress_round_trip(graph):
     t.links.new(t.nodes["Color Ramp"].outputs[0], colors[0])
     t.links.new(t.nodes["Color Ramp"].outputs[0], colors[1])
     round_trip(graph, [m], "stress")
+    levels = bpy.data.materials["Stress"].node_tree.nodes["RGB Curves"].mapping
+    check(close(levels.black_level, (0.1, 0.05, 0.0)) and close(levels.white_level, (0.9, 0.95, 1.0)),
+          f"curve levels: {tuple(levels.black_level)} {tuple(levels.white_level)}")
+
+
+def fixtures_module():
+    spec = importlib.util.spec_from_file_location("make_fixtures", os.path.join(here, "make_fixtures.py"))
+    make = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(make)
+    return make
+
+
+def test_replace_leaves_other_groups(graph):
+    """Replace rebuilds a shader group of the document's name (keeping its fake user) but leaves another kind of node
+    group of that name, and its users, alone."""
+    clear_data()
+    doc = graph.dump([fixtures_module().structure()])
+    clear_data()
+    geometry = bpy.data.node_groups.new("Gain", "GeometryNodeTree")
+    holder = bpy.data.objects.new("Holder", bpy.data.meshes.new("Holder"))
+    modifier = holder.modifiers.new("Nodes", "NODES")
+    modifier.node_group = geometry
+    materials, warnings = graph.load(doc, replace=True)
+    kept = bpy.data.node_groups.get("Gain")
+    check(kept is not None and kept.bl_idname == "GeometryNodeTree", "replace removed the Geometry Nodes group")
+    used = modifier.node_group
+    check(used is not None and used.name == "Gain" and used.bl_idname == "GeometryNodeTree",
+          f"the modifier lost its group: {used and (used.name, used.bl_idname)}")
+    check(warnings == ["group Gain: an existing non-shader node group of that name was left alone"],
+          f"replace over a non-shader group: {warnings}")
+    tree = materials[0].node_tree.nodes["Gain"].node_tree
+    check(tree is not None and tree.bl_idname == "ShaderNodeTree" and tree.name != "Gain",
+          f"the loaded group node's tree: {tree and (tree.name, tree.bl_idname)}")
+    clear_data()
+    bpy.data.node_groups.new("Gain", "ShaderNodeTree").use_fake_user = True
+    graph.load(doc, replace=True)
+    replaced = bpy.data.node_groups["Gain"]
+    check(replaced.use_fake_user and len(replaced.nodes) == 3, "replace keeps the old group's fake user")
+
+
+def test_muted_link(graph):
+    """A muted link is dumped muted and loads muted; every link says whether Blender finds it valid."""
+    clear_data()
+    m = bpy.data.materials.new("MutedLink")
+    m.use_nodes = True
+    t = m.node_tree
+    principled = next(n for n in t.nodes if n.bl_idname == "ShaderNodeBsdfPrincipled")
+    value = t.nodes.new("ShaderNodeValue")
+    t.links.new(value.outputs[0], principled.inputs["Roughness"]).is_muted = True
+    links = graph.dump([m])["materials"][0]["links"]
+    check([link.get("muted") for link in links].count(True) == 1 and all(link.get("valid") is True for link in links),
+          f"links carry muted and valid: {links}")
+    round_trip(graph, [m], "muted link")
+    loaded = bpy.data.materials["MutedLink"].node_tree.links
+    check([link.is_muted for link in loaded if link.from_node.bl_idname == "ShaderNodeValue"] == [True],
+          "the link loads muted")
+
+
+def test_legacy_identifiers(graph):
+    """A group saved before Blender 4.0 names its interface sockets Input_N and Output_N: the loaded group's sockets get
+    the identifiers Blender gives now, and the group nodes, Group Input/Output nodes and links naming the old ones
+    find them."""
+    clear_data()
+    material = fixtures_module().structure()
+    material.node_tree.nodes["Gain"].inputs[0].default_value = 0.75
+    original = graph.dump([material])
+    text = graph.to_text(original).replace('"Socket_0"', '"Input_0"').replace('"Socket_1"', '"Output_1"')
+    check('"Input_0"' in text and '"Output_1"' in text, "the legacy document names Input_0 and Output_1")
+    clear_data()
+    materials, warnings = graph.load(graph.from_text(text))
+    check(warnings == [], f"legacy identifiers: load warnings: {warnings}")
+    tree = materials[0].node_tree
+    links = original["materials"][0]["links"]
+    check(len(tree.links) == len(links), f"legacy identifiers: {len(tree.links)} links, not {len(links)}")
+    gain = tree.nodes["Gain"]
+    check(gain.node_tree is not None and len(gain.node_tree.links) == len(original["groups"][0]["links"]),
+          "legacy identifiers: the group's inner links")
+    check(abs(gain.inputs["Amount"].default_value - 0.75) < 1e-6,
+          f"legacy identifiers: Amount is {gain.inputs['Amount'].default_value}")
+    check(any(link.from_node == gain for link in tree.links), "legacy identifiers: the group node's output link")
+
+
+def test_engine_output(graph):
+    """A material whose only output targets one engine names that output."""
+    clear_data()
+    m = bpy.data.materials.new("EeveeOnly")
+    m.use_nodes = True
+    output = next(n for n in m.node_tree.nodes if n.bl_idname == "ShaderNodeOutputMaterial")
+    output.target = "EEVEE"
+    check(graph.dump([m])["materials"][0]["output"] == output.name, "an EEVEE-only output is the output")
+
+
+def test_document_errors(graph):
+    """A NaN cannot be written; a malformed document is an import error, not an exception."""
+    clear_data()
+    m = bpy.data.materials.new("Nan")
+    m.use_nodes = True
+    m.node_tree.nodes.new("ShaderNodeMath").inputs[1].default_value = float("nan")
+    try:
+        graph.to_text(graph.dump([m]))
+        check(False, "a NaN value must be refused")
+    except ValueError as error:
+        check("NaN" in str(error) and "Nan" in str(error), f"the NaN error names the material: {error}")
+    m.node_tree.nodes.remove(m.node_tree.nodes["Math"])
+    doc = graph.dump([m])
+    del doc["materials"][0]["nodes"][0]["width"]
+    with tempfile.TemporaryDirectory() as folder:
+        path = os.path.join(folder, "broken.json")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(graph.to_text(doc))
+        # An operator's error report reaches a Python caller as a RuntimeError; an uncaught exception would too, as
+        # a traceback.
+        try:
+            result = str(bpy.ops.shadewire.import_graph(filepath=path))
+        except RuntimeError as error:
+            result = str(error)
+        check("malformed document" in result and "Traceback" not in result, f"a malformed document: {result}")
+
+
+def close(a, b):
+    """Equal element by element within one 8-bit step."""
+    return len(a) == len(b) and all(abs(x - y) <= 1 / 255 for x, y in zip(a, b))
 
 
 def test_operators():
@@ -282,9 +406,7 @@ def test_operators():
 
 def test_fixtures_are_current(graph):
     """Regenerating the fixtures in this Blender changes nothing but the producer line."""
-    spec = importlib.util.spec_from_file_location("make_fixtures", os.path.join(here, "make_fixtures.py"))
-    make = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(make)
+    make = fixtures_module()
     folder = os.path.join(here, "fixtures", "graphs")
     for name, build in make.FIXTURES.items():
         bpy.ops.wm.read_homefile(use_empty=True)
@@ -308,6 +430,11 @@ test_round_trip(addon.graph)
 test_load_warnings(addon.graph)
 test_group_identifier_gap(addon.graph)
 test_stress_round_trip(addon.graph)
+test_replace_leaves_other_groups(addon.graph)
+test_muted_link(addon.graph)
+test_legacy_identifiers(addon.graph)
+test_engine_output(addon.graph)
+test_document_errors(addon.graph)
 test_operators()
 test_fixtures_are_current(addon.graph)
 print("FAILURES", len(failures))

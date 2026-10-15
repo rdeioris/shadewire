@@ -811,6 +811,16 @@
               "clip_max_x": 1.0,
               "clip_max_y": 1.0,
               "use_clip": true,
+              "black_level": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "white_level": [
+                1.0,
+                1.0,
+                1.0
+              ],
               "curves": [
                 [
                   {
@@ -949,6 +959,16 @@
               "clip_max_x": 1.0,
               "clip_max_y": 1.0,
               "use_clip": true,
+              "black_level": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "white_level": [
+                1.0,
+                1.0,
+                1.0
+              ],
               "curves": [
                 [
                   {
@@ -1018,7 +1038,9 @@
           "to": [
             "Material Output",
             "Surface"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1028,7 +1050,9 @@
           "to": [
             "Color Ramp",
             "Fac"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1038,7 +1062,9 @@
           "to": [
             "RGB Curves",
             "Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1048,7 +1074,9 @@
           "to": [
             "Principled BSDF",
             "Base Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1058,7 +1086,9 @@
           "to": [
             "Float Curve",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1068,7 +1098,9 @@
           "to": [
             "Principled BSDF",
             "Metallic"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1078,7 +1110,9 @@
           "to": [
             "Principled BSDF",
             "Roughness"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1088,7 +1122,9 @@
           "to": [
             "Principled BSDF",
             "Alpha"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1098,7 +1134,9 @@
           "to": [
             "Principled BSDF",
             "Emission Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1108,7 +1146,9 @@
           "to": [
             "Principled BSDF",
             "Emission Strength"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         }
       ]
     }

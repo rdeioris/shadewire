@@ -254,9 +254,10 @@ class SHADEWIRE_OT_export_graph(bpy.types.Operator, ExportHelper):
                 os.makedirs(folder, exist_ok=True)
                 for entry in doc["images"]:
                     copy_texture(self, entry, folder)
+            text = graph.to_text(doc)
             with open(self.filepath, "w", encoding="utf-8", newline="\n") as f:
-                f.write(graph.to_text(doc))
-        except OSError as e:
+                f.write(text)
+        except (OSError, ValueError) as e:
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}
         self.report({"INFO"}, f"exported {len(materials)} materials ({len(doc['images'])} images)")
@@ -285,7 +286,11 @@ class SHADEWIRE_OT_import_graph(bpy.types.Operator, ImportHelper):
         except (OSError, ValueError) as e:
             self.report({"ERROR"}, f"{os.path.basename(self.filepath)}: {e}")
             return {"CANCELLED"}
-        materials, warnings = graph.load(doc, self.replace)
+        try:
+            materials, warnings = graph.load(doc, replace=self.replace)
+        except (KeyError, TypeError, ValueError) as e:
+            self.report({"ERROR"}, f"{os.path.basename(self.filepath)}: malformed document: {type(e).__name__} {e}")
+            return {"CANCELLED"}
         for w in warnings:
             self.report({"WARNING"}, w)
         self.report({"INFO"}, f"imported {len(materials)} materials")

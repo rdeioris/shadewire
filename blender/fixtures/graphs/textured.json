@@ -802,7 +802,9 @@
           "to": [
             "Material Output",
             "Surface"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -812,7 +814,9 @@
           "to": [
             "Tiling",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -822,7 +826,9 @@
           "to": [
             "Albedo",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -832,7 +838,9 @@
           "to": [
             "Principled BSDF",
             "Base Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -842,7 +850,9 @@
           "to": [
             "Normal Map",
             "Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -852,7 +862,9 @@
           "to": [
             "Principled BSDF",
             "Normal"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -862,7 +874,9 @@
           "to": [
             "Roughness Image",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -872,7 +886,9 @@
           "to": [
             "Principled BSDF",
             "Roughness"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         }
       ]
     }

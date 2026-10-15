@@ -1422,7 +1422,9 @@
           "to": [
             "Mix Diffuse Glossy",
             "Shader"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1432,7 +1434,9 @@
           "to": [
             "Mix Diffuse Glossy",
             "Shader_001"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1442,7 +1446,9 @@
           "to": [
             "Mix Glass Refraction",
             "Shader"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1452,7 +1458,9 @@
           "to": [
             "Mix Glass Refraction",
             "Shader_001"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1462,7 +1470,9 @@
           "to": [
             "Add Surface",
             "Shader"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1472,7 +1482,9 @@
           "to": [
             "Add Surface",
             "Shader_001"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1482,7 +1494,9 @@
           "to": [
             "Add Translucent Sheen",
             "Shader"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1492,7 +1506,9 @@
           "to": [
             "Add Translucent Sheen",
             "Shader_001"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1502,7 +1518,9 @@
           "to": [
             "Mix Soft",
             "Shader"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1512,7 +1530,9 @@
           "to": [
             "Mix Soft",
             "Shader_001"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1522,7 +1542,9 @@
           "to": [
             "Add Metals",
             "Shader"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1532,7 +1554,9 @@
           "to": [
             "Add Metals",
             "Shader_001"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1542,7 +1566,9 @@
           "to": [
             "Mix Emission Transparent",
             "Shader"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1552,7 +1578,9 @@
           "to": [
             "Mix Emission Transparent",
             "Shader_001"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1562,7 +1590,9 @@
           "to": [
             "Add Top",
             "Shader"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1572,7 +1602,9 @@
           "to": [
             "Add Top",
             "Shader_001"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1582,7 +1614,9 @@
           "to": [
             "Add Bottom",
             "Shader"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1592,7 +1626,9 @@
           "to": [
             "Add Bottom",
             "Shader_001"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1602,7 +1638,9 @@
           "to": [
             "Mix Final",
             "Shader"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1612,7 +1650,9 @@
           "to": [
             "Mix Final",
             "Shader_001"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1622,7 +1662,9 @@
           "to": [
             "Material Output",
             "Surface"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         }
       ]
     }

@@ -1409,7 +1409,9 @@
           "to": [
             "Material Output",
             "Surface"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1419,7 +1421,9 @@
           "to": [
             "Noise 3D",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1429,7 +1433,9 @@
           "to": [
             "Principled BSDF",
             "Base Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1439,7 +1445,9 @@
           "to": [
             "Noise 4D",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1449,7 +1457,9 @@
           "to": [
             "Noise 4D",
             "W"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1459,7 +1469,9 @@
           "to": [
             "Principled BSDF",
             "Roughness"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1469,7 +1481,9 @@
           "to": [
             "Voronoi F1",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1479,7 +1493,9 @@
           "to": [
             "Principled BSDF",
             "Metallic"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1489,7 +1505,9 @@
           "to": [
             "Voronoi Smooth",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1499,7 +1517,9 @@
           "to": [
             "Principled BSDF",
             "Emission Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1509,7 +1529,9 @@
           "to": [
             "White Noise",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1519,7 +1541,9 @@
           "to": [
             "Principled BSDF",
             "Emission Strength"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1529,7 +1553,9 @@
           "to": [
             "Checker",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1539,7 +1565,9 @@
           "to": [
             "Principled BSDF",
             "Alpha"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1549,7 +1577,9 @@
           "to": [
             "Gradient Linear",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1559,7 +1589,9 @@
           "to": [
             "Principled BSDF",
             "Coat Weight"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1569,7 +1601,9 @@
           "to": [
             "Gradient Spherical",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1579,7 +1613,9 @@
           "to": [
             "Principled BSDF",
             "Sheen Weight"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1589,7 +1625,9 @@
           "to": [
             "Principled BSDF",
             "Specular Tint"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -1599,7 +1637,9 @@
           "to": [
             "Principled BSDF",
             "Normal"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         }
       ]
     }

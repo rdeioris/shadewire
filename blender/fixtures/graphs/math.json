@@ -4295,7 +4295,9 @@
           "to": [
             "Material Output",
             "Surface"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4305,7 +4307,9 @@
           "to": [
             "Math ADD",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4315,7 +4319,9 @@
           "to": [
             "Math SUBTRACT",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4325,7 +4331,9 @@
           "to": [
             "Math MULTIPLY",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4335,7 +4343,9 @@
           "to": [
             "Math DIVIDE",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4345,7 +4355,9 @@
           "to": [
             "Math MULTIPLY_ADD",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4355,7 +4367,9 @@
           "to": [
             "Math POWER",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4365,7 +4379,9 @@
           "to": [
             "Math LOGARITHM",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4375,7 +4391,9 @@
           "to": [
             "Math SQRT",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4385,7 +4403,9 @@
           "to": [
             "Math INVERSE_SQRT",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4395,7 +4415,9 @@
           "to": [
             "Math ABSOLUTE",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4405,7 +4427,9 @@
           "to": [
             "Math EXPONENT",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4415,7 +4439,9 @@
           "to": [
             "Math MINIMUM",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4425,7 +4451,9 @@
           "to": [
             "Math MAXIMUM",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4435,7 +4463,9 @@
           "to": [
             "Math LESS_THAN",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4445,7 +4475,9 @@
           "to": [
             "Math GREATER_THAN",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4455,7 +4487,9 @@
           "to": [
             "Math SIGN",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4465,7 +4499,9 @@
           "to": [
             "Math COMPARE",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4475,7 +4511,9 @@
           "to": [
             "Math SMOOTH_MIN",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4485,7 +4523,9 @@
           "to": [
             "Math SMOOTH_MAX",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4495,7 +4535,9 @@
           "to": [
             "Math ROUND",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4505,7 +4547,9 @@
           "to": [
             "Math FLOOR",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4515,7 +4559,9 @@
           "to": [
             "Math CEIL",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4525,7 +4571,9 @@
           "to": [
             "Math TRUNC",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4535,7 +4583,9 @@
           "to": [
             "Math FRACT",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4545,7 +4595,9 @@
           "to": [
             "Math MODULO",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4555,7 +4607,9 @@
           "to": [
             "Math FLOORED_MODULO",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4565,7 +4619,9 @@
           "to": [
             "Math WRAP",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4575,7 +4631,9 @@
           "to": [
             "Math SNAP",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4585,7 +4643,9 @@
           "to": [
             "Math PINGPONG",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4595,7 +4655,9 @@
           "to": [
             "Math SINE",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4605,7 +4667,9 @@
           "to": [
             "Math COSINE",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4615,7 +4679,9 @@
           "to": [
             "Math TANGENT",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4625,7 +4691,9 @@
           "to": [
             "Math ARCSINE",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4635,7 +4703,9 @@
           "to": [
             "Math ARCCOSINE",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4645,7 +4715,9 @@
           "to": [
             "Math ARCTANGENT",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4655,7 +4727,9 @@
           "to": [
             "Math ARCTAN2",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4665,7 +4739,9 @@
           "to": [
             "Math SINH",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4675,7 +4751,9 @@
           "to": [
             "Math COSH",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4685,7 +4763,9 @@
           "to": [
             "Math TANH",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4695,7 +4775,9 @@
           "to": [
             "Math RADIANS",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4705,7 +4787,9 @@
           "to": [
             "Math DEGREES",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4715,7 +4799,9 @@
           "to": [
             "Combine XYZ",
             "X"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4725,7 +4811,9 @@
           "to": [
             "Vector ADD",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4735,7 +4823,9 @@
           "to": [
             "Vector MULTIPLY",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4745,7 +4835,9 @@
           "to": [
             "Vector CROSS_PRODUCT",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4755,7 +4847,9 @@
           "to": [
             "Vector NORMALIZE",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4765,7 +4859,9 @@
           "to": [
             "Mix Vector",
             "A_Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4775,7 +4871,9 @@
           "to": [
             "Separate XYZ",
             "Vector"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4785,7 +4883,9 @@
           "to": [
             "Clamp",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4795,7 +4895,9 @@
           "to": [
             "Map Range Linear",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4805,7 +4907,9 @@
           "to": [
             "Map Range Smooth",
             "Value"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4815,7 +4919,9 @@
           "to": [
             "Mix Float",
             "A_Float"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4825,7 +4931,9 @@
           "to": [
             "Mix Float",
             "B_Float"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4835,7 +4943,9 @@
           "to": [
             "Emission",
             "Strength"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4845,7 +4955,9 @@
           "to": [
             "Combine RGB",
             "Red"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4855,7 +4967,9 @@
           "to": [
             "Combine RGB",
             "Green"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4865,7 +4979,9 @@
           "to": [
             "Separate HSV",
             "Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4875,7 +4991,9 @@
           "to": [
             "Combine HSV",
             "Red"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4885,7 +5003,9 @@
           "to": [
             "Combine HSV",
             "Green"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4895,7 +5015,9 @@
           "to": [
             "Combine HSV",
             "Blue"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4905,7 +5027,9 @@
           "to": [
             "Separate RGB",
             "Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4915,7 +5039,9 @@
           "to": [
             "Combine RGB Again",
             "Red"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4925,7 +5051,9 @@
           "to": [
             "Combine RGB Again",
             "Green"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4935,7 +5063,9 @@
           "to": [
             "Combine RGB Again",
             "Blue"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4945,7 +5075,9 @@
           "to": [
             "Mix Color",
             "A_Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4955,7 +5087,9 @@
           "to": [
             "Invert Color",
             "Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4965,7 +5099,9 @@
           "to": [
             "Gamma",
             "Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4975,7 +5111,9 @@
           "to": [
             "Brightness/Contrast",
             "Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4985,7 +5123,9 @@
           "to": [
             "Hue/Saturation/Value",
             "Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         },
         {
           "from": [
@@ -4995,7 +5135,9 @@
           "to": [
             "Emission",
             "Color"
-          ]
+          ],
+          "muted": false,
+          "valid": true
         }
       ]
     }
