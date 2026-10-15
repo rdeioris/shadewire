@@ -116,7 +116,7 @@ wheel included:
 
 ```bash
 export BLENDER_USER_RESOURCES=/tmp/shadewire-profile
-blender -b --command extension install-file -r user_default -e shadewire-0.1.0.zip
+blender -b --command extension install-file -r user_default -e shadewire-0.2.0.zip
 blender -b -P blender/smoke_test.py -- --installed
 ```
 

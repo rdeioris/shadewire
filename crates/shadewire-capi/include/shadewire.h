@@ -13,7 +13,7 @@
 #define SHADEWIRE_VERSION_MAJOR 0
 
 // The minor version of the header.
-#define SHADEWIRE_VERSION_MINOR 1
+#define SHADEWIRE_VERSION_MINOR 2
 
 // The patch version of the header.
 #define SHADEWIRE_VERSION_PATCH 0
@@ -567,7 +567,7 @@ void shadewire_resolution_fail(struct shadewire_resolution *out,
 // The version as `(major << 16) | (minor << 8) | patch`.
 uint32_t shadewire_version(void);
 
-// The version as a static NUL-terminated string, e.g. "0.1.0".
+// The version as a static NUL-terminated string, e.g. "0.2.0".
 const char *shadewire_version_string(void);
 
 #ifdef __cplusplus

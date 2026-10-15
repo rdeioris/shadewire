@@ -19,7 +19,7 @@ const fn component(text: &str) -> u32 {
 /// The major version of the header; compare with `shadewire_version() >> 16` to check the library.
 pub const SHADEWIRE_VERSION_MAJOR: u32 = 0;
 /// The minor version of the header.
-pub const SHADEWIRE_VERSION_MINOR: u32 = 1;
+pub const SHADEWIRE_VERSION_MINOR: u32 = 2;
 /// The patch version of the header.
 pub const SHADEWIRE_VERSION_PATCH: u32 = 0;
 
@@ -34,7 +34,7 @@ pub extern "C" fn shadewire_version() -> u32 {
     (SHADEWIRE_VERSION_MAJOR << 16) | (SHADEWIRE_VERSION_MINOR << 8) | SHADEWIRE_VERSION_PATCH
 }
 
-/// The version as a static NUL-terminated string, e.g. "0.1.0".
+/// The version as a static NUL-terminated string, e.g. "0.2.0".
 #[unsafe(no_mangle)]
 pub extern "C" fn shadewire_version_string() -> *const c_char {
     VERSION_STRING.as_ptr().cast()
@@ -47,7 +47,7 @@ mod tests {
 
     #[test]
     fn version_packs_major_minor_patch() {
-        assert_eq!(shadewire_version(), 1 << 8);
+        assert_eq!(shadewire_version(), 2 << 8);
     }
 
     #[test]
@@ -61,6 +61,6 @@ mod tests {
     #[test]
     fn version_string_reads_the_package_version() {
         let text = unsafe { CStr::from_ptr(shadewire_version_string()) };
-        assert_eq!(text.to_str().unwrap(), "0.1.0");
+        assert_eq!(text.to_str().unwrap(), "0.2.0");
     }
 }

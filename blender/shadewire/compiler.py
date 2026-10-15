@@ -162,7 +162,7 @@ class ExecutableBackend:
         old = ("unexpected argument", "unrecognized subcommand", "unknown format")
         if any(phrase in lowered for phrase in old) or ("invalid value" in lowered and "--format" in lowered):
             return (f"{message}\nthe shadewire executable at {self.path} does not read Blender graphs: "
-                    "a build with the Blender front end (0.1.0 or later) is needed")
+                    "a build with the Blender front end (0.2.0 or later) is needed")
         return message
 
 
@@ -259,7 +259,7 @@ def find_executable(configured=""):
 def missing_front_end(module):
     """The error for an installed `module` that predates the Blender front end."""
     return (f"the installed shadewire module {module.version()} has no Blender front end; this extension needs its "
-            "bundled module (0.1.0 with shadewire.blender) or the shadewire executable")
+            "bundled module (0.2.0 with shadewire.blender) or the shadewire executable")
 
 
 def backend(configured_executable=""):

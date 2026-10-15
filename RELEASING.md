@@ -24,8 +24,8 @@ manylinux2014 x64 and aarch64; Python's stable ABI, CPython 3.8 and up) built an
 sdist, and the `pypi` job that uploads them with trusted publishing.
 
 ```
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 Once, before the first tag: on pypi.org add a trusted publisher for the `shadewire` project (a "pending publisher"
@@ -40,7 +40,7 @@ Without CI, the same files build locally (`python blender/build_extension.py ...
 
 ```
 python blender/build_extension.py --blender <blender 4.3 or later> --out dist/blender
-blender --command extension validate dist/blender/shadewire-0.1.0.zip
+blender --command extension validate dist/blender/shadewire-0.2.0.zip
 ```
 
 Then test the zip as users get it, on each platform, with a portable Blender (the oldest supported, 4.3, and the
