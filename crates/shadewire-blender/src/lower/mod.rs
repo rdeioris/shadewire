@@ -6,6 +6,7 @@ pub mod fallback;
 pub mod lobes;
 pub mod math;
 pub mod principled;
+pub mod procedural;
 pub mod surface;
 pub mod texture;
 pub mod values;
@@ -20,6 +21,8 @@ mod lobes_tests;
 mod math_tests;
 #[cfg(test)]
 mod principled_tests;
+#[cfg(test)]
+mod procedural_tests;
 #[cfg(test)]
 pub(crate) mod tests;
 #[cfg(test)]
@@ -122,6 +125,12 @@ impl<'a> Lowerer<'a> {
             "ShaderNodeBump" => texture::bump(self, node, socket),
             "ShaderNodeMapping" => texture::mapping(self, node, socket),
             "ShaderNodeTangent" => texture::tangent(self, node, socket),
+            "ShaderNodeTexNoise" => procedural::noise(self, node, socket),
+            "ShaderNodeTexVoronoi" => procedural::voronoi(self, node, socket),
+            "ShaderNodeTexWhiteNoise" => procedural::white_noise(self, node, socket),
+            "ShaderNodeTexChecker" => procedural::checker(self, node, socket),
+            "ShaderNodeTexGradient" => procedural::gradient(self, node, socket),
+            "ShaderNodeLightPath" => procedural::light_path(self, node, socket),
             _ => fallback::default_output(self, node, socket),
         }
     }

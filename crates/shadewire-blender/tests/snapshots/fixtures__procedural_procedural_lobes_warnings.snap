@@ -2,19 +2,14 @@
 source: crates/shadewire-blender/tests/fixtures.rs
 expression: "ir.warnings.join(\"\\n\")"
 ---
-ShaderNodeTexNoise "Noise 3D": not lowered, output Color is its default value
-ShaderNodeTexVoronoi "Voronoi F1": not lowered, output Distance is its default value
-ShaderNodeTexNoise "Noise 4D": not lowered, output Fac is its default value
-ShaderNodeTexChecker "Checker": not lowered, output Fac is its default value
-ShaderNodeTexNoise "Noise 2D": not lowered, output Fac is its default value
+ShaderNodeTexCoord "Coordinates": Generated read as object position
+ShaderNodeTexNoise "Noise 4D": 4D noise read as 3D (W dropped)
+ShaderNodeTexChecker "Checker": checked over x and y only
 ShaderNodeVertexColor "Vertex Color": layer "Col" read as the first color set
-ShaderNodeTexVoronoi "Voronoi Edge": not lowered, output Distance is its default value
-ShaderNodeTexVoronoi "Voronoi Sphere": not lowered, output Radius is its default value
-ShaderNodeTexGradient "Gradient Linear": not lowered, output Fac is its default value
-ShaderNodeTexGradient "Gradient Quadratic": not lowered, output Fac is its default value
-ShaderNodeTexGradient "Gradient Spherical": not lowered, output Fac is its default value
-ShaderNodeTexGradient "Gradient Diagonal": not lowered, output Fac is its default value
-ShaderNodeTexVoronoi "Voronoi Smooth": not lowered, output Color is its default value
-ShaderNodeTexWhiteNoise "White Noise": not lowered, output Value is its default value
-ShaderNodeTexVoronoi "Voronoi F2": not lowered, output Distance is its default value
-ShaderNodeTexGradient "Gradient Radial": not lowered, output Fac is its default value
+ShaderNodeTexVoronoi "Voronoi Edge": feature DISTANCE_TO_EDGE read as F1
+ShaderNodeTexVoronoi "Voronoi Sphere": Radius read as the F1 distance
+ShaderNodeTexVoronoi "Voronoi Sphere": feature N_SPHERE_RADIUS read as F1
+ShaderNodeTexCoord "Coordinates": Camera not available, zero
+ShaderNodeTexCoord "Coordinates": Window not available, zero
+ShaderNodeTexVoronoi "Voronoi Smooth": Color read as a gray cell noise
+ShaderNodeTexCoord "Coordinates": Reflection not available, zero

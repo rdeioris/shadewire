@@ -7,7 +7,7 @@ ShaderNodeValToRGB "Color Ramp": not lowered, output Color is its default value
 ShaderNodeFloatCurve "Float Curve": curve ignored, the input passes through
 ShaderNodeLayerWeight "Layer Weight": not lowered, output Facing is its default value
 ShaderNodeLayerWeight "Layer Weight": not lowered, output Fresnel is its default value
-ShaderNodeLightPath "Light Path": not lowered, output Is Camera Ray is its default value
+ShaderNodeLightPath "Light Path": constants: Is Camera Ray 1, the rest 0
 ShaderNodeShaderToRGB "Shader to RGB": not lowered, output Color is its default value
 ShaderNodeWireframe "Wireframe": not lowered, output Fac is its default value
 ShaderNodeWavelength "Wavelength": not lowered, output Color is its default value
