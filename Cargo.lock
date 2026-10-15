@@ -3807,6 +3807,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "shadewire-blender"
+version = "0.1.0"
+dependencies = [
+ "insta",
+ "serde",
+ "serde_json",
+ "shadewire",
+ "shadewire-glsl",
+ "shadewire-hlsl",
+ "shadewire-msl",
+ "shadewire-mtlx",
+ "shadewire-nodes",
+ "shadewire-wgsl",
+]
+
+[[package]]
 name = "shadewire-capi"
 version = "0.1.0"
 dependencies = [
