@@ -19,9 +19,6 @@ fn every_readable_example_survives_a_round_trip() {
             std::fs::read_dir(examples().join(folder)).unwrap().map(|e| e.unwrap().path()).collect();
         files.sort();
         for file in files.into_iter().filter(|f| f.extension().is_some_and(|e| e == "mtlx")) {
-            if file.ends_with("standard_surface_onyx_hextiled.mtlx") {
-                continue; // hextiling's Dpdx/Dpdy have no nodedef to write until Shadewire's own are declared
-            }
             let text = std::fs::read_to_string(&file).unwrap();
             let location = file.to_str().unwrap();
             for options in [IrOptions::default(), IrOptions::with_models(&["surface", "surface_unlit"])] {
@@ -46,6 +43,28 @@ fn every_readable_example_survives_a_round_trip() {
         }
     }
     assert!(count >= 200, "{count} round trips");
+}
+
+#[test]
+fn a_hextiled_image_survives_a_round_trip_through_shadewire_nodes() {
+    let text = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/oracle/materials/hextile_grid.mtlx"),
+    )
+    .unwrap();
+    let (a, written, b) = roundtrip(&text, &IrOptions::default(), &WriteOptions::default());
+    assert!(written.contains("<shadewire_hextile_coord ") && written.contains("<shadewire_image_grad "), "{written}");
+    assert!(
+        written.contains(r#"<nodedef name="ND_shadewire_hextile_coord_vector2""#),
+        "the declarations are embedded:\n{written}"
+    );
+    assert_same_material(&a, &b, &written);
+    let ir = shadewire_mtlx::to_ir(&text, None, None, &IrOptions::default(), &Default::default()).unwrap();
+    let w = shadewire_mtlx::from_ir(&ir.dag, &WriteOptions::default()).unwrap();
+    assert!(w.warnings.iter().any(|w| w.contains("shadewire_hextile_coord")), "{:?}", w.warnings);
+    let bare =
+        shadewire_mtlx::from_ir(&ir.dag, &WriteOptions { embed_shadewire_defs: false, ..WriteOptions::default() })
+            .unwrap();
+    assert!(!bare.text.contains("<nodedef"), "{}", bare.text);
 }
 
 /// A copy of the 1.39 PORCELAIN document from shadewire-nodes' closure_tests.rs.

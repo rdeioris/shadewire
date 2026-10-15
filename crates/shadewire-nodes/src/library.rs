@@ -67,12 +67,31 @@ pub fn standard() -> &'static Library {
     STANDARD.get_or_init(load)
 }
 
+/// The text of `libraries/shadewire_ir.mtlx`: the nodedefs of the IR ops no MaterialX node expresses, which a
+/// written document embeds so other MaterialX tools parse it.
+pub fn shadewire_ir_defs_text() -> &'static str {
+    OWN_LIBRARIES
+        .get_file("shadewire_ir.mtlx")
+        .and_then(|file| file.contents_utf8())
+        .expect("shadewire_ir.mtlx is embedded as utf-8")
+}
+
 #[cfg(test)]
 mod tests {
     use super::standard;
     use crate::Document;
     use crate::document::PortType;
     use crate::index::Index;
+
+    #[test]
+    fn shadewire_ir_nodedefs_are_in_the_library() {
+        let empty = Document::empty();
+        let index = Index::new(&empty, standard());
+        let coord = index.nodedef("ND_shadewire_hextile_coord_vector2").unwrap();
+        assert_eq!(coord.node, "shadewire_hextile_coord");
+        assert!(index.is_leaf(coord));
+        assert!(super::shadewire_ir_defs_text().contains(r#"name="ND_shadewire_image_grad_color4""#));
+    }
 
     #[test]
     fn nodedefs_carry_their_inherited_ports() {

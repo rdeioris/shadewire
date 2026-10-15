@@ -17,6 +17,8 @@ impl<'a> Elaborator<'a> {
     ) -> Result<NodeId, Error> {
         let op = match op {
             Op::Extract(_) => Op::Extract(self.extract_index(scope, node, nd, at)?),
+            Op::HextileCoord(_) => Op::HextileCoord(self.tile_index(scope, node, nd, at)?),
+            Op::HextileGrad(_) => Op::HextileGrad(self.tile_index(scope, node, nd, at)?),
             Op::Transform { kind, .. } => {
                 let from = self.space_input(scope, node, nd, "fromspace", at)?;
                 let to = self.space_input(scope, node, nd, "tospace", at)?;
@@ -66,6 +68,18 @@ impl<'a> Elaborator<'a> {
             });
         }
         Ok(index)
+    }
+
+    /// The constant integer `tile` input of `shadewire_hextile_coord`/`_grad`: one of the three hex tiles.
+    fn tile_index(&mut self, scope: &Scope<'a>, node: &'a Node, nd: &'a NodeDef, at: &Location) -> Result<u8, Error> {
+        let id = self.param_value(scope, node, nd, "tile")?;
+        match &self.dag.node(id).kind {
+            NodeKind::Const(Value::Integer(i)) if (0..3).contains(i) => Ok(*i as u8),
+            other => Err(Error::BadValue {
+                at: at.clone(),
+                message: format!("hextile tile must be a constant integer 0, 1 or 2, found {other:?}"),
+            }),
+        }
     }
 
     /// A space string input. `None` when empty; an unknown name is a bad value.

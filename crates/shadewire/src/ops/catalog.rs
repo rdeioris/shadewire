@@ -131,6 +131,12 @@ pub fn op_for_category(category: &str, output: Type, input_count: usize) -> Opti
         "worleynoise2d" => Some(Op::WorleyNoise2d),
         "worleynoise3d" => Some(Op::WorleyNoise3d),
         "normalmap" => Some(Op::NormalMap),
+        // Shadewire's own nodedefs (shadewire-nodes' libraries/shadewire_ir.mtlx); the tile is read by the caller.
+        "shadewire_dpdx" => Some(Op::Dpdx),
+        "shadewire_dpdy" => Some(Op::Dpdy),
+        "shadewire_hextile_coord" => Some(Op::HextileCoord(0)),
+        "shadewire_hextile_grad" => Some(Op::HextileGrad(0)),
+        "shadewire_hextile_weights" => Some(Op::HextileWeights),
         _ => None,
     }
 }
@@ -147,6 +153,16 @@ mod tests {
         assert_eq!(op_for_category("ifgreater", Type::Float, 4), Some(Op::IfGreater));
         assert_eq!(op_for_category("combine3", Type::Color3, 3), Some(Op::Combine));
         assert_eq!(op_for_category("standard_surface", Type::Float, 0), None);
+    }
+
+    #[test]
+    fn maps_shadewire_categories() {
+        assert_eq!(op_for_category("shadewire_dpdx", Type::Vector2, 1), Some(Op::Dpdx));
+        assert_eq!(op_for_category("shadewire_dpdy", Type::Float, 1), Some(Op::Dpdy));
+        assert_eq!(op_for_category("shadewire_hextile_coord", Type::Vector2, 8), Some(Op::HextileCoord(0)));
+        assert_eq!(op_for_category("shadewire_hextile_grad", Type::Vector2, 7), Some(Op::HextileGrad(0)));
+        assert_eq!(op_for_category("shadewire_hextile_weights", Type::Vector3, 3), Some(Op::HextileWeights));
+        assert_eq!(op_for_category("shadewire_image_grad", Type::Color3, 4), None);
     }
 
     #[test]

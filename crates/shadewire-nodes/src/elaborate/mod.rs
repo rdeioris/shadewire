@@ -7,6 +7,7 @@ pub mod defaults;
 pub mod fold;
 pub mod hextile;
 pub mod image;
+pub mod image_grad;
 pub mod inputs;
 pub mod instance;
 pub mod instantiate;

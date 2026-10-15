@@ -9,6 +9,7 @@ pub mod plan;
 pub mod reach;
 pub mod readers;
 pub mod shader;
+pub mod shadewire_defs;
 pub mod surface;
 pub mod values;
 pub mod xml;
@@ -23,6 +24,7 @@ use elements::{Source, input};
 use names::Names;
 use patterns::write_patterns;
 use plan::plan;
+use shadewire_defs::shadewire_declarations;
 use surface::write_surface;
 use xml::{Element, to_text};
 
@@ -65,7 +67,13 @@ pub fn from_ir(dag: &Dag, options: &WriteOptions) -> Result<Written, Error> {
     let shader_level = write_surface(dag, &index, &mut patterns, &mut names, &shader_name)?;
     let mut document = Element::new("materialx").attr("version", "1.39");
     let graph: Vec<Element> = patterns.inputs.iter().chain(&patterns.nodes).chain(&patterns.outputs).cloned().collect();
-    let uses_shadewire = graph.iter().any(|e| is_shadewire_category(&e.tag));
+    let mut used: Vec<&str> = Vec::new();
+    for tag in graph.iter().map(|e| e.tag.as_str()).filter(|tag| is_shadewire_category(tag)) {
+        if !used.contains(&tag) {
+            used.push(tag);
+        }
+    }
+    let declarations = if options.embed_shadewire_defs { shadewire_declarations(&used) } else { Vec::new() };
     if !graph.is_empty() {
         let mut nodegraph = Element::new("nodegraph").attr("name", &patterns.graph_name);
         nodegraph.children = graph;
@@ -74,13 +82,6 @@ pub fn from_ir(dag: &Dag, options: &WriteOptions) -> Result<Written, Error> {
     document.children.extend(shader_level);
     let shader = input("surfaceshader", "surfaceshader", &Source::Node { name: shader_name, output: None });
     document.push(Element::new("surfacematerial").attr("name", &options.name).attr("type", "material").child(shader));
-    if options.embed_shadewire_defs && uses_shadewire {
-        document.children.extend(shadewire_declarations());
-    }
+    document.children.extend(declarations);
     Ok(Written { text: to_text(&document), warnings: patterns.warnings })
-}
-
-/// The declarations of Shadewire's own nodedefs, for a document that uses them; none are declared yet.
-fn shadewire_declarations() -> Vec<Element> {
-    Vec::new()
 }

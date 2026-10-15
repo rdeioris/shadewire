@@ -28,6 +28,8 @@ fn op_inputs_match_library() {
                 .filter(|i| matches!(i.port_type, PortType::Value(_)))
                 // `extract.index` is an integer op parameter handled in elaboration, not an arg.
                 .filter(|i| !(nd.node == "extract" && i.name == "index"))
+                // So is the hextile ops' `tile`.
+                .filter(|i| !(nd.node.starts_with("shadewire_hextile_") && i.name == "tile"))
                 .map(|i| i.name.as_str())
                 .collect();
             let Some(op) = op_for_category(&nd.node, out, value_inputs.len()) else {

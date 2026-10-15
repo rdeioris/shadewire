@@ -17,10 +17,29 @@ impl<'a> Elaborator<'a> {
         ty: Type,
         at: &Location,
     ) -> Result<NodeId, Error> {
+        let (texture, colorspace) = self.image_texture(scope, node, nd, at)?;
+        let default = self.constant_input(scope, node, nd, "default", at)?;
+        let uv = self.image_uv(scope, node, nd, at)?;
+        let sample = self.dag.add(IrNode {
+            kind: NodeKind::Sample { texture, uv, default, grad: None },
+            ty,
+            origin: at.path.clone(),
+        });
+        self.convert_sample_colorspace(sample, colorspace.as_deref(), at)
+    }
+
+    /// The texture of `file` with its address and filter modes, and the file's colorspace.
+    pub(super) fn image_texture(
+        &mut self,
+        scope: &Scope<'a>,
+        node: &'a Node,
+        nd: &'a NodeDef,
+        at: &Location,
+    ) -> Result<(usize, Option<String>), Error> {
         let file = match self.text_input(scope, node, nd, "file")? {
             Some(file) if !file.text.is_empty() => file,
             _ => {
-                return Err(Error::BadValue { at: at.clone(), message: "image has no file".to_string() });
+                return Err(Error::BadValue { at: at.clone(), message: format!("{} has no file", node.category) });
             }
         };
         let address_u = self.address_mode(scope, node, nd, "uaddressmode", at)?;
@@ -39,14 +58,7 @@ impl<'a> Elaborator<'a> {
             address_v,
             filter,
         });
-        let default = self.constant_input(scope, node, nd, "default", at)?;
-        let uv = self.image_uv(scope, node, nd, at)?;
-        let sample = self.dag.add(IrNode {
-            kind: NodeKind::Sample { texture, uv, default, grad: None },
-            ty,
-            origin: at.path.clone(),
-        });
-        self.convert_sample_colorspace(sample, colorspace.as_deref(), at)
+        Ok((texture, colorspace))
     }
 
     /// The texture coordinate, as `mx_transform_uv`: `texcoord * uvtiling + uvoffset`.

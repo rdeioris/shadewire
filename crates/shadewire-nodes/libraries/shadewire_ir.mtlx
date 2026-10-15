@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+<!--
+  Shadewire (MIT): nodedefs for the IR ops no MaterialX node expresses, so a document `from_ir` writes reads back.
+  Screen derivatives, the three steps of the hextiledimage lowering (mx_hextiledimage.glsl), and an image lookup
+  with explicit gradients (textureGrad). Leaf nodedefs: each maps to one op, or, for shadewire_image_grad, to a
+  gradient sample. The writer embeds the ones a document uses.
+-->
+<materialx version="1.39">
+
+  <!-- Screen-space derivatives of `in`: dFdx / dFdy. -->
+  <nodedef name="ND_shadewire_dpdx_float" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="float" value="0.0" />
+    <output name="out" type="float" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdx_vector2" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="vector2" value="0.0, 0.0" />
+    <output name="out" type="vector2" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdx_vector3" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="vector3" value="0.0, 0.0, 0.0" />
+    <output name="out" type="vector3" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdx_vector4" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="vector4" value="0.0, 0.0, 0.0, 0.0" />
+    <output name="out" type="vector4" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdx_color3" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="color3" value="0.0, 0.0, 0.0" />
+    <output name="out" type="color3" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdx_color4" node="shadewire_dpdx" nodegroup="math">
+    <input name="in" type="color4" value="0.0, 0.0, 0.0, 0.0" />
+    <output name="out" type="color4" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_float" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="float" value="0.0" />
+    <output name="out" type="float" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_vector2" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="vector2" value="0.0, 0.0" />
+    <output name="out" type="vector2" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_vector3" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="vector3" value="0.0, 0.0, 0.0" />
+    <output name="out" type="vector3" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_vector4" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="vector4" value="0.0, 0.0, 0.0, 0.0" />
+    <output name="out" type="vector4" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_color3" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="color3" value="0.0, 0.0, 0.0" />
+    <output name="out" type="color3" />
+  </nodedef>
+  <nodedef name="ND_shadewire_dpdy_color4" node="shadewire_dpdy" nodegroup="math">
+    <input name="in" type="color4" value="0.0, 0.0, 0.0, 0.0" />
+    <output name="out" type="color4" />
+  </nodedef>
+
+  <!--
+    hextiledimage's steps; the defaults are hextiledimage's (stdlib_defs.mtlx). `tile` (0, 1 or 2) picks one of
+    the three hex tiles around `coord`.
+  -->
+  <!-- The texture coordinate of tile `tile`: rotated, scaled and offset by its random values. -->
+  <nodedef name="ND_shadewire_hextile_coord_vector2" node="shadewire_hextile_coord" nodegroup="texture2d">
+    <input name="tile" type="integer" value="0" uimin="0" uimax="2" uniform="true" />
+    <input name="coord" type="vector2" value="0.0, 0.0" />
+    <input name="rotation" type="float" value="1.0" />
+    <input name="rotationrange" type="vector2" value="0.0, 360.0" />
+    <input name="scale" type="float" value="1.0" />
+    <input name="scalerange" type="vector2" value="0.5, 2.0" />
+    <input name="offset" type="float" value="1.0" />
+    <input name="offsetrange" type="vector2" value="0.0, 1.0" />
+    <output name="out" type="vector2" />
+  </nodedef>
+  <!-- A screen gradient `grad` of `coord` carried into tile `tile`'s rotated and scaled coordinate. -->
+  <nodedef name="ND_shadewire_hextile_grad_vector2" node="shadewire_hextile_grad" nodegroup="texture2d">
+    <input name="tile" type="integer" value="0" uimin="0" uimax="2" uniform="true" />
+    <input name="grad" type="vector2" value="0.0, 0.0" />
+    <input name="coord" type="vector2" value="0.0, 0.0" />
+    <input name="rotation" type="float" value="1.0" />
+    <input name="rotationrange" type="vector2" value="0.0, 360.0" />
+    <input name="scale" type="float" value="1.0" />
+    <input name="scalerange" type="vector2" value="0.5, 2.0" />
+    <output name="out" type="vector2" />
+  </nodedef>
+  <!-- The three tiles' blend weights at `coord`, biased by the per-tile `weights` and sharpened by `falloff`. -->
+  <nodedef name="ND_shadewire_hextile_weights_vector3" node="shadewire_hextile_weights" nodegroup="texture2d">
+    <input name="coord" type="vector2" value="0.0, 0.0" />
+    <input name="weights" type="vector3" value="0.0, 0.0, 0.0" />
+    <input name="falloff" type="float" value="0.5" />
+    <output name="out" type="vector3" />
+  </nodedef>
+
+  <!-- An image lookup with explicit screen gradients `dx` and `dy` of `texcoord` (textureGrad). -->
+  <nodedef name="ND_shadewire_image_grad_float" node="shadewire_image_grad" nodegroup="texture2d">
+    <input name="file" type="filename" value="" uniform="true" />
+    <input name="default" type="float" value="0.0" />
+    <input name="texcoord" type="vector2" defaultgeomprop="UV0" />
+    <input name="dx" type="vector2" value="0.0, 0.0" />
+    <input name="dy" type="vector2" value="0.0, 0.0" />
+    <input name="uaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="vaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="filtertype" type="string" value="linear" enum="closest,linear,cubic" uniform="true" />
+    <output name="out" type="float" />
+  </nodedef>
+  <nodedef name="ND_shadewire_image_grad_vector2" node="shadewire_image_grad" nodegroup="texture2d">
+    <input name="file" type="filename" value="" uniform="true" />
+    <input name="default" type="vector2" value="0.0, 0.0" />
+    <input name="texcoord" type="vector2" defaultgeomprop="UV0" />
+    <input name="dx" type="vector2" value="0.0, 0.0" />
+    <input name="dy" type="vector2" value="0.0, 0.0" />
+    <input name="uaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="vaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="filtertype" type="string" value="linear" enum="closest,linear,cubic" uniform="true" />
+    <output name="out" type="vector2" />
+  </nodedef>
+  <nodedef name="ND_shadewire_image_grad_vector3" node="shadewire_image_grad" nodegroup="texture2d">
+    <input name="file" type="filename" value="" uniform="true" />
+    <input name="default" type="vector3" value="0.0, 0.0, 0.0" />
+    <input name="texcoord" type="vector2" defaultgeomprop="UV0" />
+    <input name="dx" type="vector2" value="0.0, 0.0" />
+    <input name="dy" type="vector2" value="0.0, 0.0" />
+    <input name="uaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="vaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="filtertype" type="string" value="linear" enum="closest,linear,cubic" uniform="true" />
+    <output name="out" type="vector3" />
+  </nodedef>
+  <nodedef name="ND_shadewire_image_grad_vector4" node="shadewire_image_grad" nodegroup="texture2d">
+    <input name="file" type="filename" value="" uniform="true" />
+    <input name="default" type="vector4" value="0.0, 0.0, 0.0, 0.0" />
+    <input name="texcoord" type="vector2" defaultgeomprop="UV0" />
+    <input name="dx" type="vector2" value="0.0, 0.0" />
+    <input name="dy" type="vector2" value="0.0, 0.0" />
+    <input name="uaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="vaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="filtertype" type="string" value="linear" enum="closest,linear,cubic" uniform="true" />
+    <output name="out" type="vector4" />
+  </nodedef>
+  <nodedef name="ND_shadewire_image_grad_color3" node="shadewire_image_grad" nodegroup="texture2d">
+    <input name="file" type="filename" value="" uniform="true" />
+    <input name="default" type="color3" value="0.0, 0.0, 0.0" />
+    <input name="texcoord" type="vector2" defaultgeomprop="UV0" />
+    <input name="dx" type="vector2" value="0.0, 0.0" />
+    <input name="dy" type="vector2" value="0.0, 0.0" />
+    <input name="uaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="vaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="filtertype" type="string" value="linear" enum="closest,linear,cubic" uniform="true" />
+    <output name="out" type="color3" />
+  </nodedef>
+  <nodedef name="ND_shadewire_image_grad_color4" node="shadewire_image_grad" nodegroup="texture2d">
+    <input name="file" type="filename" value="" uniform="true" />
+    <input name="default" type="color4" value="0.0, 0.0, 0.0, 0.0" />
+    <input name="texcoord" type="vector2" defaultgeomprop="UV0" />
+    <input name="dx" type="vector2" value="0.0, 0.0" />
+    <input name="dy" type="vector2" value="0.0, 0.0" />
+    <input name="uaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="vaddressmode" type="string" value="periodic" enum="constant,clamp,periodic,mirror" uniform="true" />
+    <input name="filtertype" type="string" value="linear" enum="closest,linear,cubic" uniform="true" />
+    <output name="out" type="color4" />
+  </nodedef>
+
+</materialx>
