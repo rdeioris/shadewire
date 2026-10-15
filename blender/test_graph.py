@@ -406,6 +406,11 @@ def test_operators():
         painted.pixels = PIXELS
         painted.pack()
         m.node_tree.nodes.new("ShaderNodeTexImage").image = painted
+        # A float image with linear pixels: an 8-bit PNG would hold them sRGB encoded, read back as linear.
+        linear = bpy.data.images.new("linear", 2, 2, alpha=True, float_buffer=True)
+        linear.colorspace_settings.name = "Linear Rec.709"
+        linear.pixels = [1.0 if i % 4 == 3 else x for i, x in enumerate(PIXELS)]
+        m.node_tree.nodes.new("ShaderNodeTexImage").image = linear
         # Two files of one basename in two folders, and a second image of the first file.
         sources = []
         for sub, shift in (("a", 0.0), ("b", 0.5)):
@@ -415,7 +420,7 @@ def test_operators():
             sources.append(source)
         for source in (sources[0], sources[1], sources[0]):
             m.node_tree.nodes.new("ShaderNodeTexImage").image = bpy.data.images.load(source, check_existing=False)
-        expected = {"wood_albedo": albedo.pixels[:], "painted": painted.pixels[:]}
+        expected = {"wood_albedo": albedo.pixels[:], "painted": painted.pixels[:], "linear": linear.pixels[:]}
         cube = bpy.data.objects.new("Cube", bpy.data.meshes.new("Cube"))
         cube.data.materials.append(m)
         bpy.context.scene.collection.objects.link(cube)
@@ -438,7 +443,8 @@ def test_operators():
             check(os.path.isfile(written) and open(source, "rb").read() == open(written, "rb").read(),
                   f"{written} is a copy of {source}")
         written = sorted(os.listdir(os.path.join(folder, "textures")))
-        check(written == ["painted.png", "twin.1.png", "twin.png", "wood_albedo.png"], f"textures written: {written}")
+        check(written == ["linear.exr", "painted.png", "twin.1.png", "twin.png", "wood_albedo.png"],
+              f"textures written: {written}")
         bpy.ops.wm.read_homefile(use_empty=True)
         result = bpy.ops.shadewire.import_graph(filepath=path)
         check(result == {"FINISHED"} and "Wood" in bpy.data.materials, f"import: {result}")

@@ -234,19 +234,28 @@ def packed_name(image, data):
     return bpy.path.clean_name(image.name), ".png" if data.startswith(PNG_SIGNATURE) else ".bin"
 
 
-def save_png(image, path):
-    """Save the image's pixels as a PNG the way `Image.save` writes them (no view transform, which `save_render` would
-    apply), through a copy so the image keeps its own path and format. A copy starts from the generated pixels, not
-    the painted ones, so the pixels are handed over."""
+def saved_format(image):
+    """The file format and extension an image without a file is saved in: OpenEXR for a float image, whose pixels an
+    8-bit PNG would hold encoded for its own colorspace instead of the image's, else PNG."""
+    return ("OPEN_EXR", ".exr") if image.is_float else ("PNG", ".png")
+
+
+def save_pixels(image, path, file_format):
+    """Save the image's pixels the way `Image.save` writes them (no view transform, which `save_render` would apply),
+    through a copy so the image keeps its own path and format. A copy starts from the generated pixels, not the
+    painted ones, so the pixels are handed over. The copy is Non-Color: Blender encodes a float image's pixels for
+    sRGB when it saves them (an OpenEXR file too), and Non-Color writes them as they are, which the document's
+    colorspace then reads back."""
     pixels = array.array("f", [0.0]) * len(image.pixels)
     if not pixels:
         raise OSError("the image has no pixels")
     image.pixels.foreach_get(pixels)
     copy = image.copy()
     try:
+        copy.colorspace_settings.name = "Non-Color"
         copy.pixels.foreach_set(pixels)
         copy.filepath_raw = path
-        copy.file_format = "PNG"
+        copy.file_format = file_format
         copy.save()
     finally:
         bpy.data.images.remove(copy)
@@ -254,7 +263,8 @@ def save_png(image, path):
 
 def copy_texture(operator, entry, textures):
     """Put one dumped image into the export's textures folder and point its entry there, its pixels as they are: a
-    packed image's bytes are written as they are, a file is copied, anything else is saved as PNG."""
+    packed image's bytes are written as they are, a file is copied, anything else is saved as PNG (OpenEXR when its
+    pixels are floats)."""
     image = bpy.data.images.get(entry["name"])
     source = entry["filepath"]
     try:
@@ -270,9 +280,10 @@ def copy_texture(operator, entry, textures):
             if new and not (os.path.exists(target) and os.path.samefile(source, target)):
                 shutil.copy2(source, target)
         elif image is not None:
-            target, new = textures.place(("image", image.name), bpy.path.clean_name(image.name), ".png")
+            file_format, ext = saved_format(image)
+            target, new = textures.place(("image", image.name), bpy.path.clean_name(image.name), ext)
             if new:
-                save_png(image, target)
+                save_pixels(image, target, file_format)
         else:
             raise OSError("the image is not in the file")
     except (OSError, RuntimeError) as e:

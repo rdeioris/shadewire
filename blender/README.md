@@ -58,7 +58,7 @@ From a source checkout, without the module, the add-on falls back to the `shadew
   materials as a JSON document: the selected objects' materials, the active one, or all of them, with their node
   groups and image references. "Copy Textures" writes the images into a `textures` folder beside the file and
   points the document at them: a file is copied, a packed image written from its packed bytes, a generated or
-  painted one saved as PNG, none through the view transform; two images of one file name get `name.1.ext`, ...
+  painted one saved as PNG (OpenEXR when its pixels are floats), none through the view transform; two images of one file name get `name.1.ext`, ...
 - **File > Import > Material Graph (Shadewire JSON)** (and Load Graph) creates the document's materials, node
   groups and images; "Replace Existing" rebuilds a material of the same name in place instead. Whatever this
   Blender cannot set (a node type or property it lacks) is skipped and reported as a warning.
