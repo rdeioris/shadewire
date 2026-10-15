@@ -1,6 +1,6 @@
 use shadewire::Value;
 
-use super::tests::{close, eval_field, lower, lower_field};
+use super::tests::{close, eval_field, lower, lower_field, uniform_names};
 
 const XYZ: &str = r#"{"name": "X", "type": "ShaderNodeCombineXYZ", "mute": false, "properties": {},
   "inputs": [{"identifier": "X", "name": "X", "type": "VALUE", "enabled": true, "value": 0.3}, {"identifier": "Y", "name": "Y", "type": "VALUE", "enabled": true, "value": 0.6},
@@ -174,4 +174,17 @@ fn every_dimension_of_noise_and_voronoi_lowers_and_evaluates() {
         eval_field(&fewer, "specular_roughness", 1),
         "Detail adds octaves"
     );
+}
+
+#[test]
+fn a_voronoi_read_for_distance_and_color_makes_one_scale_uniform() {
+    let voronoi = r#"{"name": "V", "type": "ShaderNodeTexVoronoi", "mute": false, "properties": {"voronoi_dimensions": "3D", "distance": "EUCLIDEAN", "feature": "F1", "normalize": false},
+      "inputs": [{"identifier": "Vector", "name": "Vector", "type": "VECTOR", "enabled": true, "value": [0,0,0]}, {"identifier": "Scale", "name": "Scale", "type": "VALUE", "enabled": true, "value": 5.0},
+                 {"identifier": "Randomness", "name": "Randomness", "type": "VALUE", "enabled": true, "value": 1.0}],
+      "outputs": [{"identifier": "Distance", "name": "Distance", "type": "VALUE", "enabled": true}, {"identifier": "Color", "name": "Color", "type": "RGBA", "enabled": true}], "internal_links": []}"#;
+    let links = r#"[[["X", "Vector"], ["V", "Vector"]], [["V", "Distance"], ["Principled BSDF", "Roughness"]],
+      [["V", "Color"], ["Principled BSDF", "Base Color"]]]"#;
+    let names = uniform_names(&format!("{XYZ}, {voronoi}"), links);
+    let scales: Vec<&String> = names.iter().filter(|n| n.starts_with("V_Scale")).collect();
+    assert_eq!(scales, ["V_Scale"], "{names:?}");
 }

@@ -220,7 +220,12 @@ pub fn geometry(l: &mut Lowerer, node: &FlatNode, output: &str) -> Result<NodeId
             l.warn(node, "True Normal read as the shading normal");
             l.normal("world", &o)
         }
-        "Incoming" => Ok(l.e.context(ContextRead::ViewDirection(Space::World), &o)),
+        // Shadewire's view direction runs from the camera to the surface; Blender's Incoming, the other way.
+        "Incoming" => {
+            let view = l.e.context(ContextRead::ViewDirection(Space::World), &o);
+            let minus = l.k(-1.0, &o);
+            l.op2("multiply", V, view, minus, &o)
+        }
         "Parametric" => {
             l.warn(node, "Parametric not available, zero");
             Ok(l.zero_vector(&o))

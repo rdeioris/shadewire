@@ -50,6 +50,8 @@ pub struct Lowerer<'a> {
     pub images: &'a [Image],
     /// `(node, output)` to the IR node it lowered to.
     memo: HashMap<(String, String), NodeId>,
+    /// `(node, input)` to the authored value it holds, so a socket read by several outputs is one uniform.
+    authored: HashMap<(String, String), NodeId>,
     in_progress: HashSet<(String, String)>,
     /// Shader node name to the shading it carries, so a shader reached twice is lowered (and warned about) once.
     shaded: HashMap<String, Shading>,
@@ -65,6 +67,7 @@ impl<'a> Lowerer<'a> {
             material,
             images,
             memo: HashMap::new(),
+            authored: HashMap::new(),
             in_progress: HashSet::new(),
             shaded: HashMap::new(),
             shading_in_progress: HashSet::new(),
@@ -135,8 +138,8 @@ impl<'a> Lowerer<'a> {
         }
     }
 
-    /// Input `socket` of `node` as `ty`: what is linked to it, converted, or its authored value; a socket the
-    /// document does not have is zero. A linked number read as an integer is floored, with a warning.
+    /// Input `socket` of `node` as `ty`: what is linked to it, converted, or its authored value (one per socket,
+    /// however many outputs read it); a socket the document does not have is zero. A linked number read as an integer is floored, with a warning.
     pub fn input(&mut self, node: &FlatNode, socket: &str, ty: Type) -> Result<NodeId, Error> {
         let origin = format!("{}.{socket}", node.name);
         let graph = self.graph;
@@ -150,7 +153,15 @@ impl<'a> Lowerer<'a> {
         }
         match node.input(socket) {
             Some(s) if socket_value(s).is_some() => {
-                let id = self.value(node, s, &origin);
+                let key = (node.name.clone(), socket.to_string());
+                let id = match self.authored.get(&key) {
+                    Some(&id) => id,
+                    None => {
+                        let id = self.value(node, s, &origin);
+                        self.authored.insert(key, id);
+                        id
+                    }
+                };
                 self.convert(id, ty, &origin)
             }
             _ => Ok(self.e.constant(Value::zero(ty), &origin)),

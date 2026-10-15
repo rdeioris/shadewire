@@ -2,7 +2,7 @@
 
 use shadewire::interpret::{NoTextures, eval_surface};
 use shadewire::testing::{Probe, ProbeTextures};
-use shadewire::{Dag, Value};
+use shadewire::{Dag, NodeKind, Value};
 use shadewire_nodes::IrOptions;
 use shadewire_nodes::elaborate::fold::fold_constant_of;
 
@@ -57,6 +57,19 @@ pub fn lower(nodes: &str, links: &str) -> (Dag, Vec<String>) {
     let options = IrOptions { values_as_uniforms: false, ..IrOptions::default() };
     let ir = to_ir(&doc(nodes, links), None, &options).unwrap_or_else(|e| panic!("{e}"));
     (ir.dag, ir.warnings)
+}
+
+/// The names of the uniforms `doc(nodes, links)` makes with values kept as uniforms, in dag order.
+pub fn uniform_names(nodes: &str, links: &str) -> Vec<String> {
+    let ir = to_ir(&doc(nodes, links), None, &IrOptions::default()).unwrap_or_else(|e| panic!("{e}"));
+    ir.dag
+        .nodes
+        .iter()
+        .filter_map(|n| match &n.kind {
+            NodeKind::Uniform { name, .. } => Some(name.clone()),
+            _ => None,
+        })
+        .collect()
 }
 
 /// The constant value of `field` after lowering `nodes` into the Principled BSDF: the node under test's math over

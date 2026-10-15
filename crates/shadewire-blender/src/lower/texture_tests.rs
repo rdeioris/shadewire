@@ -67,6 +67,9 @@ fn texture_coordinate_and_geometry_are_context_reads() {
                   {"identifier": "Backfacing", "name": "Backfacing", "type": "VALUE", "enabled": true, "value": 0.0}], "internal_links": []}"#;
     let (dag, _) = lower(geometry, r#"[[["G", "Incoming"], ["Principled BSDF", "Base Color"]]]"#);
     assert!(dag.nodes.iter().any(|n| matches!(n.kind, NodeKind::Context(ContextRead::ViewDirection(_)))));
+    // The probe's view direction runs camera to surface, (0, 0, 1); Incoming runs surface to camera.
+    let incoming = eval_field(&dag, "base_color", 0);
+    assert!(close(&incoming, &Value::Color3([0.0, 0.0, -1.0])), "{incoming:?}");
     let (_, warnings) = lower(geometry, r#"[[["G", "Backfacing"], ["Principled BSDF", "Roughness"]]]"#);
     assert_eq!(warnings, [r#"ShaderNodeNewGeometry "G": Backfacing not available, zero"#]);
 }

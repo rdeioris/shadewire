@@ -1,6 +1,6 @@
 use shadewire::Value;
 
-use super::tests::{close, lower_field};
+use super::tests::{close, lower_field, uniform_names};
 
 fn mix(data_type: &str, blend: &str, fac: f32, a: &str, b: &str, clamp_result: bool) -> String {
     let (fa, fb) = match data_type {
@@ -242,4 +242,16 @@ fn an_unknown_blend_is_a_mix_and_a_disabled_result_is_zero() {
     );
     assert_eq!(warnings, [r#"ShaderNodeMix "Mix": output Result_Color is not produced over VALUE, zero"#]);
     assert!(close(&value, &Value::Color3([0.0; 3])), "{value:?}");
+}
+
+#[test]
+fn a_separate_xyz_read_for_two_channels_makes_one_vector_uniform() {
+    let separate = r#"{"name": "S", "type": "ShaderNodeSeparateXYZ", "mute": false, "properties": {},
+      "inputs": [{"identifier": "Vector", "name": "Vector", "type": "VECTOR", "enabled": true, "value": [0.2, 0.4, 0.6]}],
+      "outputs": [{"identifier": "X", "name": "X", "type": "VALUE", "enabled": true}, {"identifier": "Y", "name": "Y", "type": "VALUE", "enabled": true},
+                  {"identifier": "Z", "name": "Z", "type": "VALUE", "enabled": true}], "internal_links": []}"#;
+    let links = r#"[[["S", "X"], ["Principled BSDF", "Roughness"]], [["S", "Y"], ["Principled BSDF", "Metallic"]]]"#;
+    let names = uniform_names(separate, links);
+    let vectors: Vec<&String> = names.iter().filter(|n| n.starts_with("S_Vector")).collect();
+    assert_eq!(vectors, ["S_Vector"], "{names:?}");
 }
