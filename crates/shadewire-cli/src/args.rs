@@ -3,7 +3,11 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser, Debug)]
-#[command(name = "shadewire", version, about = "Compile MaterialX materials to shader code")]
+#[command(
+    name = "shadewire",
+    version,
+    about = "Compile MaterialX documents and Blender material graphs to shader code"
+)]
 pub struct Args {
     #[command(subcommand)]
     pub command: Command,
@@ -11,11 +15,11 @@ pub struct Args {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Compile a MaterialX document
+    /// Compile a MaterialX document or a Blender graph
     Compile(CompileArgs),
-    /// Print the IR of a MaterialX material (the DAG the shader is emitted from)
+    /// Print the IR of a material (the DAG the shader is emitted from)
     Ir(IrArgs),
-    /// List the materials of a MaterialX document, one name per line
+    /// List the materials of a document, one name per line
     List(ListArgs),
     /// Write a material back as a MaterialX document (library nodes kept as nodes)
     Mtlx(MtlxArgs),
@@ -23,14 +27,20 @@ pub enum Command {
 
 #[derive(Parser, Debug)]
 pub struct ListArgs {
-    /// The .mtlx document
+    /// The .mtlx document or .json Blender graph
     pub file: PathBuf,
+    /// The input's format; default: by extension (`.json` is a Blender graph, anything else MaterialX)
+    #[arg(long, value_enum)]
+    pub format: Option<Format>,
 }
 
 #[derive(Parser, Debug)]
 pub struct MtlxArgs {
-    /// The .mtlx document
+    /// The .mtlx document or .json Blender graph
     pub file: PathBuf,
+    /// The input's format; default: by extension (`.json` is a Blender graph, anything else MaterialX)
+    #[arg(long, value_enum)]
+    pub format: Option<Format>,
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,
@@ -52,6 +62,15 @@ pub struct MtlxArgs {
     /// Write the document here instead of stdout
     #[arg(short = 'o', long)]
     pub output: Option<PathBuf>,
+}
+
+/// The format of an input document.
+#[derive(Copy, Clone, Debug, PartialEq, ValueEnum)]
+pub enum Format {
+    /// A MaterialX document
+    Mtlx,
+    /// A Blender material graph (the Blender extension's File > Export > Material Graph)
+    Blender,
 }
 
 /// The language of the generated code: each a back end of its own.
@@ -78,8 +97,11 @@ pub enum Transparency {
 
 #[derive(Parser, Debug)]
 pub struct IrArgs {
-    /// The .mtlx document
+    /// The .mtlx document or .json Blender graph
     pub file: PathBuf,
+    /// The input's format; default: by extension (`.json` is a Blender graph, anything else MaterialX)
+    #[arg(long, value_enum)]
+    pub format: Option<Format>,
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,
@@ -102,8 +124,11 @@ pub struct IrArgs {
 
 #[derive(Parser, Debug)]
 pub struct CompileArgs {
-    /// The .mtlx document
+    /// The .mtlx document or .json Blender graph
     pub file: PathBuf,
+    /// The input's format; default: by extension (`.json` is a Blender graph, anything else MaterialX)
+    #[arg(long, value_enum)]
+    pub format: Option<Format>,
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,

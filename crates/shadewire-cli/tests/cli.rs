@@ -17,6 +17,12 @@ const EXAMPLE_COMPOUNDS: &str = concat!(
     "/../../vendor/materialx/resources/Materials/Examples/StandardSurface/standard_surface_greysphere_calibration.mtlx"
 );
 
+const FIXTURE_PRINCIPLED: &str =
+    concat!(env!("CARGO_MANIFEST_DIR"), "/../../blender/fixtures/graphs/principled_defaults.json");
+
+const FIXTURE_UNSUPPORTED: &str =
+    concat!(env!("CARGO_MANIFEST_DIR"), "/../../blender/fixtures/graphs/unsupported.json");
+
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("shadewire-cli-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
@@ -195,4 +201,33 @@ fn mtlx_inline_and_optimize_expand_library_nodes() {
     let written = run(&["mtlx", EXAMPLE_COMPOUNDS, "-o", out.to_str().unwrap()]);
     assert!(written.status.success() && written.stdout.is_empty());
     assert_eq!(std::fs::read_to_string(out).unwrap(), kept);
+}
+
+#[test]
+fn a_blender_graph_is_read_by_extension_or_by_format() {
+    let listed = run(&["list", FIXTURE_PRINCIPLED]);
+    assert!(listed.status.success(), "{}", String::from_utf8_lossy(&listed.stderr));
+    assert_eq!(String::from_utf8_lossy(&listed.stdout).trim(), "principled_defaults");
+    let ir = run(&["ir", FIXTURE_PRINCIPLED]);
+    assert!(ir.status.success());
+    assert!(String::from_utf8_lossy(&ir.stdout).starts_with("model open_pbr_surface\n"));
+    let compiled = run(&["compile", FIXTURE_PRINCIPLED, "--lang", "wgsl"]);
+    assert!(compiled.status.success(), "{}", String::from_utf8_lossy(&compiled.stderr));
+    assert!(String::from_utf8_lossy(&compiled.stdout).contains("fn shadewire_eval_surface() -> OpenPbrSurface"));
+    let mtlx = run(&["mtlx", FIXTURE_PRINCIPLED]);
+    assert!(mtlx.status.success());
+    assert!(String::from_utf8_lossy(&mtlx.stdout).contains("<open_pbr_surface "));
+    let renamed = scratch("graph.txt");
+    std::fs::copy(FIXTURE_PRINCIPLED, &renamed).unwrap();
+    assert!(!run(&["list", renamed.to_str().unwrap()]).status.success(), "a .txt is MaterialX by default");
+    assert!(run(&["list", renamed.to_str().unwrap(), "--format", "blender"]).status.success());
+}
+
+#[test]
+fn blender_warnings_go_to_stderr() {
+    let out = run(&["ir", FIXTURE_UNSUPPORTED]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("not lowered"), "{stderr}");
+    assert!(stderr.contains("ShaderNodeLightPath"), "{stderr}");
 }

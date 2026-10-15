@@ -3852,6 +3852,7 @@ dependencies = [
  "clap",
  "serde_json",
  "shadewire",
+ "shadewire-blender",
  "shadewire-gdshader",
  "shadewire-glsl",
  "shadewire-hlsl",

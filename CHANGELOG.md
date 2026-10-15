@@ -160,6 +160,8 @@ No compatibility shims: old names are gone.
   callable `(base, href) -> (location, text)` that raises to fail (called with the GIL; the exception's message is
   the error), and `shadewire.mtlx.list_dependencies(text, location=None)` returns `{"includes", "files"}`. Tests in
   `crates/shadewire-py/tests` (pytest, against an installed module).
+- `shadewire compile|ir|list|mtlx` read Blender material graphs (`.json`, or `--format blender`); a front end's
+  warnings print to stderr.
 
 ### Packaging
 
