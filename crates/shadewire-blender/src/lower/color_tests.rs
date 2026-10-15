@@ -204,6 +204,28 @@ fn invert_gamma_brightness_contrast_and_hsv_follow_blender() {
     assert!(close(&lower_field(&hsv, link, "base_color").0, &Value::Color3([0.4, 1.0, 2.0])));
 }
 
+/// Blender leaves A alone when the color the hue (or the saturation) comes from has no saturation to give.
+#[test]
+fn hsv_blends_keep_a_when_the_gray_side_has_nothing_to_give() {
+    let blue = [0.2f32, 0.2, 0.8];
+    let gray = [0.4f32; 3];
+    let red = [0.9f32, 0.1, 0.1];
+    for blend in ["HUE", "COLOR"] {
+        let got = mixed(blend, 1.0, blue, gray);
+        assert!(close(&Value::Color3(got), &Value::Color3(blue)), "{blend} with a gray B: {got:?}");
+    }
+    let got = mixed("SATURATION", 1.0, gray, red);
+    assert!(close(&Value::Color3(got), &Value::Color3(gray)), "SATURATION with a gray A: {got:?}");
+    // A gray A still takes B's value, and a colored B still gives its hue and saturation.
+    let got = mixed("VALUE", 1.0, gray, red);
+    assert!(close(&Value::Color3(got), &Value::Color3([0.9; 3])), "VALUE with a gray A: {got:?}");
+    let got = mixed("COLOR", 1.0, [0.2, 0.2, 0.8], red);
+    assert!(
+        close(&Value::Color3(got), &Value::Color3([0.8, 0.8 * (1.0 - 0.8 / 0.9), 0.8 * (1.0 - 0.8 / 0.9)])),
+        "COLOR: {got:?}"
+    );
+}
+
 #[test]
 fn an_unknown_blend_is_a_mix_and_a_disabled_result_is_zero() {
     let (value, warnings) = lower_field(
