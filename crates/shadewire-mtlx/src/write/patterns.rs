@@ -96,7 +96,7 @@ pub fn write_patterns<'a>(
             NodeKind::Const(_) | NodeKind::Context(_) => {}
             NodeKind::Uniform { .. } if pattern_read || readers == 0 => patterns.write_uniform(id),
             NodeKind::Uniform { .. } => {}
-            NodeKind::Sample { .. } => patterns.write_sample(dag, plan, id)?,
+            NodeKind::Sample { .. } => patterns.write_sample(dag, plan, index, id)?,
             NodeKind::Op { .. } => patterns.write_op(dag, plan, index, id)?,
         }
     }

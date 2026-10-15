@@ -102,7 +102,7 @@ fn has_text_input(nd: &NodeDef) -> bool {
 }
 
 /// The Sample a `ND_{cs}_to_{working}_{type}` conversion reads, when that Sample's texture is in colorspace `cs`.
-pub(crate) fn converted_sample(dag: &Dag, compound: &Compound) -> Option<NodeId> {
+fn converted_sample(dag: &Dag, compound: &Compound) -> Option<NodeId> {
     let [(_, input)] = compound.inputs.as_slice() else { return None };
     let node = dag.node(*input);
     let NodeKind::Sample { texture, .. } = &node.kind else { return None };

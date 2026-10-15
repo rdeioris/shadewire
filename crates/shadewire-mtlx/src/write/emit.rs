@@ -1,13 +1,13 @@
 //! Writing one sample, op or kept compound into the nodegraph, its inputs read from the nodes already written.
 
-use shadewire::{Dag, Error, Location, NodeId, NodeKind, Value};
+use shadewire::{Dag, Error, Location, NodeId, NodeKind, Type, Value};
 use shadewire_nodes::Index;
 use shadewire_nodes::document::{NodeDef, PortType};
 
 use super::catalog::{arg_names, category_for, is_shadewire_category, nodedef_for};
 use super::elements::{Source, compound_element, image_element, op_element};
 use super::patterns::Patterns;
-use super::plan::{Plan, converted_sample};
+use super::plan::Plan;
 use super::values::value_text;
 
 /// The value an unconnected nodedef input reads: its declared value.
@@ -19,12 +19,26 @@ fn nodedef_default(nd: &NodeDef, input: &str) -> Option<Value> {
     }
 }
 
-/// Whether a sample's image carries its texture's `colorspace` (which converts on read): when its conversion is
-/// folded into it, or when no conversion read it (none applied: a non-color sample, `none`/`raw`, the working
-/// colorspace). A conversion written as its own nodes already converts.
-fn keeps_colorspace(dag: &Dag, plan: &Plan, sample: NodeId) -> bool {
-    plan.folded_conversions.values().any(|folded| *folded == sample)
-        || !dag.compounds.iter().any(|c| converted_sample(dag, c) == Some(sample))
+/// Whether a sample's image carries its texture's `colorspace`: when its conversion is folded into it, or when the
+/// reader would not convert (no colorspace, `none`/`raw`, a sample that is not `color3`/`color4`, or a colorspace
+/// with no `ND_{cs}_to_{working}_{type}` nodedef, such as the working one). Otherwise the dag converts with nodes
+/// of its own (a conversion compound not folded, or its leaf ops in an optimized dag), and the attribute would
+/// convert a second time.
+fn keeps_colorspace(dag: &Dag, plan: &Plan, index: &Index, sample: NodeId) -> bool {
+    if plan.folded_conversions.values().any(|folded| *folded == sample) {
+        return true;
+    }
+    let node = dag.node(sample);
+    let NodeKind::Sample { texture, .. } = &node.kind else { return true };
+    let cs = match dag.textures[*texture].colorspace.as_deref() {
+        None | Some("" | "none" | "raw") => return true,
+        Some(cs) => cs,
+    };
+    if !matches!(node.ty, Type::Color3 | Type::Color4) {
+        return true;
+    }
+    let (prefix, suffix) = (format!("ND_{cs}_to_"), format!("_{}", node.ty.mtlx_name()));
+    !index.nodedefs().any(|nd| nd.name.starts_with(&prefix) && nd.name.ends_with(&suffix))
 }
 
 impl Patterns<'_> {
@@ -47,7 +61,7 @@ impl Patterns<'_> {
 
     /// An `image` node, or `shadewire_image_grad` for an explicit-gradient lookup; it also stands for the
     /// colorspace conversions folded into it.
-    pub(super) fn write_sample(&mut self, dag: &Dag, plan: &Plan, id: NodeId) -> Result<(), Error> {
+    pub(super) fn write_sample(&mut self, dag: &Dag, plan: &Plan, index: &Index, id: NodeId) -> Result<(), Error> {
         let node = dag.node(id);
         let NodeKind::Sample { texture, uv, default, grad } = &node.kind else { return Ok(()) };
         let uv = self.source(dag, plan, *uv)?;
@@ -58,7 +72,7 @@ impl Patterns<'_> {
         let category = if grad.is_some() { "shadewire_image_grad" } else { "image" };
         let name = self.node_name(node, category, id.index());
         let mut texture = dag.textures[*texture].clone();
-        if !keeps_colorspace(dag, plan, id) {
+        if !keeps_colorspace(dag, plan, index, id) {
             texture.colorspace = None;
         }
         let mut element = image_element(category, &name, node.ty, &texture, default, &uv, grad);

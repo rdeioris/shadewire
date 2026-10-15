@@ -19,6 +19,11 @@ impl<'a> Index<'a> {
         self.documents.iter().find_map(|d| d.nodedefs.iter().find(|n| n.name == name))
     }
 
+    /// Every nodedef, the user's first; a name may repeat.
+    pub fn nodedefs(&self) -> impl Iterator<Item = &'a NodeDef> + '_ {
+        self.documents.iter().flat_map(|d| d.nodedefs.iter())
+    }
+
     /// Matching nodedefs; a nodedef hides any later one with the same name.
     pub fn nodedefs_for_category(&self, category: &str) -> Vec<&'a NodeDef> {
         let mut found: Vec<&'a NodeDef> = Vec::new();
