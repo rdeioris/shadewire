@@ -5,6 +5,8 @@
 //!
 //! - `shadewire.mtlx.to_ir`, `.material_names`: `shadewire_mtlx_to_ir`, `shadewire_mtlx_material_names` (a
 //!   `shadewire_strings`);
+//! - `shadewire.mtlx.from_ir`: `shadewire_ir_to_mtlx` (a `shadewire_document`, with `shadewire_document_text` and
+//!   `_warning_count` / `_warning`);
 //! - `shadewire_mtlx::list_dependencies` and the resolver argument of `to_ir`: `shadewire_mtlx_list_dependencies` (a
 //!   `shadewire_dependencies`) and `shadewire_mtlx_options::resolve` (a `shadewire_resolve_fn` answering through
 //!   `shadewire_resolution_set` / `_fail`);
@@ -36,6 +38,7 @@
 
 mod compiled;
 mod dependencies;
+mod document;
 mod error;
 mod error_kind;
 mod guard;
@@ -58,6 +61,10 @@ pub use dependencies::{
     shadewire_dependencies, shadewire_dependencies_file, shadewire_dependencies_file_count,
     shadewire_dependencies_free, shadewire_dependencies_include, shadewire_dependencies_include_count,
     shadewire_mtlx_list_dependencies,
+};
+pub use document::{
+    shadewire_document, shadewire_document_free, shadewire_document_text, shadewire_document_warning,
+    shadewire_document_warning_count, shadewire_ir_to_mtlx,
 };
 pub use error::{
     shadewire_error, shadewire_error_file, shadewire_error_free, shadewire_error_get_kind, shadewire_error_line,

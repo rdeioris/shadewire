@@ -76,6 +76,7 @@ static int names_and_ir(const char *text, size_t len, const char *path, char *re
     shadewire_strings *names = NULL;
     shadewire_ir *ir = NULL;
     shadewire_ir *optimized = NULL;
+    shadewire_document *doc = NULL;
     shadewire_error *err = NULL;
     const char *json;
     size_t json_len = 0;
@@ -94,6 +95,11 @@ static int names_and_ir(const char *text, size_t len, const char *path, char *re
         step = fail(report, report_len, 12, "lowering or optimizing failed", err);
         goto done;
     }
+    if (shadewire_ir_to_mtlx(ir, false, NULL, &doc, &err) != SHADEWIRE_OK ||
+        shadewire_document_text(doc, NULL) == NULL) {
+        step = fail(report, report_len, 14, "writing the IR back as MaterialX failed", err);
+        goto done;
+    }
     json = shadewire_ir_json(optimized, &json_len);
     if (json == NULL || json_len == 0 || json[0] != '{' || strcmp(shadewire_ir_source(optimized), "mtlx") != 0 ||
         shadewire_ir_structure_hash(optimized) == NULL) {
@@ -104,6 +110,7 @@ done:
     shadewire_strings_free(names);
     shadewire_ir_free(ir);
     shadewire_ir_free(optimized);
+    shadewire_document_free(doc);
     shadewire_error_free(err);
     return step;
 }

@@ -1,7 +1,7 @@
 //! The `shadewire` Python module, laid out like the Rust crates:
 //!
 //! - `shadewire.mtlx` (`shadewire_mtlx`): the MaterialX front end, `to_ir`, `material_names` and
-//!   `list_dependencies`, with includes read by a Python `resolver`;
+//!   `list_dependencies`, with includes read by a Python `resolver`, and the writer, `from_ir`;
 //! - `shadewire.Ir` (`shadewire::Dag` and its `SourceInfo`): the IR, with `optimize`, `dump` and `to_dict`
 //!   (the document `shadewire::export` writes);
 //! - `shadewire.wgsl`, `shadewire.glsl`, `shadewire.hlsl`, `shadewire.msl` (`shadewire_wgsl` ...): the back ends,
@@ -165,6 +165,17 @@ fn list_dependencies(py: Python<'_>, text: String, location: Option<String>) -> 
     dict.set_item("includes", deps.includes)?;
     dict.set_item("files", deps.files)?;
     Ok(dict.into_any().unbind())
+}
+
+/// An IR as a MaterialX document: `(text, warnings)`. `inline` writes library nodes as their expansions instead of by
+/// name; `name` names the `surfacematerial` (the nodegraph is `NG_` and that name). Takes an unoptimized IR (as
+/// `to_ir` returns it), and embeds the shadewire definitions the document needs.
+#[pyfunction]
+#[pyo3(signature = (ir, inline=false, name="material"))]
+fn from_ir(py: Python<'_>, ir: &PyIr, inline: bool, name: &str) -> PyResult<(String, Vec<String>)> {
+    let options = shadewire_mtlx::WriteOptions { inline, name: name.to_string(), ..Default::default() };
+    let written = py.detach(|| shadewire_mtlx::from_ir(&ir.dag, &options)).map_err(error)?;
+    Ok((written.text, written.warnings))
 }
 
 // ---------------------------------------------------------------------------------------------------- back ends
@@ -361,6 +372,7 @@ fn shadewire_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     mtlx.add_function(wrap_pyfunction!(to_ir, &mtlx)?)?;
     mtlx.add_function(wrap_pyfunction!(material_names, &mtlx)?)?;
     mtlx.add_function(wrap_pyfunction!(list_dependencies, &mtlx)?)?;
+    mtlx.add_function(wrap_pyfunction!(from_ir, &mtlx)?)?;
 
     m.add_class::<PyCompiled>()?;
     let wgsl = submodule(m, "wgsl")?;

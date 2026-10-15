@@ -515,3 +515,22 @@ fn list_dependencies_names_includes_and_prefixed_files() {
     assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_PARSE);
     unsafe { shadewire_error_free(error) };
 }
+
+#[test]
+fn an_ir_writes_back_as_a_document() {
+    let ir = to_ir(&default_example());
+    let mut doc: *mut shadewire_document = std::ptr::null_mut();
+    let mut err: *mut shadewire_error = std::ptr::null_mut();
+    let status = unsafe { shadewire_ir_to_mtlx(ir, false, c"m".as_ptr(), &mut doc, &mut err) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+    let mut len = 0;
+    let text = text(unsafe { shadewire_document_text(doc, &mut len) });
+    assert!(text.starts_with("<?xml"), "{text}");
+    assert!(text.contains("<surfacematerial name=\"m\""), "{text}");
+    assert_eq!(len, text.len());
+    assert_eq!(unsafe { shadewire_document_warning_count(doc) }, 0);
+    assert!(unsafe { shadewire_document_warning(doc, 0) }.is_null());
+    unsafe { shadewire_document_free(doc) };
+    unsafe { shadewire_ir_free(ir) };
+    unsafe { shadewire_document_free(std::ptr::null_mut()) };
+}

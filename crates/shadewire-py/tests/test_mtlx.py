@@ -107,3 +107,12 @@ def test_list_dependencies():
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))
+
+
+def test_from_ir_writes_a_document_that_reads_again():
+    ir = mtlx.to_ir(DOCUMENTS["mem://top.mtlx"], location="mem://top.mtlx", models=["surface"], resolver=MemoryResolver())
+    text, warnings = mtlx.from_ir(ir, name="m")
+    assert text.startswith('<?xml version="1.0"?>')
+    assert "<oren_nayar_diffuse_bsdf" in text and warnings == []
+    again = mtlx.to_ir(text, models=["surface"])
+    assert again.model() == "surface"

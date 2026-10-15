@@ -79,6 +79,10 @@ typedef struct shadewire_compiled shadewire_compiled;
 // `shadewire_dependencies_free`.
 typedef struct shadewire_dependencies shadewire_dependencies;
 
+// A MaterialX document written from an IR: its text and the warnings the writer raised. Free it with
+// `shadewire_document_free`.
+typedef struct shadewire_document shadewire_document;
+
 // An error returned by a failed call. Free it with `shadewire_error_free`.
 typedef struct shadewire_error shadewire_error;
 
@@ -277,6 +281,47 @@ const char *shadewire_dependencies_file(const struct shadewire_dependencies *d,
 // # Safety
 // `d` must be NULL or a handle from this library not yet freed.
 void shadewire_dependencies_free(struct shadewire_dependencies *d);
+
+// Writes `ir` as a MaterialX document and writes the handle to `out`; `ir` is unchanged.
+//
+// `inline_nodes` writes library nodes as their expansions instead of by name. `name` (NUL-terminated, may be NULL
+// for "material") names the `surfacematerial`; the nodegraph is `NG_` and that name. The shadewire definitions the
+// document needs are embedded in it. `*out` is written only on success.
+//
+// # Safety
+// `ir` must be a live handle (NULL is an error); `name` must be NULL or a valid NUL-terminated string; `out` must be
+// valid for writing a pointer and `error` NULL or valid for writing a pointer.
+shadewire_status shadewire_ir_to_mtlx(const struct shadewire_ir *ir,
+                                      bool inline_nodes,
+                                      const char *name,
+                                      struct shadewire_document **out,
+                                      struct shadewire_error **error);
+
+// The document's text, valid until `doc` is freed, its byte length written to `len` when non-NULL; NULL (and 0) when
+// `doc` is NULL.
+//
+// # Safety
+// `doc` must be NULL or a live handle; `len` NULL or valid for writing a `usize`.
+const char *shadewire_document_text(const struct shadewire_document *doc,
+                                    size_t *len);
+
+// The number of warnings; 0 when `doc` is NULL.
+//
+// # Safety
+// `doc` must be NULL or a live handle.
+size_t shadewire_document_warning_count(const struct shadewire_document *doc);
+
+// Warning `index`, valid until `doc` is freed; NULL when `doc` is NULL or `index` is out of range.
+//
+// # Safety
+// `doc` must be NULL or a live handle.
+const char *shadewire_document_warning(const struct shadewire_document *doc, size_t index);
+
+// Frees `doc`; NULL is allowed.
+//
+// # Safety
+// `doc` must be NULL or a handle from this library not yet freed.
+void shadewire_document_free(struct shadewire_document *doc);
 
 // The kind of `err`; `SHADEWIRE_ERROR_INVALID_ARGUMENT` when `err` is NULL.
 //
