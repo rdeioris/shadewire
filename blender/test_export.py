@@ -38,15 +38,16 @@ def load_addon():
 
 
 def find_compiler(configured):
-    """The configured executable, "" for the module when it imports, else a built executable in target/."""
+    """The configured executable, "" for the module when it imports with its Blender front end, else a built executable in target/."""
     if configured:
         return configured
     try:
-        import shadewire  # noqa: F401
+        import shadewire
     except ImportError:
         pass
     else:
-        return ""
+        if hasattr(shadewire, "blender"):
+            return ""
     name = "shadewire.exe" if sys.platform == "win32" else "shadewire"
     for profile in ("release", "debug"):
         path = os.path.join(root, "target", profile, name)
@@ -161,12 +162,131 @@ def test_merge_documents():
     try:
         compiler.merge_documents([text_a, text_a])
     except compiler.CompileError as e:
-        check("A" in str(e), f"a repeated material name is an error naming it: {e}")
+        check("element named NG_A" in str(e), f"a repeated material name is an error naming the element: {e}")
     else:
         check(False, "a repeated element name raises CompileError")
 
 
-TESTS = [test_to_mtlx, test_merge_documents]
+def diffuse_material(name):
+    """A material that is a lone Diffuse BSDF (a closure tree, no Principled BSDF)."""
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nodes = m.node_tree.nodes
+    nodes.remove(nodes["Principled BSDF"])
+    diffuse = nodes.new("ShaderNodeBsdfDiffuse")
+    m.node_tree.links.new(diffuse.outputs["BSDF"], nodes["Material Output"].inputs["Surface"])
+    return m
+
+
+def test_merge_lobe_materials():
+    bpy.ops.wm.read_homefile(use_empty=True)
+    one, two = diffuse_material("One"), diffuse_material("Two")
+    doc = graph.to_text(graph.dump([one, two]))
+    merged = compiler.merge_documents([backend.to_mtlx(doc, "One", "One")[0], backend.to_mtlx(doc, "Two", "Two")[0]])
+    check(merged.count("<surfacematerial ") == 2, "two closure-tree materials in one document")
+    valid, message = parse_mtlx(merged)
+    check(valid in (True, None), f"MaterialX parses the merged lobe document: {message}")
+    for name in ("One", "Two"):
+        doc = backend.compile_text(merged, None, name, False, "LOBES")
+        check(doc["format"] == "shadewire-ir", f"{name} compiles from the merged lobe document")
+
+
+def test_merge_unnamed_elements():
+    document = '<?xml version="1.0"?>\n<materialx version="1.39">\n  <variantset />\n</materialx>\n'
+    merged = compiler.merge_documents([document, document])
+    check(merged.count("<variantset") == 2, f"elements without a name are neither deduplicated nor an error: {merged}")
+
+
+def test_non_ascii_path():
+    bpy.ops.wm.read_homefile(use_empty=True)
+    m = textured_material("Accents")
+    image = m.node_tree.nodes["Albedo"].image
+    name = "tèxture 日本.png"
+    image.filepath_raw = os.path.join(textures, name)
+    image.save()
+    text, _ = backend.to_mtlx(graph.to_text(graph.dump([m])), m.name, "Accents")
+    check(name in text, "a non-ASCII image path comes back unchanged")
+    # The round trip also passes where the locale is already UTF-8, so the decoding is checked directly.
+    if isinstance(backend, compiler.ExecutableBackend):
+        calls = []
+        run = compiler.subprocess.run
+        compiler.subprocess.run = lambda *a, **kw: calls.append(kw) or run(*a, **kw)
+        try:
+            backend.run_with_stderr(["--help"])
+        finally:
+            compiler.subprocess.run = run
+        check(bool(calls) and calls[0].get("encoding") == "utf-8", f"the executable's output is decoded as UTF-8: {calls}")
+
+
+def fake_executable(stderr):
+    """An executable that prints `stderr` and exits 2, as clap does for an argument it does not know."""
+    folder = tempfile.mkdtemp(prefix="shadewire-fake-")
+    if sys.platform == "win32":
+        path = os.path.join(folder, "shadewire.bat")
+        script = f"@echo off\r\necho {stderr} 1>&2\r\nexit /b 2\r\n"
+    else:
+        path = os.path.join(folder, "shadewire")
+        script = f"#!/bin/sh\necho \"{stderr}\" >&2\nexit 2\n"
+    with open(path, "w", newline="") as f:
+        f.write(script)
+    os.chmod(path, 0o755)
+    return path
+
+
+def test_old_executable_hint():
+    doc = graph.to_text({"format": "shadewire-blender-graph", "version": 1, "materials": [{"name": "M"}]})
+    for message in ("error: unrecognized subcommand 'mtlx'", "error: unexpected argument '--material' found",
+                    "error: invalid value 'blender' for '--format'"):
+        try:
+            compiler.ExecutableBackend(fake_executable(message)).to_mtlx(doc, "M", "M")
+        except compiler.CompileError as e:
+            check("does not read Blender graphs" in str(e), f"{message!r} gets the version hint: {e}")
+        else:
+            check(False, f"{message!r} raises CompileError")
+    try:
+        compiler.ExecutableBackend(fake_executable("error: boom")).to_mtlx(doc, "M", "M")
+    except compiler.CompileError as e:
+        check("does not read Blender graphs" not in str(e), f"another failure gets no hint: {e}")
+
+
+class StaleModule:
+    """A `shadewire` module from before the Blender front end: no `blender` attribute."""
+
+    @staticmethod
+    def version():
+        return "0.0.9"
+
+
+def test_module_without_front_end():
+    saved = sys.modules.get("shadewire"), compiler.shutil.which
+    sys.modules["shadewire"] = StaleModule
+    try:
+        compiler.shutil.which = lambda name: executable or None
+        chosen = compiler.backend("")
+        check(isinstance(chosen, compiler.ExecutableBackend), f"a module without a front end is skipped: {chosen.name}")
+        compiler.shutil.which = lambda name: None
+        try:
+            compiler.backend("")
+        except compiler.CompileError as e:
+            check("module 0.0.9 has no Blender front end" in str(e), f"the error names the module: {e}")
+        else:
+            check(False, "no executable and a stale module raises CompileError")
+        try:
+            compiler.ModuleBackend(StaleModule).to_mtlx("{}", "M", "M")
+        except compiler.CompileError as e:
+            check("has no Blender front end" in str(e), f"to_mtlx guards a stale module: {e}")
+        else:
+            check(False, "to_mtlx on a stale module raises CompileError")
+    finally:
+        compiler.shutil.which = saved[1]
+        if saved[0] is None:
+            del sys.modules["shadewire"]
+        else:
+            sys.modules["shadewire"] = saved[0]
+
+
+TESTS = [test_to_mtlx, test_merge_documents, test_merge_lobe_materials, test_merge_unnamed_elements, test_non_ascii_path,
+         test_old_executable_hint, test_module_without_front_end]
 
 if __name__ == "__main__":
     for test in TESTS:

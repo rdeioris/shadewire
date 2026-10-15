@@ -79,6 +79,8 @@ class ModuleBackend:
     def to_mtlx(self, graph_text, material, name, inline=False):
         """A Blender graph document's `material` as a MaterialX document: `(text, warnings)`. `name` names the
         written `surfacematerial`; `inline` writes library nodes expanded."""
+        if not hasattr(self.module, "blender"):
+            raise CompileError(missing_front_end(self.module))
         try:
             ir = self.module.blender.to_ir(graph_text, material=material, models=EXPORT_MODELS,
                                            values_as_uniforms=True)
@@ -101,7 +103,8 @@ class ExecutableBackend:
     def run_with_stderr(self, args):
         """`(stdout, stderr)` of a successful call; a failed one is a CompileError carrying stderr."""
         flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-        done = subprocess.run([self.path, *args], capture_output=True, text=True, creationflags=flags)
+        done = subprocess.run([self.path, *args], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                              creationflags=flags)
         if done.returncode != 0:
             raise CompileError(done.stderr.strip() or f"shadewire exited with {done.returncode}")
         return done.stdout, done.stderr
@@ -135,10 +138,11 @@ class ExecutableBackend:
         """`ModuleBackend.to_mtlx` through the `mtlx` command: the warnings are stderr's lines. The command names
         the written material after the one it reads, so the document handed over holds just `material`, renamed
         `name`."""
+        renamed = renamed_material(graph_text, material, name)
         fd, temporary = tempfile.mkstemp(suffix=".json")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write(renamed_material(graph_text, material, name))
+                f.write(renamed)
             args = ["mtlx", temporary, "--format", "blender", "--material", name]
             for model in EXPORT_MODELS:
                 args += ["--model", model]
@@ -152,8 +156,11 @@ class ExecutableBackend:
         return text, [line.strip() for line in stderr.splitlines() if line.strip()]
 
     def hinted(self, message):
-        """`message`, with what to do about it when the executable predates the Blender front end."""
-        if "unexpected argument" in message or "unknown format" in message:
+        """`message`, with what to do about it when the executable predates the Blender front end: clap's words
+        for a command, an argument or a `--format` value it does not know."""
+        lowered = message.lower()
+        old = ("unexpected argument", "unrecognized subcommand", "unknown format")
+        if any(phrase in lowered for phrase in old) or ("invalid value" in lowered and "--format" in lowered):
             return (f"{message}\nthe shadewire executable at {self.path} does not read Blender graphs: "
                     "a build with the Blender front end (0.1.0 or later) is needed")
         return message
@@ -174,7 +181,9 @@ def renamed_material(graph_text, material, name):
 def merge_documents(texts):
     """One MaterialX document holding every element of `texts` in order. Shadewire's embedded declarations
     (`nodedef`, `implementation`, the `nodegraph` of a nodedef) repeat per document and are kept once; any other
-    repeated name is an error. A single document is returned as it is."""
+    repeated name is an error (the same material name twice, or two names the writer sanitizes alike); a repeated
+    declaration is dropped even if its content differs. An element without a name is always kept. A single
+    document is returned as it is."""
     if len(texts) == 1:
         return texts[0]
     merged = ET.Element("materialx", version="1.39")
@@ -186,12 +195,12 @@ def merge_documents(texts):
             raise CompileError(f"not a MaterialX document: {e}") from e
         for element in root:
             name = element.get("name")
-            if is_embedded(element):
-                if name in taken:
-                    continue
-            elif name in taken:
+            if name in taken and is_embedded(element):
+                continue
+            if name in taken:
                 raise CompileError(f"two exported materials write an element named {name}; rename one material")
-            taken.add(name)
+            if name is not None:
+                taken.add(name)
             merged.append(element)
     ET.indent(merged, space="  ")
     return '<?xml version="1.0"?>\n' + ET.tostring(merged, encoding="unicode") + "\n"
@@ -199,7 +208,7 @@ def merge_documents(texts):
 
 def is_embedded(element):
     """Whether `element` is one of the declarations every Shadewire document embeds."""
-    return element.tag in EMBEDDED_TAGS or element.tag == "nodegraph" and element.get("nodedef") is not None
+    return element.tag in EMBEDDED_TAGS or (element.tag == "nodegraph" and element.get("nodedef") is not None)
 
 
 def find_executable(configured=""):
@@ -209,16 +218,28 @@ def find_executable(configured=""):
     return next((path for path in candidates if path and os.path.isfile(path)), None)
 
 
+def missing_front_end(module):
+    """The error for an installed `module` that predates the Blender front end."""
+    return (f"the installed shadewire module {module.version()} has no Blender front end; this extension needs its "
+            "bundled module (0.1.0 with shadewire.blender) or the shadewire executable")
+
+
 def backend(configured_executable=""):
-    """The module when it imports (and no executable is configured), else the executable."""
+    """The module when it imports with its Blender front end (and no executable is configured), else the
+    executable. A module without the front end counts as absent."""
+    old = None
     if not configured_executable:
         try:
             import shadewire
         except ImportError:
             pass
         else:
-            return ModuleBackend(shadewire)
+            if hasattr(shadewire, "blender"):
+                return ModuleBackend(shadewire)
+            old = shadewire
     path = find_executable(configured_executable)
+    if path is None and old is not None:
+        raise CompileError(missing_front_end(old))
     if path is None:
         raise CompileError(
             "no Shadewire compiler: install the extension build that bundles the shadewire module, "
