@@ -58,6 +58,10 @@ Blender's own rules and silent.
 - Normal Map works in tangent space only; object and world space maps are read as tangent space.
 - Displacement and Volume on the Material Output are ignored.
 - The Principled BSDF's Anisotropic Rotation is dropped (OpenPBR rotates the tangent instead).
+- A Principled BSDF mixed or added with other BSDFs, or with a second Principled BSDF, wins: the other side is
+  dropped, with a warning (a Transparent BSDF mixed in scales its opacity instead).
+- Attribute reads geometry attributes only: another attribute type, or no name, is zero; its Alpha output is 1. An
+  unknown Gradient type is Linear. Each with a warning.
 - Light Path is constants: Is Camera Ray 1, the rest 0.
 
 ## Testing
