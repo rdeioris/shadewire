@@ -1,6 +1,99 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-10-15)
+
+Since 0.1.0.
+
+### Highlights
+
+- **`shadewire-nodes`, the node library as a crate.** The vendored libraries, nodedef resolution and the elaborator
+  move out of `shadewire-mtlx`, which is now the MaterialX reader alone. A front end without a document
+  (`Elaborator::standalone`) asks for nodes by name (`instantiate`) and finishes a material as a model or a closure
+  tree (`finish_model`, `finish_closure`). The IR records the library nodes it was built from (`Dag::compounds`).
+- **A MaterialX writer.** `shadewire_mtlx::from_ir` writes any IR back as a 1.39 document, library nodes as single nodes
+  through the IR's compounds (`shadewire mtlx`, `shadewire.mtlx.from_ir`, `shadewire_ir_to_mtlx`); IR-only nodes
+  (hextile, derivatives) are Shadewire nodedefs the reader also accepts.
+- **A Blender front end.** `shadewire-blender` reads the material graph JSON the Blender extension writes and lowers
+  it through `shadewire-nodes`: a Principled BSDF is `open_pbr_surface`, Blender's BSDFs a closure tree, its math,
+  color, texture and procedural nodes the matching MaterialX nodes, with a warning for every approximation
+  (`MaterialIr.warnings`).
+- **Blender: material graphs as JSON and MaterialX export.** File > Export/Import > Material Graph (Shadewire JSON)
+  saves a material's node tree exactly as Blender holds it and loads it back (`shadewire-blender-graph` version 1);
+  the fixtures under `blender/fixtures/graphs` are such dumps. File > Export > MaterialX (Shadewire) writes materials
+  through the Blender front end and the MaterialX writer; the USD export dialog's "Shadewire MaterialX" option
+  replaces Blender's shader prims with a reference into a .mtlx written beside the .usd.
+- **Bevy lights closure trees with MaterialX's lobes**, and builds every model by default (below).
+- Every back end also writes `shadewire_eval_ambient` for a closure tree: the albedo split into diffuse and specular,
+  for a host's own environment lighting.
+
+### Breaking changes
+
+No compatibility shims: old names are gone.
+
+- **Rust:** `shadewire_mtlx::MtlxOptions` and `ElaborateOptions` are `shadewire_nodes::IrOptions`; `to_ir` takes
+  the `Resolver` as its own argument. `shadewire_mtlx::{document, elaborate, element, index, library, parse,
+  resolve_nodedef, surface, version}` are `shadewire_nodes::…`. `MaterialIr` lives in `shadewire-nodes`
+  (re-exported by `shadewire-mtlx`) and carries `warnings`.
+- **Rust:** `LOBE_MODELS` moved from `shadewire_gdshader` to `shadewire`: it picks what the front end accepts, on
+  every back end.
+- **Bevy:** `BuildOptions::mtlx` is `ir`; its include resolver is the new `BuildOptions.resolver`.
+- **CLI:** `--lobes` opens every material into its closure tree on every back end (it was Godot only) and conflicts
+  with `--model`; `ir` takes it too. `--transparency` and `--emission-scale` are an error without `--lang gdshader`.
+- **IR export JSON:** a `compounds` list (format version unchanged: readers may ignore it).
+
+### Core (`shadewire`)
+
+- `export`: a `sample` whose lookup takes explicit gradients (hextiling) carries `grad: [dx, dy]`, the node indices
+  of its uv derivatives; the field is optional and new within format version 1, so a reader that ignores it samples
+  with implicit derivatives as before.
+- `Op::Fractal2d` (`fractal2d` in the JSON): MaterialX's `fractal2d`, every width, from genglsl `mx_fractal2d_*`.
+- Constant folding leaves an op alone when its value would be a NaN or an infinity (`normalize` of a zero vector):
+  no JSON or shading language can hold that constant, and the GPU decides.
+
+### MaterialX front end (`shadewire-mtlx`, `shadewire-nodes`)
+
+- The compositing nodes upstream implements only in genglsl (`plus`, `minus`, `difference`, `screen`, `burn`,
+  `dodge`; float, color3, color4) lower through Shadewire nodegraphs of existing ops.
+- `viewdirection` has a nodedef (`ND_viewdirection_vector3`, world space by default): the specification describes
+  it but upstream's libraries ship none.
+- A 1.38 `normalmap` with `space="object"` upgrades to `normalize(in * 2 - 1)`, as upstream's upgrade writes it,
+  instead of being refused.
+
+### Bevy (`shadewire-bevy`)
+
+- Closure trees (the `surface` model) lit by MaterialX's lobes: Bevy's point, spot and directional lights, shadows
+  and contact shadows through `shadewire_eval_bsdf`, in Bevy's light units (the `lobe_calibration` example checks a
+  white Lambert lobe against `StandardMaterial` under a directional light, the ambient light and an environment map).
+  Indirect light through `shadewire_eval_ambient`'s diffuse and specular split, with nothing to invert: lightmaps,
+  irradiance volumes, environment maps and the ambient light. `matlib_render --lobes` renders that way.
+- The builder accepts `shadewire_bevy::MODELS` by default, `surface` included, so raw BSDF graphs,
+  `UsdPreviewSurface` and `disney_principled` build (as closure trees) instead of failing; `BuildOptions::lobes()`
+  opens every material into its lobes, and `gltf_mtlx --lobes` shows it.
+
+### Python, CLI and C API
+
+- `shadewire.blender.to_ir` and `.material_names`; `Ir.warnings`; `shadewire.mtlx.from_ir`.
+- `shadewire compile|ir|list|mtlx` read Blender material graphs (`.json`, or `--format blender`); a front end's
+  warnings print to stderr. `shadewire mtlx` writes the IR back as MaterialX.
+- C API: `shadewire_blender_to_ir` (with `shadewire_ir_options`, the MaterialX options without the resolver),
+  `shadewire_blender_material_names`, `shadewire_ir_warnings`, `shadewire_ir_to_mtlx`.
+
+### Packaging
+
+- Eleven crates on crates.io: `shadewire-nodes` and `shadewire-blender` are new. `shadewire-nodes` embeds
+  MaterialX's libraries from its own folder (`crates/shadewire-nodes/materialx`).
+- macOS Intel wheels build on `macos-15-intel` (GitHub retired `macos-13`).
+- `blender/render_preview.py` renders the extensions.blender.org preview image.
+
+### Testing
+
+- The GPU parity test compiles one module per op family: a single module of every case aborted the NVIDIA Vulkan
+  driver's compiler.
+- Oracle materials for `fractal2d`, the compositing nodes and a 1.38 object-space `normalmap`.
+- Blender: the smoke test round-trips material graphs and re-exports every example; the Blender front end has
+  per-fixture round trips and MaterialX snapshots.
+
+## 0.1.0 (2026-10-13)
 
 Since `f5039f8` (readme: c example compiles).
 
@@ -12,43 +105,19 @@ Since `f5039f8` (readme: c example compiles).
   (`shadewire::shader`). naga no longer translates anything; it remains a test-only WGSL validator.
 - **Closure trees and MaterialX's own lobes.** A host that accepts the `surface` model gets the material as a
   closure tree (lobes under layer, mix, add and multiply), and every back end writes the functions that evaluate it
-  as MaterialX's reference GLSL does: `shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`,
-  and `shadewire_eval_ambient` (the albedo split into diffuse and specular, for a host's own environment lighting).
+  as MaterialX's reference GLSL does: `shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`.
 - **A Bevy integration**, a **Blender add-on** that imports MaterialX as Cycles node trees, and a **Python
   module** with wheels for every Blender platform.
-- **`shadewire-nodes`, the node library as a crate.** The vendored libraries, nodedef resolution and the elaborator
-  move out of `shadewire-mtlx`, which is now the MaterialX reader alone. A front end without a document
-  (`Elaborator::standalone`) asks for nodes by name (`instantiate`) and finishes a material as a model or a closure
-  tree (`finish_model`, `finish_closure`). The IR records the library nodes it was built from (`Dag::compounds`).
-- **A MaterialX writer.** `shadewire_mtlx::from_ir` writes any IR back as a 1.39 document, library nodes as single nodes
-  through the IR's compounds (`shadewire mtlx`, `shadewire.mtlx.from_ir`, `shadewire_ir_to_mtlx`); IR-only nodes
-  (hextile, derivatives) are Shadewire nodedefs the reader also accepts.
-- **Blender: material graphs as JSON.** File > Export/Import > Material Graph (Shadewire JSON) saves a material's node
-  tree exactly as Blender holds it and loads it back (`shadewire-blender-graph` version 1); the fixtures under
-  `blender/fixtures/graphs` are such dumps, for the Rust front end that reads them.
-- **A Blender front end.** `shadewire-blender` reads the material graph JSON the Blender extension writes and lowers
-  it through `shadewire-nodes`: a Principled BSDF is `open_pbr_surface`, Blender's BSDFs a closure tree, its math,
-  color, texture and procedural nodes the matching MaterialX nodes, with a warning for every approximation
-  (`MaterialIr.warnings`).
 
 ### Breaking changes
 
 No compatibility shims: old names are gone.
 
-- **Rust:** `MaterialIr` lives in `shadewire-nodes` (re-exported by `shadewire-mtlx`) and carries `warnings`.
-- **Rust:** `shadewire_mtlx::MtlxOptions` and `ElaborateOptions` are `shadewire_nodes::IrOptions`; `to_ir` takes
-  the `Resolver` as its own argument. `shadewire_mtlx::{document, elaborate, element, index, library, parse,
-  resolve_nodedef, surface, version}` are `shadewire_nodes::…`. `shadewire_bevy::BuildOptions::mtlx` is `ir`; its include
-  resolver is the new `BuildOptions.resolver`.
-- **IR export JSON:** a `compounds` list (format version unchanged: readers may ignore it).
 - **Rust:** `Compiled` and `CompileOptions` live in `shadewire::shader` (re-exported by every back end);
   `Compiled.wgsl` is `Compiled.code`. `shadewire-wgsl` loses `translate`, `link`, `Target` and its versions,
   `glsl_library`, `reference_host`, the `emit` module and the `translate` feature. `shadewire::Error::Naga` is gone.
-  `LOBE_MODELS` moved from `shadewire_gdshader` to `shadewire`: it picks what the front end accepts, on every back end.
 - **CLI:** `--lang` is `wgsl|glsl|glsl-es|hlsl|msl` and picks the back end; `--glsl-version N` sets the GLSL
-  version. No SPIR-V, and no reference host linked in. `--lobes` opens every material into its closure tree on every back end
-  (it was Godot only) and conflicts with `--model`; `ir` takes it too. `--transparency` and `--emission-scale` are an error
-  without `--lang gdshader`.
+  version. No SPIR-V, and no reference host linked in.
 - **C API:** `shadewire_compile(ir, target, options, ...)` replaces `shadewire_wgsl_compile`;
   `shadewire_compile_mtlx` is gone (`shadewire_mtlx_to_ir`, then `shadewire_compile`); `shadewire_compiled_code`
   replaces `shadewire_compiled_wgsl`. `shadewire_translate`, the blob type, `SHADEWIRE_TARGET_SPIRV`, `_WEBGL2` and HLSL
@@ -68,12 +137,7 @@ No compatibility shims: old names are gone.
   back end shares (`print`, with a `Syntax` trait and C-family defaults) and test materials (`fixtures`).
 - Closure trees for the `surface` model (`ClosureGraph`): lobes and their combinations, with every value a surface
   field. The optimizer prunes closures whose weights fold to zero.
-- `export`: the IR as a flat JSON document (`shadewire ir --json`, Python `Ir.to_dict`). A `sample` whose lookup
-  takes explicit gradients (hextiling) carries `grad: [dx, dy]`, the node indices of its uv derivatives; the field is
-  optional and new within format version 1, so a reader that ignores it samples with implicit derivatives as before.
-- `Op::Fractal2d` (`fractal2d` in the JSON): MaterialX's `fractal2d`, every width, from genglsl `mx_fractal2d_*`.
-- Constant folding leaves an op alone when its value would be a NaN or an infinity (`normalize` of a zero vector):
-  no JSON or shading language can hold that constant, and the GPU decides.
+- `export`: the IR as a flat JSON document (`shadewire ir --json`, Python `Ir.to_dict`).
 - Geomprop defaults, covered by `structure_hash`.
 - `CompileOptions`: `reserve_uniform_binding` keeps the first binding for the uniform block even without uniforms;
   `implicit_derivatives: false` makes the code run in a compute stage (level-0 samples, zero derivatives).
@@ -99,12 +163,6 @@ No compatibility shims: old names are gone.
   not list open through their implementation graphs.
 - Stdlib nodegraphs for helpers upstream implements per language (`artistic_ior`, `roughness_anisotropy`,
   `roughness_dual`, `rotate3d`); `subsurface_bsdf`'s radius upgrades to color3.
-- The compositing nodes upstream implements only in genglsl (`plus`, `minus`, `difference`, `screen`, `burn`,
-  `dodge`; float, color3, color4) lower through Shadewire nodegraphs of existing ops.
-- `viewdirection` has a nodedef (`ND_viewdirection_vector3`, world space by default): the specification describes
-  it but upstream's libraries ship none.
-- A 1.38 `normalmap` with `space="object"` upgrades to `normalize(in * 2 - 1)`, as upstream's upgrade writes it,
-  instead of being refused.
 
 ### Bevy (`shadewire-bevy`, new)
 
@@ -112,14 +170,6 @@ No compatibility shims: old names are gone.
   (`ShadewirePlugin`, `FromMtlx`). Identical graphs share one shader and pipeline.
 - Back faces, coat and transmission turned on in the base when the graph uses them, unlit premultiplied color, a
   cache key from the structure hash, and the `gltf_mtlx` example (a material on a glTF scene, live recompiling).
-- Closure trees (the `surface` model) lit by MaterialX's lobes: Bevy's point, spot and directional lights, shadows
-  and contact shadows through `shadewire_eval_bsdf`, in Bevy's light units (the `lobe_calibration` example checks a
-  white Lambert lobe against `StandardMaterial` under a directional light, the ambient light and an environment map).
-  Indirect light through `shadewire_eval_ambient`'s diffuse and specular split, with nothing to invert: lightmaps,
-  irradiance volumes, environment maps and the ambient light. `matlib_render --lobes` renders that way.
-- The builder accepts `shadewire_bevy::MODELS` by default, `surface` included, so raw BSDF graphs,
-  `UsdPreviewSurface` and `disney_principled` build (as closure trees) instead of failing; `BuildOptions::lobes()`
-  opens every material into its lobes, and `gltf_mtlx --lobes` shows it.
 - Limits: forward rendering, up to 8 textures and 1 KiB of uniforms per material.
 
 ### Blender add-on (`blender/shadewire`, new)
@@ -131,9 +181,6 @@ No compatibility shims: old names are gone.
   it, from the referenced `.mtlx` (also inside a `.usdz`) or from the MaterialX network authored in the USD,
   textures unpacked by the importer. "Fill Materials from MaterialX" rebuilds materials by name for scenes
   imported without it.
-- **Blender: MaterialX export.** File > Export > MaterialX (Shadewire) writes materials through Shadewire's Blender
-  front end and MaterialX writer; the USD export dialog's "Shadewire MaterialX" option replaces Blender's shader
-  prims with a reference into a .mtlx written beside the .usd.
 - Shading **Principled BSDF** (the default): a `standard_surface`, `open_pbr_surface` or `gltf_pbr` material drives
   one Principled BSDF from its parameters; other models and raw BSDF graphs become their lobes. **MaterialX
   Lobes**: every material as its lobes, one BSDF node each, layered and mixed as MaterialX defines them.
@@ -148,7 +195,6 @@ No compatibility shims: old names are gone.
 - `shadewire.mtlx` (`to_ir`, `material_names`), `shadewire.Ir` (`optimize`, `dump`, `to_dict`), and
   `shadewire.wgsl`, `.glsl`, `.hlsl`, `.msl`, each a `compile` to `shadewire.Compiled` (`code`, `language`,
   `reflection`, `model_struct`).
-- `shadewire.blender.to_ir` and `.material_names`; `Ir.warnings`.
 - Examples: `wgsl_lobes.py` (a whole WGSL shader around a material), `wgpu_cube.py` (wgpu-py), `gl_cube.py`
   (pygame and OpenGL, a host that takes the `surface` model and lights MaterialX's lobes) and `gl_pbr_cube.py` (the
   same window with the renderer's own metal-roughness BRDF: it takes the named models `standard_surface`,
@@ -175,16 +221,12 @@ No compatibility shims: old names are gone.
   callable `(base, href) -> (location, text)` that raises to fail (called with the GIL; the exception's message is
   the error), and `shadewire.mtlx.list_dependencies(text, location=None)` returns `{"includes", "files"}`. Tests in
   `crates/shadewire-py/tests` (pytest, against an installed module).
-- `shadewire compile|ir|list|mtlx` read Blender material graphs (`.json`, or `--format blender`); a front end's
-  warnings print to stderr.
-- C API: `shadewire_blender_to_ir` (with `shadewire_ir_options`, the MaterialX options without the resolver),
-  `shadewire_blender_material_names`, `shadewire_ir_warnings`.
 
 ### Packaging
 
-- Ready for crates.io (ten crates, `cargo publish --workspace`), PyPI (six abi3 wheels and the sdist) and
+- Ready for crates.io (nine crates, `cargo publish --workspace`), PyPI (six abi3 wheels and the sdist) and
   extensions.blender.org (one zip holding the wheel of every platform Blender ships for): see `RELEASING.md`.
-- `shadewire-nodes` embeds MaterialX's libraries from its own folder (`crates/shadewire-nodes/materialx`).
+- `shadewire-mtlx` embeds MaterialX's libraries from its own folder (`crates/shadewire-mtlx/materialx`).
 - `rust-version` is 1.88; `shadewire-bevy` needs 1.97.
 
 ### Testing
@@ -193,9 +235,7 @@ No compatibility shims: old names are gone.
   glslangValidator (GLSL 330, 420, 450, ES 300, 310), dxc (HLSL as a library and as a pixel shader, HLSL 2018 and
   2021) and Apple's Metal compiler (MSL). `SHADEWIRE_REQUIRE_TOOLS=1` makes a missing one a failure.
 - The MaterialX acceptance test compiles all 54 vendored examples with every back end and validates the code.
-- The GPU parity test (interpreter against the generated WGSL) passes on Windows (Vulkan) and macOS (Metal). It
-  compiles one module per op family: a single module of every case aborted the NVIDIA Vulkan driver's compiler.
-- Oracle materials for `fractal2d`, the compositing nodes and a 1.38 object-space `normalmap`.
+- The GPU parity test (interpreter against the generated WGSL) passes on Windows (Vulkan) and macOS (Metal).
 
 ### Known limitations
 
