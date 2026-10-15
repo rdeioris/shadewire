@@ -316,6 +316,31 @@ def copy_texture(operator, entry, textures):
     entry["filepath"] = os.path.abspath(target).replace("\\", "/")
 
 
+def copy_images(operator, doc, folder):
+    """Put every image of the dumped document into the textures `folder` (made when there are any), the entries
+    pointing there."""
+    if not doc["images"]:
+        return
+    os.makedirs(folder, exist_ok=True)
+    textures = TextureFolder(folder, doc["images"])
+    for entry in doc["images"]:
+        copy_texture(operator, entry, textures)
+
+
+def relative_path(path, folder):
+    """`path` relative to `folder` with forward slashes when it lies inside it; else as it is (with forward slashes):
+    a file that could not be copied, on another drive, or no file at all."""
+    if not path:
+        return path
+    try:
+        relative = os.path.relpath(path, folder)
+    except ValueError:
+        return path.replace("\\", "/")
+    if relative.split(os.sep)[0] == os.pardir:
+        return path.replace("\\", "/")
+    return relative.replace("\\", "/")
+
+
 class SHADEWIRE_OT_export_graph(bpy.types.Operator, ExportHelper):
     """Save materials as a Shadewire graph document (JSON): their node trees, groups and image references"""
 
@@ -347,12 +372,8 @@ class SHADEWIRE_OT_export_graph(bpy.types.Operator, ExportHelper):
             return {"CANCELLED"}
         doc = graph.dump(materials)
         try:
-            if self.copy_textures and doc["images"]:
-                folder = os.path.join(os.path.dirname(self.filepath), "textures")
-                os.makedirs(folder, exist_ok=True)
-                textures = TextureFolder(folder, doc["images"])
-                for entry in doc["images"]:
-                    copy_texture(self, entry, textures)
+            if self.copy_textures:
+                copy_images(self, doc, os.path.join(os.path.dirname(self.filepath), "textures"))
             text = graph.to_text(doc)
             with open(self.filepath, "w", encoding="utf-8", newline="\n") as f:
                 f.write(text)
@@ -391,34 +412,33 @@ class SHADEWIRE_OT_export_mtlx(bpy.types.Operator, ExportHelper):
         description="Write library nodes expanded into the nodes they are built from",
         default=False,
     )
+    # A test hook: the compiler to use instead of the preferences'; an installed extension leaves it empty.
     executable: StringProperty(options={"HIDDEN"})
 
     def copy_images(self, doc):
-        """Write the document's images beside the file when asked, then make every path relative to the file."""
+        """Write the document's images beside the file when asked, then make the paths that lead there relative to
+        the file; an image that could not be copied keeps the path it had."""
+        if not self.copy_textures:
+            return
         folder = os.path.dirname(self.filepath)
-        if self.copy_textures and doc["images"]:
-            textures = os.path.join(folder, "textures")
-            os.makedirs(textures, exist_ok=True)
-            copies = TextureFolder(textures, doc["images"])
-            for entry in doc["images"]:
-                copy_texture(self, entry, copies)
-            for entry in doc["images"]:
-                entry["filepath"] = os.path.relpath(entry["filepath"], folder).replace("\\", "/")
+        copy_images(self, doc, os.path.join(folder, "textures"))
+        for entry in doc["images"]:
+            entry["filepath"] = relative_path(entry["filepath"], folder)
 
     def compile_materials(self, context, materials, doc):
-        """The MaterialX text of every material and the warnings, each named after its material."""
+        """The MaterialX text of every material and the warnings (each led by its material's name), each material
+        named after Blender's."""
         compiled = compiler.backend(self.executable or configured_executable(context))
         text = graph.to_text(doc)
-        texts = []
+        texts, reports = [], []
         for material in materials:
             try:
                 document, warnings = compiled.to_mtlx(text, material.name, material.name, self.inline)
             except compiler.CompileError as e:
                 raise compiler.CompileError(f"{material.name}: {e}") from e
             texts.append(document)
-            for w in warnings:
-                self.report({"WARNING"}, f"{material.name}: {w}")
-        return compiler.merge_documents(texts)
+            reports += [f"{material.name}: {w}" for w in warnings]
+        return compiler.merge_documents(texts), reports
 
     def execute(self, context):
         materials = scope_materials(context, self.scope)
@@ -428,12 +448,14 @@ class SHADEWIRE_OT_export_mtlx(bpy.types.Operator, ExportHelper):
         doc = graph.dump(materials)
         try:
             self.copy_images(doc)
-            text = self.compile_materials(context, materials, doc)
+            text, warnings = self.compile_materials(context, materials, doc)
             with open(self.filepath, "w", encoding="utf-8", newline="\n") as f:
                 f.write(text)
         except (compiler.CompileError, OSError, ValueError) as e:
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}
+        for w in warnings:
+            self.report({"WARNING"}, w)
         self.report({"INFO"}, f"exported {len(materials)} materials to {os.path.basename(self.filepath)}")
         return {"FINISHED"}
 

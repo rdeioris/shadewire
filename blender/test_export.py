@@ -38,7 +38,8 @@ def load_addon():
 
 
 def find_compiler(configured):
-    """The configured executable, "" for the module when it imports with its Blender front end, else a built executable in target/."""
+    """The configured executable, "" for the module when it imports with its Blender front end, else a built
+    executable in target/."""
     if configured:
         return configured
     try:
@@ -215,7 +216,8 @@ def test_non_ascii_path():
             backend.run_with_stderr(["--help"])
         finally:
             compiler.subprocess.run = run
-        check(bool(calls) and calls[0].get("encoding") == "utf-8", f"the executable's output is decoded as UTF-8: {calls}")
+        check(bool(calls) and calls[0].get("encoding") == "utf-8",
+              f"the executable's output is decoded as UTF-8: {calls}")
 
 
 def fake_executable(stderr):
@@ -309,12 +311,14 @@ def test_export_operator():
         m = textured_material("Wood")
         select_only(cube_with(m))
         path = os.path.join(folder, "wood.mtlx")
-        result = bpy.ops.shadewire.export_mtlx(filepath=path, scope="ACTIVE", copy_textures=True, executable=executable)
+        result = bpy.ops.shadewire.export_mtlx(filepath=path, scope="ACTIVE", copy_textures=True,
+                                               executable=executable)
         check(result == {"FINISHED"}, f"export finished: {result}")
         text = read(path)
         check('<surfacematerial name="Wood"' in text, "the material is named after Blender's")
         files = [line.strip() for line in text.splitlines() if 'type="filename"' in line]
-        check(files and all('value="textures/' in line for line in files), f"image paths are relative to the document: {files}")
+        check(files and all('value="textures/' in line for line in files),
+              f"image paths are relative to the document: {files}")
         written = os.listdir(os.path.join(folder, "textures"))
         check(any(name.startswith("Wood") for name in written), f"the texture was written: {written}")
         valid, message = parse_mtlx(text)
@@ -330,11 +334,12 @@ def test_export_operator():
         text = read(path)
         check(text.count("<surfacematerial ") == 2, "both materials are in the document")
         check('nodedef="ND_convert_' not in text, "inline expands the library nodes")
+        check('value="textures/' not in text, "without Copy Textures the paths are not rewritten")
         path = os.path.join(folder, "folded.mtlx")
-        result = bpy.ops.shadewire.export_mtlx(filepath=path, scope="SELECTED", copy_textures=False, executable=executable)
+        result = bpy.ops.shadewire.export_mtlx(filepath=path, scope="SELECTED", copy_textures=False,
+                                               executable=executable)
         check(result == {"FINISHED"}, f"export without inline finished: {result}")
         check('nodedef="ND_convert_' in read(path), "without Inline the library nodes stay declared")
-        check('value="textures/' not in text, "without Copy Textures the paths are not rewritten")
         # Nothing to export is an error, nothing written.
         bpy.ops.object.select_all(action="DESELECT")
         path = os.path.join(folder, "none.mtlx")
@@ -345,6 +350,34 @@ def test_export_operator():
         else:
             check(False, "an empty selection is an error")
         check(not os.path.exists(path), "nothing is written on an empty selection")
+        # A compiler that does not exist is an error, nothing written.
+        select_only(bpy.context.view_layer.objects[0])
+        path = os.path.join(folder, "nocompiler.mtlx")
+        try:
+            bpy.ops.shadewire.export_mtlx(filepath=path, scope="ACTIVE", executable="C:/nope/shadewire.exe")
+        except RuntimeError as e:
+            check("no Shadewire compiler" in str(e), f"a missing compiler reports: {e}")
+        else:
+            check(False, "a missing compiler is an error")
+        check(not os.path.exists(path), "nothing is written without a compiler")
+
+
+def test_export_unwritable_image():
+    """An image that cannot be copied keeps its path and does not cancel the export."""
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        m = textured_material("Gone")
+        missing = os.path.join(textures, "missing.png").replace("\\", "/")
+        image = m.node_tree.nodes["Albedo"].image
+        image.source = "FILE"
+        image.filepath = missing
+        image.reload()
+        select_only(cube_with(m))
+        path = os.path.join(folder, "gone.mtlx")
+        result = bpy.ops.shadewire.export_mtlx(filepath=path, scope="ACTIVE", copy_textures=True,
+                                               executable=executable)
+        check(result == {"FINISHED"}, f"export with an image that cannot be copied finished: {result}")
+        check(missing in read(path), "the image keeps the path it had")
 
 
 def test_export_menu():
@@ -359,11 +392,13 @@ def test_export_menu():
         layout = Layout()
 
     addon.menu_export(Menu(), bpy.context)
-    check(("shadewire.export_mtlx", "MaterialX (Shadewire) (.mtlx)") in labels, f"the export menu lists MaterialX: {labels}")
+    check(("shadewire.export_mtlx", "MaterialX (Shadewire) (.mtlx)") in labels,
+          f"the export menu lists MaterialX: {labels}")
 
 
-TESTS = [test_to_mtlx, test_merge_documents, test_merge_lobe_materials, test_merge_unnamed_elements, test_non_ascii_path,
-         test_old_executable_hint, test_module_without_front_end, test_export_operator, test_export_menu]
+TESTS = [test_to_mtlx, test_merge_documents, test_merge_lobe_materials, test_merge_unnamed_elements,
+         test_non_ascii_path, test_old_executable_hint, test_module_without_front_end,
+         test_export_operator, test_export_unwritable_image, test_export_menu]
 
 if __name__ == "__main__":
     for test in TESTS:
