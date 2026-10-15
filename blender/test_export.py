@@ -7,7 +7,9 @@ blender -b --python-exit-code 1 -P blender/test_export.py [-- --shadewire PATH]
 """
 
 import argparse
+import contextlib
 import importlib.util
+import io
 import os
 import sys
 import tempfile
@@ -422,24 +424,27 @@ def test_usd_export_replaces_blenders_shaders():
         cube_with(m)
         addon.usd.defaults["executable"] = executable
         bpy.context.window_manager.shadewire_usd_materials = True
-        path = export_usd(folder, "scene.usda", generate_preview_surface=False)
+        path, written = printed(export_usd, folder, "scene.usda", generate_preview_surface=False)
         mtlx = os.path.join(folder, "scene.mtlx")
         check(os.path.isfile(mtlx), "scene.mtlx is written beside the usd")
         text = read(mtlx)
         check('<surfacematerial name="Wood"' in text, "the material is named after its prim")
-        check('value="./textures/' in text, f"textures are the ones Blender exported: {[l for l in text.splitlines() if 'filename' in l]}")
+        files = [line for line in text.splitlines() if "filename" in line]
+        check('value="./textures/' in text, f"textures are the ones Blender exported: {files}")
+        check("Shadewire: wrote scene.mtlx with 1 material\n" in written,
+              f"the summary counts one material: {written!r}")
         check(os.path.isdir(os.path.join(folder, "textures")), "Blender wrote the textures folder")
         stage = Usd.Stage.Open(path)
         prim = material_prim(stage)
         check(prim and prim.IsValid(), "the material prim exists")
         children = [c.GetName() for c in prim.GetChildren()]
         check(prim.HasAuthoredReferences(), "the material prim references the mtlx")
-        check(UsdShade.Material(prim).GetSurfaceOutput("mtlx").HasConnectedSource() or
-              UsdShade.Material(prim).GetSurfaceOutput("mtlx").GetAttr().IsValid(),
-              f"the composed material has a MaterialX surface: {children}")
+        check(UsdShade.Material(prim).GetSurfaceOutput("mtlx").HasConnectedSource(),
+              f"the composed material has a connected MaterialX surface: {children}")
         layer = stage.GetRootLayer()
         spec = layer.GetPrimAtPath("/root/_materials/Wood")
-        check("previewShader" not in [c for c in spec.nameChildren.keys()], f"Blender's placeholder shader is gone: {list(spec.nameChildren.keys())}")
+        names = list(spec.nameChildren.keys())
+        check("previewShader" not in names, f"Blender's placeholder shader is gone: {names}")
         check("outputs:surface" not in spec.properties.keys(), "Blender's surface output is gone")
         # The scene imports back through the hook, with the texture.
         bpy.ops.wm.read_homefile(use_empty=True)
@@ -466,8 +471,10 @@ def test_usd_export_keeps_a_requested_preview_surface_and_blenders_output_when_o
         path = export_usd(folder, "mx.usda", generate_preview_surface=False, generate_materialx_network=True)
         stage, spec = material_spec(path)
         names = list(spec.nameChildren.keys())
-        check(not any(n.startswith("bnode__") or n == "NodeGraphs" for n in names), f"Blender's MaterialX network is gone: {names}")
-        check("outputs:mtlx:surface" not in spec.properties.keys() and "config:mtlx:version" not in spec.properties.keys(),
+        check(not any(n.startswith("bnode__") or n == "NodeGraphs" for n in names),
+              f"Blender's MaterialX network is gone: {names}")
+        properties = spec.properties.keys()
+        check("outputs:mtlx:surface" not in properties and "config:mtlx:version" not in properties,
               "its mtlx outputs are gone")
         # The option off: Blender's output untouched, no mtlx.
         bpy.context.window_manager.shadewire_usd_materials = False
@@ -489,12 +496,85 @@ def test_usdz_is_left_to_blender():
         check(not any(f.endswith(".mtlx") for f in os.listdir(folder)), f"no mtlx beside a usdz: {os.listdir(folder)}")
         stage = Usd.Stage.Open(path)
         prim = material_prim(stage)
-        check(prim and "previewShader" in [c.GetName() for c in prim.GetChildren()], "Blender's materials are untouched")
+        check(prim and "previewShader" in [c.GetName() for c in prim.GetChildren()],
+              "Blender's materials are untouched")
+
+
+def test_usd_export_to_a_folder_named_usdz():
+    """Only Blender's own staging folder marks a usdz export, not any folder of that name."""
+    with tempfile.TemporaryDirectory() as parent:
+        folder = os.path.join(parent, "USDZ")
+        os.makedirs(folder)
+        bpy.ops.wm.read_homefile(use_empty=True)
+        cube_with(textured_material("Wood"))
+        addon.usd.defaults["executable"] = executable
+        bpy.context.window_manager.shadewire_usd_materials = True
+        path = export_usd(folder, "scene.usda", generate_preview_surface=False)
+        check(os.path.isfile(os.path.join(folder, "scene.mtlx")), "a folder named USDZ gets the mtlx")
+        stage, spec = material_spec(path)
+        check("previewShader" not in spec.nameChildren.keys() and spec.hasReferences,
+              f"and its materials are replaced: {list(spec.nameChildren.keys())}")
+
+
+def test_usd_export_leaves_a_failing_material_to_blender():
+    """A material Shadewire cannot write keeps Blender's prims; the others are written and referenced."""
+    chosen = type(compiler.backend(executable))
+    to_mtlx = chosen.to_mtlx
+
+    def failing(self, graph_text, material, name, inline=False):
+        if material == "Broken":
+            raise compiler.CompileError("cannot lower Broken")
+        return to_mtlx(self, graph_text, material, name, inline)
+
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        cube_with(textured_material("Wood"))
+        bpy.ops.mesh.primitive_uv_sphere_add()
+        bpy.context.object.data.materials.append(textured_material("Broken"))
+        addon.usd.defaults["executable"] = executable
+        bpy.context.window_manager.shadewire_usd_materials = True
+        chosen.to_mtlx = failing
+        try:
+            path, output = printed(export_usd, folder, "two.usda", generate_preview_surface=False)
+        finally:
+            chosen.to_mtlx = to_mtlx
+        check("Shadewire: Broken: cannot lower Broken; left as Blender wrote it" in output,
+              f"the failure is reported: {output!r}")
+        text = read(os.path.join(folder, "two.mtlx"))
+        check(text.count("<surfacematerial ") == 1 and '<surfacematerial name="Wood"' in text,
+              "the mtlx holds the material that lowered")
+        stage, broken = material_spec(path, "Broken")
+        check("previewShader" in broken.nameChildren.keys() and "outputs:surface" in broken.properties.keys()
+              and not broken.hasReferences, "the failing material stays as Blender wrote it")
+        wood = stage.GetRootLayer().GetPrimAtPath("/root/_materials/Wood")
+        check("previewShader" not in wood.nameChildren.keys() and wood.hasReferences, "the other is replaced")
+
+
+def test_usd_export_reports_an_unwritable_mtlx():
+    """A .mtlx that cannot be written is reported in one line, not as a traceback."""
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        cube_with(textured_material("Wood"))
+        addon.usd.defaults["executable"] = executable
+        bpy.context.window_manager.shadewire_usd_materials = True
+        os.makedirs(os.path.join(folder, "blocked.mtlx"))
+        _, output = printed(export_usd, folder, "blocked.usda", generate_preview_surface=False)
+        check("Shadewire: cannot write blocked.mtlx: " in output and "the stripped materials have no shader" in output
+              and "Traceback" not in output, f"the write failure is reported: {output!r}")
+
+
+def printed(function, *args, **kwargs):
+    """What `function` returns and what it printed."""
+    buffer = io.StringIO()
+    with contextlib.redirect_stdout(buffer):
+        result = function(*args, **kwargs)
+    return result, buffer.getvalue()
 
 
 def test_usd_panel():
     panel = bpy.types.SHADEWIRE_PT_usd_export
-    check(panel.bl_parent_id == "FILE_PT_operator" and panel.bl_space_type == "FILE_BROWSER", "the panel sits under the operator panel")
+    check(panel.bl_parent_id == "FILE_PT_operator" and panel.bl_space_type == "FILE_BROWSER",
+          "the panel sits under the operator panel")
 
     class Op:
         bl_idname = "WM_OT_usd_export"
@@ -516,7 +596,8 @@ TESTS = [test_to_mtlx, test_merge_documents, test_merge_lobe_materials, test_mer
          test_export_operator, test_export_unwritable_image, test_export_menu,
          test_usd_export_replaces_blenders_shaders,
          test_usd_export_keeps_a_requested_preview_surface_and_blenders_output_when_off, test_usdz_is_left_to_blender,
-         test_usd_panel]
+         test_usd_export_to_a_folder_named_usdz, test_usd_export_leaves_a_failing_material_to_blender,
+         test_usd_export_reports_an_unwritable_mtlx, test_usd_panel]
 
 if __name__ == "__main__":
     for test in TESTS:

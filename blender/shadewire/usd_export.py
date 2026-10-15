@@ -16,7 +16,7 @@ import os
 import bpy
 from pxr import UsdShade
 
-from . import compiler, graph, usd
+from . import compiler, graph
 
 # Root layer identifier -> Export. One export runs at a time; an entry left by a failed export is replaced by the
 # next export of the same file.
@@ -38,10 +38,16 @@ class Export:
 
 
 def is_usdz(stage):
-    """Whether the stage is written into a `.usdz`: Blender exports one through a stage in a `USDZ` temporary
-    folder."""
-    identifier = stage.GetRootLayer().identifier.replace("\\", "/")
-    return identifier.lower().endswith(".usdz") or "/USDZ/" in identifier
+    """Whether the stage is written into a `.usdz`: Blender exports one through a stage in the `USDZ` folder of its
+    session's temporary directory."""
+    identifier = comparable(stage.GetRootLayer().identifier)
+    staging = comparable(os.path.join(bpy.app.tempdir, "USDZ")) + "/"
+    return identifier.lower().endswith(".usdz") or identifier.startswith(staging)
+
+
+def comparable(path):
+    """`path` as the platform compares it (lowercased on Windows), with forward slashes."""
+    return os.path.normcase(path).replace("\\", "/")
 
 
 def enabled():
@@ -77,8 +83,10 @@ def collect(context, bl_material, usd_material):
         if image is not None:
             entry["filepath"] = context.export_texture(image) or entry["filepath"]
     name = usd_material.GetPrim().GetName()
+    # Imported here: `usd` imports this module for its hook.
+    from .usd import settings
     try:
-        backend = compiler.backend(usd.settings(bpy.context)["executable"])
+        backend = compiler.backend(settings(bpy.context)["executable"])
         text, warnings = backend.to_mtlx(graph.to_text(doc), material.name, name)
     except compiler.CompileError as e:
         print(f"Shadewire: {bl_material.name}: {e}; left as Blender wrote it")
@@ -146,11 +154,12 @@ def finish(context):
     basename = os.path.basename(path)
     try:
         text = compiler.merge_documents([text for _, text in export.materials.values()])
-    except compiler.CompileError as e:
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+    except (compiler.CompileError, OSError) as e:
         print(f"Shadewire: cannot write {basename}: {e}; the stripped materials have no shader")
         return
-    with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(text)
     for prim_path, (name, _) in export.materials.items():
         stage.GetPrimAtPath(prim_path).GetReferences().AddReference(f"./{basename}", f"/MaterialX/Materials/{name}")
-    print(f"Shadewire: wrote {basename} with {len(export.materials)} materials")
+    count = len(export.materials)
+    print(f"Shadewire: wrote {basename} with {count} material{'' if count == 1 else 's'}")
