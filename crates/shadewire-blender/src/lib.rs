@@ -6,6 +6,7 @@
 )]
 
 pub mod document;
+pub mod graph;
 
 pub use document::material_names;
 /// The options and result types of [`to_ir`], re-exported so a Blender user needs one crate.

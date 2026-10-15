@@ -146,7 +146,7 @@ impl Node {
     }
 }
 
-fn at(message: impl Into<String>) -> Location {
+pub(crate) fn at(message: impl Into<String>) -> Location {
     Location { file: None, line: 0, path: message.into() }
 }
 
