@@ -1,4 +1,4 @@
-use shadewire::{ClosureNode, Dag, Error, NodeKind, Value};
+use shadewire::{ClosureId, ClosureNode, Dag, Error, NodeKind, Value};
 use shadewire_nodes::IrOptions;
 
 use super::tests::{OUTPUT, PRINCIPLED, close};
@@ -191,32 +191,69 @@ fn add_shader_adds_closures_and_a_shader_reached_twice_is_one_lobe() {
     assert!(close(&field(&ir.dag, closure.opacity.as_ref().unwrap()), &Value::Float(0.0)));
 }
 
+/// Each lobe's kind and the product of the weights on its path from the BSDF or the EDF root, sorted by kind.
+fn weights(dag: &Dag) -> Vec<(String, f32)> {
+    let closure = dag.surface.closure.as_ref().unwrap();
+    let mut stack: Vec<(ClosureId, f32)> = closure.bsdf.into_iter().chain(closure.edf).map(|id| (id, 1.0)).collect();
+    let mut found = Vec::new();
+    while let Some((id, w)) = stack.pop() {
+        match &closure.nodes[id as usize] {
+            ClosureNode::Lobe { kind, .. } => found.push((kind.clone(), w)),
+            ClosureNode::Mix { fg, bg, mix } => {
+                let f = field(dag, mix).floats()[0];
+                stack.push((*bg, w * (1.0 - f)));
+                stack.push((*fg, w * f));
+            }
+            ClosureNode::Add { in1, in2 } => stack.extend([(*in1, w), (*in2, w)]),
+            ClosureNode::Multiply { in1, in2 } => stack.push((*in1, w * field(dag, in2).floats()[0])),
+            ClosureNode::Layer { .. } => panic!("no layer here:\n{}", closure.dump()),
+        }
+    }
+    found.sort_by(|a, b| a.0.cmp(&b.0));
+    found
+}
+
+/// The surface's opacity, folded; 1 when it has none.
+fn opacity(dag: &Dag) -> f32 {
+    let closure = dag.surface.closure.as_ref().unwrap();
+    closure.opacity.as_ref().map_or(1.0, |name| field(dag, name).floats()[0])
+}
+
+fn assert_weights(dag: &Dag, expected: &[(&str, f32)]) {
+    let found = weights(dag);
+    let same = found.len() == expected.len()
+        && found.iter().zip(expected).all(|((k, w), (ek, ew))| k == ek && (w - ew).abs() <= 1e-4);
+    assert!(same, "{found:?} against {expected:?}\n{}", dag.surface.closure.as_ref().unwrap().dump());
+}
+
 #[test]
-fn a_transparent_side_leaves_the_other_lobes_unweighted_and_an_unlinked_side_weights_them() {
+fn transparency_passes_light_and_every_lobe_keeps_its_blender_weight() {
+    let lower = |extra: &str, surface: &str, links: &str| {
+        to_ir(&closure_doc(extra, surface, "Shader", links), None, &lobes_options()).unwrap().dag
+    };
+    // Mix(0.25, D, T) renders 0.75 D + 0.25 behind: the opacity is 0.75, D weighted 0.75 then divided by it.
     let extra = format!("{DIFFUSE}, {TRANSPARENT}, {MIX}");
-    // The transparent shader second: (1 - f) D + f (what is behind), so D stays and the opacity is 1 - f.
-    let links = r#"[[["D", "BSDF"], ["Mix", "Shader"]], [["T", "BSDF"], ["Mix", "Shader_001"]]]"#;
-    let ir = to_ir(&closure_doc(&extra, "Mix", "Shader", links), None, &lobes_options()).unwrap();
-    let closure = ir.dag.surface.closure.as_ref().unwrap();
-    assert!(closure.bsdf.is_some() && !closure.dump().contains("multiply"), "{}", closure.dump());
-    assert!(close(&field(&ir.dag, closure.opacity.as_ref().unwrap()), &Value::Float(0.75)));
-    // The transparent shader first: the opacity is f.
-    let links = r#"[[["T", "BSDF"], ["Mix", "Shader"]], [["D", "BSDF"], ["Mix", "Shader_001"]]]"#;
-    let ir = to_ir(&closure_doc(&extra, "Mix", "Shader", links), None, &lobes_options()).unwrap();
-    let closure = ir.dag.surface.closure.as_ref().unwrap();
-    assert!(closure.bsdf.is_some() && !closure.dump().contains("multiply"), "{}", closure.dump());
-    assert!(close(&field(&ir.dag, closure.opacity.as_ref().unwrap()), &Value::Float(0.25)));
-    // An Add Shader keeps the lobes too.
-    let extra = format!("{DIFFUSE}, {TRANSPARENT}, {ADD}");
-    let links = r#"[[["D", "BSDF"], ["Add", "Shader"]], [["T", "BSDF"], ["Add", "Shader_001"]]]"#;
-    let ir = to_ir(&closure_doc(&extra, "Add", "Shader", links), None, &lobes_options()).unwrap();
-    let closure = ir.dag.surface.closure.as_ref().unwrap();
-    assert!(closure.bsdf.is_some() && !closure.dump().contains("multiply"), "{}", closure.dump());
-    // An unlinked shader renders black: the energy is lost, so the lobe is weighted by 1 - 0.25.
+    let dag = lower(&extra, "Mix", r#"[[["D", "BSDF"], ["Mix", "Shader"]], [["T", "BSDF"], ["Mix", "Shader_001"]]]"#);
+    assert!((opacity(&dag) - 0.75).abs() <= 1e-4, "{}", opacity(&dag));
+    assert_weights(&dag, &[("oren_nayar_diffuse_bsdf", 1.0)]);
+    // The transparent shader first: 0.25 D over an opacity of 0.25.
+    let dag = lower(&extra, "Mix", r#"[[["T", "BSDF"], ["Mix", "Shader"]], [["D", "BSDF"], ["Mix", "Shader_001"]]]"#);
+    assert!((opacity(&dag) - 0.25).abs() <= 1e-4, "{}", opacity(&dag));
+    assert_weights(&dag, &[("oren_nayar_diffuse_bsdf", 1.0)]);
+    // Add(D, Mix(0.5, E, T)) renders D + 0.5 E + 0.5 behind: over an opacity of 0.5, D is 2 and E is 1.
+    let half = MIX.replace(r#""Mix""#, r#""Half""#).replace("0.25", "0.5");
+    let extra = format!("{DIFFUSE}, {EMISSION}, {TRANSPARENT}, {half}, {ADD}");
+    let links = r#"[[["D", "BSDF"], ["Add", "Shader"]], [["Half", "Shader"], ["Add", "Shader_001"]],
+      [["E", "Emission"], ["Half", "Shader"]], [["T", "BSDF"], ["Half", "Shader_001"]]]"#;
+    let dag = lower(&extra, "Add", links);
+    assert!((opacity(&dag) - 0.5).abs() <= 1e-4, "{}", opacity(&dag));
+    assert_weights(&dag, &[("oren_nayar_diffuse_bsdf", 2.0), ("uniform_edf", 1.0)]);
+    // An unlinked shader renders black: the energy is lost, D is weighted 0.75 and nothing is divided.
     let extra = format!("{DIFFUSE}, {MIX}");
-    let links = r#"[[["D", "BSDF"], ["Mix", "Shader"]]]"#;
-    let ir = to_ir(&closure_doc(&extra, "Mix", "Shader", links), None, &lobes_options()).unwrap();
-    let dump = ir.dag.surface.closure.as_ref().unwrap().dump();
+    let dag = lower(&extra, "Mix", r#"[[["D", "BSDF"], ["Mix", "Shader"]]]"#);
+    assert_eq!(opacity(&dag), 1.0);
+    assert_weights(&dag, &[("oren_nayar_diffuse_bsdf", 0.75)]);
+    let dump = dag.surface.closure.as_ref().unwrap().dump();
     assert_eq!(dump.matches("multiply").count(), 1, "{dump}");
 }
 

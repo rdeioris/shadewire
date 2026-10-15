@@ -31,7 +31,7 @@ can edit it without recompiling. `ir.warnings` lists what was dropped or approxi
 
 | | |
 |---|---|
-| Surface | Principled BSDF → `open_pbr_surface`, socket by socket. Under the `surface` model, Blender's lobes are a closure tree: Diffuse (`oren_nayar_diffuse_bsdf`), Glossy (`generalized_schlick_bsdf`), Glass and Refraction (`dielectric_bsdf`), Translucent, Sheen, Subsurface Scattering, Metallic (`generalized_schlick_bsdf` with F82 tint, or `conductor_bsdf`) and Emission (`uniform_edf`), under Mix Shader (`mix`) and Add Shader (`add`). Transparent BSDF is opacity: mixed with a Principled BSDF it scales `geometry_opacity`, mixed with lobes it leaves them at full strength and the factor goes to the opacity. Without the `surface` model, a lobe tree is `Error::NoTranslation`. |
+| Surface | Principled BSDF → `open_pbr_surface`, socket by socket. Under the `surface` model, Blender's lobes are a closure tree: Diffuse (`oren_nayar_diffuse_bsdf`), Glossy (`generalized_schlick_bsdf`), Glass and Refraction (`dielectric_bsdf`), Translucent, Sheen, Subsurface Scattering, Metallic (`generalized_schlick_bsdf` with F82 tint, or `conductor_bsdf`) and Emission (`uniform_edf`), under Mix Shader (`mix`) and Add Shader (`add`). Transparent BSDF is opacity: mixed with a Principled BSDF it scales `geometry_opacity`, mixed or added with lobes it passes its share of the light to what is behind: the lobes keep the weights Blender gives them, the surface's opacity is one minus the transparency, and the tree is divided by that opacity so that MaterialX's `surface` scales it back. Without the `surface` model, a lobe tree is `Error::NoTranslation`. |
 | Patterns | Math, Vector Math, Clamp and Map Range in Blender's formulas (safe division, truncated modulo, round half up, Map Range's stepped and smooth modes). Mix in every blend mode, Separate/Combine Color and XYZ, Invert, Gamma, Brightness/Contrast, Hue/Saturation/Value, RGB and Value. Image Texture (`image`, with its extension as the address mode and its interpolation as the filter), Texture Coordinate, UV Map, Attribute, Color Attribute, Geometry, Normal Map (`normalmap`), Bump (written out from screen derivatives), Mapping and Tangent. Noise (`fractal3d`, or `noise2d` octaves in 2D), Voronoi (`worleynoise`), White Noise (`cellnoise`), Checker (`checkerboard`), Gradient and Light Path. |
 | Not lowered | Every other node: each output read is the node's default output value and a warning. RGB Curves and Float Curve pass their input through. |
 
@@ -63,6 +63,8 @@ Blender's own rules and silent.
 - Attribute reads geometry attributes only: another attribute type, or no name, is zero; its Alpha output is 1. An
   unknown Gradient type is Linear. Each with a warning.
 - Light Path is constants: Is Camera Ray 1, the rest 0.
+- A Transparent BSDF is as transparent as its color's luminance. Where a closure tree lets all the light through
+  (opacity 0), its lobes are not seen: an Add Shader of a lobe and a white Transparent BSDF shows only what is behind.
 
 ## Testing
 

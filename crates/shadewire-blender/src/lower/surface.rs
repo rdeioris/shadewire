@@ -19,8 +19,9 @@ pub enum Shading {
     Nothing,
 }
 
-/// A closure tree: its shader-level nodes, and the names of its BSDF and EDF roots, with the transparency mixed
-/// over them.
+/// A closure tree: its shader-level nodes, the names of its BSDF and EDF roots, and the transparency mixed over
+/// them. Every lobe carries the absolute weight Blender gives it (`Σ wᵢ·lobeᵢ + t·behind`); the finish divides the
+/// roots by the opacity, since MaterialX's `surface` renders `o·(bsdf + edf) + (1 − o)·behind`.
 #[derive(Clone)]
 pub struct Tree {
     pub nodes: Vec<ShaderNode>,
@@ -200,17 +201,14 @@ fn principled_with(
     Ok(Shading::Principled { fields, origin })
 }
 
-/// Two closure trees combined: the nodes of both, their BSDFs and EDFs mixed or added, their transparency mixed or
-/// added.
+/// Two closure trees combined: the nodes of both, their BSDFs and EDFs mixed (each side weighted by its Mix Shader
+/// weight, whatever the other side holds) or added, their transparency mixed or added.
 fn merged(l: &mut Lowerer, node: &FlatNode, a: Tree, b: Tree, fac: Option<NodeId>) -> Result<Tree, Error> {
     let (bsdf_a, bsdf_b, edf_a, edf_b) = (a.bsdf.clone(), b.bsdf.clone(), a.edf.clone(), b.edf.clone());
     let (t_a, t_b) = (a.transparency, b.transparency);
-    // Light that passes a transparent side reaches what is behind the surface, not the other side's lobes: they
-    // keep their strength and the opacity carries the mix. Only a side that renders black takes energy with it.
-    let lobe_fac = if a.is_transparency_only() || b.is_transparency_only() { None } else { fac };
     let mut extra = Vec::new();
-    let bsdf = root(l, node, Root::BSDF, [bsdf_a, bsdf_b], lobe_fac, &mut extra)?;
-    let edf = root(l, node, Root::EDF, [edf_a, edf_b], lobe_fac, &mut extra)?;
+    let bsdf = root(l, node, Root::BSDF, [bsdf_a, bsdf_b], fac, &mut extra)?;
+    let edf = root(l, node, Root::EDF, [edf_a, edf_b], fac, &mut extra)?;
     let origin = format!("{}.transparency", node.name);
     let transparency = match fac {
         Some(fac) => mixed_transparency(l, [t_a, t_b], fac, &origin)?,
@@ -352,6 +350,14 @@ fn multiply(l: &mut Lowerer, a: NodeId, b: NodeId, origin: &str) -> Result<NodeI
     l.op("multiply", Type::Float, &[("in1", Arg::Node(a)), ("in2", Arg::Node(b))], origin)
 }
 
+/// `name`, or `name` followed by as many `_` as it takes to name neither a node of `nodes` nor a Blender node.
+fn unused_name(l: &Lowerer, nodes: &[ShaderNode], mut name: String) -> String {
+    while nodes.iter().any(|n| n.name == name) || l.graph.node(&name).is_some() {
+        name.push('_');
+    }
+    name
+}
+
 /// The dag finished with `shading` as the surface of `output_node` (`linked`: the node its Surface is linked to), and
 /// the lowering's warnings.
 pub fn finish(
@@ -386,30 +392,42 @@ pub fn finish(
     }
 }
 
-/// The nodes of `tree` and the `surface` node over them (its name, which no other node has).
+/// The nodes of `tree` and the `surface` node over them (its name, which no other node has). A transparent tree's
+/// opacity is `o = 1 − t`, and its roots are multiplied by `1 / o` (by 1 where nothing is left to see): the tree
+/// holds Blender's absolute weights, the `surface` node scales them back by `o`.
 fn closure_nodes(l: &mut Lowerer, tree: Tree) -> Result<(Vec<ShaderNode>, String), Error> {
-    let mut name = "surface".to_string();
-    while tree.nodes.iter().any(|n| n.name == name) {
-        name.push('_');
+    let Tree { mut nodes, mut bsdf, mut edf, transparency } = tree;
+    let mut inputs = Vec::new();
+    if let Some(transparency) = transparency {
+        let opacity = one_minus(l, transparency, "surface.opacity")?;
+        inputs.push(("opacity".to_string(), Arg::Node(opacity)));
+        let origin = "surface.scale";
+        let (zero, one) = (l.k(0.0, origin), l.k(1.0, origin));
+        let inverse = l.op2("divide", Type::Float, one, opacity, origin)?;
+        let scale = l.if_equal(opacity, zero, one, inverse, Type::Float, origin)?;
+        let scale = l.convert(scale, Type::Color3, origin)?;
+        for (root, which) in [(&mut bsdf, Root::BSDF), (&mut edf, Root::EDF)] {
+            let Some(only) = root.take() else { continue };
+            let name = unused_name(l, &nodes, format!("surface.{}", which.suffix));
+            nodes.push(operator(&name, which, "multiply", vec![("in2", Arg::Node(scale))], vec![("in1", only)]));
+            *root = Some(name);
+        }
     }
-    let mut surface = ShaderNode {
+    let name = unused_name(l, &nodes, "surface".to_string());
+    let mut links = Vec::new();
+    if let Some(bsdf) = bsdf {
+        links.push(("bsdf".to_string(), bsdf));
+    }
+    if let Some(edf) = edf {
+        links.push(("edf".to_string(), edf));
+    }
+    let surface = ShaderNode {
         name: name.clone(),
         category: "surface".to_string(),
         port_type: PortType::SurfaceShader,
-        inputs: Vec::new(),
-        links: Vec::new(),
+        inputs,
+        links,
     };
-    if let Some(transparency) = tree.transparency {
-        let opacity = one_minus(l, transparency, "surface.opacity")?;
-        surface.inputs.push(("opacity".to_string(), Arg::Node(opacity)));
-    }
-    if let Some(bsdf) = tree.bsdf {
-        surface.links.push(("bsdf".to_string(), bsdf));
-    }
-    if let Some(edf) = tree.edf {
-        surface.links.push(("edf".to_string(), edf));
-    }
-    let mut nodes = tree.nodes;
     nodes.push(surface);
     Ok((nodes, name))
 }
