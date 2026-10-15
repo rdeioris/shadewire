@@ -1,0 +1,17 @@
+---
+source: crates/shadewire-blender/tests/fixtures.rs
+expression: "ir.warnings.join(\"\\n\")"
+---
+ShaderNodeRGBCurve "RGB Curves": curve ignored, the input passes through
+ShaderNodeValToRGB "Color Ramp": not lowered, output Color is its default value
+ShaderNodeFloatCurve "Float Curve": curve ignored, the input passes through
+ShaderNodeLayerWeight "Layer Weight": not lowered, output Facing is its default value
+ShaderNodeLayerWeight "Layer Weight": not lowered, output Fresnel is its default value
+ShaderNodeLightPath "Light Path": not lowered, output Is Camera Ray is its default value
+ShaderNodeShaderToRGB "Shader to RGB": not lowered, output Color is its default value
+ShaderNodeWireframe "Wireframe": not lowered, output Fac is its default value
+ShaderNodeWavelength "Wavelength": not lowered, output Color is its default value
+ShaderNodeAmbientOcclusion "Ambient Occlusion": not lowered, output Color is its default value
+ShaderNodeBlackbody "Blackbody": not lowered, output Color is its default value
+ShaderNodeObjectInfo "Object Info": not lowered, output Random is its default value
+ShaderNodeBevel "Bevel": not lowered, output Normal is its default value

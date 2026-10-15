@@ -1,0 +1,5 @@
+---
+source: crates/shadewire-blender/tests/fixtures.rs
+expression: "ir.warnings.join(\"\\n\")"
+---
+ShaderNodeMath "Gain/Scale": not lowered, output Value is its default value

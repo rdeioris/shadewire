@@ -1,0 +1,10 @@
+---
+source: crates/shadewire-blender/tests/fixtures.rs
+expression: "ir.warnings.join(\"\\n\")"
+---
+ShaderNodeTexImage "Albedo": not lowered, output Color is its default value
+ShaderNodeTexImage "Roughness Image": not lowered, output Color is its default value
+ShaderNodeTexImage "Mirror Image": not lowered, output Color is its default value
+ShaderNodeBump "Bump": not lowered, output Normal is its default value
+ShaderNodeMapping "Turn Tangent": not lowered, output Vector is its default value
+ShaderNodeNormalMap "Normal Map Object": not lowered, output Normal is its default value
