@@ -2,8 +2,8 @@
 trees and reports failures and warnings. Each built material's graph must survive dump → load → dump, and its
 export back to MaterialX through Shadewire must compile again. USD scenes among the files are imported with the
 add-on's USD hook registered, and every material with a MaterialX surface must arrive built (and pass the same two
-checks) and every texture load; with --flatten each scene is also imported flattened (its MaterialX inline, which the hook writes back as a
-document). Exits 1 when a material fails.
+checks) and every texture load; with --flatten each scene is also imported flattened (its MaterialX inline, which
+the hook writes back as a document). Exits 1 when a material fails.
 
 blender -b -P blender/smoke_test.py -- [--shadewire PATH] [--mode PRINCIPLED|LOBES] [--flatten] [--installed]
     [file.mtlx|scene.usd ...]
@@ -112,15 +112,17 @@ def comparable(doc):
 def round_trips(material, label):
     """Whether the material's graph survives dump → text → load → dump with no load warning; the loaded material is
     removed afterwards."""
+    made = []
     try:
         original = graph.dump([material])
         made, warnings = graph.load(graph.from_text(graph.to_text(original)))
+        again = graph.dump(made)
     except Exception:
         print(f"FAIL {label}: graph round trip:\n{traceback.format_exc()}")
         return False
-    again = graph.dump(made)
-    for loaded in made:
-        bpy.data.materials.remove(loaded)
+    finally:
+        for loaded in made:
+            bpy.data.materials.remove(loaded)
     if warnings:
         print(f"FAIL {label}: graph load warnings:", *(f"\n     {w}" for w in warnings))
         return False
@@ -146,8 +148,11 @@ def re_exports(material, label):
         for warning in warnings:
             print(f"     export warning: {warning}")
         compile_backend.compile_text(text, None, material_element(material.name), False, args.mode)
-    except (compiler.CompileError, ValueError) as e:
+    except compiler.CompileError as e:
         print(f"FAIL {label}: re-export: {e}")
+        return False
+    except Exception:
+        print(f"FAIL {label}: re-export:\n{traceback.format_exc()}")
         return False
     return True
 

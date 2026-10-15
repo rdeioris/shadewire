@@ -56,8 +56,10 @@ def main():
     parser.add_argument("--out", default=os.path.join(HERE, "..", "target", "extension"))
     parser.add_argument("--skip-wheels", action="store_true", help="use the wheels already in <out>/wheels")
     args = parser.parse_args()
+    # Absolute: maturin runs in the crate's folder, where a relative path would land elsewhere.
+    out = os.path.abspath(args.out)
 
-    built = os.path.join(args.out, "wheels")
+    built = os.path.join(out, "wheels")
     if not args.skip_wheels:
         if os.path.isdir(built):
             shutil.rmtree(built)
@@ -75,7 +77,7 @@ def main():
     for name in listed:
         shutil.copy(os.path.join(built, name), wheels)
 
-    subprocess.run([args.blender, "--command", "extension", "build", "--source-dir", ADDON, "--output-dir", args.out],
+    subprocess.run([args.blender, "--command", "extension", "build", "--source-dir", ADDON, "--output-dir", out],
                    check=True)
 
 
