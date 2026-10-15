@@ -92,13 +92,17 @@ sockets' subtype, min, max and description, or node colors and frame sizes.
   a USD scene, its materials built by the USD hook (with `shadewire` importable, or `--shadewire <executable>`).
 - `blender -b -P blender/smoke_test.py -- [--shadewire PATH] [--mode LOBES] [--flatten] [file.mtlx|scene.usd ...]`
   builds every material of the given documents (default: the vendored MaterialX examples) and reports failures.
-  USD scenes are imported through the USD hook: every MaterialX material must arrive built and every texture
-  load; `--flatten` also imports each scene flattened, its MaterialX inline.
+  Each built material's graph must survive dump → load → dump unchanged and without load warnings, and its export
+  to MaterialX through Shadewire must compile again (export warnings are printed, not failures); the last line
+  counts the materials built, round-tripped, re-exported and failed. USD scenes are imported through the USD hook:
+  every MaterialX material must arrive built and every texture load; `--flatten` also imports each scene
+  flattened, its MaterialX inline.
 - `blender -b --python-exit-code 1 -P blender/test_graph.py` runs the graph tests: dump, load, round trips and the
   Save and Load operators. Keep the flag: without it Blender exits 0 when the script errors.
 - `blender -b --python-exit-code 1 -P blender/test_export.py [-- --shadewire PATH]` runs the MaterialX export tests:
   the compiler's `to_mtlx` and document merging, File > Export > MaterialX, and the USD export option (with and
   without USD Preview Surface, Blender's MaterialX network, the option off, a `.usdz`, and a scene imported back).
+  It needs a Shadewire compiler: the `shadewire` module, a built `target/release/shadewire`, or `--shadewire`.
 - `blender -b --python-exit-code 1 -P blender/make_fixtures.py` rewrites the graph fixtures in
   `blender/fixtures/graphs` from the materials it builds; `test_graph.py` fails when they are stale.
 
