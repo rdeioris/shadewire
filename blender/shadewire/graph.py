@@ -235,6 +235,10 @@ def from_text(text):
     return doc
 
 
+# The most throwaway interface sockets made to reach an identifier number.
+MAX_IDENTIFIER_GAP = 1000
+
+
 class Loader:
     """What loading one document needs: the warnings so far, the document's images, the groups and images made."""
 
@@ -290,7 +294,7 @@ def load_interface(tree, items, where, loader):
     for index in order:
         item = items[index]
         try:
-            socket = tree.interface.new_socket(item["name"], in_out=item["in_out"], socket_type=item["socket_type"])
+            socket = new_interface_socket(tree.interface, item, where, loader)
             if item["in_out"] == "INPUT" and "value" in item:
                 socket.default_value = item["value"]
         except Exception as error:
@@ -303,6 +307,19 @@ def load_interface(tree, items, where, loader):
     for position, socket in enumerate(created[index] for index in sorted(created)):
         if tree.interface.items_tree[position] != socket:
             tree.interface.move(socket, position)
+
+
+def new_interface_socket(interface, item, where, loader):
+    """A socket for the item. Blender's `Socket_N` counter never rewinds, so a gap in the document's numbers (a socket
+    deleted from the group) is stepped over by creating and removing throwaway sockets until the number is the item's."""
+    wanted = identifier_number(item["identifier"])
+    for _ in range(MAX_IDENTIFIER_GAP):
+        socket = interface.new_socket(item["name"], in_out=item["in_out"], socket_type=item["socket_type"])
+        if wanted == float("inf") or identifier_number(socket.identifier) >= wanted:
+            return socket
+        interface.remove(socket)
+    loader.warn(where, f"interface {item['name']}: gap of more than {MAX_IDENTIFIER_GAP} before {item['identifier']}")
+    return interface.new_socket(item["name"], in_out=item["in_out"], socket_type=item["socket_type"])
 
 
 def identifier_number(identifier):

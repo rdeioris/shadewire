@@ -160,10 +160,109 @@ def test_load_warnings(graph):
     check(any("link" in w for w in warnings), f"broken link warning: {warnings}")
 
 
+def clear_data():
+    for material in list(bpy.data.materials):
+        bpy.data.materials.remove(material)
+    for group in list(bpy.data.node_groups):
+        bpy.data.node_groups.remove(group)
+
+
+def round_trip(graph, materials, label):
+    """Dump, empty the file, load: the loaded materials must dump the same, then again with replace."""
+    original = graph.dump(materials)
+    text = graph.to_text(original)
+    clear_data()
+    loaded, warnings = graph.load(graph.from_text(text))
+    check(warnings == [], f"{label}: load warnings: {warnings}")
+    check(graph.dump(loaded) == original, f"{label}: dump → load → dump is not the identity")
+    replaced, warnings = graph.load(graph.from_text(text), replace=True)
+    check(warnings == [], f"{label}: replace warnings: {warnings}")
+    check(graph.dump(replaced) == original, f"{label}: replace → dump is not the identity")
+
+
+def test_group_identifier_gap(graph):
+    """Deleting an interface socket leaves a gap in the Socket_N numbers; a loaded group keeps them."""
+    clear_data()
+    group = bpy.data.node_groups.new("Gap", "ShaderNodeTree")
+    items = [group.interface.new_socket(n, in_out="INPUT", socket_type="NodeSocketFloat") for n in ("A", "B", "C")]
+    group.interface.remove(items[1])
+    group.interface.new_socket("Out", in_out="OUTPUT", socket_type="NodeSocketFloat")
+    gi = group.nodes.new("NodeGroupInput")
+    go = group.nodes.new("NodeGroupOutput")
+    group.links.new(gi.outputs["Socket_2"], go.inputs[0])
+    check([i.identifier for i in group.interface.items_tree if i.in_out == "INPUT"] == ["Socket_0", "Socket_2"],
+          "the test group has a gap")
+    m = bpy.data.materials.new("Gappy")
+    m.use_nodes = True
+    t = m.node_tree
+    principled = next(n for n in t.nodes if n.bl_idname == "ShaderNodeBsdfPrincipled")
+    node = t.nodes.new("ShaderNodeGroup")
+    node.node_tree = group
+    for identifier in ("Socket_0", "Socket_2"):
+        source = t.nodes.new("ShaderNodeValue")
+        t.links.new(source.outputs[0], node.inputs[identifier])
+    t.links.new(node.outputs[0], principled.inputs["Roughness"])
+    round_trip(graph, [m], "gap")
+    loaded = bpy.data.materials["Gappy"]
+    group_links = [l for l in loaded.node_tree.links if "Group" in (l.from_node.name, l.to_node.name)]
+    check(len(group_links) == 3, f"gap: links on the Group node after load: {len(group_links)}")
+
+
+def test_stress_round_trip(graph):
+    """Ramps, curve mappings, parents, a mix node, nested groups and two outputs survive dump → load → dump."""
+    clear_data()
+    m = bpy.data.materials.new("Stress")
+    m.use_nodes = True
+    t = m.node_tree
+    ramp = t.nodes.new("ShaderNodeValToRGB").color_ramp
+    ramp.color_mode, ramp.hue_interpolation, ramp.interpolation = "HSV", "FAR", "CONSTANT"
+    ramp.elements[0].position, ramp.elements[1].position = 0.1, 0.9
+    for position in (0.3, 0.5, 0.7):
+        ramp.elements.new(position).color = (position, 1 - position, 0.5, 0.25)
+    rgb = t.nodes.new("ShaderNodeRGBCurve").mapping
+    rgb.use_clip, rgb.extend = False, "EXTRAPOLATED"
+    rgb.curves[0].points.new(0.3, 0.6)
+    rgb.curves[0].points.new(0.6, 0.2)
+    rgb.curves[0].points[1].handle_type = "VECTOR"
+    rgb.update()
+    t.nodes.new("ShaderNodeFloatCurve").mapping.curves[0].points.new(0.5, 0.9)
+    t.nodes.new("ShaderNodeVectorCurve")
+    mix = t.nodes.new("ShaderNodeMix")
+    mix.data_type, mix.blend_type, mix.clamp_factor = "RGBA", "SCREEN", False
+    mix.inputs[0].default_value = 0.3
+    frame = t.nodes.new("NodeFrame")
+    frame.label, frame.location = "Hi", (100, 50)
+    child = t.nodes.new("ShaderNodeMath")
+    child.parent, child.location, child.hide, child.label = frame, (30, -20), True, "child"
+    t.nodes.new("ShaderNodeTexNoise").noise_dimensions = "4D"
+    tex = t.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.new("stress_image", 4, 4)
+    tex.image.colorspace_settings.name = "Non-Color"
+    inner = bpy.data.node_groups.new("Inner", "ShaderNodeTree")
+    for name in ("A", "B", "C"):
+        inner.interface.new_socket(name, in_out="INPUT", socket_type="NodeSocketColor")
+    inner.interface.new_socket("O", in_out="OUTPUT", socket_type="NodeSocketVector")
+    inner.interface.move(inner.interface.items_tree[-1], 0)
+    inner.interface.items_tree[3].default_value = (0.2, 0.3, 0.4, 1.0)
+    inner.nodes.new("NodeGroupInput")
+    inner.nodes.new("NodeGroupOutput")
+    outer = bpy.data.node_groups.new("Outer", "ShaderNodeTree")
+    outer.interface.new_socket("X", in_out="INPUT", socket_type="NodeSocketFloat")
+    outer.nodes.new("ShaderNodeGroup").node_tree = inner
+    t.nodes.new("ShaderNodeGroup").node_tree = outer
+    t.nodes.new("ShaderNodeOutputMaterial").is_active_output = False
+    colors = [s for s in mix.inputs if s.type == "RGBA"]
+    t.links.new(t.nodes["Color Ramp"].outputs[0], colors[0])
+    t.links.new(t.nodes["Color Ramp"].outputs[0], colors[1])
+    round_trip(graph, [m], "stress")
+
+
 bpy.ops.wm.read_homefile(use_empty=True)
 addon = load_addon()
 test_dump_shape(addon.graph)
 test_round_trip(addon.graph)
 test_load_warnings(addon.graph)
+test_group_identifier_gap(addon.graph)
+test_stress_round_trip(addon.graph)
 print("FAILURES", len(failures))
 sys.exit(1 if failures else 0)
