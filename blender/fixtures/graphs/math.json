@@ -2495,8 +2495,8 @@
               "type": "VECTOR",
               "enabled": false,
               "value": [
-                0.0,
-                0.0,
+                -0.5,
+                -0.25,
                 0.0
               ]
             },
@@ -2579,8 +2579,8 @@
               "type": "VECTOR",
               "enabled": false,
               "value": [
-                0.0,
-                0.0,
+                -0.5,
+                -0.25,
                 0.0
               ]
             },
@@ -2663,8 +2663,8 @@
               "type": "VECTOR",
               "enabled": false,
               "value": [
-                0.0,
-                0.0,
+                -0.5,
+                -0.25,
                 0.0
               ]
             },
@@ -2747,8 +2747,8 @@
               "type": "VECTOR",
               "enabled": false,
               "value": [
-                0.0,
-                0.0,
+                -0.5,
+                -0.25,
                 0.0
               ]
             },
@@ -2788,12 +2788,1411 @@
           ]
         },
         {
-          "name": "Mix Vector",
-          "type": "ShaderNodeMix",
+          "name": "Vector SCALE",
+          "type": "ShaderNodeVectorMath",
           "label": "",
           "location": [
             1300.0,
             -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SCALE"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector LENGTH",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            1300.0,
+            -2070.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "LENGTH"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Vector REFLECT",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            1560.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "REFLECT"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector PROJECT",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            1820.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "PROJECT"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector FACEFORWARD",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            2080.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "FACEFORWARD"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector WRAP",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            2340.0,
+            -1840.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "WRAP"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector SNAP",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            0.0,
+            -2530.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SNAP"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector SINE",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            260.0,
+            -2530.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "SINE"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector FLOOR",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            520.0,
+            -2530.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "FLOOR"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector FRACTION",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            780.0,
+            -2530.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "FRACTION"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector MODULO",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            1040.0,
+            -2530.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "MODULO"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector ABSOLUTE",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            1300.0,
+            -2530.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "ABSOLUTE"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector MINIMUM",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            1560.0,
+            -2530.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "MINIMUM"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector MAXIMUM",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            1820.0,
+            -2530.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "MAXIMUM"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.25,
+                0.75
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                -0.5,
+                -0.25,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Vector DOT_PRODUCT",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            0.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "DOT_PRODUCT"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Vector DISTANCE",
+          "type": "ShaderNodeVectorMath",
+          "label": "",
+          "location": [
+            260.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "DISTANCE"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_001",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Vector_002",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Dot Plus Distance",
+          "type": "ShaderNodeMath",
+          "label": "",
+          "location": [
+            520.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "operation": "ADD",
+            "use_clamp": false
+          },
+          "inputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_001",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Value_002",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Value",
+              "name": "Value",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Value",
+              "Value"
+            ]
+          ]
+        },
+        {
+          "name": "Mix Vector",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            2080.0,
+            -2530.0
           ],
           "width": 140.0,
           "hide": false,
@@ -2963,8 +4362,8 @@
           "type": "ShaderNodeSeparateXYZ",
           "label": "",
           "location": [
-            1560.0,
-            -1840.0
+            2340.0,
+            -2530.0
           ],
           "width": 140.0,
           "hide": false,
@@ -3028,7 +4427,7 @@
           "label": "",
           "location": [
             0.0,
-            -2070.0
+            -2990.0
           ],
           "width": 140.0,
           "hide": false,
@@ -3082,7 +4481,7 @@
           "label": "",
           "location": [
             260.0,
-            -2070.0
+            -2990.0
           ],
           "width": 140.0,
           "hide": false,
@@ -3236,7 +4635,7 @@
           "label": "",
           "location": [
             520.0,
-            -2070.0
+            -2990.0
           ],
           "width": 140.0,
           "hide": false,
@@ -3390,7 +4789,7 @@
           "label": "",
           "location": [
             780.0,
-            -2070.0
+            -2990.0
           ],
           "width": 140.0,
           "hide": false,
@@ -3561,7 +4960,7 @@
           "label": "",
           "location": [
             0.0,
-            -2300.0
+            -3220.0
           ],
           "width": 140.0,
           "hide": false,
@@ -3590,7 +4989,7 @@
               "name": "Blue",
               "type": "VALUE",
               "enabled": true,
-              "value": 0.5
+              "value": 0.0
             }
           ],
           "outputs": [
@@ -3620,7 +5019,7 @@
           "label": "",
           "location": [
             260.0,
-            -2300.0
+            -3220.0
           ],
           "width": 140.0,
           "hide": false,
@@ -3687,7 +5086,7 @@
           "label": "",
           "location": [
             520.0,
-            -2300.0
+            -3220.0
           ],
           "width": 140.0,
           "hide": false,
@@ -3746,7 +5145,7 @@
           "label": "",
           "location": [
             780.0,
-            -2300.0
+            -3220.0
           ],
           "width": 140.0,
           "hide": false,
@@ -3813,7 +5212,7 @@
           "label": "",
           "location": [
             1040.0,
-            -2300.0
+            -3220.0
           ],
           "width": 140.0,
           "hide": false,
@@ -3867,12 +5266,138 @@
           ]
         },
         {
+          "name": "Separate HSL",
+          "type": "ShaderNodeSeparateColor",
+          "label": "",
+          "location": [
+            1300.0,
+            -3220.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "mode": "HSL"
+          },
+          "inputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Red",
+              "name": "Red",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Green",
+              "name": "Green",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Blue",
+              "name": "Blue",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Color",
+              "Red"
+            ],
+            [
+              "Color",
+              "Green"
+            ],
+            [
+              "Color",
+              "Blue"
+            ]
+          ]
+        },
+        {
+          "name": "Combine HSL",
+          "type": "ShaderNodeCombineColor",
+          "label": "",
+          "location": [
+            1560.0,
+            -3220.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "mode": "HSL"
+          },
+          "inputs": [
+            {
+              "identifier": "Red",
+              "name": "Red",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Green",
+              "name": "Green",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Blue",
+              "name": "Blue",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Red",
+              "Color"
+            ]
+          ]
+        },
+        {
           "name": "Mix Color",
           "type": "ShaderNodeMix",
           "label": "",
           "location": [
-            1300.0,
-            -2300.0
+            1820.0,
+            -3220.0
           ],
           "width": 140.0,
           "hide": false,
@@ -4042,8 +5567,8 @@
           "type": "ShaderNodeInvert",
           "label": "",
           "location": [
-            1560.0,
-            -2300.0
+            2080.0,
+            -3220.0
           ],
           "width": 140.0,
           "hide": false,
@@ -4097,8 +5622,8 @@
           "type": "ShaderNodeGamma",
           "label": "",
           "location": [
-            1820.0,
-            -2300.0
+            2340.0,
+            -3220.0
           ],
           "width": 140.0,
           "hide": false,
@@ -4152,8 +5677,8 @@
           "type": "ShaderNodeBrightContrast",
           "label": "",
           "location": [
-            2080.0,
-            -2300.0
+            2600.0,
+            -3220.0
           ],
           "width": 140.0,
           "hide": false,
@@ -4214,8 +5739,8 @@
           "type": "ShaderNodeHueSaturation",
           "label": "",
           "location": [
-            2340.0,
-            -2300.0
+            2860.0,
+            -3220.0
           ],
           "width": 160.0,
           "hide": false,
@@ -4282,6 +5807,1887 @@
             [
               "Color",
               "Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix SCREEN",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            0.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "SCREEN",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.25,
+                0.5,
+                0.75,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix OVERLAY",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            260.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "OVERLAY",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.30000001192092896,
+                0.5,
+                0.699999988079071,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix ADD",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            520.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "ADD",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.3499999940395355,
+                0.5,
+                0.6499999761581421,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix SUBTRACT",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            780.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "SUBTRACT",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.4000000059604645,
+                0.5,
+                0.6000000238418579,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix DIFFERENCE",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            1040.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "DIFFERENCE",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.44999998807907104,
+                0.5,
+                0.550000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix DARKEN",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            1300.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "DARKEN",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix LIGHTEN",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            1560.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "LIGHTEN",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.550000011920929,
+                0.5,
+                0.44999998807907104,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix DIVIDE",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            1820.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "DIVIDE",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.6000000238418579,
+                0.5,
+                0.4000000059604645,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix SOFT_LIGHT",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            2080.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "SOFT_LIGHT",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.6499999761581421,
+                0.5,
+                0.3499999940395355,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix LINEAR_LIGHT",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            2340.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "LINEAR_LIGHT",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.699999988079071,
+                0.5,
+                0.30000001192092896,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
+            ]
+          ]
+        },
+        {
+          "name": "Mix EXCLUSION",
+          "type": "ShaderNodeMix",
+          "label": "",
+          "location": [
+            2600.0,
+            -3450.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "data_type": "RGBA",
+            "factor_mode": "UNIFORM",
+            "blend_type": "EXCLUSION",
+            "clamp_factor": true,
+            "clamp_result": false
+          },
+          "inputs": [
+            {
+              "identifier": "Factor_Float",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Factor_Vector",
+              "name": "Factor",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.5,
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "identifier": "A_Float",
+              "name": "A",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "B_Float",
+              "name": "B",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "A_Vector",
+              "name": "A",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Vector",
+              "name": "B",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "A_Color",
+              "name": "A",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                0.5,
+                1.0
+              ]
+            },
+            {
+              "identifier": "B_Color",
+              "name": "B",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.75,
+                0.5,
+                0.25,
+                1.0
+              ]
+            },
+            {
+              "identifier": "A_Rotation",
+              "name": "A",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "B_Rotation",
+              "name": "B",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Result_Float",
+              "name": "Result",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Result_Vector",
+              "name": "Result",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Result_Color",
+              "name": "Result",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Result_Rotation",
+              "name": "Result",
+              "type": "ROTATION",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "A_Color",
+              "Result_Color"
             ]
           ]
         }
@@ -4857,6 +8263,258 @@
             "Vector"
           ],
           "to": [
+            "Vector SCALE",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector NORMALIZE",
+            "Vector"
+          ],
+          "to": [
+            "Vector LENGTH",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector LENGTH",
+            "Value"
+          ],
+          "to": [
+            "Vector SCALE",
+            "Scale"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector SCALE",
+            "Vector"
+          ],
+          "to": [
+            "Vector REFLECT",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector REFLECT",
+            "Vector"
+          ],
+          "to": [
+            "Vector PROJECT",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector PROJECT",
+            "Vector"
+          ],
+          "to": [
+            "Vector FACEFORWARD",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector FACEFORWARD",
+            "Vector"
+          ],
+          "to": [
+            "Vector WRAP",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector WRAP",
+            "Vector"
+          ],
+          "to": [
+            "Vector SNAP",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector SNAP",
+            "Vector"
+          ],
+          "to": [
+            "Vector SINE",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector SINE",
+            "Vector"
+          ],
+          "to": [
+            "Vector FLOOR",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector FLOOR",
+            "Vector"
+          ],
+          "to": [
+            "Vector FRACTION",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector FRACTION",
+            "Vector"
+          ],
+          "to": [
+            "Vector MODULO",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector MODULO",
+            "Vector"
+          ],
+          "to": [
+            "Vector ABSOLUTE",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector ABSOLUTE",
+            "Vector"
+          ],
+          "to": [
+            "Vector MINIMUM",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector MINIMUM",
+            "Vector"
+          ],
+          "to": [
+            "Vector MAXIMUM",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Combine XYZ",
+            "Vector"
+          ],
+          "to": [
+            "Vector DOT_PRODUCT",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector MAXIMUM",
+            "Vector"
+          ],
+          "to": [
+            "Vector DOT_PRODUCT",
+            "Vector_001"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Combine XYZ",
+            "Vector"
+          ],
+          "to": [
+            "Vector DISTANCE",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector MAXIMUM",
+            "Vector"
+          ],
+          "to": [
+            "Vector DISTANCE",
+            "Vector_001"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector DOT_PRODUCT",
+            "Value"
+          ],
+          "to": [
+            "Dot Plus Distance",
+            "Value"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector DISTANCE",
+            "Value"
+          ],
+          "to": [
+            "Dot Plus Distance",
+            "Value_001"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Vector MAXIMUM",
+            "Vector"
+          ],
+          "to": [
             "Mix Vector",
             "A_Vector"
           ],
@@ -4973,6 +8631,18 @@
         },
         {
           "from": [
+            "Dot Plus Distance",
+            "Value"
+          ],
+          "to": [
+            "Combine RGB",
+            "Blue"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
             "Combine RGB",
             "Color"
           ],
@@ -5073,6 +8743,54 @@
             "Color"
           ],
           "to": [
+            "Separate HSL",
+            "Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Separate HSL",
+            "Red"
+          ],
+          "to": [
+            "Combine HSL",
+            "Red"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Separate HSL",
+            "Green"
+          ],
+          "to": [
+            "Combine HSL",
+            "Green"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Separate HSL",
+            "Blue"
+          ],
+          "to": [
+            "Combine HSL",
+            "Blue"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Combine HSL",
+            "Color"
+          ],
+          "to": [
             "Mix Color",
             "A_Color"
           ],
@@ -5131,6 +8849,138 @@
           "from": [
             "Hue/Saturation/Value",
             "Color"
+          ],
+          "to": [
+            "Mix SCREEN",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix SCREEN",
+            "Result_Color"
+          ],
+          "to": [
+            "Mix OVERLAY",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix OVERLAY",
+            "Result_Color"
+          ],
+          "to": [
+            "Mix ADD",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix ADD",
+            "Result_Color"
+          ],
+          "to": [
+            "Mix SUBTRACT",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix SUBTRACT",
+            "Result_Color"
+          ],
+          "to": [
+            "Mix DIFFERENCE",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix DIFFERENCE",
+            "Result_Color"
+          ],
+          "to": [
+            "Mix DARKEN",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix DARKEN",
+            "Result_Color"
+          ],
+          "to": [
+            "Mix LIGHTEN",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix LIGHTEN",
+            "Result_Color"
+          ],
+          "to": [
+            "Mix DIVIDE",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix DIVIDE",
+            "Result_Color"
+          ],
+          "to": [
+            "Mix SOFT_LIGHT",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix SOFT_LIGHT",
+            "Result_Color"
+          ],
+          "to": [
+            "Mix LINEAR_LIGHT",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix LINEAR_LIGHT",
+            "Result_Color"
+          ],
+          "to": [
+            "Mix EXCLUSION",
+            "A_Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mix EXCLUSION",
+            "Result_Color"
           ],
           "to": [
             "Emission",

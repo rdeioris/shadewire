@@ -1,10 +1,10 @@
-"""Writes the graph fixtures: eight materials built here, dumped by the add-on's graph module, one JSON file each in
+"""Writes the graph fixtures: ten materials built here, dumped by the add-on's graph module, one JSON file each in
 blender/fixtures/graphs. The Rust front end's tests read those files, and test_graph.py checks they are current.
 
 blender -b --python-exit-code 1 -P blender/make_fixtures.py
 
-Rerunning in the same Blender changes nothing; another Blender changes the `producer` line (and whatever its
-node defaults differ in).
+Rerunning in the same Blender changes nothing; another Blender changes the `producer` line and whatever its node
+defaults and enums differ in.
 """
 
 import importlib.util
@@ -135,12 +135,42 @@ def textured():
     normal.interpolation = "Closest"
     normal_map = add(t, "ShaderNodeNormalMap", -2, 2, "Normal Map")
     link(t, normal.outputs["Color"], normal_map.inputs["Color"])
-    link(t, normal_map.outputs["Normal"], p.inputs["Normal"])
     uv_map = add(t, "ShaderNodeUVMap", -4, 4, "UV Map", uv_map="UVMap")
     rough = add(t, "ShaderNodeTexImage", -2, 4, "Roughness Image")
     rough.image = generated_image("roughness", "sRGB")
     link(t, uv_map.outputs["UV"], rough.inputs["Vector"])
     link(t, rough.outputs["Color"], p.inputs["Roughness"])
+
+    # Bump over the tangent-space normal map: a height image in Box projection, Clip extension, Cubic interpolation.
+    height = add(t, "ShaderNodeTexImage", -2, 6, "Height Image", projection="BOX", extension="CLIP",
+                 interpolation="Cubic")
+    height.image = generated_image("height", "Non-Color")
+    link(t, uv.outputs["Object"], height.inputs["Vector"])
+    bump = add(t, "ShaderNodeBump", -1, 4, "Bump")
+    bump.inputs["Distance"].default_value = 0.2
+    link(t, height.outputs["Color"], bump.inputs["Height"])
+    link(t, normal_map.outputs["Normal"], bump.inputs["Normal"])
+    link(t, bump.outputs["Normal"], p.inputs["Normal"])
+
+    # Normal maps in Object and World space; the World one turned by a Mapping of the Vector type into the tangent.
+    object_map = add(t, "ShaderNodeNormalMap", -2, 8, "Normal Map Object", space="OBJECT")
+    link(t, normal.outputs["Color"], object_map.inputs["Color"])
+    link(t, object_map.outputs["Normal"], p.inputs["Coat Normal"])
+    world_map = add(t, "ShaderNodeNormalMap", -2, 10, "Normal Map World", space="WORLD")
+    link(t, normal.outputs["Color"], world_map.inputs["Color"])
+    turn = add(t, "ShaderNodeMapping", -1, 10, "Turn Tangent", vector_type="VECTOR")
+    turn.inputs["Rotation"].default_value = (0.0, 0.0, 0.5)
+    link(t, world_map.outputs["Normal"], turn.inputs["Vector"])
+    link(t, turn.outputs["Vector"], p.inputs["Tangent"])
+
+    # A Mapping of the Texture type into an image in Mirror extension.
+    texture_space = add(t, "ShaderNodeMapping", -3, 12, "Texture Space", vector_type="TEXTURE")
+    texture_space.inputs["Location"].default_value = (0.25, 0.5, 0.0)
+    link(t, uv.outputs["UV"], texture_space.inputs["Vector"])
+    mirror = add(t, "ShaderNodeTexImage", -2, 12, "Mirror Image", extension="MIRROR")
+    mirror.image = generated_image("emission", "sRGB")
+    link(t, texture_space.outputs["Vector"], mirror.inputs["Vector"])
+    link(t, mirror.outputs["Color"], p.inputs["Emission Color"])
     return material
 
 
@@ -161,7 +191,9 @@ def math():
         previous = node.outputs[0]
     chain_end = previous
 
-    # Vectors: Combine XYZ, four Vector Math operations, Mix in Non-Uniform mode, Separate XYZ.
+    # Vectors: Combine XYZ, a chain of the Vector Math operations that give a vector (Scale scaled by the Length of the
+    # vector so far), Mix in Non-Uniform mode, Separate XYZ. Dot Product and Distance, which give a value, are added
+    # into the Blue of the Combine Color below.
     col = 0
     row = 8
     combine = add(t, "ShaderNodeCombineXYZ", col, row, "Combine XYZ")
@@ -169,13 +201,31 @@ def math():
     combine.inputs["Y"].default_value = 0.25
     combine.inputs["Z"].default_value = 0.5
     vector = combine.outputs[0]
-    for operation in ("ADD", "MULTIPLY", "CROSS_PRODUCT", "NORMALIZE"):
+    for operation in ("ADD", "MULTIPLY", "CROSS_PRODUCT", "NORMALIZE", "SCALE", "REFLECT", "PROJECT", "FACEFORWARD",
+                      "WRAP", "SNAP", "SINE", "FLOOR", "FRACTION", "MODULO", "ABSOLUTE", "MINIMUM", "MAXIMUM"):
         col += 1
-        node = add(t, "ShaderNodeVectorMath", col, row, f"Vector {operation}", operation=operation)
+        node = add(t, "ShaderNodeVectorMath", col % 10, row + 3 * (col // 10), f"Vector {operation}",
+                   operation=operation)
         node.inputs[1].default_value = (0.5, 0.25, 0.75)
+        node.inputs[2].default_value = (-0.5, -0.25, 0.0)
         link(t, vector, node.inputs[0])
+        if operation == "SCALE":
+            length = add(t, "ShaderNodeVectorMath", col % 10, row + 1 + 3 * (col // 10), "Vector LENGTH",
+                         operation="LENGTH")
+            link(t, vector, length.inputs[0])
+            link(t, length.outputs["Value"], node.inputs["Scale"])
         vector = node.outputs["Vector"]
-    col += 1
+    dot = add(t, "ShaderNodeVectorMath", 0, row + 2, "Vector DOT_PRODUCT", operation="DOT_PRODUCT")
+    link(t, combine.outputs[0], dot.inputs[0])
+    link(t, vector, dot.inputs[1])
+    distance = add(t, "ShaderNodeVectorMath", 1, row + 2, "Vector DISTANCE", operation="DISTANCE")
+    link(t, combine.outputs[0], distance.inputs[0])
+    link(t, vector, distance.inputs[1])
+    values = add(t, "ShaderNodeMath", 2, row + 2, "Dot Plus Distance", operation="ADD")
+    link(t, dot.outputs["Value"], values.inputs[0])
+    link(t, distance.outputs["Value"], values.inputs[1])
+    col = 8
+    row = 11
     mix_vector = add(t, "ShaderNodeMix", col, row, "Mix Vector", data_type="VECTOR", factor_mode="NON_UNIFORM")
     sock(mix_vector.inputs, "Factor_Vector").default_value = (0.2, 0.5, 0.8)
     sock(mix_vector.inputs, "B_Vector").default_value = (1.0, 0.5, 0.0)
@@ -185,7 +235,7 @@ def math():
     link(t, sock(mix_vector.outputs, "Result_Vector"), separate.inputs[0])
 
     # Floats: Clamp, Map Range in Linear and Smooth Step, Mix in Float mode, Combine XYZ again.
-    row = 9
+    row = 13
     col = 0
     clamp = add(t, "ShaderNodeClamp", col, row, "Clamp")
     clamp.inputs["Min"].default_value = 0.1
@@ -204,12 +254,13 @@ def math():
     link(t, smooth.outputs["Result"], emission.inputs["Strength"])
 
     # Colors: Combine Color (RGB) -> Separate Color (HSV) -> Combine Color (HSV) -> Separate Color (RGB)
-    # -> Combine Color (RGB), then Mix in Color mode (Multiply) and the color adjustments.
-    row = 10
+    # -> Combine Color (RGB) -> Separate Color (HSL) -> Combine Color (HSL), then Mix in Color mode (Multiply), the
+    # color adjustments and one Mix in Color mode for each further blend mode.
+    row = 14
     combine_rgb = add(t, "ShaderNodeCombineColor", 0, row, "Combine RGB", mode="RGB")
     link(t, sock(mix_float.outputs, "Result_Float"), sock(combine_rgb.inputs, "Red"))
     link(t, separate.outputs["Z"], sock(combine_rgb.inputs, "Green"))
-    sock(combine_rgb.inputs, "Blue").default_value = 0.5
+    link(t, values.outputs[0], sock(combine_rgb.inputs, "Blue"))
     separate_hsv = add(t, "ShaderNodeSeparateColor", 1, row, "Separate HSV", mode="HSV")
     link(t, combine_rgb.outputs[0], separate_hsv.inputs[0])
     combine_hsv = add(t, "ShaderNodeCombineColor", 2, row, "Combine HSV", mode="HSV")
@@ -220,16 +271,29 @@ def math():
     combine_back = add(t, "ShaderNodeCombineColor", 4, row, "Combine RGB Again", mode="RGB")
     for channel in ("Red", "Green", "Blue"):
         link(t, sock(separate_rgb.outputs, channel), sock(combine_back.inputs, channel))
-    mix_color = add(t, "ShaderNodeMix", 5, row, "Mix Color", data_type="RGBA", blend_type="MULTIPLY")
+    separate_hsl = add(t, "ShaderNodeSeparateColor", 5, row, "Separate HSL", mode="HSL")
+    link(t, combine_back.outputs[0], separate_hsl.inputs[0])
+    combine_hsl = add(t, "ShaderNodeCombineColor", 6, row, "Combine HSL", mode="HSL")
+    for channel in ("Red", "Green", "Blue"):
+        link(t, sock(separate_hsl.outputs, channel), sock(combine_hsl.inputs, channel))
+    mix_color = add(t, "ShaderNodeMix", 7, row, "Mix Color", data_type="RGBA", blend_type="MULTIPLY")
     sock(mix_color.inputs, "Factor_Float").default_value = 0.6
     sock(mix_color.inputs, "B_Color").default_value = (0.9, 0.7, 0.5, 1.0)
-    link(t, combine_back.outputs[0], sock(mix_color.inputs, "A_Color"))
+    link(t, combine_hsl.outputs[0], sock(mix_color.inputs, "A_Color"))
     color = sock(mix_color.outputs, "Result_Color")
     for i, idname in enumerate(("ShaderNodeInvert", "ShaderNodeGamma", "ShaderNodeBrightContrast",
                                 "ShaderNodeHueSaturation")):
-        node = add(t, idname, 6 + i, row)
+        node = add(t, idname, 8 + i, row)
         link(t, color, node.inputs["Color"])
         color = node.outputs["Color"]
+    blends = ("SCREEN", "OVERLAY", "ADD", "SUBTRACT", "DIFFERENCE", "DARKEN", "LIGHTEN", "DIVIDE", "SOFT_LIGHT",
+              "LINEAR_LIGHT", "EXCLUSION")
+    for i, blend in enumerate(blends):
+        node = add(t, "ShaderNodeMix", i, row + 1, f"Mix {blend}", data_type="RGBA", blend_type=blend)
+        sock(node.inputs, "Factor_Float").default_value = 0.5
+        sock(node.inputs, "B_Color").default_value = (0.25 + i / 20, 0.5, 0.75 - i / 20, 1.0)
+        link(t, color, sock(node.inputs, "A_Color"))
+        color = sock(node.outputs, "Result_Color")
     link(t, color, emission.inputs["Color"])
     return material
 
@@ -272,6 +336,25 @@ def procedural():
 
     link(t, color_attribute.outputs["Color"], p.inputs["Specular Tint"])
     link(t, geometry.outputs["Normal"], p.inputs["Normal"])
+
+    noise2 = add(t, "ShaderNodeTexNoise", -2, 16, "Noise 2D", noise_dimensions="2D")
+    link(t, coordinates.outputs["UV"], noise2.inputs["Vector"])
+    link(t, noise2.outputs["Fac"], p.inputs["Subsurface Weight"])
+    f2 = add(t, "ShaderNodeTexVoronoi", -2, 18, "Voronoi F2", feature="F2")
+    link(t, coordinates.outputs["Reflection"], f2.inputs["Vector"])
+    link(t, f2.outputs["Distance"], p.inputs["Specular IOR Level"])
+    edge = add(t, "ShaderNodeTexVoronoi", -2, 20, "Voronoi Edge", feature="DISTANCE_TO_EDGE")
+    link(t, coordinates.outputs["Object"], edge.inputs["Vector"])
+    link(t, edge.outputs["Distance"], p.inputs["Anisotropic"])
+    sphere = add(t, "ShaderNodeTexVoronoi", -2, 22, "Voronoi Sphere", feature="N_SPHERE_RADIUS")
+    link(t, coordinates.outputs["Generated"], sphere.inputs["Vector"])
+    link(t, sphere.outputs["Radius"], p.inputs["Transmission Weight"])
+    for i, (kind, socket, target) in enumerate((("QUADRATIC", "Generated", "Coat Roughness"),
+                                                 ("DIAGONAL", "Object", "Sheen Roughness"),
+                                                 ("RADIAL", "UV", "Thin Film Thickness"))):
+        gradient = add(t, "ShaderNodeTexGradient", -2, 24 + 2 * i, f"Gradient {kind.title()}", gradient_type=kind)
+        link(t, coordinates.outputs[socket], gradient.inputs["Vector"])
+        link(t, gradient.outputs["Fac"], p.inputs[target])
     return material
 
 
@@ -390,6 +473,65 @@ def unsupported():
     link(t, path.outputs["Is Camera Ray"], p.inputs["Alpha"])
     link(t, blackbody.outputs["Color"], p.inputs["Emission Color"])
     link(t, info.outputs["Random"], p.inputs["Emission Strength"])
+
+    wavelength = add(t, "ShaderNodeWavelength", -5, 10, "Wavelength")
+    link(t, wavelength.outputs["Color"], p.inputs["Coat Tint"])
+    occlusion = add(t, "ShaderNodeAmbientOcclusion", -5, 12, "Ambient Occlusion")
+    link(t, occlusion.outputs["Color"], p.inputs["Sheen Tint"])
+    bevel = add(t, "ShaderNodeBevel", -5, 14, "Bevel")
+    link(t, bevel.outputs["Normal"], p.inputs["Coat Normal"])
+    wireframe = add(t, "ShaderNodeWireframe", -5, 16, "Wireframe")
+    link(t, wireframe.outputs["Fac"], p.inputs["Coat Weight"])
+    diffuse = add(t, "ShaderNodeBsdfDiffuse", -5, 18, "Diffuse")
+    to_rgb = add(t, "ShaderNodeShaderToRGB", -4, 18, "Shader to RGB")
+    link(t, diffuse.outputs["BSDF"], to_rgb.inputs["Shader"])
+    link(t, to_rgb.outputs["Color"], p.inputs["Specular Tint"])
+    return material
+
+
+def displacement_volume():
+    """A surface with displacement and a volume, each into its own socket of the output."""
+    material, t = new_material("displacement_volume")
+    material.displacement_method = "BOTH"
+    out = output_of(t)
+    noise = add(t, "ShaderNodeTexNoise", -3, 4, "Height Noise")
+    displacement = add(t, "ShaderNodeDisplacement", -1, 4, "Displacement")
+    displacement.inputs["Scale"].default_value = 0.1
+    link(t, noise.outputs["Fac"], displacement.inputs["Height"])
+    link(t, displacement.outputs["Displacement"], out.inputs["Displacement"])
+    volume = add(t, "ShaderNodeVolumePrincipled", -1, 2, "Principled Volume")
+    volume.inputs["Density"].default_value = 0.5
+    link(t, volume.outputs["Volume"], out.inputs["Volume"])
+    return material
+
+
+def gltf_output():
+    """A Principled BSDF whose sources also feed the `glTF Material Output` group as Blender's glTF importer makes
+    it: four inputs (Occlusion, Thickness, Specular, Specular Color), no outputs."""
+    material, t = new_material("gltf_output")
+    p = principled_of(t)
+    group = bpy.data.node_groups.new("glTF Material Output", "ShaderNodeTree")
+    for name, socket_type in (("Occlusion", "NodeSocketFloat"), ("Thickness", "NodeSocketFloat"),
+                              ("Specular", "NodeSocketFloat"), ("Specular Color", "NodeSocketColor")):
+        group.interface.new_socket(name, in_out="INPUT", socket_type=socket_type)
+    add(group, "NodeGroupOutput", 1, 0)
+    add(group, "NodeGroupInput", -1, 0)
+    settings = add(t, "ShaderNodeGroup", 0, 4, "glTF Material Output", label="glTF Material Output")
+    settings.node_tree = group
+
+    occlusion = add(t, "ShaderNodeTexImage", -4, 4, "Occlusion Image")
+    occlusion.image = generated_image("occlusion", "Non-Color")
+    channels = add(t, "ShaderNodeSeparateColor", -3, 4, "Separate Occlusion")
+    link(t, occlusion.outputs["Color"], channels.inputs["Color"])
+    link(t, sock(channels.outputs, "Red"), settings.inputs["Occlusion"])
+    thickness = value_node(t, 0.25, -2, 6, "Thickness")
+    link(t, thickness.outputs[0], settings.inputs["Thickness"])
+    specular = value_node(t, 0.6, -2, 2, "Specular")
+    link(t, specular.outputs[0], p.inputs["Specular IOR Level"])
+    link(t, specular.outputs[0], settings.inputs["Specular"])
+    specular_color = rgb_node(t, (1.0, 0.9, 0.8, 1.0), -2, 3, "Specular Color")
+    link(t, specular_color.outputs[0], p.inputs["Specular Tint"])
+    link(t, specular_color.outputs[0], settings.inputs["Specular Color"])
     return material
 
 
@@ -402,6 +544,8 @@ FIXTURES = {
     "lobes": lobes,
     "structure": structure,
     "unsupported": unsupported,
+    "displacement_volume": displacement_volume,
+    "gltf_output": gltf_output,
 }
 
 

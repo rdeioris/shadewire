@@ -791,6 +791,472 @@
             }
           ],
           "internal_links": []
+        },
+        {
+          "name": "Height Image",
+          "type": "ShaderNodeTexImage",
+          "label": "",
+          "location": [
+            -520.0,
+            -1380.0
+          ],
+          "width": 240.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "image": "height",
+            "projection": "BOX",
+            "interpolation": "Cubic",
+            "projection_blend": 0.0,
+            "extension": "CLIP"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Alpha",
+              "name": "Alpha",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Bump",
+          "type": "ShaderNodeBump",
+          "label": "",
+          "location": [
+            -260.0,
+            -920.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "invert": false
+          },
+          "inputs": [
+            {
+              "identifier": "Strength",
+              "name": "Strength",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Distance",
+              "name": "Distance",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.20000000298023224
+            },
+            {
+              "identifier": "Filter Width",
+              "name": "Filter Width",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.10000000149011612
+            },
+            {
+              "identifier": "Height",
+              "name": "Height",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Normal",
+              "Normal"
+            ]
+          ]
+        },
+        {
+          "name": "Normal Map Object",
+          "type": "ShaderNodeNormalMap",
+          "label": "",
+          "location": [
+            -520.0,
+            -1840.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "space": "OBJECT",
+            "uv_map": "",
+            "convention": "OPENGL",
+            "base": "DISPLACED"
+          },
+          "inputs": [
+            {
+              "identifier": "Strength",
+              "name": "Strength",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                1.0,
+                1.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Strength",
+              "Normal"
+            ]
+          ]
+        },
+        {
+          "name": "Normal Map World",
+          "type": "ShaderNodeNormalMap",
+          "label": "",
+          "location": [
+            -520.0,
+            -2300.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "space": "WORLD",
+            "uv_map": "",
+            "convention": "OPENGL",
+            "base": "DISPLACED"
+          },
+          "inputs": [
+            {
+              "identifier": "Strength",
+              "name": "Strength",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.5,
+                0.5,
+                1.0,
+                1.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Strength",
+              "Normal"
+            ]
+          ]
+        },
+        {
+          "name": "Turn Tangent",
+          "type": "ShaderNodeMapping",
+          "label": "",
+          "location": [
+            -260.0,
+            -2300.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "vector_type": "VECTOR"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Location",
+              "name": "Location",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Rotation",
+              "name": "Rotation",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.5
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Texture Space",
+          "type": "ShaderNodeMapping",
+          "label": "",
+          "location": [
+            -780.0,
+            -2760.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "vector_type": "TEXTURE"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Location",
+              "name": "Location",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.25,
+                0.5,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Rotation",
+              "name": "Rotation",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Vector",
+              "Vector"
+            ]
+          ]
+        },
+        {
+          "name": "Mirror Image",
+          "type": "ShaderNodeTexImage",
+          "label": "",
+          "location": [
+            -520.0,
+            -2760.0
+          ],
+          "width": 240.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "image": "emission",
+            "projection": "FLAT",
+            "interpolation": "Linear",
+            "projection_blend": 0.0,
+            "extension": "MIRROR"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Alpha",
+              "name": "Alpha",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
         }
       ],
       "links": [
@@ -856,18 +1322,6 @@
         },
         {
           "from": [
-            "Normal Map",
-            "Normal"
-          ],
-          "to": [
-            "Principled BSDF",
-            "Normal"
-          ],
-          "muted": false,
-          "valid": true
-        },
-        {
-          "from": [
             "UV Map",
             "UV"
           ],
@@ -886,6 +1340,150 @@
           "to": [
             "Principled BSDF",
             "Roughness"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Coordinates",
+            "Object"
+          ],
+          "to": [
+            "Height Image",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Height Image",
+            "Color"
+          ],
+          "to": [
+            "Bump",
+            "Height"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Normal Map",
+            "Normal"
+          ],
+          "to": [
+            "Bump",
+            "Normal"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Bump",
+            "Normal"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Normal"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Normal Image",
+            "Color"
+          ],
+          "to": [
+            "Normal Map Object",
+            "Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Normal Map Object",
+            "Normal"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Coat Normal"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Normal Image",
+            "Color"
+          ],
+          "to": [
+            "Normal Map World",
+            "Color"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Normal Map World",
+            "Normal"
+          ],
+          "to": [
+            "Turn Tangent",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Turn Tangent",
+            "Vector"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Tangent"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Coordinates",
+            "UV"
+          ],
+          "to": [
+            "Texture Space",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Texture Space",
+            "Vector"
+          ],
+          "to": [
+            "Mirror Image",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Mirror Image",
+            "Color"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Emission Color"
           ],
           "muted": false,
           "valid": true
@@ -913,6 +1511,22 @@
     },
     {
       "name": "roughness",
+      "filepath": "",
+      "colorspace": "sRGB",
+      "alpha_mode": "STRAIGHT",
+      "source": "GENERATED",
+      "packed": false
+    },
+    {
+      "name": "height",
+      "filepath": "",
+      "colorspace": "Non-Color",
+      "alpha_mode": "STRAIGHT",
+      "source": "GENERATED",
+      "packed": false
+    },
+    {
+      "name": "emission",
       "filepath": "",
       "colorspace": "sRGB",
       "alpha_mode": "STRAIGHT",

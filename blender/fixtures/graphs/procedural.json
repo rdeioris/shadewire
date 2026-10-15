@@ -1398,6 +1398,673 @@
             }
           ],
           "internal_links": []
+        },
+        {
+          "name": "Noise 2D",
+          "type": "ShaderNodeTexNoise",
+          "label": "",
+          "location": [
+            -520.0,
+            -3680.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "noise_dimensions": "2D",
+            "noise_type": "FBM",
+            "normalize": true
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "W",
+              "name": "W",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 5.0
+            },
+            {
+              "identifier": "Detail",
+              "name": "Detail",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 2.0
+            },
+            {
+              "identifier": "Roughness",
+              "name": "Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Lacunarity",
+              "name": "Lacunarity",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 2.0
+            },
+            {
+              "identifier": "Offset",
+              "name": "Offset",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Gain",
+              "name": "Gain",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            },
+            {
+              "identifier": "Distortion",
+              "name": "Distortion",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Fac",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Voronoi F2",
+          "type": "ShaderNodeTexVoronoi",
+          "label": "",
+          "location": [
+            -520.0,
+            -4140.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "voronoi_dimensions": "3D",
+            "distance": "EUCLIDEAN",
+            "feature": "F2",
+            "normalize": false
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "W",
+              "name": "W",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 5.0
+            },
+            {
+              "identifier": "Detail",
+              "name": "Detail",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Roughness",
+              "name": "Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Lacunarity",
+              "name": "Lacunarity",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 2.0
+            },
+            {
+              "identifier": "Smoothness",
+              "name": "Smoothness",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            },
+            {
+              "identifier": "Exponent",
+              "name": "Exponent",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Randomness",
+              "name": "Randomness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Distance",
+              "name": "Distance",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Position",
+              "name": "Position",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "W",
+              "name": "W",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Radius",
+              "name": "Radius",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Voronoi Edge",
+          "type": "ShaderNodeTexVoronoi",
+          "label": "",
+          "location": [
+            -520.0,
+            -4600.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "voronoi_dimensions": "3D",
+            "distance": "EUCLIDEAN",
+            "feature": "DISTANCE_TO_EDGE",
+            "normalize": false
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "W",
+              "name": "W",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 5.0
+            },
+            {
+              "identifier": "Detail",
+              "name": "Detail",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Roughness",
+              "name": "Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.5
+            },
+            {
+              "identifier": "Lacunarity",
+              "name": "Lacunarity",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 2.0
+            },
+            {
+              "identifier": "Smoothness",
+              "name": "Smoothness",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            },
+            {
+              "identifier": "Exponent",
+              "name": "Exponent",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Randomness",
+              "name": "Randomness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Distance",
+              "name": "Distance",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": false,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Position",
+              "name": "Position",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "W",
+              "name": "W",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Radius",
+              "name": "Radius",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Voronoi Sphere",
+          "type": "ShaderNodeTexVoronoi",
+          "label": "",
+          "location": [
+            -520.0,
+            -5060.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "voronoi_dimensions": "3D",
+            "distance": "EUCLIDEAN",
+            "feature": "N_SPHERE_RADIUS",
+            "normalize": false
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "W",
+              "name": "W",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Scale",
+              "name": "Scale",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 5.0
+            },
+            {
+              "identifier": "Detail",
+              "name": "Detail",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Roughness",
+              "name": "Roughness",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Lacunarity",
+              "name": "Lacunarity",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 2.0
+            },
+            {
+              "identifier": "Smoothness",
+              "name": "Smoothness",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 1.0
+            },
+            {
+              "identifier": "Exponent",
+              "name": "Exponent",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.5
+            },
+            {
+              "identifier": "Randomness",
+              "name": "Randomness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Distance",
+              "name": "Distance",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": false,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Position",
+              "name": "Position",
+              "type": "VECTOR",
+              "enabled": false,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "W",
+              "name": "W",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            },
+            {
+              "identifier": "Radius",
+              "name": "Radius",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Gradient Quadratic",
+          "type": "ShaderNodeTexGradient",
+          "label": "",
+          "location": [
+            -520.0,
+            -5520.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "gradient_type": "QUADRATIC"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Fac",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Gradient Diagonal",
+          "type": "ShaderNodeTexGradient",
+          "label": "",
+          "location": [
+            -520.0,
+            -5980.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "gradient_type": "DIAGONAL"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Fac",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Gradient Radial",
+          "type": "ShaderNodeTexGradient",
+          "label": "",
+          "location": [
+            -520.0,
+            -6440.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "gradient_type": "RADIAL"
+          },
+          "inputs": [
+            {
+              "identifier": "Vector",
+              "name": "Vector",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Fac",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
         }
       ],
       "links": [
@@ -1637,6 +2304,174 @@
           "to": [
             "Principled BSDF",
             "Normal"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Coordinates",
+            "UV"
+          ],
+          "to": [
+            "Noise 2D",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Noise 2D",
+            "Fac"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Subsurface Weight"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Coordinates",
+            "Reflection"
+          ],
+          "to": [
+            "Voronoi F2",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Voronoi F2",
+            "Distance"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Specular IOR Level"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Coordinates",
+            "Object"
+          ],
+          "to": [
+            "Voronoi Edge",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Voronoi Edge",
+            "Distance"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Anisotropic"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Coordinates",
+            "Generated"
+          ],
+          "to": [
+            "Voronoi Sphere",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Voronoi Sphere",
+            "Radius"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Transmission Weight"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Coordinates",
+            "Generated"
+          ],
+          "to": [
+            "Gradient Quadratic",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Gradient Quadratic",
+            "Fac"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Coat Roughness"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Coordinates",
+            "Object"
+          ],
+          "to": [
+            "Gradient Diagonal",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Gradient Diagonal",
+            "Fac"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Sheen Roughness"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Coordinates",
+            "UV"
+          ],
+          "to": [
+            "Gradient Radial",
+            "Vector"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Gradient Radial",
+            "Fac"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Thin Film Thickness"
           ],
           "muted": false,
           "valid": true

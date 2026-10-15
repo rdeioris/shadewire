@@ -1027,6 +1027,331 @@
               "Value"
             ]
           ]
+        },
+        {
+          "name": "Wavelength",
+          "type": "ShaderNodeWavelength",
+          "label": "",
+          "location": [
+            -1300.0,
+            -2300.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Wavelength",
+              "name": "Wavelength",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 500.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Wavelength",
+              "Color"
+            ]
+          ]
+        },
+        {
+          "name": "Ambient Occlusion",
+          "type": "ShaderNodeAmbientOcclusion",
+          "label": "",
+          "location": [
+            -1300.0,
+            -2760.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "samples": 16,
+            "inside": false,
+            "only_local": false
+          },
+          "inputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Distance",
+              "name": "Distance",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 1.0
+            },
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "AO",
+              "name": "AO",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Color",
+              "Color"
+            ],
+            [
+              "Distance",
+              "AO"
+            ]
+          ]
+        },
+        {
+          "name": "Bevel",
+          "type": "ShaderNodeBevel",
+          "label": "",
+          "location": [
+            -1300.0,
+            -3220.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "samples": 4
+          },
+          "inputs": [
+            {
+              "identifier": "Radius",
+              "name": "Radius",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.05000000074505806
+            },
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            }
+          ],
+          "internal_links": [
+            [
+              "Normal",
+              "Normal"
+            ]
+          ]
+        },
+        {
+          "name": "Wireframe",
+          "type": "ShaderNodeWireframe",
+          "label": "",
+          "location": [
+            -1300.0,
+            -3680.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {
+            "use_pixel_size": false
+          },
+          "inputs": [
+            {
+              "identifier": "Size",
+              "name": "Size",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.009999999776482582
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Fac",
+              "name": "Factor",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": [
+            [
+              "Size",
+              "Fac"
+            ]
+          ]
+        },
+        {
+          "name": "Diffuse",
+          "type": "ShaderNodeBsdfDiffuse",
+          "label": "",
+          "location": [
+            -1300.0,
+            -4140.0
+          ],
+          "width": 160.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Roughness",
+              "name": "Roughness",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            },
+            {
+              "identifier": "Normal",
+              "name": "Normal",
+              "type": "VECTOR",
+              "enabled": true,
+              "value": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            {
+              "identifier": "Weight",
+              "name": "Weight",
+              "type": "VALUE",
+              "enabled": false,
+              "value": 0.0
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "BSDF",
+              "name": "BSDF",
+              "type": "SHADER",
+              "enabled": true
+            }
+          ],
+          "internal_links": []
+        },
+        {
+          "name": "Shader to RGB",
+          "type": "ShaderNodeShaderToRGB",
+          "label": "",
+          "location": [
+            -1040.0,
+            -4140.0
+          ],
+          "width": 140.0,
+          "hide": false,
+          "mute": false,
+          "parent": null,
+          "properties": {},
+          "inputs": [
+            {
+              "identifier": "Shader",
+              "name": "Shader",
+              "type": "SHADER",
+              "enabled": true
+            }
+          ],
+          "outputs": [
+            {
+              "identifier": "Color",
+              "name": "Color",
+              "type": "RGBA",
+              "enabled": true,
+              "value": [
+                0.800000011920929,
+                0.800000011920929,
+                0.800000011920929,
+                1.0
+              ]
+            },
+            {
+              "identifier": "Alpha",
+              "name": "Alpha",
+              "type": "VALUE",
+              "enabled": true,
+              "value": 0.0
+            }
+          ],
+          "internal_links": []
         }
       ],
       "links": [
@@ -1146,6 +1471,78 @@
           "to": [
             "Principled BSDF",
             "Emission Strength"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Wavelength",
+            "Color"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Coat Tint"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Ambient Occlusion",
+            "Color"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Sheen Tint"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Bevel",
+            "Normal"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Coat Normal"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Wireframe",
+            "Fac"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Coat Weight"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Diffuse",
+            "BSDF"
+          ],
+          "to": [
+            "Shader to RGB",
+            "Shader"
+          ],
+          "muted": false,
+          "valid": true
+        },
+        {
+          "from": [
+            "Shader to RGB",
+            "Color"
+          ],
+          "to": [
+            "Principled BSDF",
+            "Specular Tint"
           ],
           "muted": false,
           "valid": true
