@@ -3,6 +3,7 @@
 
 pub mod fallback;
 pub mod lobes;
+pub mod math;
 pub mod principled;
 pub mod surface;
 pub mod values;
@@ -11,6 +12,8 @@ pub mod values;
 mod convert_tests;
 #[cfg(test)]
 mod lobes_tests;
+#[cfg(test)]
+mod math_tests;
 #[cfg(test)]
 mod principled_tests;
 #[cfg(test)]
@@ -90,6 +93,10 @@ impl<'a> Lowerer<'a> {
             }
             "ShaderNodeValue" => Ok(self.value(node, own("Value")?, &node.name)),
             "ShaderNodeRGB" => Ok(self.value(node, own("Color")?, &node.name)),
+            "ShaderNodeMath" => math::math(self, node, socket),
+            "ShaderNodeVectorMath" => math::vector_math(self, node, socket),
+            "ShaderNodeClamp" => math::clamp(self, node, socket),
+            "ShaderNodeMapRange" => math::map_range(self, node, socket),
             _ => fallback::default_output(self, node, socket),
         }
     }
@@ -200,6 +207,85 @@ impl<'a> Lowerer<'a> {
     /// A constant the handler itself introduces.
     pub fn float(&mut self, x: f32, origin: &str) -> NodeId {
         self.e.constant(Value::Float(x), origin)
+    }
+
+    /// A float constant the handler itself introduces; `float` under the name the operation tables use.
+    pub fn k(&mut self, x: f32, origin: &str) -> NodeId {
+        self.float(x, origin)
+    }
+
+    /// A constant of the vector type `ty` (`Color3`, else `Vector3`) with `x` in every channel.
+    pub fn k3(&mut self, x: f32, ty: Type, origin: &str) -> NodeId {
+        let value = if ty == Type::Color3 { Value::Color3([x; 3]) } else { Value::Vector3([x; 3]) };
+        self.e.constant(value, origin)
+    }
+
+    /// The constant `x` in every channel of `ty`: `k` for a float, `k3` for a vector.
+    pub fn k_of(&mut self, x: f32, ty: Type, origin: &str) -> NodeId {
+        if ty == Type::Float { self.k(x, origin) } else { self.k3(x, ty, origin) }
+    }
+
+    /// The one-input `category` node (input `in`) over `a`, producing `ty`.
+    pub fn op1(&mut self, category: &str, ty: Type, a: NodeId, origin: &str) -> Result<NodeId, Error> {
+        self.op(category, ty, &[("in", Arg::Node(a))], origin)
+    }
+
+    /// The two-input `category` node (inputs `in1`, `in2`) over `a` and `b`, producing `ty`; a vector `a` with a
+    /// float `b` resolves to the nodedef's vector-by-float variant.
+    pub fn op2(&mut self, category: &str, ty: Type, a: NodeId, b: NodeId, origin: &str) -> Result<NodeId, Error> {
+        self.op(category, ty, &[("in1", Arg::Node(a)), ("in2", Arg::Node(b))], origin)
+    }
+
+    /// `in1` when `value1 > value2`, else `in2`; the two compared values are floats, `in1` and `in2` are `ty`.
+    pub fn if_greater(
+        &mut self,
+        value1: NodeId,
+        value2: NodeId,
+        in1: NodeId,
+        in2: NodeId,
+        ty: Type,
+        origin: &str,
+    ) -> Result<NodeId, Error> {
+        self.select("ifgreater", [value1, value2, in1, in2], ty, origin)
+    }
+
+    /// `in1` when `value1 >= value2`, else `in2`.
+    pub fn if_greater_eq(
+        &mut self,
+        value1: NodeId,
+        value2: NodeId,
+        in1: NodeId,
+        in2: NodeId,
+        ty: Type,
+        origin: &str,
+    ) -> Result<NodeId, Error> {
+        self.select("ifgreatereq", [value1, value2, in1, in2], ty, origin)
+    }
+
+    /// `in1` when `value1 == value2`, else `in2`.
+    pub fn if_equal(
+        &mut self,
+        value1: NodeId,
+        value2: NodeId,
+        in1: NodeId,
+        in2: NodeId,
+        ty: Type,
+        origin: &str,
+    ) -> Result<NodeId, Error> {
+        self.select("ifequal", [value1, value2, in1, in2], ty, origin)
+    }
+
+    /// A conditional node over `[value1, value2, in1, in2]`.
+    fn select(&mut self, category: &str, ids: [NodeId; 4], ty: Type, origin: &str) -> Result<NodeId, Error> {
+        let names = ["value1", "value2", "in1", "in2"];
+        let inputs: Vec<(&str, Arg)> = names.into_iter().zip(ids).map(|(n, id)| (n, Arg::Node(id))).collect();
+        self.op(category, ty, &inputs, origin)
+    }
+
+    /// `id` limited to the range zero to one.
+    pub fn clamp01(&mut self, id: NodeId, ty: Type, origin: &str) -> Result<NodeId, Error> {
+        let (low, high) = (self.k_of(0.0, ty, origin), self.k_of(1.0, ty, origin));
+        self.op("clamp", ty, &[("in", Arg::Node(id)), ("low", Arg::Node(low)), ("high", Arg::Node(high))], origin)
     }
 }
 
