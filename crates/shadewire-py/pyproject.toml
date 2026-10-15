@@ -4,13 +4,13 @@ build-backend = "maturin"
 
 [project]
 name = "shadewire"
-description = "Compile MaterialX materials to WGSL, GLSL, HLSL and Metal shader code, with reflection"
+description = "Compile MaterialX materials and Blender material graphs to WGSL, GLSL, HLSL and Metal shader code, with reflection"
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT AND Apache-2.0 AND BSD-3-Clause"
 license-files = ["LICENSE", "LICENSE-APACHE", "NOTICE"]
 authors = [{ name = "Roberto De Ioris" }]
-keywords = ["materialx", "shader", "glsl", "hlsl", "wgsl", "metal", "pbr", "rendering"]
+keywords = ["materialx", "blender", "shader", "glsl", "hlsl", "wgsl", "metal", "pbr", "rendering"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

@@ -1,5 +1,6 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
+from . import blender as blender
 from . import glsl as glsl
 from . import hlsl as hlsl
 from . import msl as msl
@@ -13,13 +14,15 @@ class ShadewireError(Exception):
 
 class Ir:
     """A material in Shadewire's IR: a typed DAG computing a shading model's fields, and for the `surface`
-    model the closure tree over them. Made by a front end (`shadewire.mtlx.to_ir`), compiled by a back end
-    (`shadewire.wgsl.compile`, `shadewire.glsl.compile`, ...)."""
+    model the closure tree over them. Made by a front end (`shadewire.mtlx.to_ir`, `shadewire.blender.to_ir`),
+    compiled by a back end (`shadewire.wgsl.compile`, `shadewire.glsl.compile`, ...)."""
 
     @property
     def model(self) -> str: ...
     @property
     def source(self) -> Tuple[str, str]: ...
+    @property
+    def warnings(self) -> List[str]: ...
     @property
     def structure_hash(self) -> str: ...
     def optimize(self) -> "Ir": ...

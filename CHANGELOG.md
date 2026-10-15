@@ -134,6 +134,7 @@ No compatibility shims: old names are gone.
 - `shadewire.mtlx` (`to_ir`, `material_names`), `shadewire.Ir` (`optimize`, `dump`, `to_dict`), and
   `shadewire.wgsl`, `.glsl`, `.hlsl`, `.msl`, each a `compile` to `shadewire.Compiled` (`code`, `language`,
   `reflection`, `model_struct`).
+- `shadewire.blender.to_ir` and `.material_names`; `Ir.warnings`.
 - Examples: `wgsl_lobes.py` (a whole WGSL shader around a material), `wgpu_cube.py` (wgpu-py), `gl_cube.py`
   (pygame and OpenGL, a host that takes the `surface` model and lights MaterialX's lobes) and `gl_pbr_cube.py` (the
   same window with the renderer's own metal-roughness BRDF: it takes the named models `standard_surface`,

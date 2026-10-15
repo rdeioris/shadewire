@@ -1,6 +1,6 @@
 [package]
 name = "shadewire-py"
-description = "Python bindings for Shadewire (the `shadewire` module): the MaterialX front end, the IR, the back ends"
+description = "Python bindings for Shadewire (the `shadewire` module): the MaterialX and Blender front ends, the IR, the back ends"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -17,6 +17,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 shadewire.workspace = true
 shadewire-mtlx.workspace = true
+shadewire-blender.workspace = true
 shadewire-nodes.workspace = true
 shadewire-wgsl.workspace = true
 shadewire-glsl.workspace = true

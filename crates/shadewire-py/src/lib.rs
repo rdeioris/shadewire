@@ -2,8 +2,9 @@
 //!
 //! - `shadewire.mtlx` (`shadewire_mtlx`): the MaterialX front end, `to_ir`, `material_names` and
 //!   `list_dependencies`, with includes read by a Python `resolver`, and the writer, `from_ir`;
-//! - `shadewire.Ir` (`shadewire::Dag` and its `SourceInfo`): the IR, with `optimize`, `dump` and `to_dict`
-//!   (the document `shadewire::export` writes);
+//! - `shadewire.blender` (`shadewire_blender`): the Blender material graph front end, `to_ir` and `material_names`;
+//! - `shadewire.Ir` (`shadewire::Dag`, its `SourceInfo` and the front end's warnings): the IR, with `optimize`,
+//!   `dump`, `to_dict` (the document `shadewire::export` writes) and `warnings`;
 //! - `shadewire.wgsl`, `shadewire.glsl`, `shadewire.hlsl`, `shadewire.msl` (`shadewire_wgsl` ...): the back ends,
 //!   each a `compile` to a `shadewire.Compiled` (the code and its reflection).
 //!
@@ -41,6 +42,7 @@ fn json<T: serde::Serialize>(value: &T) -> PyResult<String> {
 struct PyIr {
     dag: Dag,
     source: SourceInfo,
+    warnings: Vec<String>,
 }
 
 #[pymethods]
@@ -49,7 +51,7 @@ impl PyIr {
     /// shared, closures that constant weights turn off pruned, unused nodes dropped.
     fn optimize(&self, py: Python<'_>) -> PyIr {
         let dag = py.detach(|| shadewire::optimize::optimize(&self.dag));
-        PyIr { dag, source: self.source.clone() }
+        PyIr { dag, source: self.source.clone(), warnings: self.warnings.clone() }
     }
 
     /// One line per node, field, closure node and approximation: the text `shadewire ir` prints.
@@ -68,10 +70,16 @@ impl PyIr {
         &self.dag.surface.model
     }
 
-    /// The front end that made it (`mtlx`) and the document's version.
+    /// The front end that made it (`mtlx`, `blender`) and the document's version (for Blender, its producer).
     #[getter]
     fn source(&self) -> (String, String) {
         (self.source.source.clone(), self.source.mtlx_version.clone())
+    }
+
+    /// What the front end dropped or approximated, one line each (empty for MaterialX today).
+    #[getter]
+    fn warnings(&self) -> Vec<String> {
+        self.warnings.clone()
     }
 
     /// The structure hash: equal for materials whose generated code is equal (uniform values left out).
@@ -137,7 +145,7 @@ fn to_ir(
     let ir = py
         .detach(|| shadewire_mtlx::to_ir(&text, location.as_deref(), material.as_deref(), &options, &resolver))
         .map_err(error)?;
-    Ok(PyIr { dag: ir.dag, source: ir.source })
+    Ok(PyIr { dag: ir.dag, source: ir.source, warnings: ir.warnings })
 }
 
 /// The names of a MaterialX document's materials, in document order. `location` and `resolver` as `to_ir`'s.
@@ -178,6 +186,39 @@ fn from_ir(py: Python<'_>, ir: &PyIr, inline: bool, name: &str) -> PyResult<(Str
     Ok((written.text, written.warnings))
 }
 
+// ---------------------------------------------------------------------------------------------------- blender
+
+/// A Blender material graph (the `shadewire-blender-graph` JSON the Blender extension writes) to the IR (not
+/// optimized). `material` picks one (None: the document's only one); `models`, `working_colorspace` and
+/// `values_as_uniforms` as `shadewire.mtlx.to_ir`'s. What was dropped or approximated is in `Ir.warnings`.
+#[pyfunction]
+#[pyo3(name = "to_ir", signature = (text, material=None, models=None, working_colorspace=None, values_as_uniforms=true))]
+fn blender_to_ir(
+    py: Python<'_>,
+    text: String,
+    material: Option<String>,
+    models: Option<Vec<String>>,
+    working_colorspace: Option<String>,
+    values_as_uniforms: bool,
+) -> PyResult<PyIr> {
+    let mut options = IrOptions { values_as_uniforms, ..IrOptions::default() };
+    if let Some(models) = models {
+        options.models = models;
+    }
+    if let Some(colorspace) = working_colorspace {
+        options.working_colorspace = colorspace;
+    }
+    let ir = py.detach(|| shadewire_blender::to_ir(&text, material.as_deref(), &options)).map_err(error)?;
+    Ok(PyIr { dag: ir.dag, source: ir.source, warnings: ir.warnings })
+}
+
+/// The names of a Blender graph document's materials, in document order.
+#[pyfunction]
+#[pyo3(name = "material_names")]
+fn blender_material_names(py: Python<'_>, text: String) -> PyResult<Vec<String>> {
+    py.detach(|| shadewire_blender::material_names(&text)).map_err(error)
+}
+
 // ---------------------------------------------------------------------------------------------------- back ends
 
 /// A compiled material: the generated code in its language (the model's struct, `shadewire_eval_surface()`, the
@@ -190,6 +231,7 @@ struct PyCompiled {
     reflection: shadewire::Reflection,
     dag: Dag,
     source: SourceInfo,
+    warnings: Vec<String>,
 }
 
 #[pymethods]
@@ -218,10 +260,10 @@ impl PyCompiled {
         model_struct_name(&self.reflection.model)
     }
 
-    /// The IR the code was printed from.
+    /// The IR the code was printed from, with the warnings of the IR the compile started from.
     #[getter]
     fn ir(&self) -> PyIr {
-        PyIr { dag: self.dag.clone(), source: self.source.clone() }
+        PyIr { dag: self.dag.clone(), source: self.source.clone(), warnings: self.warnings.clone() }
     }
 
     fn __repr__(&self) -> String {
@@ -256,6 +298,7 @@ fn run(
         reflection: compiled.reflection,
         dag: compiled.dag,
         source: ir.source.clone(),
+        warnings: ir.warnings.clone(),
     })
 }
 
@@ -373,6 +416,10 @@ fn shadewire_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     mtlx.add_function(wrap_pyfunction!(material_names, &mtlx)?)?;
     mtlx.add_function(wrap_pyfunction!(list_dependencies, &mtlx)?)?;
     mtlx.add_function(wrap_pyfunction!(from_ir, &mtlx)?)?;
+
+    let blender = submodule(m, "blender")?;
+    blender.add_function(wrap_pyfunction!(blender_to_ir, &blender)?)?;
+    blender.add_function(wrap_pyfunction!(blender_material_names, &blender)?)?;
 
     m.add_class::<PyCompiled>()?;
     let wgsl = submodule(m, "wgsl")?;

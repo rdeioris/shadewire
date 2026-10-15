@@ -1,6 +1,6 @@
 # shadewire
 
-Compile MaterialX materials to shader code from Python: WGSL, GLSL (desktop and ES), HLSL and Metal, each with the
+Compile MaterialX materials and Blender material graphs to shader code from Python: WGSL, GLSL (desktop and ES), HLSL and Metal, each with the
 reflection a renderer needs to bind them. The compiler is Rust ([Shadewire](https://github.com/rdeioris/shadewire)); one
 wheel per platform serves every CPython from 3.8.
 
@@ -33,7 +33,18 @@ print(compiled.reflection["textures"])           # files, colorspaces, bindings
 
   ir = mtlx.to_ir(text, location="https://example.com/m.mtlx", resolver=resolve)
   ```
-- `shadewire.Ir`: `optimize()`, `dump()`, `to_dict()` (the IR as a JSON-like document), `model`, `structure_hash`.
+- `shadewire.blender`: `to_ir(text, material=None, models=None, ...)` and `material_names(text)` read a Blender
+  material graph (the JSON the Blender extension's File > Export > Material Graph writes): a Principled BSDF becomes
+  `open_pbr_surface`, other BSDFs a closure tree (accept `surface` in `models`). What the front end dropped or
+  approximated, one line per node, is in `Ir.warnings`:
+
+  ```python
+  ir = blender.to_ir(open("material.json", encoding="utf-8").read(), models=["open_pbr_surface", "surface"])
+  for warning in ir.warnings:                      # 'ShaderNodeBevel "Bevel": not lowered, output Normal ...'
+      print(warning)
+  ```
+- `shadewire.Ir`: `optimize()`, `dump()`, `to_dict()` (the IR as a JSON-like document), `model`, `structure_hash`,
+  `warnings`.
 - `shadewire.wgsl`, `shadewire.glsl`, `shadewire.hlsl`, `shadewire.msl`: `compile(ir, ...)` returns a
   `shadewire.Compiled` with `code`, `language`, `reflection` and `model_struct`.
 
