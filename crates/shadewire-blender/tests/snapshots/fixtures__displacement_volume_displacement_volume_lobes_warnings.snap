@@ -2,5 +2,5 @@
 source: crates/shadewire-blender/tests/fixtures.rs
 expression: "ir.warnings.join(\"\\n\")"
 ---
-Material Output "Material Output": Volume ignored
-Material Output "Material Output": Displacement ignored
+ShaderNodeOutputMaterial "Material Output": Volume ignored
+ShaderNodeOutputMaterial "Material Output": Displacement ignored

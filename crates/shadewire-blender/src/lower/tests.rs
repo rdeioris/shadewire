@@ -68,8 +68,8 @@ pub fn lower_field(nodes: &str, links: &str, field: &str) -> (Value, Vec<String>
     (value, warnings)
 }
 
-#[allow(dead_code)] // the handler tests of later tasks evaluate fields that read the context
 /// `field` evaluated at probe `k` (context reads answered by `Probe`, textures by `ProbeTextures`).
+#[allow(dead_code)] // the handler tests of later tasks evaluate fields that read the context
 pub fn eval_field(dag: &Dag, field: &str, k: u32) -> Value {
     let values = eval_surface(dag, &mut Probe(k), &ProbeTextures);
     values.into_iter().find(|(n, _)| n == field).map(|(_, v)| v).unwrap_or_else(|| panic!("no field {field}"))

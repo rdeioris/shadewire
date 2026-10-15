@@ -87,10 +87,7 @@ pub fn fields(l: &mut Lowerer, node: &FlatNode) -> Result<Shading, Error> {
     let rotation = "Anisotropic Rotation";
     let rotated = node.input(rotation).and_then(super::values::socket_value).is_some_and(|v| v.as_f32() != 0.0);
     if l.linked(node, rotation) || rotated {
-        l.warnings.push(format!(
-            "Principled BSDF \"{}\": Anisotropic Rotation dropped (OpenPBR rotates the tangent instead)",
-            node.name
-        ));
+        l.warn(node, "Anisotropic Rotation dropped (OpenPBR rotates the tangent instead)");
     }
     Ok(Shading::Principled { fields, origin: node.name.clone() })
 }

@@ -7,6 +7,8 @@ pub mod surface;
 pub mod values;
 
 #[cfg(test)]
+mod convert_tests;
+#[cfg(test)]
 mod principled_tests;
 #[cfg(test)]
 pub(crate) mod tests;
@@ -77,12 +79,16 @@ impl<'a> Lowerer<'a> {
     }
 
     /// Input `socket` of `node` as `ty`: what is linked to it, converted, or its authored value; a socket the
-    /// document does not have is zero.
+    /// document does not have is zero. A linked number read as an integer is floored, with a warning.
     pub fn input(&mut self, node: &FlatNode, socket: &str, ty: Type) -> Result<NodeId, Error> {
         let origin = format!("{}.{socket}", node.name);
         let graph = self.graph;
         if let Some((from, out)) = graph.source(&node.name, socket) {
             let id = self.output(from, out)?;
+            let from_ty = self.e.dag.node(id).ty;
+            if ty == Type::Integer && !matches!(from_ty, Type::Integer | Type::Boolean) {
+                self.warn(node, format!("{socket} read as an integer by floor"));
+            }
             return self.convert(id, ty, &origin);
         }
         match node.input(socket) {
@@ -103,7 +109,8 @@ impl<'a> Lowerer<'a> {
         self.graph.source(&node.name, socket).is_some()
     }
 
-    /// `id` as `to`, by the conversions Blender makes when a link joins sockets of different types.
+    /// `id` as `to`, by the conversions Blender makes when a link joins sockets of different types: a number
+    /// becomes a boolean when greater than zero, and an integer by `floor`.
     pub fn convert(&mut self, id: NodeId, to: Type, origin: &str) -> Result<NodeId, Error> {
         let from = self.e.dag.node(id).ty;
         if from == to {
@@ -124,6 +131,19 @@ impl<'a> Lowerer<'a> {
             (Type::Color4, Type::Float) => {
                 let color = self.op("convert", Type::Color3, &[("in", Arg::Node(id))], origin)?;
                 self.convert(color, Type::Float, origin)
+            }
+            (Type::Integer, Type::Boolean) | (Type::Boolean, Type::Integer) => {
+                self.op("convert", to, &[("in", Arg::Node(id))], origin)
+            }
+            // Blender reads a number as true when it is greater than zero.
+            (_, Type::Boolean) => {
+                let x = self.convert(id, Type::Float, origin)?;
+                let zero = Arg::Value(Value::Float(0.0));
+                self.op("ifgreater", Type::Boolean, &[("value1", Arg::Node(x)), ("value2", zero)], origin)
+            }
+            (_, Type::Integer) => {
+                let x = self.convert(id, Type::Float, origin)?;
+                self.op("floor", Type::Integer, &[("in", Arg::Node(x))], origin)
             }
             (Type::Float | Type::Integer | Type::Boolean, _)
             | (Type::Color3, Type::Vector3)
@@ -200,7 +220,7 @@ fn lower_here(doc: &Document, material: &Material, options: &IrOptions) -> Resul
     };
     for socket in ["Volume", "Displacement"] {
         if l.linked(output, socket) {
-            l.warnings.push(format!("Material Output \"{}\": {socket} ignored", output.name));
+            l.warn(output, format!("{socket} ignored"));
         }
     }
     let shading = match graph.source(&output.name, "Surface") {

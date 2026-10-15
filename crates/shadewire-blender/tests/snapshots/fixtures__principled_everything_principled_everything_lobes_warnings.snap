@@ -6,4 +6,4 @@ ShaderNodeCombineXYZ "Subsurface Radius Vector": not lowered, output Vector is i
 ShaderNodeNormalMap "Normal Map": not lowered, output Normal is its default value
 ShaderNodeTangent "Tangent": not lowered, output Tangent is its default value
 ShaderNodeNormalMap "Coat Normal Map": not lowered, output Normal is its default value
-Principled BSDF "Principled BSDF": Anisotropic Rotation dropped (OpenPBR rotates the tangent instead)
+ShaderNodeBsdfPrincipled "Principled BSDF": Anisotropic Rotation dropped (OpenPBR rotates the tangent instead)

@@ -103,5 +103,5 @@ fn an_unlinked_surface_and_a_missing_output_are_errors_and_volume_is_a_warning()
     let err = to_ir(&text, None, &IrOptions::default()).unwrap_err();
     assert!(err.to_string().contains("no active Material Output"), "{err}");
     let (_, warnings) = lower(VALUE, r#"[[["V", "Value"], ["Material Output", "Displacement"]]]"#);
-    assert_eq!(warnings, [r#"Material Output "Material Output": Displacement ignored"#]);
+    assert_eq!(warnings, [r#"ShaderNodeOutputMaterial "Material Output": Displacement ignored"#]);
 }
