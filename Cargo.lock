@@ -3829,6 +3829,7 @@ dependencies = [
  "cbindgen",
  "serde_json",
  "shadewire",
+ "shadewire-blender",
  "shadewire-glsl",
  "shadewire-hlsl",
  "shadewire-msl",

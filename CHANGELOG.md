@@ -163,6 +163,8 @@ No compatibility shims: old names are gone.
   `crates/shadewire-py/tests` (pytest, against an installed module).
 - `shadewire compile|ir|list|mtlx` read Blender material graphs (`.json`, or `--format blender`); a front end's
   warnings print to stderr.
+- C API: `shadewire_blender_to_ir` (with `shadewire_ir_options`, the MaterialX options without the resolver),
+  `shadewire_blender_material_names`, `shadewire_ir_warnings`.
 
 ### Packaging
 

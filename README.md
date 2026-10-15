@@ -118,7 +118,10 @@ shadewire compile material.mtlx --lang gdshader -o material.gdshader
 shadewire ir material.mtlx               # print the IR (optimized; --no-optimize for the raw graph; --json)
 shadewire list scene.mtlx                # the document's material names
 shadewire mtlx material.mtlx [--material NAME] [--model M]... [--lobes] [--inline] [--optimize] [--constants] [-o FILE]
+shadewire compile material.json --lang wgsl   # a Blender material graph
 ```
+
+- Every command reads a Blender material graph (the JSON the Blender extension's File > Export > Material Graph writes) wherever it reads a `.mtlx`: a `.json` file is one, `--format mtlx|blender` overrides the extension. What the Blender front end dropped or approximated prints to stderr, one line per node.
 
 - `shadewire mtlx` writes the material back as MaterialX: includes resolved, 1.38 upgraded, library nodes kept as nodes. `--inline` expands library nodes; `--optimize` folds constants first and writes leaf ops (the optimizer drops the compounds); `--constants` bakes authored values in as constants.
 - `--material NAME` picks the material when the document has several.
@@ -172,9 +175,12 @@ The C API follows the Python module name for name:
 |---|---|
 | `shadewire.mtlx.to_ir(text, location, material, models, working_colorspace, values_as_uniforms)` | `shadewire_mtlx_to_ir(text, len, location, material, &mtlx_options, &ir, &err)` |
 | `shadewire.mtlx.material_names(text, location)` | `shadewire_mtlx_material_names(text, len, location, &mtlx_options, &strings, &err)`, then `shadewire_strings_count` / `_get` |
+| `shadewire.blender.to_ir(text, material, models, working_colorspace, values_as_uniforms)` | `shadewire_blender_to_ir(text, len, material, &ir_options, &ir, &err)` (`shadewire_ir_options`: the MaterialX options without the resolver) |
+| `shadewire.blender.material_names(text)` | `shadewire_blender_material_names(text, len, &strings, &err)` |
 | `shadewire.mtlx.from_ir(ir, inline, name)` (text and warnings) | `shadewire_ir_to_mtlx(ir, inline_nodes, name, &doc, &err)`, then `shadewire_document_text`, `_warning_count` / `_warning`, `_free` |
 | `Ir.optimize()`, `.dump()`, `.to_dict()` | `shadewire_ir_optimize(ir, &optimized, &err)`, `shadewire_ir_dump`, `shadewire_ir_json` |
 | `Ir.model`, `.source`, `.structure_hash` | `shadewire_ir_model`, `shadewire_ir_source` and `_source_version`, `shadewire_ir_structure_hash` |
+| `Ir.warnings` | `shadewire_ir_warnings(ir, &strings, &err)` (what the front end dropped or approximated) |
 | `shadewire.wgsl.compile(ir, ...)` (and `glsl`, `hlsl`, `msl`) | `shadewire_compile(ir, target, &compile_options, &compiled, &err)` |
 | `Compiled.language`, `.code`, `.reflection`, `.model_struct` | `shadewire_compiled_language`, `_code`, `_reflection_json`, `_model_struct` |
 | `Compiled.ir` | `shadewire_compiled_ir_dump` (the IR the code was printed from) |

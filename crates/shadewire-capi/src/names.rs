@@ -1,4 +1,5 @@
-//! A document's material names (Python's `shadewire.mtlx.material_names`), as the opaque `shadewire_strings` handle.
+//! A document's material names (Python's `shadewire.mtlx.material_names`), as the opaque `shadewire_strings` handle
+//! (also the list of an IR's warnings and of a Blender graph's material names).
 
 use std::ffi::CString;
 use std::os::raw::c_char;
@@ -13,6 +14,12 @@ use crate::strings::{c_string, opt_cstr, text_arg};
 /// A list of strings. Free it with `shadewire_strings_free`.
 pub struct shadewire_strings {
     items: Vec<CString>,
+}
+
+impl shadewire_strings {
+    pub(crate) fn new(items: Vec<String>) -> shadewire_strings {
+        shadewire_strings { items: items.into_iter().map(c_string).collect() }
+    }
 }
 
 /// The names of a MaterialX document's materials (its includes' too), in document order, written to `out`. `text`,
@@ -41,7 +48,7 @@ pub unsafe extern "C" fn shadewire_mtlx_material_names(
                 let location = opt_cstr(location)?;
                 let (_, resolver) = read_mtlx(options)?;
                 let names = shadewire_mtlx::material_names(text, location, &resolver)?;
-                *out = Box::into_raw(Box::new(shadewire_strings { items: names.into_iter().map(c_string).collect() }));
+                *out = Box::into_raw(Box::new(shadewire_strings::new(names)));
                 Ok(())
             }),
         )

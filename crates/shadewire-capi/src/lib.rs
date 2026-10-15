@@ -5,13 +5,16 @@
 //!
 //! - `shadewire.mtlx.to_ir`, `.material_names`: `shadewire_mtlx_to_ir`, `shadewire_mtlx_material_names` (a
 //!   `shadewire_strings`);
+//! - `shadewire.blender.to_ir`, `.material_names`: `shadewire_blender_to_ir` (with `shadewire_ir_options`),
+//!   `shadewire_blender_material_names`;
 //! - `shadewire.mtlx.from_ir`: `shadewire_ir_to_mtlx` (a `shadewire_document`, with `shadewire_document_text` and
 //!   `_warning_count` / `_warning`);
 //! - `shadewire_mtlx::list_dependencies` and the resolver argument of `to_ir`: `shadewire_mtlx_list_dependencies` (a
 //!   `shadewire_dependencies`) and `shadewire_mtlx_options::resolve` (a `shadewire_resolve_fn` answering through
 //!   `shadewire_resolution_set` / `_fail`);
-//! - `shadewire.Ir` (`.optimize()`, `.dump()`, `.to_dict()`, `.model`, `.source`, `.structure_hash`): `shadewire_ir`
-//!   (`shadewire_ir_optimize`, `_dump`, `_json`, `_model`, `_source` and `_source_version`, `_structure_hash`);
+//! - `shadewire.Ir` (`.optimize()`, `.dump()`, `.to_dict()`, `.model`, `.source`, `.structure_hash`, `.warnings`):
+//!   `shadewire_ir` (`shadewire_ir_optimize`, `_dump`, `_json`, `_model`, `_source` and `_source_version`,
+//!   `_structure_hash`, `_warnings`);
 //! - `shadewire.wgsl.compile`, `.glsl`, `.hlsl`, `.msl` and their keyword arguments: `shadewire_compile` with a
 //!   `shadewire_target` and `shadewire_compile_options`;
 //! - `shadewire.Compiled` (`.language`, `.code`, `.reflection`, `.model_struct`, `.ir`): `shadewire_compiled`
@@ -36,6 +39,7 @@
     html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
 )]
 
+mod blender;
 mod compiled;
 mod dependencies;
 mod document;
@@ -52,6 +56,7 @@ mod target;
 mod threads;
 mod version;
 
+pub use blender::{shadewire_blender_material_names, shadewire_blender_to_ir};
 pub use compiled::{
     shadewire_compile, shadewire_compiled, shadewire_compiled_code, shadewire_compiled_free,
     shadewire_compiled_ir_dump, shadewire_compiled_language, shadewire_compiled_model_struct,
@@ -74,15 +79,15 @@ pub use error_kind::shadewire_error_kind;
 pub use ir::{
     SHADEWIRE_IR_FORMAT_VERSION, shadewire_ir, shadewire_ir_dump, shadewire_ir_free, shadewire_ir_json,
     shadewire_ir_model, shadewire_ir_optimize, shadewire_ir_source, shadewire_ir_source_version,
-    shadewire_ir_structure_hash, shadewire_mtlx_to_ir,
+    shadewire_ir_structure_hash, shadewire_ir_warnings, shadewire_mtlx_to_ir,
 };
 pub use names::{
     shadewire_mtlx_material_names, shadewire_strings, shadewire_strings_count, shadewire_strings_free,
     shadewire_strings_get,
 };
 pub use options::{
-    shadewire_compile_options, shadewire_compile_options_default, shadewire_mtlx_options,
-    shadewire_mtlx_options_default,
+    shadewire_compile_options, shadewire_compile_options_default, shadewire_ir_options, shadewire_ir_options_default,
+    shadewire_mtlx_options, shadewire_mtlx_options_default,
 };
 pub use resolver::{shadewire_resolution, shadewire_resolution_fail, shadewire_resolution_set, shadewire_resolve_fn};
 pub use status::shadewire_status;

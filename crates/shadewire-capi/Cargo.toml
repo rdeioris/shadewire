@@ -17,6 +17,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 [dependencies]
 shadewire.workspace = true
 shadewire-mtlx.workspace = true
+shadewire-blender.workspace = true
 shadewire-nodes.workspace = true
 shadewire-wgsl.workspace = true
 shadewire-glsl.workspace = true

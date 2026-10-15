@@ -534,3 +534,92 @@ fn an_ir_writes_back_as_a_document() {
     unsafe { shadewire_ir_free(ir) };
     unsafe { shadewire_document_free(std::ptr::null_mut()) };
 }
+
+const BLENDER_FIXTURE: &str =
+    concat!(env!("CARGO_MANIFEST_DIR"), "/../../blender/fixtures/graphs/principled_defaults.json");
+const BLENDER_UNSUPPORTED: &str =
+    concat!(env!("CARGO_MANIFEST_DIR"), "/../../blender/fixtures/graphs/unsupported.json");
+const BLENDER_LOBES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../blender/fixtures/graphs/lobes.json");
+
+fn blender_to_ir(
+    text: &str,
+    options: *const shadewire_ir_options,
+) -> (shadewire_status, *mut shadewire_ir, *mut shadewire_error) {
+    let (mut ir, mut error) = (null_mut(), null_mut());
+    let status =
+        unsafe { shadewire_blender_to_ir(text.as_ptr().cast(), text.len(), null(), options, &mut ir, &mut error) };
+    (status, ir, error)
+}
+
+#[test]
+fn a_blender_graph_lowers_lists_its_materials_and_reports_its_warnings() {
+    let text = std::fs::read_to_string(BLENDER_FIXTURE).unwrap();
+    let (status, ir, _) = blender_to_ir(&text, null());
+    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+    assert_eq!(unsafe { CStr::from_ptr(shadewire_ir_model(ir)) }.to_str().unwrap(), "open_pbr_surface");
+    assert_eq!(unsafe { CStr::from_ptr(shadewire_ir_source(ir)) }.to_str().unwrap(), "blender");
+    let mut warnings = null_mut();
+    assert_eq!(unsafe { shadewire_ir_warnings(ir, &mut warnings, null_mut()) }, shadewire_status::SHADEWIRE_OK);
+    assert_eq!(unsafe { shadewire_strings_count(warnings) }, 0);
+    unsafe { shadewire_strings_free(warnings) };
+    unsafe { shadewire_ir_free(ir) };
+
+    let (mut names, mut error) = (null_mut(), null_mut());
+    let status = unsafe { shadewire_blender_material_names(text.as_ptr().cast(), text.len(), &mut names, &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+    assert_eq!(unsafe { CStr::from_ptr(shadewire_strings_get(names, 0)) }.to_str().unwrap(), "principled_defaults");
+    unsafe { shadewire_strings_free(names) };
+
+    let unsupported = std::fs::read_to_string(BLENDER_UNSUPPORTED).unwrap();
+    let (_, ir, _) = blender_to_ir(&unsupported, null());
+    let mut warnings = null_mut();
+    unsafe { shadewire_ir_warnings(ir, &mut warnings, null_mut()) };
+    assert!(unsafe { shadewire_strings_count(warnings) } > 0);
+    assert!(unsafe { CStr::from_ptr(shadewire_strings_get(warnings, 0)) }.to_str().unwrap().contains("\""));
+    unsafe { shadewire_strings_free(warnings) };
+    unsafe { shadewire_ir_free(ir) };
+}
+
+#[test]
+fn ir_options_pick_the_models() {
+    let text = std::fs::read_to_string(BLENDER_LOBES).unwrap();
+    let (status, _, error) = blender_to_ir(&text, null());
+    assert_eq!(status, shadewire_status::SHADEWIRE_ERROR, "lobes need the surface model");
+    unsafe { shadewire_error_free(error) };
+    let surface = CString::new("surface").unwrap();
+    let models = [surface.as_ptr()];
+    let mut options = std::mem::MaybeUninit::<shadewire_ir_options>::uninit();
+    unsafe { shadewire_ir_options_default(options.as_mut_ptr()) };
+    let mut options = unsafe { options.assume_init() };
+    options.models = models.as_ptr();
+    options.model_count = 1;
+    let (status, ir, _) = blender_to_ir(&text, &options);
+    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+    assert_eq!(unsafe { CStr::from_ptr(shadewire_ir_model(ir)) }.to_str().unwrap(), "surface");
+    unsafe { shadewire_ir_free(ir) };
+}
+
+#[test]
+fn blender_null_out_is_an_invalid_argument() {
+    let text = std::fs::read_to_string(BLENDER_FIXTURE).unwrap();
+    let mut error = null_mut();
+    let status =
+        unsafe { shadewire_blender_to_ir(text.as_ptr().cast(), text.len(), null(), null(), null_mut(), &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_ERROR);
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
+    unsafe { shadewire_error_free(error) };
+}
+
+#[test]
+fn a_materialx_ir_has_no_warnings_and_a_null_ir_is_an_invalid_argument() {
+    let ir = to_ir(&default_example());
+    let mut warnings = null_mut();
+    assert_eq!(unsafe { shadewire_ir_warnings(ir, &mut warnings, null_mut()) }, shadewire_status::SHADEWIRE_OK);
+    assert_eq!(unsafe { shadewire_strings_count(warnings) }, 0);
+    unsafe { shadewire_strings_free(warnings) };
+    unsafe { shadewire_ir_free(ir) };
+    let mut error = null_mut();
+    assert_eq!(unsafe { shadewire_ir_warnings(null(), &mut warnings, &mut error) }, shadewire_status::SHADEWIRE_ERROR);
+    assert_eq!(unsafe { shadewire_error_get_kind(error) }, shadewire_error_kind::SHADEWIRE_ERROR_INVALID_ARGUMENT);
+    unsafe { shadewire_error_free(error) };
+}

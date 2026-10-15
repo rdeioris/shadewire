@@ -10,6 +10,7 @@ use shadewire_mtlx::MaterialIr;
 
 use crate::error::{CapiError, shadewire_error};
 use crate::guard::guarded;
+use crate::names::shadewire_strings;
 use crate::options::{read_mtlx, shadewire_mtlx_options};
 use crate::status::shadewire_status;
 use crate::strings::{ArgError, c_string, cached_out, null_str, opt_cstr, text_arg};
@@ -20,8 +21,8 @@ pub const SHADEWIRE_IR_FORMAT_VERSION: u32 = 1;
 const _: () = assert!(SHADEWIRE_IR_FORMAT_VERSION == shadewire::export::FORMAT_VERSION, "update the format version");
 
 /// A material in Shadewire's IR: a typed DAG computing a shading model's fields (and, for the `surface` model, the
-/// closure tree over them). Made by `shadewire_mtlx_to_ir`, compiled by `shadewire_compile`. Free it with
-/// `shadewire_ir_free`.
+/// closure tree over them). Made by `shadewire_mtlx_to_ir` or `shadewire_blender_to_ir`, compiled by
+/// `shadewire_compile`. Free it with `shadewire_ir_free`.
 pub struct shadewire_ir {
     pub(crate) ir: MaterialIr,
     model: CString,
@@ -33,7 +34,7 @@ pub struct shadewire_ir {
 }
 
 impl shadewire_ir {
-    fn new(ir: MaterialIr) -> shadewire_ir {
+    pub(crate) fn new(ir: MaterialIr) -> shadewire_ir {
         shadewire_ir {
             model: c_string(ir.dag.surface.model.clone()),
             source: c_string(ir.source.source.clone()),
@@ -143,7 +144,7 @@ pub unsafe extern "C" fn shadewire_ir_model(ir: *const shadewire_ir) -> *const c
     }
 }
 
-/// The front end that made the IR (`mtlx`), valid until `ir` is freed; NULL when `ir` is NULL.
+/// The front end that made the IR (`mtlx`, `blender`), valid until `ir` is freed; NULL when `ir` is NULL.
 ///
 /// # Safety
 /// `ir` must be NULL or a live handle.
@@ -155,8 +156,8 @@ pub unsafe extern "C" fn shadewire_ir_source(ir: *const shadewire_ir) -> *const 
     }
 }
 
-/// The version of the document the IR was made from (for example "1.39"), valid until `ir` is freed; NULL when `ir`
-/// is NULL.
+/// The version of the document the IR was made from (for example "1.39"; for a Blender graph, the Blender that wrote
+/// it), valid until `ir` is freed; NULL when `ir` is NULL.
 ///
 /// # Safety
 /// `ir` must be NULL or a live handle.
@@ -215,10 +216,37 @@ pub unsafe extern "C" fn shadewire_ir_json(ir: *const shadewire_ir, len: *mut us
     }
 }
 
+/// What the front end dropped or approximated, one line each, as a `shadewire_strings` written to `out` (empty for a
+/// MaterialX document today). `*out` is written only on success.
+///
+/// # Safety
+/// `ir` must be a live handle (NULL is an error); `out` valid for writing a pointer; `error` NULL or valid for writing
+/// a pointer.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn shadewire_ir_warnings(
+    ir: *const shadewire_ir,
+    out: *mut *mut shadewire_strings,
+    error: *mut *mut shadewire_error,
+) -> shadewire_status {
+    unsafe {
+        guarded(
+            error,
+            AssertUnwindSafe(|| {
+                if out.is_null() {
+                    return Err(CapiError::Argument("out is NULL".to_string()));
+                }
+                let ir = borrow(ir)?;
+                *out = Box::into_raw(Box::new(shadewire_strings::new(ir.warnings.clone())));
+                Ok(())
+            }),
+        )
+    }
+}
+
 /// Frees `ir`; NULL is allowed.
 ///
 /// # Safety
-/// `ir` must be NULL or a handle from `shadewire_mtlx_to_ir` not yet freed.
+/// `ir` must be NULL or a handle from this library not yet freed.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_ir_free(ir: *mut shadewire_ir) {
     if !ir.is_null() {

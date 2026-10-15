@@ -38,6 +38,23 @@ pub struct shadewire_mtlx_options {
     pub resolve_user_data: *mut c_void,
 }
 
+/// Options of a front end without includes (`shadewire_blender_to_ir`): the models the host accepts, the working
+/// colorspace and whether authored values are uniforms, as `shadewire_mtlx_options` without the resolver. Set
+/// `struct_size`, or use `shadewire_ir_options_default`.
+///
+/// `models`, `model_count`, `working_colorspace` and `values_as_uniforms` read as in `shadewire_mtlx_options`;
+/// `reserved` fills the tail padding and must be zero. New fields are only appended at the end.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct shadewire_ir_options {
+    pub struct_size: u32,
+    pub models: *const *const c_char,
+    pub model_count: usize,
+    pub working_colorspace: *const c_char,
+    pub values_as_uniforms: bool,
+    pub reserved: [u8; 7],
+}
+
 /// Options for compilation (the keyword arguments of Python's `compile`). Set `struct_size` to `sizeof` the struct,
 /// or use `shadewire_compile_options_default`. The booleans are true for any non-zero byte.
 ///
@@ -86,6 +103,17 @@ fn mtlx_defaults() -> shadewire_mtlx_options {
     }
 }
 
+fn ir_defaults() -> shadewire_ir_options {
+    shadewire_ir_options {
+        struct_size: std::mem::size_of::<shadewire_ir_options>() as u32,
+        models: std::ptr::null(),
+        model_count: 0,
+        working_colorspace: std::ptr::null(),
+        values_as_uniforms: IrOptions::default().values_as_uniforms,
+        reserved: [0; 7],
+    }
+}
+
 /// Copies the first `min(struct_size, size_of::<T>())` bytes at `ptr` over `base`.
 ///
 /// The result stays behind `MaybeUninit`: a caller may store any byte in a `bool` field, so fields are read one by one
@@ -122,9 +150,58 @@ pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<(Ir
     }
     let raw = unsafe { overlay(ptr, mtlx_defaults()) }?;
     let raw = raw.as_ptr();
-    let models = unsafe { (&raw const (*raw).models).read() };
-    let model_count = unsafe { (&raw const (*raw).model_count).read() };
-    let working_colorspace = unsafe { (&raw const (*raw).working_colorspace).read() };
+    unsafe {
+        read_common(
+            (&raw const (*raw).models).read(),
+            (&raw const (*raw).model_count).read(),
+            (&raw const (*raw).working_colorspace).read(),
+            &raw const (*raw).values_as_uniforms,
+            &mut options,
+        )
+    }?;
+    let resolve = unsafe { (&raw const (*raw).resolve).read() };
+    let resolver = resolver(resolve, unsafe { (&raw const (*raw).resolve_user_data).read() });
+    Ok((options, resolver))
+}
+
+/// Reads the options of a front end without includes; NULL gives the defaults.
+///
+/// # Safety
+/// `ptr` must be NULL or point to `struct_size` readable bytes (at least 4); `models` must hold `model_count` valid
+/// NUL-terminated strings, and `working_colorspace` must be NULL or a valid NUL-terminated string.
+pub(crate) unsafe fn read_ir_options(ptr: *const shadewire_ir_options) -> Result<IrOptions, ArgError> {
+    let mut options = IrOptions::default();
+    if ptr.is_null() {
+        return Ok(options);
+    }
+    let raw = unsafe { overlay(ptr, ir_defaults()) }?;
+    let raw = raw.as_ptr();
+    unsafe {
+        read_common(
+            (&raw const (*raw).models).read(),
+            (&raw const (*raw).model_count).read(),
+            (&raw const (*raw).working_colorspace).read(),
+            &raw const (*raw).values_as_uniforms,
+            &mut options,
+        )
+    }?;
+    Ok(options)
+}
+
+/// Reads the fields every front end's options share into `options`: the model list, the working colorspace and
+/// `values_as_uniforms`.
+///
+/// # Safety
+/// `models` must be NULL or hold `model_count` valid NUL-terminated strings (NULL entries are reported);
+/// `working_colorspace` must be NULL or a valid NUL-terminated string; `values_as_uniforms` must point to a readable
+/// byte.
+unsafe fn read_common(
+    models: *const *const c_char,
+    model_count: usize,
+    working_colorspace: *const c_char,
+    values_as_uniforms: *const bool,
+    options: &mut IrOptions,
+) -> Result<(), ArgError> {
     if models.is_null() && model_count > 0 {
         return Err(ArgError(format!("models is NULL but model_count is {model_count}")));
     }
@@ -140,10 +217,8 @@ pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<(Ir
     if let Some(space) = unsafe { opt_cstr(working_colorspace) }? {
         options.working_colorspace = space.to_string();
     }
-    options.values_as_uniforms = unsafe { flag(&raw const (*raw).values_as_uniforms) };
-    let resolve = unsafe { (&raw const (*raw).resolve).read() };
-    let resolver = resolver(resolve, unsafe { (&raw const (*raw).resolve_user_data).read() });
-    Ok((options, resolver))
+    options.values_as_uniforms = unsafe { flag(values_as_uniforms) };
+    Ok(())
 }
 
 /// Reads compile options; NULL gives the defaults.
@@ -176,6 +251,17 @@ pub(crate) unsafe fn read_compile(ptr: *const shadewire_compile_options) -> Resu
 pub unsafe extern "C" fn shadewire_mtlx_options_default(out: *mut shadewire_mtlx_options) {
     if !out.is_null() {
         unsafe { out.write(mtlx_defaults()) };
+    }
+}
+
+/// Writes the default options of a front end without includes to `out` (no-op when NULL).
+///
+/// # Safety
+/// `out` must be NULL or valid for writing a `shadewire_ir_options`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn shadewire_ir_options_default(out: *mut shadewire_ir_options) {
+    if !out.is_null() {
+        unsafe { out.write(ir_defaults()) };
     }
 }
 
@@ -389,6 +475,51 @@ mod tests {
         m.values_as_uniforms = !IrOptions::default().values_as_uniforms;
         let (read, _) = unsafe { read_mtlx(&m) }.unwrap();
         assert_eq!(read.values_as_uniforms, IrOptions::default().values_as_uniforms);
+    }
+
+    fn ir_default_struct() -> shadewire_ir_options {
+        let mut o = MaybeUninit::<shadewire_ir_options>::uninit();
+        unsafe { shadewire_ir_options_default(o.as_mut_ptr()) };
+        unsafe { o.assume_init() }
+    }
+
+    #[test]
+    fn ir_options_default_to_the_rust_defaults_and_end_without_padding() {
+        let o = ir_default_struct();
+        assert_eq!(o.struct_size as usize, size_of::<shadewire_ir_options>());
+        let read = unsafe { read_ir_options(&o) }.unwrap();
+        let d = IrOptions::default();
+        assert_eq!(
+            (read.models, read.working_colorspace, read.values_as_uniforms),
+            (d.models.clone(), d.working_colorspace, d.values_as_uniforms)
+        );
+        assert_eq!(unsafe { read_ir_options(std::ptr::null()) }.unwrap().models, d.models);
+        assert_eq!(size_of::<shadewire_ir_options>(), offset_of!(shadewire_ir_options, reserved) + 7);
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(size_of::<shadewire_ir_options>(), 40);
+        unsafe { shadewire_ir_options_default(std::ptr::null_mut()) };
+    }
+
+    #[test]
+    fn ir_options_read_models_colorspace_and_flag() {
+        let a = CString::new("surface").unwrap();
+        let space = CString::new("srgb_texture").unwrap();
+        let list = [a.as_ptr()];
+        let mut o = ir_default_struct();
+        o.models = list.as_ptr();
+        o.model_count = 1;
+        o.working_colorspace = space.as_ptr();
+        o.values_as_uniforms = false;
+        let read = unsafe { read_ir_options(&o) }.unwrap();
+        assert_eq!(read.models, vec!["surface".to_string()]);
+        assert_eq!(read.working_colorspace, "srgb_texture");
+        assert!(!read.values_as_uniforms);
+        o.struct_size = offset_of!(shadewire_ir_options, values_as_uniforms) as u32;
+        assert_eq!(unsafe { read_ir_options(&o) }.unwrap().values_as_uniforms, IrOptions::default().values_as_uniforms);
+        o.models = std::ptr::null();
+        assert!(unsafe { read_ir_options(&o) }.unwrap_err().0.contains("models is NULL"));
+        o.struct_size = 3;
+        assert!(unsafe { read_ir_options(&o) }.is_err());
     }
 
     #[test]

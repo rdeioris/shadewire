@@ -87,8 +87,8 @@ typedef struct shadewire_document shadewire_document;
 typedef struct shadewire_error shadewire_error;
 
 // A material in Shadewire's IR: a typed DAG computing a shading model's fields (and, for the `surface` model, the
-// closure tree over them). Made by `shadewire_mtlx_to_ir`, compiled by `shadewire_compile`. Free it with
-// `shadewire_ir_free`.
+// closure tree over them). Made by `shadewire_mtlx_to_ir` or `shadewire_blender_to_ir`, compiled by
+// `shadewire_compile`. Free it with `shadewire_ir_free`.
 typedef struct shadewire_ir shadewire_ir;
 
 // The answer a `shadewire_resolve_fn` gives, written with `shadewire_resolution_set` or `_fail`. Owned by Shadewire
@@ -97,6 +97,21 @@ typedef struct shadewire_resolution shadewire_resolution;
 
 // A list of strings. Free it with `shadewire_strings_free`.
 typedef struct shadewire_strings shadewire_strings;
+
+// Options of a front end without includes (`shadewire_blender_to_ir`): the models the host accepts, the working
+// colorspace and whether authored values are uniforms, as `shadewire_mtlx_options` without the resolver. Set
+// `struct_size`, or use `shadewire_ir_options_default`.
+//
+// `models`, `model_count`, `working_colorspace` and `values_as_uniforms` read as in `shadewire_mtlx_options`;
+// `reserved` fills the tail padding and must be zero. New fields are only appended at the end.
+typedef struct shadewire_ir_options {
+  uint32_t struct_size;
+  const char *const *models;
+  size_t model_count;
+  const char *working_colorspace;
+  bool values_as_uniforms;
+  uint8_t reserved[7];
+} shadewire_ir_options;
 
 // Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
 typedef uint32_t shadewire_target_kind;
@@ -178,6 +193,32 @@ typedef struct shadewire_mtlx_options {
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+
+// Lowers a Blender material graph document `text` (`len` bytes of UTF-8, not NUL-terminated; the JSON the Blender
+// extension's File > Export > Material Graph writes) to the IR and writes the handle to `out`. `material` selects a
+// material by name (NULL for the document's only one: SHADEWIRE_ERROR_MATERIAL when it has several); `options` may
+// be NULL for the defaults. The IR is not optimized. The front end's warnings are read with `shadewire_ir_warnings`.
+// `*out` is written only on success.
+//
+// # Safety
+// As `shadewire_mtlx_to_ir`, with `options` NULL or valid (see `shadewire_ir_options`).
+shadewire_status shadewire_blender_to_ir(const char *text,
+                                         size_t len,
+                                         const char *material,
+                                         const struct shadewire_ir_options *options,
+                                         struct shadewire_ir **out,
+                                         struct shadewire_error **error);
+
+// The names of a Blender graph document's materials, in document order, written to `out`. `text` and `len` as
+// `shadewire_blender_to_ir`. `*out` is written only on success.
+//
+// # Safety
+// `text` must hold `len` readable bytes (NULL is reported, not dereferenced); `out` must be valid for writing a
+// pointer and `error` NULL or valid for writing a pointer.
+shadewire_status shadewire_blender_material_names(const char *text,
+                                                  size_t len,
+                                                  struct shadewire_strings **out,
+                                                  struct shadewire_error **error);
 
 // Compiles `ir` to the code of `target` and its reflection and writes the handle to `out`. `options` may be NULL for
 // the defaults. `*out` is written only on success.
@@ -398,14 +439,14 @@ shadewire_status shadewire_ir_optimize(const struct shadewire_ir *ir,
 // `ir` must be NULL or a live handle.
 const char *shadewire_ir_model(const struct shadewire_ir *ir);
 
-// The front end that made the IR (`mtlx`), valid until `ir` is freed; NULL when `ir` is NULL.
+// The front end that made the IR (`mtlx`, `blender`), valid until `ir` is freed; NULL when `ir` is NULL.
 //
 // # Safety
 // `ir` must be NULL or a live handle.
 const char *shadewire_ir_source(const struct shadewire_ir *ir);
 
-// The version of the document the IR was made from (for example "1.39"), valid until `ir` is freed; NULL when `ir`
-// is NULL.
+// The version of the document the IR was made from (for example "1.39"; for a Blender graph, the Blender that wrote
+// it), valid until `ir` is freed; NULL when `ir` is NULL.
 //
 // # Safety
 // `ir` must be NULL or a live handle.
@@ -436,10 +477,20 @@ const char *shadewire_ir_dump(const struct shadewire_ir *ir,
 const char *shadewire_ir_json(const struct shadewire_ir *ir,
                               size_t *len);
 
+// What the front end dropped or approximated, one line each, as a `shadewire_strings` written to `out` (empty for a
+// MaterialX document today). `*out` is written only on success.
+//
+// # Safety
+// `ir` must be a live handle (NULL is an error); `out` valid for writing a pointer; `error` NULL or valid for writing
+// a pointer.
+shadewire_status shadewire_ir_warnings(const struct shadewire_ir *ir,
+                                       struct shadewire_strings **out,
+                                       struct shadewire_error **error);
+
 // Frees `ir`; NULL is allowed.
 //
 // # Safety
-// `ir` must be NULL or a handle from `shadewire_mtlx_to_ir` not yet freed.
+// `ir` must be NULL or a handle from this library not yet freed.
 void shadewire_ir_free(struct shadewire_ir *ir);
 
 // The names of a MaterialX document's materials (its includes' too), in document order, written to `out`. `text`,
@@ -478,6 +529,12 @@ void shadewire_strings_free(struct shadewire_strings *s);
 // # Safety
 // `out` must be NULL or valid for writing a `shadewire_mtlx_options`.
 void shadewire_mtlx_options_default(struct shadewire_mtlx_options *out);
+
+// Writes the default options of a front end without includes to `out` (no-op when NULL).
+//
+// # Safety
+// `out` must be NULL or valid for writing a `shadewire_ir_options`.
+void shadewire_ir_options_default(struct shadewire_ir_options *out);
 
 // Writes the default compile options to `out` (no-op when NULL).
 //
