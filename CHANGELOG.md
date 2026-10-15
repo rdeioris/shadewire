@@ -131,6 +131,9 @@ No compatibility shims: old names are gone.
   it, from the referenced `.mtlx` (also inside a `.usdz`) or from the MaterialX network authored in the USD,
   textures unpacked by the importer. "Fill Materials from MaterialX" rebuilds materials by name for scenes
   imported without it.
+- **Blender: MaterialX export.** File > Export > MaterialX (Shadewire) writes materials through Shadewire's Blender
+  front end and MaterialX writer; the USD export dialog's "Shadewire MaterialX" option replaces Blender's shader
+  prims with a reference into a .mtlx written beside the .usd.
 - Shading **Principled BSDF** (the default): a `standard_surface`, `open_pbr_surface` or `gltf_pbr` material drives
   one Principled BSDF from its parameters; other models and raw BSDF graphs become their lobes. **MaterialX
   Lobes**: every material as its lobes, one BSDF node each, layered and mixed as MaterialX defines them.

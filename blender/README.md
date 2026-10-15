@@ -60,6 +60,16 @@ From a source checkout, without the module, the add-on falls back to the `shadew
   `textures` folder beside the file and references the images there by relative path; without it the paths stay as
   Blender has them. "Inline Nodes" writes library nodes expanded into the nodes they are built from. What Shadewire
   approximates is reported as warnings, and listed in `crates/shadewire-blender/README.md`.
+- **File > Export > Universal Scene Description** gains a "Shadewire MaterialX" option (on by default) under the
+  dialog's options: the exported materials are written by Shadewire as one `.mtlx` beside the `.usd`, named after
+  it, with one `surfacematerial` per material (named after its USD prim) and the textures Blender exports into
+  `textures`; each material prim then references its material there
+  (`references = @./scene.mtlx@</MaterialX/Materials/Wood>`) in place of the shader prims Blender wrote. The hint
+  under the option says to untick USD Preview Surface unless viewers without MaterialX need a fallback: when it is
+  ticked, Blender's UsdPreviewSurface network stays beside the reference. A material Shadewire cannot write is left
+  as Blender wrote it, and the reason printed to the console. A `.usdz` cannot carry a `.mtlx` (USD's `UsdMtlx`
+  only reads MaterialX), so a `.usdz` export keeps Blender's materials; a `.usdz` with the `.mtlx` can be packaged
+  outside Blender from the `.usd` export (`usdzip`).
 - **File > Export > Material Graph (Shadewire JSON)** (and Save Graph in the Material properties panel) writes
   materials as a JSON document: the selected objects' materials, the active one, or all of them, with their node
   groups and image references. "Copy Textures" writes the images into a `textures` folder beside the file and
@@ -86,6 +96,9 @@ sockets' subtype, min, max and description, or node colors and frame sizes.
   load; `--flatten` also imports each scene flattened, its MaterialX inline.
 - `blender -b --python-exit-code 1 -P blender/test_graph.py` runs the graph tests: dump, load, round trips and the
   Save and Load operators. Keep the flag: without it Blender exits 0 when the script errors.
+- `blender -b --python-exit-code 1 -P blender/test_export.py [-- --shadewire PATH]` runs the MaterialX export tests:
+  the compiler's `to_mtlx` and document merging, File > Export > MaterialX, and the USD export option (with and
+  without USD Preview Surface, Blender's MaterialX network, the option off, a `.usdz`, and a scene imported back).
 - `blender -b --python-exit-code 1 -P blender/make_fixtures.py` rewrites the graph fixtures in
   `blender/fixtures/graphs` from the materials it builds; `test_graph.py` fails when they are stale.
 

@@ -10,7 +10,8 @@ USD's resolver so a `.mtlx` packed in a `.usdz` works too. Otherwise the compose
 MaterialX document: every Shader prim the surface depends on becomes a node (its `info:id` the nodedef, its
 category from the shader registry), and each input is either a value or a connection to the shader output that
 produces it, through node graphs and the material's interface. Textures go through the importer's
-`import_texture`, which unpacks them from a `.usdz`.
+`import_texture`, which unpacks them from a `.usdz`. The same hook's export callbacks hand USD exports to
+`usd_export`.
 """
 
 import os
@@ -20,7 +21,7 @@ from xml.sax.saxutils import quoteattr
 import bpy
 from pxr import Ar, Sdf, Sdr, Usd, UsdShade
 
-from . import builder, compiler
+from . import builder, compiler, usd_export
 
 # Used when the add-on is not installed (run from a source checkout): its preferences do not exist.
 defaults = {"usd_import": True, "usd_mode": "PRINCIPLED", "usd_editable": False, "executable": ""}
@@ -252,4 +253,21 @@ class ShadewireUSDHook(bpy.types.USDHook):
             return False
         for w in warnings:
             print(f"Shadewire: {bl_material.name}: {w}")
+        return True
+
+    @staticmethod
+    def on_material_export(export_context, bl_material, usd_material):
+        # An exception escaping here would abort the export; the material is left as Blender wrote it.
+        try:
+            usd_export.collect(export_context, bl_material, usd_material)
+        except Exception:
+            print(f"Shadewire: {bl_material.name}:", traceback.format_exc(), sep="\n")
+        return True
+
+    @staticmethod
+    def on_export(export_context):
+        try:
+            usd_export.finish(export_context)
+        except Exception:
+            print("Shadewire: USD export:", traceback.format_exc(), sep="\n")
         return True

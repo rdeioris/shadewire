@@ -10,7 +10,9 @@ every material opens into its lobes, as MaterialX defines them. File > Import > 
 creates the document's materials; "Fill Materials from MaterialX" (Material properties, and the 3D view's
 Object menu) rebuilds the materials already in the file whose names match the document's. Blender's USD importer
 calls the add-on for the MaterialX materials of a scene (`usd.py`), so they arrive built; Fill is for scenes
-imported without it. File > Export and Import > Material Graph (Shadewire JSON) save and load materials as a JSON
+imported without it. File > Export > MaterialX writes materials as one MaterialX document through Shadewire, and
+the USD exporter's "Shadewire MaterialX" option (`usd_export.py`) references such a document from the exported
+materials. File > Export and Import > Material Graph (Shadewire JSON) save and load materials as a JSON
 document of their node trees (`graph.py`).
 """
 
@@ -510,6 +512,22 @@ class SHADEWIRE_PT_material(bpy.types.Panel):
         self.layout.operator(SHADEWIRE_OT_fill.bl_idname)
 
 
+class SHADEWIRE_PT_usd_export(bpy.types.Panel):
+    bl_space_type = "FILE_BROWSER"
+    bl_region_type = "TOOL_PROPS"
+    bl_parent_id = "FILE_PT_operator"
+    bl_label = "Shadewire MaterialX"
+
+    @classmethod
+    def poll(cls, context):
+        operator = getattr(context.space_data, "active_operator", None)
+        return operator is not None and operator.bl_idname == "WM_OT_usd_export"
+
+    def draw(self, context):
+        self.layout.prop(context.window_manager, "shadewire_usd_materials")
+        self.layout.label(text="Untick USD Preview Surface unless viewers without MaterialX need a fallback")
+
+
 def menu_import(self, context):
     self.layout.operator(SHADEWIRE_OT_import.bl_idname, text="MaterialX (Shadewire) (.mtlx)")
     self.layout.operator(SHADEWIRE_OT_import_graph.bl_idname, text=GRAPH_LABEL)
@@ -525,12 +543,19 @@ def menu_object(self, context):
 
 
 CLASSES = (ShadewirePreferences, SHADEWIRE_OT_import, SHADEWIRE_OT_fill, SHADEWIRE_OT_rebuild, SHADEWIRE_OT_export_mtlx,
-           SHADEWIRE_OT_export_graph, SHADEWIRE_OT_import_graph, SHADEWIRE_PT_material, usd.ShadewireUSDHook)
+           SHADEWIRE_OT_export_graph, SHADEWIRE_OT_import_graph, SHADEWIRE_PT_material, SHADEWIRE_PT_usd_export,
+           usd.ShadewireUSDHook)
 
 
 def register():
     for cls in CLASSES:
         bpy.utils.register_class(cls)
+    bpy.types.WindowManager.shadewire_usd_materials = BoolProperty(
+        name="Shadewire MaterialX",
+        description="Replace Blender's shader prims by a reference into a MaterialX document written beside the USD "
+        "file, one surfacematerial per material (a .usdz is left to Blender)",
+        default=True,
+    )
     bpy.types.TOPBAR_MT_file_import.append(menu_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_export)
     bpy.types.VIEW3D_MT_object.append(menu_object)
@@ -540,5 +565,6 @@ def unregister():
     bpy.types.VIEW3D_MT_object.remove(menu_object)
     bpy.types.TOPBAR_MT_file_export.remove(menu_export)
     bpy.types.TOPBAR_MT_file_import.remove(menu_import)
+    del bpy.types.WindowManager.shadewire_usd_materials
     for cls in reversed(CLASSES):
         bpy.utils.unregister_class(cls)

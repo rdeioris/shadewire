@@ -13,6 +13,7 @@ import sys
 import tempfile
 
 import bpy
+from pxr import Usd, UsdShade
 
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.dirname(here)
@@ -396,9 +397,126 @@ def test_export_menu():
           f"the export menu lists MaterialX: {labels}")
 
 
+def export_usd(folder, name, **options):
+    path = os.path.join(folder, name)
+    result = bpy.ops.wm.usd_export(filepath=path, export_materials=True, **options)
+    check(result == {"FINISHED"}, f"usd export finished: {result}")
+    return path
+
+
+def material_prim(stage, name="Wood"):
+    return stage.GetPrimAtPath(f"/root/_materials/{name}")
+
+
+def material_spec(path, name="Wood"):
+    """The stage of `path` and the material's prim spec in its root layer; the spec reads its layer only while the
+    stage is held."""
+    stage = Usd.Stage.Open(path)
+    return stage, stage.GetRootLayer().GetPrimAtPath(f"/root/_materials/{name}")
+
+
+def test_usd_export_replaces_blenders_shaders():
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        m = textured_material("Wood")
+        cube_with(m)
+        addon.usd.defaults["executable"] = executable
+        bpy.context.window_manager.shadewire_usd_materials = True
+        path = export_usd(folder, "scene.usda", generate_preview_surface=False)
+        mtlx = os.path.join(folder, "scene.mtlx")
+        check(os.path.isfile(mtlx), "scene.mtlx is written beside the usd")
+        text = read(mtlx)
+        check('<surfacematerial name="Wood"' in text, "the material is named after its prim")
+        check('value="./textures/' in text, f"textures are the ones Blender exported: {[l for l in text.splitlines() if 'filename' in l]}")
+        check(os.path.isdir(os.path.join(folder, "textures")), "Blender wrote the textures folder")
+        stage = Usd.Stage.Open(path)
+        prim = material_prim(stage)
+        check(prim and prim.IsValid(), "the material prim exists")
+        children = [c.GetName() for c in prim.GetChildren()]
+        check(prim.HasAuthoredReferences(), "the material prim references the mtlx")
+        check(UsdShade.Material(prim).GetSurfaceOutput("mtlx").HasConnectedSource() or
+              UsdShade.Material(prim).GetSurfaceOutput("mtlx").GetAttr().IsValid(),
+              f"the composed material has a MaterialX surface: {children}")
+        layer = stage.GetRootLayer()
+        spec = layer.GetPrimAtPath("/root/_materials/Wood")
+        check("previewShader" not in [c for c in spec.nameChildren.keys()], f"Blender's placeholder shader is gone: {list(spec.nameChildren.keys())}")
+        check("outputs:surface" not in spec.properties.keys(), "Blender's surface output is gone")
+        # The scene imports back through the hook, with the texture.
+        bpy.ops.wm.read_homefile(use_empty=True)
+        bpy.ops.wm.usd_import(filepath=path)
+        imported = bpy.data.materials.get("Wood")
+        check(imported is not None and "shadewire_mode" in imported, "the import hook built the material")
+        check(all(image.size[0] > 0 for image in bpy.data.images if image.filepath), "the textures load")
+
+
+def test_usd_export_keeps_a_requested_preview_surface_and_blenders_output_when_off():
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        cube_with(textured_material("Wood"))
+        addon.usd.defaults["executable"] = executable
+        bpy.context.window_manager.shadewire_usd_materials = True
+        path = export_usd(folder, "preview.usda", generate_preview_surface=True)
+        stage, spec = material_spec(path)
+        names = list(spec.nameChildren.keys())
+        # Blender names the shaders after their nodes: the image texture is the node named Albedo.
+        check(sorted(names) == ["Albedo", "Principled_BSDF", "uvmap"], f"the UsdPreviewSurface network stays: {names}")
+        check("outputs:surface" in spec.properties.keys(), "its surface output stays")
+        check(spec.hasReferences, "and the mtlx reference is added")
+        # Blender's own MaterialX network is replaced by ours.
+        path = export_usd(folder, "mx.usda", generate_preview_surface=False, generate_materialx_network=True)
+        stage, spec = material_spec(path)
+        names = list(spec.nameChildren.keys())
+        check(not any(n.startswith("bnode__") or n == "NodeGraphs" for n in names), f"Blender's MaterialX network is gone: {names}")
+        check("outputs:mtlx:surface" not in spec.properties.keys() and "config:mtlx:version" not in spec.properties.keys(),
+              "its mtlx outputs are gone")
+        # The option off: Blender's output untouched, no mtlx.
+        bpy.context.window_manager.shadewire_usd_materials = False
+        path = export_usd(folder, "off.usda", generate_preview_surface=False)
+        stage, spec = material_spec(path)
+        check("previewShader" in spec.nameChildren.keys() and not spec.hasReferences, "off: Blender's prims stay")
+        check(not os.path.exists(os.path.join(folder, "off.mtlx")), "off: no mtlx")
+        bpy.context.window_manager.shadewire_usd_materials = True
+
+
+def test_usdz_is_left_to_blender():
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        cube_with(textured_material("Wood"))
+        addon.usd.defaults["executable"] = executable
+        bpy.context.window_manager.shadewire_usd_materials = True
+        path = export_usd(folder, "pack.usdz", generate_preview_surface=False)
+        check(os.path.isfile(path), "the usdz is written")
+        check(not any(f.endswith(".mtlx") for f in os.listdir(folder)), f"no mtlx beside a usdz: {os.listdir(folder)}")
+        stage = Usd.Stage.Open(path)
+        prim = material_prim(stage)
+        check(prim and "previewShader" in [c.GetName() for c in prim.GetChildren()], "Blender's materials are untouched")
+
+
+def test_usd_panel():
+    panel = bpy.types.SHADEWIRE_PT_usd_export
+    check(panel.bl_parent_id == "FILE_PT_operator" and panel.bl_space_type == "FILE_BROWSER", "the panel sits under the operator panel")
+
+    class Op:
+        bl_idname = "WM_OT_usd_export"
+
+    class Space:
+        active_operator = Op()
+
+    class Ctx:
+        space_data = Space()
+
+    check(panel.poll(Ctx()), "the panel polls for the USD export")
+    Space.active_operator.bl_idname = "WM_OT_obj_export"
+    check(not panel.poll(Ctx()), "and not for other exports")
+    check(hasattr(bpy.context.window_manager, "shadewire_usd_materials"), "the window manager has the option")
+
+
 TESTS = [test_to_mtlx, test_merge_documents, test_merge_lobe_materials, test_merge_unnamed_elements,
          test_non_ascii_path, test_old_executable_hint, test_module_without_front_end,
-         test_export_operator, test_export_unwritable_image, test_export_menu]
+         test_export_operator, test_export_unwritable_image, test_export_menu,
+         test_usd_export_replaces_blenders_shaders,
+         test_usd_export_keeps_a_requested_preview_surface_and_blenders_output_when_off, test_usdz_is_left_to_blender,
+         test_usd_panel]
 
 if __name__ == "__main__":
     for test in TESTS:
