@@ -1,11 +1,13 @@
 //! Snapshots of the DAG dump and the reflection JSON of a few reference materials:
-//! the default material of each surface model, a procedural and a textured example.
+//! the default material of each surface model, a procedural and a textured example; and of the documents the
+//! writer makes of a few of them.
 
 use std::path::{Path, PathBuf};
 
 mod common;
 
 use common::compile_mtlx;
+use shadewire_mtlx::WriteOptions;
 use shadewire_nodes::IrOptions;
 use shadewire_wgsl::{CompileOptions, Compiled};
 
@@ -60,4 +62,37 @@ fn standard_surface_marble_solid() {
 #[test]
 fn standard_surface_brass_tiled() {
     snapshot("standard_surface_brass_tiled", &format!("{EXAMPLES}/StandardSurface/standard_surface_brass_tiled.mtlx"));
+}
+
+/// The document `from_ir` writes for material `material` of a file given relative to the repository root.
+fn written(relative: &str, material: &str, options: &IrOptions) -> String {
+    let path = root().join(relative);
+    let text = std::fs::read_to_string(&path).unwrap();
+    let ir = shadewire_mtlx::to_ir(&text, path.to_str(), Some(material), options, &Default::default()).unwrap();
+    let write = WriteOptions { name: material.to_string(), ..WriteOptions::default() };
+    shadewire_mtlx::from_ir(&ir.dag, &write).unwrap_or_else(|e| panic!("{relative}: {e}")).text
+}
+
+#[test]
+fn written_open_pbr_default() {
+    let path = format!("{EXAMPLES}/OpenPbr/open_pbr_default.mtlx");
+    insta::assert_snapshot!(written(&path, "Default", &IrOptions::default()));
+}
+
+#[test]
+fn written_standard_surface_marble_solid() {
+    let path = format!("{EXAMPLES}/StandardSurface/standard_surface_marble_solid.mtlx");
+    insta::assert_snapshot!(written(&path, "Marble_3D", &IrOptions::default()));
+}
+
+#[test]
+fn written_gltf_pbr_default() {
+    let path = format!("{EXAMPLES}/GltfPbr/gltf_pbr_default.mtlx");
+    insta::assert_snapshot!(written(&path, "Default", &IrOptions::default()));
+}
+
+#[test]
+fn written_porcelain() {
+    let lobes = IrOptions::with_models(&["surface", "surface_unlit"]);
+    insta::assert_snapshot!(written("crates/shadewire-mtlx/tests/fixtures/porcelain.mtlx", "porcelain", &lobes));
 }

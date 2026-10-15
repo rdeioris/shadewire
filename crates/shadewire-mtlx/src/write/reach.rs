@@ -15,8 +15,8 @@ pub enum Reach {
 }
 
 impl Patterns<'_> {
-    /// How a shader-level input named `input_name` reads `node`. A uniform of that name read there only is the
-    /// input's value; anything else is a nodegraph output, made once per node and named after the first input
+    /// How a shader-level input named `input_name` reads `node`. A uniform of that name read there only (its
+    /// nodegraph input not written for another reader) is the input's value; anything else is a nodegraph output, made once per node and named after the first input
     /// that asks: a const through a `constant` node (a value on a shader input would read back as a uniform),
     /// another uniform through a `dot` reading its nodegraph input.
     ///
@@ -28,6 +28,7 @@ impl Patterns<'_> {
         if let NodeKind::Uniform { value, .. } = &n.kind
             && self.uniform_names.get(&node) == Some(&input_name)
             && self.readers.get(&node) == Some(&1)
+            && self.pending_uniforms.contains_key(&node)
         {
             return Reach::Value(value_text(value));
         }
@@ -95,6 +96,19 @@ mod tests {
         let (reaches, text) = reached(&dag, &["emission"]);
         assert_eq!(reaches, [Reach::Value("0.5".into())]);
         assert!(!text.contains("emission"), "{text}");
+    }
+
+    #[test]
+    fn a_uniform_already_read_by_an_op_is_never_also_a_value() {
+        let mut dag = Dag::new("surface_unlit");
+        let u = dag.add(node(NodeKind::Uniform { name: "emission".into(), value: Value::Float(0.5) }, Type::Float, ""));
+        let s = dag.add(node(NodeKind::Op { op: Op::Sin, args: vec![u] }, Type::Float, "g/s"));
+        dag.surface.fields.push(SurfaceField { name: "emission".into(), ty: Type::Float, node: s });
+        let index = Index::new(empty_document(), standard());
+        let plan = plan(&dag, &index, false);
+        let mut patterns = write_patterns(&dag, &plan, &index, &WriteOptions::default(), &mut Names::new()).unwrap();
+        assert_eq!(patterns.reach(u, "emission", &dag), Reach::Output("emission_out".into()));
+        assert_eq!(patterns.inputs.len(), 1, "one nodegraph input, read by the op and the output");
     }
 
     #[test]

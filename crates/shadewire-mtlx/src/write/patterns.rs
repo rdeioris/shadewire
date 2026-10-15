@@ -8,7 +8,8 @@ use shadewire_nodes::Index;
 use super::WriteOptions;
 use super::elements::{constant_element, context_category, context_element, uniform_element};
 use super::names::Names;
-use super::plan::{Plan, shader_reads};
+use super::plan::Plan;
+use super::shader::shader_reads;
 use super::xml::Element;
 
 pub use super::reach::Reach;
@@ -68,7 +69,7 @@ pub fn write_patterns<'a>(
     };
     patterns.name_uniforms(dag);
     let mut shader_only: HashMap<NodeId, usize> = HashMap::new();
-    for id in shader_reads(dag) {
+    for id in shader_reads(dag, index) {
         *shader_only.entry(id).or_insert(0) += 1;
     }
     // A kept compound is written where its first output was computed: after its inputs, before its readers.

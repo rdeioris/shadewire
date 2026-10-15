@@ -1,4 +1,5 @@
-//! MaterialX document reader for Shadewire: parse, includes, upgrade, then lowering through `shadewire-nodes`.
+//! MaterialX document reader for Shadewire: parse, includes, upgrade, then lowering through `shadewire-nodes`; and the
+//! writer back to MaterialX (`from_ir`).
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
     html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
@@ -15,3 +16,4 @@ pub use include::{ResolveFn, Resolved, Resolver};
 /// The options type of [`to_ir`], re-exported so a MaterialX user needs one crate.
 pub use shadewire_nodes::IrOptions;
 pub use to_ir::{MaterialIr, material_names, to_ir};
+pub use write::{WriteOptions, Written, from_ir};

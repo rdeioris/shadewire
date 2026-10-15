@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="g">
+    <input name="tint" type="color3" value="1, 0.5, 0.5" />
+    <texcoord name="uv" type="vector2" />
+    <image name="img" type="color3">
+      <input name="file" type="filename" value="a.png" colorspace="srgb_texture" />
+      <input name="texcoord" type="vector2" nodename="uv" />
+      <input name="uaddressmode" type="string" value="clamp" />
+    </image>
+    <multiply name="tinted" type="color3">
+      <input name="in1" type="color3" nodename="img" />
+      <input name="in2" type="color3" interfacename="tint" />
+    </multiply>
+    <output name="out" type="color3" nodename="tinted" />
+  </nodegraph>
+  <surface_unlit name="s" type="surfaceshader">
+    <input name="emission_color" type="color3" nodegraph="g" output="out" />
+  </surface_unlit>
+  <surfacematerial name="m" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="s" />
+  </surfacematerial>
+</materialx>

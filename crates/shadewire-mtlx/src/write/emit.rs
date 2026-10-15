@@ -7,7 +7,7 @@ use shadewire_nodes::document::{NodeDef, PortType};
 use super::catalog::{arg_names, category_for, is_shadewire_category, nodedef_for};
 use super::elements::{Source, compound_element, image_element, op_element};
 use super::patterns::Patterns;
-use super::plan::Plan;
+use super::plan::{Plan, converted_sample};
 use super::values::value_text;
 
 /// The value an unconnected nodedef input reads: its declared value.
@@ -17,6 +17,14 @@ fn nodedef_default(nd: &NodeDef, input: &str) -> Option<Value> {
         (PortType::Value(ty), Some(text)) if !text.trim().is_empty() => Value::parse(*ty, text).ok(),
         _ => None,
     }
+}
+
+/// Whether a sample's image carries its texture's `colorspace` (which converts on read): when its conversion is
+/// folded into it, or when no conversion read it (none applied: a non-color sample, `none`/`raw`, the working
+/// colorspace). A conversion written as its own nodes already converts.
+fn keeps_colorspace(dag: &Dag, plan: &Plan, sample: NodeId) -> bool {
+    plan.folded_conversions.values().any(|folded| *folded == sample)
+        || !dag.compounds.iter().any(|c| converted_sample(dag, c) == Some(sample))
 }
 
 impl Patterns<'_> {
@@ -49,7 +57,11 @@ impl Patterns<'_> {
         };
         let category = if grad.is_some() { "shadewire_image_grad" } else { "image" };
         let name = self.node_name(node, category, id.index());
-        let mut element = image_element(category, &name, node.ty, &dag.textures[*texture], default, &uv, grad);
+        let mut texture = dag.textures[*texture].clone();
+        if !keeps_colorspace(dag, plan, id) {
+            texture.colorspace = None;
+        }
+        let mut element = image_element(category, &name, node.ty, &texture, default, &uv, grad);
         if is_shadewire_category(category) {
             element = element.attr("nodedef", format!("ND_{category}_{}", node.ty.mtlx_name()));
             self.warn_shadewire(category);
@@ -180,6 +192,51 @@ mod tests {
         assert_eq!(written.matches("<overlay ").count(), 1, "{written}");
         assert!(written.contains(r#"<input name="in1" type="color3" nodename="o" />"#), "{written}");
         assert!(written.contains(r#"<input name="in2" type="color3" nodename="o" />"#), "{written}");
+    }
+
+    #[test]
+    fn an_image_carries_its_colorspace_unless_a_conversion_it_did_not_fold_reads_it() {
+        use shadewire::*;
+        let mut dag = Dag::new("surface_unlit");
+        let texture = |file: &str, colorspace: &str| TextureDesc {
+            file: file.into(),
+            colorspace: Some(colorspace.into()),
+            address_u: AddressMode::Periodic,
+            address_v: AddressMode::Periodic,
+            filter: FilterMode::Linear,
+        };
+        let (srgb, linear) =
+            (dag.add_texture(texture("a.png", "srgb_texture")), dag.add_texture(texture("b.png", "lin_rec709")));
+        let read = ContextRead::TexCoord { index: 0, ty: Type::Vector2 };
+        let uv = dag.add(Node { kind: NodeKind::Context(read), ty: Type::Vector2, origin: "g/uv".into() });
+        let sample = |texture, origin: &str| Node {
+            kind: NodeKind::Sample { texture, uv, default: Value::Color3([0.0; 3]), grad: None },
+            ty: Type::Color3,
+            origin: origin.into(),
+        };
+        let a = dag.add(sample(srgb, "g/a"));
+        let b = dag.add(sample(linear, "g/b"));
+        // `a`'s conversion computes its output outside its own origin, so it is not folded into `a`'s image.
+        let sum = dag.add(Node {
+            kind: NodeKind::Op { op: Op::Add, args: vec![a, b] },
+            ty: Type::Color3,
+            origin: "g/s".into(),
+        });
+        dag.compounds.push(Compound {
+            nodedef: "ND_srgb_texture_to_lin_rec709_color3".into(),
+            inputs: vec![("in".into(), a)],
+            outputs: vec![("out".into(), sum)],
+            origin: "g/a/convert".into(),
+        });
+        dag.surface.fields.push(SurfaceField { name: "emission_color".into(), ty: Type::Color3, node: sum });
+        let index = Index::new(empty_document(), standard());
+        let plan = plan(&dag, &index, false);
+        let patterns = write_patterns(&dag, &plan, &index, &WriteOptions::default(), &mut Names::new()).unwrap();
+        let mut graph = Element::new("nodegraph");
+        graph.children = patterns.nodes;
+        let written = to_text(&graph);
+        assert!(written.contains(r#"<input name="file" type="filename" value="a.png" />"#), "{written}");
+        assert!(written.contains(r#"value="b.png" colorspace="lin_rec709" />"#), "{written}");
     }
 
     #[test]
