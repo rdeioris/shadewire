@@ -54,6 +54,16 @@ From a source checkout, without the module, the add-on falls back to the `shadew
   4.3, or the hook turned off).
 - **Rebuild from MaterialX** (Material properties) compiles a material again from its document, in the mode it
   was built with.
+- **File > Export > Material Graph (Shadewire JSON)** (and Save Graph in the Material properties panel) writes
+  materials as a JSON document: the selected objects' materials, the active one, or all of them, with their node
+  groups and image references. "Copy Textures" writes the images into a `textures` folder beside the file, packed
+  and generated ones as PNG, and points the document at them.
+- **File > Import > Material Graph (Shadewire JSON)** (and Load Graph) creates the document's materials, node
+  groups and images; "Replace Existing" rebuilds a material of the same name in place instead. Whatever this
+  Blender cannot set (a node type or property it lacks) is skipped and reported as a warning.
+
+The document holds the node tree as Blender has it, for Shadewire's front end and for moving materials between
+files.
 
 ## Scripts
 
@@ -66,6 +76,8 @@ From a source checkout, without the module, the add-on falls back to the `shadew
   builds every material of the given documents (default: the vendored MaterialX examples) and reports failures.
   USD scenes are imported through the USD hook: every MaterialX material must arrive built and every texture
   load; `--flatten` also imports each scene flattened, its MaterialX inline.
+- `blender -b --python-exit-code 1 -P blender/test_graph.py` runs the graph tests: dump, load, round trips and the
+  Save and Load operators. Keep the flag: without it Blender exits 0 when the script errors.
 
 Both scripts load the add-on from `blender/shadewire` under the module name `shadewire_addon` (its folder is not put
 on `sys.path`, where it would hide the `shadewire` compiler module). With `--installed` they use the extension

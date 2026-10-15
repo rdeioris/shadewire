@@ -257,6 +257,29 @@ def test_stress_round_trip(graph):
     round_trip(graph, [m], "stress")
 
 
+def test_operators():
+    with tempfile.TemporaryDirectory() as folder:
+        path = os.path.join(folder, "wood.json")
+        bpy.ops.wm.read_homefile(use_empty=True)
+        m = textured_material()
+        cube = bpy.data.objects.new("Cube", bpy.data.meshes.new("Cube"))
+        cube.data.materials.append(m)
+        bpy.context.scene.collection.objects.link(cube)
+        cube.select_set(True)
+        bpy.context.view_layer.objects.active = cube
+        result = bpy.ops.shadewire.export_graph(filepath=path, scope="SELECTED", copy_textures=True)
+        check(result == {"FINISHED"}, f"export: {result}")
+        doc = json.load(open(path, encoding="utf-8"))
+        check([x["name"] for x in doc["materials"]] == ["Wood"], "exported the selected object's material")
+        texture = os.path.join(folder, "textures", "wood_albedo.png")
+        check(os.path.isfile(texture), "copy_textures wrote the generated image")
+        check(doc["images"][0]["filepath"].replace("\\", "/") == texture.replace("\\", "/"), f"filepath rewritten: {doc['images'][0]}")
+        bpy.ops.wm.read_homefile(use_empty=True)
+        result = bpy.ops.shadewire.import_graph(filepath=path)
+        check(result == {"FINISHED"} and "Wood" in bpy.data.materials, f"import: {result}")
+        check(bpy.data.images["wood_albedo"].filepath.replace("\\", "/").endswith("textures/wood_albedo.png"), "image loaded from the copied file")
+
+
 bpy.ops.wm.read_homefile(use_empty=True)
 addon = load_addon()
 test_dump_shape(addon.graph)
@@ -264,5 +287,6 @@ test_round_trip(addon.graph)
 test_load_warnings(addon.graph)
 test_group_identifier_gap(addon.graph)
 test_stress_round_trip(addon.graph)
+test_operators()
 print("FAILURES", len(failures))
 sys.exit(1 if failures else 0)

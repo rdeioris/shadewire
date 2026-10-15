@@ -10,16 +10,20 @@ every material opens into its lobes, as MaterialX defines them. File > Import > 
 creates the document's materials; "Fill Materials from MaterialX" (Material properties, and the 3D view's
 Object menu) rebuilds the materials already in the file whose names match the document's. Blender's USD importer
 calls the add-on for the MaterialX materials of a scene (`usd.py`), so they arrive built; Fill is for scenes
-imported without it.
+imported without it. File > Export and Import > Material Graph (Shadewire JSON) save and load materials as a JSON
+document of their node trees (`graph.py`).
 """
 
 import os
+import shutil
 
 import bpy
 from bpy.props import BoolProperty, EnumProperty, StringProperty
-from bpy_extras.io_utils import ImportHelper
+from bpy_extras.io_utils import ExportHelper, ImportHelper
 
 from . import builder, compiler, graph, usd
+
+GRAPH_LABEL = "Material Graph (Shadewire JSON) (.json)"
 
 
 def configured_executable(context):
@@ -178,6 +182,116 @@ class SHADEWIRE_OT_rebuild(bpy.types.Operator):
         return {"FINISHED"} if ok else {"CANCELLED"}
 
 
+def scope_materials(context, scope):
+    """The materials a Save Graph scope names, in order and without repeats."""
+    if scope == "ALL":
+        return list(bpy.data.materials)
+    if scope == "ACTIVE":
+        obj = context.object
+        material = obj.active_material if obj is not None else None
+        return [material] if material is not None else []
+    found = []
+    for obj in context.selected_objects:
+        for slot in obj.material_slots:
+            if slot.material is not None and slot.material not in found:
+                found.append(slot.material)
+    return found
+
+
+def copy_texture(operator, entry, folder):
+    """Put one dumped image into `folder` and point its entry there: a file is copied, anything else saved as PNG."""
+    image = bpy.data.images.get(entry["name"])
+    source = entry["filepath"]
+    try:
+        if entry["source"] == "FILE" and source and os.path.isfile(source):
+            target = os.path.join(folder, os.path.basename(source))
+            if not os.path.exists(target) or not os.path.samefile(source, target):
+                shutil.copy2(source, target)
+        elif image is not None:
+            target = os.path.join(folder, bpy.path.clean_name(image.name) + ".png")
+            image.save_render(target)
+        else:
+            raise OSError("the image is not in the file")
+    except (OSError, RuntimeError) as e:
+        operator.report({"WARNING"}, f"image {entry['name']}: not written: {e}")
+        return
+    entry["filepath"] = os.path.abspath(target).replace("\\", "/")
+
+
+class SHADEWIRE_OT_export_graph(bpy.types.Operator, ExportHelper):
+    """Save materials as a Shadewire graph document (JSON): their node trees, groups and image references"""
+
+    bl_idname = "shadewire.export_graph"
+    bl_label = "Save Material Graph"
+    bl_options = {"REGISTER"}
+
+    filename_ext = ".json"
+    filter_glob: StringProperty(default="*.json", options={"HIDDEN"})
+    scope: EnumProperty(
+        name="Materials",
+        items=[
+            ("SELECTED", "Selected Objects", "The materials of the selected objects"),
+            ("ALL", "All Materials", "Every material in the file"),
+            ("ACTIVE", "Active Material", "The active object's active material"),
+        ],
+        default="SELECTED",
+    )
+    copy_textures: BoolProperty(
+        name="Copy Textures",
+        description="Write the images into textures/ beside the file and point the document at them",
+        default=False,
+    )
+
+    def execute(self, context):
+        materials = scope_materials(context, self.scope)
+        if not materials:
+            self.report({"ERROR"}, "no materials to save")
+            return {"CANCELLED"}
+        doc = graph.dump(materials)
+        try:
+            if self.copy_textures and doc["images"]:
+                folder = os.path.join(os.path.dirname(self.filepath), "textures")
+                os.makedirs(folder, exist_ok=True)
+                for entry in doc["images"]:
+                    copy_texture(self, entry, folder)
+            with open(self.filepath, "w", encoding="utf-8", newline="\n") as f:
+                f.write(graph.to_text(doc))
+        except OSError as e:
+            self.report({"ERROR"}, str(e))
+            return {"CANCELLED"}
+        self.report({"INFO"}, f"exported {len(materials)} materials ({len(doc['images'])} images)")
+        return {"FINISHED"}
+
+
+class SHADEWIRE_OT_import_graph(bpy.types.Operator, ImportHelper):
+    """Create materials from a Shadewire graph document (JSON)"""
+
+    bl_idname = "shadewire.import_graph"
+    bl_label = "Load Material Graph"
+    bl_options = {"REGISTER", "UNDO"}
+
+    filename_ext = ".json"
+    filter_glob: StringProperty(default="*.json", options={"HIDDEN"})
+    replace: BoolProperty(
+        name="Replace Existing",
+        description="Rebuild a material of the same name instead of making a new one",
+        default=False,
+    )
+
+    def execute(self, context):
+        try:
+            with open(self.filepath, encoding="utf-8") as f:
+                doc = graph.from_text(f.read())
+        except (OSError, ValueError) as e:
+            self.report({"ERROR"}, f"{os.path.basename(self.filepath)}: {e}")
+            return {"CANCELLED"}
+        materials, warnings = graph.load(doc, self.replace)
+        for w in warnings:
+            self.report({"WARNING"}, w)
+        self.report({"INFO"}, f"imported {len(materials)} materials")
+        return {"FINISHED"}
+
+
 class SHADEWIRE_PT_material(bpy.types.Panel):
     bl_label = "Shadewire MaterialX"
     bl_space_type = "PROPERTIES"
@@ -189,30 +303,40 @@ class SHADEWIRE_PT_material(bpy.types.Panel):
         if m is not None and "shadewire_source" in m:
             self.layout.label(text=f"{os.path.basename(m['shadewire_source'])}: {m['shadewire_material']}")
             self.layout.operator(SHADEWIRE_OT_rebuild.bl_idname)
+        row = self.layout.row()
+        row.operator(SHADEWIRE_OT_export_graph.bl_idname, text="Save Graph").scope = "ACTIVE"
+        row.operator(SHADEWIRE_OT_import_graph.bl_idname, text="Load Graph")
         self.layout.operator(SHADEWIRE_OT_fill.bl_idname)
 
 
 def menu_import(self, context):
     self.layout.operator(SHADEWIRE_OT_import.bl_idname, text="MaterialX (Shadewire) (.mtlx)")
+    self.layout.operator(SHADEWIRE_OT_import_graph.bl_idname, text=GRAPH_LABEL)
+
+
+def menu_export(self, context):
+    self.layout.operator(SHADEWIRE_OT_export_graph.bl_idname, text=GRAPH_LABEL)
 
 
 def menu_object(self, context):
     self.layout.operator(SHADEWIRE_OT_fill.bl_idname)
 
 
-CLASSES = (ShadewirePreferences, SHADEWIRE_OT_import, SHADEWIRE_OT_fill, SHADEWIRE_OT_rebuild, SHADEWIRE_PT_material,
-           usd.ShadewireUSDHook)
+CLASSES = (ShadewirePreferences, SHADEWIRE_OT_import, SHADEWIRE_OT_fill, SHADEWIRE_OT_rebuild,
+           SHADEWIRE_OT_export_graph, SHADEWIRE_OT_import_graph, SHADEWIRE_PT_material, usd.ShadewireUSDHook)
 
 
 def register():
     for cls in CLASSES:
         bpy.utils.register_class(cls)
     bpy.types.TOPBAR_MT_file_import.append(menu_import)
+    bpy.types.TOPBAR_MT_file_export.append(menu_export)
     bpy.types.VIEW3D_MT_object.append(menu_object)
 
 
 def unregister():
     bpy.types.VIEW3D_MT_object.remove(menu_object)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_export)
     bpy.types.TOPBAR_MT_file_import.remove(menu_import)
     for cls in reversed(CLASSES):
         bpy.utils.unregister_class(cls)
