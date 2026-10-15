@@ -208,115 +208,115 @@ expression: written.text
     <output name="in2_out_2" type="color3" nodename="Mix_Final_weight" />
     <output name="opacity" type="float" nodename="surface_opacity" />
   </nodegraph>
-  <conductor_bsdf name="conductor_bsdf_0" type="BSDF">
+  <conductor_bsdf name="lobes_conductor_bsdf_0" type="BSDF">
     <input name="extinction" type="color3" nodegraph="NG_lobes" output="extinction" />
     <input name="ior" type="color3" nodegraph="NG_lobes" output="ior" />
     <input name="roughness" type="vector2" nodegraph="NG_lobes" output="roughness" />
     <input name="distribution" type="string" value="ggx" />
   </conductor_bsdf>
-  <generalized_schlick_bsdf name="generalized_schlick_bsdf_1" type="BSDF">
+  <generalized_schlick_bsdf name="lobes_generalized_schlick_bsdf_1" type="BSDF">
     <input name="color0" type="color3" nodegraph="NG_lobes" output="color0" />
     <input name="color82" type="color3" nodegraph="NG_lobes" output="color82" />
     <input name="roughness" type="vector2" nodegraph="NG_lobes" output="roughness_out" />
     <input name="distribution" type="string" value="ggx" />
     <input name="scatter_mode" type="string" value="R" />
   </generalized_schlick_bsdf>
-  <add name="add_2" type="BSDF">
-    <input name="in1" type="BSDF" nodename="conductor_bsdf_0" />
-    <input name="in2" type="BSDF" nodename="generalized_schlick_bsdf_1" />
+  <add name="lobes_add_2" type="BSDF">
+    <input name="in1" type="BSDF" nodename="lobes_conductor_bsdf_0" />
+    <input name="in2" type="BSDF" nodename="lobes_generalized_schlick_bsdf_1" />
   </add>
-  <generalized_schlick_bsdf name="generalized_schlick_bsdf_3" type="BSDF">
+  <generalized_schlick_bsdf name="lobes_generalized_schlick_bsdf_3" type="BSDF">
     <input name="color0" type="color3" nodegraph="NG_lobes" output="color0_out" />
     <input name="color82" type="color3" nodegraph="NG_lobes" output="color0_out" />
     <input name="roughness" type="vector2" nodegraph="NG_lobes" output="roughness_out_2" />
     <input name="distribution" type="string" value="ggx" />
     <input name="scatter_mode" type="string" value="R" />
   </generalized_schlick_bsdf>
-  <oren_nayar_diffuse_bsdf name="oren_nayar_diffuse_bsdf_4" type="BSDF">
+  <oren_nayar_diffuse_bsdf name="lobes_oren_nayar_diffuse_bsdf_4" type="BSDF">
     <input name="color" type="color3" nodegraph="NG_lobes" output="color" />
     <input name="roughness" type="float" nodegraph="NG_lobes" output="roughness_out_3" />
   </oren_nayar_diffuse_bsdf>
-  <mix name="mix_5" type="BSDF">
-    <input name="fg" type="BSDF" nodename="generalized_schlick_bsdf_3" />
-    <input name="bg" type="BSDF" nodename="oren_nayar_diffuse_bsdf_4" />
+  <mix name="lobes_mix_5" type="BSDF">
+    <input name="fg" type="BSDF" nodename="lobes_generalized_schlick_bsdf_3" />
+    <input name="bg" type="BSDF" nodename="lobes_oren_nayar_diffuse_bsdf_4" />
     <input name="mix" type="float" nodegraph="NG_lobes" output="mix" />
   </mix>
-  <dielectric_bsdf name="dielectric_bsdf_6" type="BSDF">
+  <dielectric_bsdf name="lobes_dielectric_bsdf_6" type="BSDF">
     <input name="ior" type="float" nodegraph="NG_lobes" output="ior_out" />
     <input name="roughness" type="vector2" nodegraph="NG_lobes" output="roughness_out_4" />
     <input name="tint" type="color3" nodegraph="NG_lobes" output="tint" />
     <input name="distribution" type="string" value="ggx" />
     <input name="scatter_mode" type="string" value="T" />
   </dielectric_bsdf>
-  <dielectric_bsdf name="dielectric_bsdf_7" type="BSDF">
+  <dielectric_bsdf name="lobes_dielectric_bsdf_7" type="BSDF">
     <input name="ior" type="float" nodegraph="NG_lobes" output="ior_out_2" />
     <input name="roughness" type="vector2" nodegraph="NG_lobes" output="roughness_out_5" />
     <input name="tint" type="color3" nodegraph="NG_lobes" output="tint_out" />
     <input name="distribution" type="string" value="ggx" />
     <input name="scatter_mode" type="string" value="RT" />
   </dielectric_bsdf>
-  <mix name="mix_8" type="BSDF">
-    <input name="fg" type="BSDF" nodename="dielectric_bsdf_6" />
-    <input name="bg" type="BSDF" nodename="dielectric_bsdf_7" />
+  <mix name="lobes_mix_8" type="BSDF">
+    <input name="fg" type="BSDF" nodename="lobes_dielectric_bsdf_6" />
+    <input name="bg" type="BSDF" nodename="lobes_dielectric_bsdf_7" />
     <input name="mix" type="float" nodegraph="NG_lobes" output="mix_out" />
   </mix>
-  <add name="add_9" type="BSDF">
-    <input name="in1" type="BSDF" nodename="mix_5" />
-    <input name="in2" type="BSDF" nodename="mix_8" />
+  <add name="lobes_add_9" type="BSDF">
+    <input name="in1" type="BSDF" nodename="lobes_mix_5" />
+    <input name="in2" type="BSDF" nodename="lobes_mix_8" />
   </add>
-  <subsurface_bsdf name="subsurface_bsdf_10" type="BSDF">
+  <subsurface_bsdf name="lobes_subsurface_bsdf_10" type="BSDF">
     <input name="anisotropy" type="float" nodegraph="NG_lobes" output="anisotropy" />
     <input name="color" type="color3" nodegraph="NG_lobes" output="color_out" />
     <input name="radius" type="color3" nodegraph="NG_lobes" output="radius" />
   </subsurface_bsdf>
-  <translucent_bsdf name="translucent_bsdf_11" type="BSDF">
+  <translucent_bsdf name="lobes_translucent_bsdf_11" type="BSDF">
     <input name="color" type="color3" nodegraph="NG_lobes" output="color_out_2" />
   </translucent_bsdf>
-  <sheen_bsdf name="sheen_bsdf_12" type="BSDF">
+  <sheen_bsdf name="lobes_sheen_bsdf_12" type="BSDF">
     <input name="color" type="color3" nodegraph="NG_lobes" output="color_out_3" />
     <input name="roughness" type="float" nodegraph="NG_lobes" output="roughness_out_6" />
     <input name="mode" type="string" value="zeltner" />
   </sheen_bsdf>
-  <add name="add_13" type="BSDF">
-    <input name="in1" type="BSDF" nodename="translucent_bsdf_11" />
-    <input name="in2" type="BSDF" nodename="sheen_bsdf_12" />
+  <add name="lobes_add_13" type="BSDF">
+    <input name="in1" type="BSDF" nodename="lobes_translucent_bsdf_11" />
+    <input name="in2" type="BSDF" nodename="lobes_sheen_bsdf_12" />
   </add>
-  <mix name="mix_14" type="BSDF">
-    <input name="fg" type="BSDF" nodename="subsurface_bsdf_10" />
-    <input name="bg" type="BSDF" nodename="add_13" />
+  <mix name="lobes_mix_14" type="BSDF">
+    <input name="fg" type="BSDF" nodename="lobes_subsurface_bsdf_10" />
+    <input name="bg" type="BSDF" nodename="lobes_add_13" />
     <input name="mix" type="float" nodegraph="NG_lobes" output="mix_out_2" />
   </mix>
-  <add name="add_15" type="BSDF">
-    <input name="in1" type="BSDF" nodename="add_9" />
-    <input name="in2" type="BSDF" nodename="mix_14" />
+  <add name="lobes_add_15" type="BSDF">
+    <input name="in1" type="BSDF" nodename="lobes_add_9" />
+    <input name="in2" type="BSDF" nodename="lobes_mix_14" />
   </add>
-  <mix name="mix_16" type="BSDF">
-    <input name="fg" type="BSDF" nodename="add_2" />
-    <input name="bg" type="BSDF" nodename="add_15" />
+  <mix name="lobes_mix_16" type="BSDF">
+    <input name="fg" type="BSDF" nodename="lobes_add_2" />
+    <input name="bg" type="BSDF" nodename="lobes_add_15" />
     <input name="mix" type="float" nodegraph="NG_lobes" output="mix_out_3" />
   </mix>
-  <multiply name="multiply_17" type="BSDF">
-    <input name="in1" type="BSDF" nodename="mix_16" />
+  <multiply name="lobes_multiply_17" type="BSDF">
+    <input name="in1" type="BSDF" nodename="lobes_mix_16" />
     <input name="in2" type="color3" nodegraph="NG_lobes" output="in2" />
   </multiply>
-  <uniform_edf name="uniform_edf_18" type="EDF">
+  <uniform_edf name="lobes_uniform_edf_18" type="EDF">
     <input name="color" type="color3" nodegraph="NG_lobes" output="color_out_4" />
   </uniform_edf>
-  <multiply name="multiply_19" type="EDF">
-    <input name="in1" type="EDF" nodename="uniform_edf_18" />
+  <multiply name="lobes_multiply_19" type="EDF">
+    <input name="in1" type="EDF" nodename="lobes_uniform_edf_18" />
     <input name="in2" type="color3" nodegraph="NG_lobes" output="in2_out" />
   </multiply>
-  <multiply name="multiply_20" type="EDF">
-    <input name="in1" type="EDF" nodename="multiply_19" />
+  <multiply name="lobes_multiply_20" type="EDF">
+    <input name="in1" type="EDF" nodename="lobes_multiply_19" />
     <input name="in2" type="color3" nodegraph="NG_lobes" output="in2_out_2" />
   </multiply>
-  <multiply name="multiply_21" type="EDF">
-    <input name="in1" type="EDF" nodename="multiply_20" />
+  <multiply name="lobes_multiply_21" type="EDF">
+    <input name="in1" type="EDF" nodename="lobes_multiply_20" />
     <input name="in2" type="color3" nodegraph="NG_lobes" output="in2" />
   </multiply>
   <surface name="lobes_shader" type="surfaceshader">
-    <input name="bsdf" type="BSDF" nodename="multiply_17" />
-    <input name="edf" type="EDF" nodename="multiply_21" />
+    <input name="bsdf" type="BSDF" nodename="lobes_multiply_17" />
+    <input name="edf" type="EDF" nodename="lobes_multiply_21" />
     <input name="opacity" type="float" nodegraph="NG_lobes" output="opacity" />
   </surface>
   <surfacematerial name="lobes" type="material">

@@ -11,12 +11,14 @@ use super::shader::{Read, shader_nodes};
 use super::xml::Element;
 
 /// The shader-level elements of `dag`, the shader (named `shader_name`) last. Closure nodes are named
-/// `{category}_{position}`; each value input is a value or an output of the nodegraph `patterns` writes.
+/// `{material}_{category}_{position}`, so documents of several materials can be merged; each value input is a
+/// value or an output of the nodegraph `patterns` writes.
 pub fn write_surface(
     dag: &Dag,
     index: &Index,
     patterns: &mut Patterns<'_>,
     names: &mut Names,
+    material: &str,
     shader_name: &str,
 ) -> Result<Vec<Element>, Error> {
     let nodes = shader_nodes(dag, index)?;
@@ -25,7 +27,7 @@ pub fn write_surface(
     for (position, node) in nodes.iter().enumerate() {
         let name = match position + 1 == nodes.len() {
             true => shader_name.to_string(),
-            false => names.unique(&format!("{}_{position}", node.category)),
+            false => names.unique(&format!("{material}_{}_{position}", node.category)),
         };
         let mut element = Element::new(&node.category).attr("name", &name).attr("type", &node.ty);
         for (input_name, ty, read) in &node.inputs {

@@ -1270,11 +1270,11 @@ expression: written.text
     </multiply>
     <output name="color" type="color3" nodename="Emission_color" />
   </nodegraph>
-  <uniform_edf name="uniform_edf_0" type="EDF">
+  <uniform_edf name="math_uniform_edf_0" type="EDF">
     <input name="color" type="color3" nodegraph="NG_math" output="color" />
   </uniform_edf>
   <surface name="math_shader" type="surfaceshader">
-    <input name="edf" type="EDF" nodename="uniform_edf_0" />
+    <input name="edf" type="EDF" nodename="math_uniform_edf_0" />
   </surface>
   <surfacematerial name="math" type="material">
     <input name="surfaceshader" type="surfaceshader" nodename="math_shader" />

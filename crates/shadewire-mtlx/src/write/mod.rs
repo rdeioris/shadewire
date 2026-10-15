@@ -65,7 +65,7 @@ pub fn from_ir(dag: &Dag, options: &WriteOptions) -> Result<Written, Error> {
     names.reserve(&name);
     let mut patterns = write_patterns(dag, &plan, &index, options, &mut names)?;
     let shader_name = names.unique(&format!("{name}_shader"));
-    let shader_level = write_surface(dag, &index, &mut patterns, &mut names, &shader_name)?;
+    let shader_level = write_surface(dag, &index, &mut patterns, &mut names, &name, &shader_name)?;
     let mut document = Element::new("materialx").attr("version", "1.39");
     let graph: Vec<Element> = patterns.inputs.iter().chain(&patterns.nodes).chain(&patterns.outputs).cloned().collect();
     let mut used: Vec<&str> = Vec::new();
