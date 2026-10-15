@@ -376,6 +376,19 @@ def test_document_errors(graph):
         check("malformed document" in result and "Traceback" not in result, f"a malformed document: {result}")
 
 
+PIXELS = [0.5, 0.25, 0.75, 1.0, 0.1, 0.2, 0.3, 1.0, 0.9, 0.8, 0.7, 1.0, 0.0, 1.0, 0.5, 0.5]
+
+
+def write_png(path, pixels):
+    """A 2x2 PNG file with these pixels."""
+    image = bpy.data.images.new("written", 2, 2, alpha=True)
+    image.pixels = pixels
+    image.filepath_raw = path
+    image.file_format = "PNG"
+    image.save()
+    bpy.data.images.remove(image)
+
+
 def close(a, b):
     """Equal element by element within one 8-bit step."""
     return len(a) == len(b) and all(abs(x - y) <= 1 / 255 for x, y in zip(a, b))
@@ -386,6 +399,23 @@ def test_operators():
         path = os.path.join(folder, "wood.json")
         bpy.ops.wm.read_homefile(use_empty=True)
         m = textured_material()
+        albedo = bpy.data.images["wood_albedo"]
+        # Opaque: an image made without alpha is saved without it (Blender then multiplies the color by the alpha).
+        albedo.pixels = [1.0 if i % 4 == 3 else x for i, x in enumerate(PIXELS)] * 4
+        painted = bpy.data.images.new("painted", 2, 2, alpha=True)
+        painted.pixels = PIXELS
+        painted.pack()
+        m.node_tree.nodes.new("ShaderNodeTexImage").image = painted
+        # Two files of one basename in two folders, and a second image of the first file.
+        sources = []
+        for sub, shift in (("a", 0.0), ("b", 0.5)):
+            os.makedirs(os.path.join(folder, sub))
+            source = os.path.join(folder, sub, "twin.png")
+            write_png(source, [min(1.0, x + shift) for x in PIXELS])
+            sources.append(source)
+        for source in (sources[0], sources[1], sources[0]):
+            m.node_tree.nodes.new("ShaderNodeTexImage").image = bpy.data.images.load(source, check_existing=False)
+        expected = {"wood_albedo": albedo.pixels[:], "painted": painted.pixels[:]}
         cube = bpy.data.objects.new("Cube", bpy.data.meshes.new("Cube"))
         cube.data.materials.append(m)
         bpy.context.scene.collection.objects.link(cube)
@@ -398,10 +428,25 @@ def test_operators():
         texture = os.path.join(folder, "textures", "wood_albedo.png")
         check(os.path.isfile(texture), "copy_textures wrote the generated image")
         check(doc["images"][0]["filepath"].replace("\\", "/") == texture.replace("\\", "/"), f"filepath rewritten: {doc['images'][0]}")
+        paths = {entry["name"]: entry["filepath"] for entry in doc["images"]}
+        check(paths["painted"].endswith("textures/painted.png") and os.path.isfile(paths["painted"]),
+              f"the packed image is written from its bytes: {paths['painted']}")
+        twins = [paths["twin.png"], paths["twin.png.001"], paths["twin.png.002"]]
+        check(twins[0].endswith("textures/twin.png") and twins[1].endswith("textures/twin.1.png")
+              and twins[2] == twins[0], f"one basename from two folders: {twins}")
+        for source, written in zip(sources, twins):
+            check(os.path.isfile(written) and open(source, "rb").read() == open(written, "rb").read(),
+                  f"{written} is a copy of {source}")
+        written = sorted(os.listdir(os.path.join(folder, "textures")))
+        check(written == ["painted.png", "twin.1.png", "twin.png", "wood_albedo.png"], f"textures written: {written}")
         bpy.ops.wm.read_homefile(use_empty=True)
         result = bpy.ops.shadewire.import_graph(filepath=path)
         check(result == {"FINISHED"} and "Wood" in bpy.data.materials, f"import: {result}")
         check(bpy.data.images["wood_albedo"].filepath.replace("\\", "/").endswith("textures/wood_albedo.png"), "image loaded from the copied file")
+        for name, pixels in expected.items():
+            back = bpy.data.images[name].pixels[:]
+            wrong = [(i, round(x, 3), round(y, 3)) for i, (x, y) in enumerate(zip(back, pixels)) if abs(x - y) > 1 / 255]
+            check(close(back, pixels), f"{name} pixels after copy and load (index, read, expected): {wrong[:8]}")
 
 
 def test_fixtures_are_current(graph):

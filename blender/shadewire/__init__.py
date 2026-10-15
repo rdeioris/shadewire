@@ -14,6 +14,7 @@ imported without it. File > Export and Import > Material Graph (Shadewire JSON) 
 document of their node trees (`graph.py`).
 """
 
+import array
 import os
 import shutil
 
@@ -198,18 +199,80 @@ def scope_materials(context, scope):
     return found
 
 
-def copy_texture(operator, entry, folder):
-    """Put one dumped image into `folder` and point its entry there: a file is copied, anything else saved as PNG."""
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+class TextureFolder:
+    """The textures folder of one export: each source is written once, under its own file name unless another source
+    of this export took that name first (then `name.1.ext`, `name.2.ext`, ...)."""
+
+    def __init__(self, folder):
+        self.folder = folder
+        self.paths = {}
+        self.taken = set()
+
+    def place(self, key, stem, ext):
+        """The path for the source `key` and whether it still has to be written there."""
+        if key in self.paths:
+            return self.paths[key], False
+        path = os.path.join(self.folder, stem + ext)
+        number = 0
+        while os.path.normcase(path) in self.taken:
+            number += 1
+            path = os.path.join(self.folder, f"{stem}.{number}{ext}")
+        self.taken.add(os.path.normcase(path))
+        self.paths[key] = path
+        return path, True
+
+
+def packed_name(image, data):
+    """The file name for a packed image's bytes: its original file's name; with none, the image's name and `.png`
+    when the bytes are a PNG (Blender packs generated and painted images as PNG), else `.bin`."""
+    stem, ext = os.path.splitext(bpy.path.basename(image.filepath))
+    if stem and ext:
+        return stem, ext
+    return bpy.path.clean_name(image.name), ".png" if data.startswith(PNG_SIGNATURE) else ".bin"
+
+
+def save_png(image, path):
+    """Save the image's pixels as a PNG the way `Image.save` writes them (no view transform, which `save_render` would
+    apply), through a copy so the image keeps its own path and format. A copy starts from the generated pixels, not
+    the painted ones, so the pixels are handed over."""
+    pixels = array.array("f", [0.0]) * len(image.pixels)
+    if not pixels:
+        raise OSError("the image has no pixels")
+    image.pixels.foreach_get(pixels)
+    copy = image.copy()
+    try:
+        copy.pixels.foreach_set(pixels)
+        copy.filepath_raw = path
+        copy.file_format = "PNG"
+        copy.save()
+    finally:
+        bpy.data.images.remove(copy)
+
+
+def copy_texture(operator, entry, textures):
+    """Put one dumped image into the export's textures folder and point its entry there, its pixels as they are: a
+    packed image's bytes are written as they are, a file is copied, anything else is saved as PNG."""
     image = bpy.data.images.get(entry["name"])
     source = entry["filepath"]
     try:
-        if entry["source"] == "FILE" and source and os.path.isfile(source):
-            target = os.path.join(folder, os.path.basename(source))
-            if not os.path.exists(target) or not os.path.samefile(source, target):
+        if image is not None and image.packed_file is not None:
+            data = image.packed_file.data
+            target, new = textures.place(("packed", image.name), *packed_name(image, data))
+            if new:
+                with open(target, "wb") as f:
+                    f.write(data)
+        elif entry["source"] == "FILE" and source and os.path.isfile(source):
+            stem, ext = os.path.splitext(os.path.basename(source))
+            target, new = textures.place(os.path.normcase(os.path.abspath(source)), stem, ext)
+            if new and not (os.path.exists(target) and os.path.samefile(source, target)):
                 shutil.copy2(source, target)
         elif image is not None:
-            target = os.path.join(folder, bpy.path.clean_name(image.name) + ".png")
-            image.save_render(target)
+            target, new = textures.place(("image", image.name), bpy.path.clean_name(image.name), ".png")
+            if new:
+                save_png(image, target)
         else:
             raise OSError("the image is not in the file")
     except (OSError, RuntimeError) as e:
@@ -252,8 +315,9 @@ class SHADEWIRE_OT_export_graph(bpy.types.Operator, ExportHelper):
             if self.copy_textures and doc["images"]:
                 folder = os.path.join(os.path.dirname(self.filepath), "textures")
                 os.makedirs(folder, exist_ok=True)
+                textures = TextureFolder(folder)
                 for entry in doc["images"]:
-                    copy_texture(self, entry, folder)
+                    copy_texture(self, entry, textures)
             text = graph.to_text(doc)
             with open(self.filepath, "w", encoding="utf-8", newline="\n") as f:
                 f.write(text)
