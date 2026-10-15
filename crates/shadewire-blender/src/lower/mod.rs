@@ -2,12 +2,15 @@
 //! active Material Output's Surface back to the values it reads.
 
 pub mod fallback;
+pub mod lobes;
 pub mod principled;
 pub mod surface;
 pub mod values;
 
 #[cfg(test)]
 mod convert_tests;
+#[cfg(test)]
+mod lobes_tests;
 #[cfg(test)]
 mod principled_tests;
 #[cfg(test)]
@@ -36,12 +39,25 @@ pub struct Lowerer<'a> {
     /// `(node, output)` to the IR node it lowered to.
     memo: HashMap<(String, String), NodeId>,
     in_progress: HashSet<(String, String)>,
+    /// Shader node name to the shading it carries, so a shader reached twice is lowered (and warned about) once.
+    pub shaded: HashMap<String, Shading>,
+    pub shading_in_progress: HashSet<String>,
     pub warnings: Vec<String>,
 }
 
 impl<'a> Lowerer<'a> {
     pub fn new(e: Elaborator<'a>, graph: &'a Graph, material: &'a str, images: &'a [Image]) -> Lowerer<'a> {
-        Lowerer { e, graph, material, images, memo: HashMap::new(), in_progress: HashSet::new(), warnings: Vec::new() }
+        Lowerer {
+            e,
+            graph,
+            material,
+            images,
+            memo: HashMap::new(),
+            in_progress: HashSet::new(),
+            shaded: HashMap::new(),
+            shading_in_progress: HashSet::new(),
+            warnings: Vec::new(),
+        }
     }
 
     /// Output `socket` of the graph node `node`, lowered once.

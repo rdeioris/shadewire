@@ -23,13 +23,11 @@ fn modes() -> [(&'static str, IrOptions); 2] {
     [("models", IrOptions::default()), ("lobes", IrOptions::with_models(&["surface", "surface_unlit"]))]
 }
 
-/// Lowers one fixture material; `Err(NoTranslation)` is the right answer for a lobe tree under the mapped models.
+/// Lowers one fixture material; `Err(NoTranslation)` is the right answer for a closure tree under the mapped models.
 fn lower(name: &str, text: &str, material: &str, mode: &str, options: &IrOptions) -> Option<MaterialIr> {
     match to_ir(text, Some(material), options) {
         Ok(ir) => Some(ir),
-        Err(Error::NoTranslation { .. }) if mode == "models" && name == "lobes" => None,
-        // Task 4 lowers lobes (a Mix Shader tree) and math (an Emission surface).
-        Err(Error::UnsupportedSurface { .. }) if name == "lobes" || name == "math" => None,
+        Err(Error::NoTranslation { .. }) if mode == "models" && (name == "lobes" || name == "math") => None,
         Err(e) => panic!("{name}/{material} ({mode}): {e}"),
     }
 }

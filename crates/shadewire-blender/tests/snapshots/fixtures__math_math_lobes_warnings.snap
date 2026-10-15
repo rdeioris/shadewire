@@ -1,0 +1,6 @@
+---
+source: crates/shadewire-blender/tests/fixtures.rs
+expression: "ir.warnings.join(\"\\n\")"
+---
+ShaderNodeMix "Mix EXCLUSION": not lowered, output Result_Color is its default value
+ShaderNodeMapRange "Map Range Smooth": not lowered, output Result is its default value
