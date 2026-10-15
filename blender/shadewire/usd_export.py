@@ -74,8 +74,7 @@ def collect(context, bl_material, usd_material):
             print("Shadewire: a .usdz cannot carry a .mtlx; materials are left as Blender wrote them")
             export.reported = True
         return
-    # The exporter hands over the evaluated material, some of whose properties Blender 5.2 crashes reading
-    # (`blend_method`); its original is the material as the user made it.
+    # The exporter hands over the evaluated material; its original is the material as the user made it.
     material = bl_material.original
     doc = graph.dump([material])
     for entry in doc["images"]:

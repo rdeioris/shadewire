@@ -454,6 +454,29 @@ def test_usd_export_replaces_blenders_shaders():
         check(all(image.size[0] > 0 for image in bpy.data.images if image.filepath), "the textures load")
 
 
+def test_usd_import_exports_again():
+    """A scene the import hook built exports again, to USD and through the operator (reading such a material's
+    deprecated `blend_method` crashed Blender)."""
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        cube_with(textured_material("Wood"))
+        addon.usd.defaults["executable"] = executable
+        bpy.context.window_manager.shadewire_usd_materials = True
+        path = export_usd(folder, "first.usda", generate_preview_surface=False)
+        bpy.ops.wm.read_homefile(use_empty=True)
+        bpy.ops.wm.usd_import(filepath=path)
+        imported = bpy.data.materials.get("Wood")
+        check(imported is not None and "shadewire_mode" in imported, "the import hook built the material")
+        again = export_usd(folder, "again.usda", generate_preview_surface=False)
+        stage, spec = material_spec(again)
+        check(spec.hasReferences and os.path.isfile(os.path.join(folder, "again.mtlx")),
+              "the imported scene exports to USD with its mtlx")
+        path = os.path.join(folder, "again_operator.mtlx")
+        result = bpy.ops.shadewire.export_mtlx(filepath=path, scope="ALL", executable=executable)
+        check(result == {"FINISHED"} and '<surfacematerial name="Wood"' in read(path),
+              f"the imported scene exports through the operator: {result}")
+
+
 def test_usd_export_keeps_a_requested_preview_surface_and_blenders_output_when_off():
     with tempfile.TemporaryDirectory() as folder:
         bpy.ops.wm.read_homefile(use_empty=True)
@@ -594,7 +617,7 @@ def test_usd_panel():
 TESTS = [test_to_mtlx, test_merge_documents, test_merge_lobe_materials, test_merge_unnamed_elements,
          test_non_ascii_path, test_old_executable_hint, test_module_without_front_end,
          test_export_operator, test_export_unwritable_image, test_export_menu,
-         test_usd_export_replaces_blenders_shaders,
+         test_usd_export_replaces_blenders_shaders, test_usd_import_exports_again,
          test_usd_export_keeps_a_requested_preview_surface_and_blenders_output_when_off, test_usdz_is_left_to_blender,
          test_usd_export_to_a_folder_named_usdz, test_usd_export_leaves_a_failing_material_to_blender,
          test_usd_export_reports_an_unwritable_mtlx, test_usd_panel]

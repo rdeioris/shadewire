@@ -19,7 +19,9 @@ VERSION = 1
 # Properties every shader node has; a node's own properties are the ones past these.
 BASE_PROPERTIES = {p.identifier for p in bpy.types.ShaderNode.bl_rna.properties}
 
-SETTINGS = ("surface_render_method", "blend_method", "use_backface_culling", "displacement_method")
+# The material settings written; not the deprecated `blend_method` (`surface_render_method` carries its meaning),
+# whose getter crashes Blender 5.2 on a material the USD import hook built. A document that holds it still loads.
+SETTINGS = ("surface_render_method", "use_backface_culling", "displacement_method")
 
 # Read-only pointers whose content is still the node's own state (the pointer is fixed, the struct is edited).
 STRUCTS = ("color_ramp", "mapping")

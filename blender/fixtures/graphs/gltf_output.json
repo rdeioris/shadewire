@@ -7,7 +7,6 @@
       "name": "gltf_output",
       "settings": {
         "surface_render_method": "DITHERED",
-        "blend_method": "HASHED",
         "use_backface_culling": false,
         "displacement_method": "BUMP"
       },

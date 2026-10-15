@@ -1,8 +1,8 @@
 """Builds every material of the given MaterialX documents (default: the vendored examples) into Blender node
 trees and reports failures and warnings. Each built material's graph must survive dump → load → dump, and its
 export back to MaterialX through Shadewire must compile again. USD scenes among the files are imported with the
-add-on's USD hook registered, and every material with a MaterialX surface must arrive built and every texture
-load; with --flatten each scene is also imported flattened (its MaterialX inline, which the hook writes back as a
+add-on's USD hook registered, and every material with a MaterialX surface must arrive built (and pass the same two
+checks) and every texture load; with --flatten each scene is also imported flattened (its MaterialX inline, which the hook writes back as a
 document). Exits 1 when a material fails.
 
 blender -b -P blender/smoke_test.py -- [--shadewire PATH] [--mode PRINCIPLED|LOBES] [--flatten] [--installed]
@@ -153,7 +153,8 @@ def re_exports(material, label):
 
 
 def check_usd(path):
-    """Counts: built, failed; the scene's MaterialX materials as Blender's USD importer leaves them."""
+    """Counts: built, round-tripped, re-exported, failed; the scene's MaterialX materials as Blender's USD importer
+    leaves them, each built one also checked as `check_mtlx` checks a material."""
     stage = Usd.Stage.Open(path)
     expected = sorted(p.GetName() for p in stage.Traverse()
                       if p.IsA(UsdShade.Material) and UsdShade.Material(p).GetSurfaceOutput("mtlx"))
@@ -173,6 +174,8 @@ def check_usd(path):
                 for n in material.node_tree.nodes):
             counts["built"] += 1
             print(f"ok   {label}: {len(material.node_tree.nodes)} nodes")
+            counts["round-tripped" if round_trips(material, label) else "failed"] += 1
+            counts["re-exported" if re_exports(material, label) else "failed"] += 1
         else:
             counts["failed"] += 1
             print(f"FAIL {label}: not built by the hook")
