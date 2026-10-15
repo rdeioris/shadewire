@@ -363,6 +363,81 @@ class SHADEWIRE_OT_export_graph(bpy.types.Operator, ExportHelper):
         return {"FINISHED"}
 
 
+class SHADEWIRE_OT_export_mtlx(bpy.types.Operator, ExportHelper):
+    """Write materials as one MaterialX document, compiled by Shadewire from their node trees"""
+
+    bl_idname = "shadewire.export_mtlx"
+    bl_label = "Export MaterialX"
+    bl_options = {"REGISTER"}
+
+    filename_ext = ".mtlx"
+    filter_glob: StringProperty(default="*.mtlx", options={"HIDDEN"})
+    scope: EnumProperty(
+        name="Materials",
+        items=[
+            ("SELECTED", "Selected Objects", "The materials of the selected objects"),
+            ("ALL", "All Materials", "Every material in the file"),
+            ("ACTIVE", "Active Material", "The active object's active material"),
+        ],
+        default="SELECTED",
+    )
+    copy_textures: BoolProperty(
+        name="Copy Textures",
+        description="Write the images into textures/ beside the file and reference them there",
+        default=True,
+    )
+    inline: BoolProperty(
+        name="Inline Nodes",
+        description="Write library nodes expanded into the nodes they are built from",
+        default=False,
+    )
+    executable: StringProperty(options={"HIDDEN"})
+
+    def copy_images(self, doc):
+        """Write the document's images beside the file when asked, then make every path relative to the file."""
+        folder = os.path.dirname(self.filepath)
+        if self.copy_textures and doc["images"]:
+            textures = os.path.join(folder, "textures")
+            os.makedirs(textures, exist_ok=True)
+            copies = TextureFolder(textures, doc["images"])
+            for entry in doc["images"]:
+                copy_texture(self, entry, copies)
+            for entry in doc["images"]:
+                entry["filepath"] = os.path.relpath(entry["filepath"], folder).replace("\\", "/")
+
+    def compile_materials(self, context, materials, doc):
+        """The MaterialX text of every material and the warnings, each named after its material."""
+        compiled = compiler.backend(self.executable or configured_executable(context))
+        text = graph.to_text(doc)
+        texts = []
+        for material in materials:
+            try:
+                document, warnings = compiled.to_mtlx(text, material.name, material.name, self.inline)
+            except compiler.CompileError as e:
+                raise compiler.CompileError(f"{material.name}: {e}") from e
+            texts.append(document)
+            for w in warnings:
+                self.report({"WARNING"}, f"{material.name}: {w}")
+        return compiler.merge_documents(texts)
+
+    def execute(self, context):
+        materials = scope_materials(context, self.scope)
+        if not materials:
+            self.report({"ERROR"}, "no materials to export")
+            return {"CANCELLED"}
+        doc = graph.dump(materials)
+        try:
+            self.copy_images(doc)
+            text = self.compile_materials(context, materials, doc)
+            with open(self.filepath, "w", encoding="utf-8", newline="\n") as f:
+                f.write(text)
+        except (compiler.CompileError, OSError, ValueError) as e:
+            self.report({"ERROR"}, str(e))
+            return {"CANCELLED"}
+        self.report({"INFO"}, f"exported {len(materials)} materials to {os.path.basename(self.filepath)}")
+        return {"FINISHED"}
+
+
 class SHADEWIRE_OT_import_graph(bpy.types.Operator, ImportHelper):
     """Create materials from a Shadewire graph document (JSON)"""
 
@@ -419,6 +494,7 @@ def menu_import(self, context):
 
 
 def menu_export(self, context):
+    self.layout.operator(SHADEWIRE_OT_export_mtlx.bl_idname, text="MaterialX (Shadewire) (.mtlx)")
     self.layout.operator(SHADEWIRE_OT_export_graph.bl_idname, text=GRAPH_LABEL)
 
 
@@ -426,7 +502,7 @@ def menu_object(self, context):
     self.layout.operator(SHADEWIRE_OT_fill.bl_idname)
 
 
-CLASSES = (ShadewirePreferences, SHADEWIRE_OT_import, SHADEWIRE_OT_fill, SHADEWIRE_OT_rebuild,
+CLASSES = (ShadewirePreferences, SHADEWIRE_OT_import, SHADEWIRE_OT_fill, SHADEWIRE_OT_rebuild, SHADEWIRE_OT_export_mtlx,
            SHADEWIRE_OT_export_graph, SHADEWIRE_OT_import_graph, SHADEWIRE_PT_material, usd.ShadewireUSDHook)
 
 

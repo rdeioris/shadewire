@@ -54,6 +54,12 @@ From a source checkout, without the module, the add-on falls back to the `shadew
   4.3, or the hook turned off).
 - **Rebuild from MaterialX** (Material properties) compiles a material again from its document, in the mode it
   was built with.
+- **File > Export > MaterialX (Shadewire)** writes one `.mtlx` holding every exported material (the selected
+  objects', the active one, or all of them), compiled by Shadewire from their node trees: a Principled BSDF as an
+  `open_pbr_surface`, other BSDFs as a closure tree, the other nodes as MaterialX nodes. "Copy Textures" writes a
+  `textures` folder beside the file and references the images there by relative path; without it the paths stay as
+  Blender has them. "Inline Nodes" writes library nodes expanded into the nodes they are built from. What Shadewire
+  approximates is reported as warnings, and listed in `crates/shadewire-blender/README.md`.
 - **File > Export > Material Graph (Shadewire JSON)** (and Save Graph in the Material properties panel) writes
   materials as a JSON document: the selected objects' materials, the active one, or all of them, with their node
   groups and image references. "Copy Textures" writes the images into a `textures` folder beside the file and

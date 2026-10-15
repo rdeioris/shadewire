@@ -285,8 +285,85 @@ def test_module_without_front_end():
             sys.modules["shadewire"] = saved[0]
 
 
+def read(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def select_only(obj):
+    for o in bpy.context.view_layer.objects:
+        o.select_set(o == obj)
+    bpy.context.view_layer.objects.active = obj
+
+
+def cube_with(material):
+    bpy.ops.mesh.primitive_cube_add()
+    cube = bpy.context.object
+    cube.data.materials.append(material)
+    return cube
+
+
+def test_export_operator():
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        m = textured_material("Wood")
+        select_only(cube_with(m))
+        path = os.path.join(folder, "wood.mtlx")
+        result = bpy.ops.shadewire.export_mtlx(filepath=path, scope="ACTIVE", copy_textures=True, executable=executable)
+        check(result == {"FINISHED"}, f"export finished: {result}")
+        text = read(path)
+        check('<surfacematerial name="Wood"' in text, "the material is named after Blender's")
+        files = [line.strip() for line in text.splitlines() if 'type="filename"' in line]
+        check(files and all('value="textures/' in line for line in files), f"image paths are relative to the document: {files}")
+        written = os.listdir(os.path.join(folder, "textures"))
+        check(any(name.startswith("Wood") for name in written), f"the texture was written: {written}")
+        valid, message = parse_mtlx(text)
+        check(valid in (True, None), f"MaterialX parses the export: {message}")
+        # Several materials, absolute paths, inline.
+        other = textured_material("Metal")
+        other.node_tree.nodes["Principled BSDF"].inputs["Metallic"].default_value = 1.0
+        bpy.context.object.data.materials.append(other)
+        path = os.path.join(folder, "both.mtlx")
+        result = bpy.ops.shadewire.export_mtlx(filepath=path, scope="SELECTED", copy_textures=False, inline=True,
+                                               executable=executable)
+        check(result == {"FINISHED"}, f"export of two materials finished: {result}")
+        text = read(path)
+        check(text.count("<surfacematerial ") == 2, "both materials are in the document")
+        check('nodedef="ND_convert_' not in text, "inline expands the library nodes")
+        path = os.path.join(folder, "folded.mtlx")
+        result = bpy.ops.shadewire.export_mtlx(filepath=path, scope="SELECTED", copy_textures=False, executable=executable)
+        check(result == {"FINISHED"}, f"export without inline finished: {result}")
+        check('nodedef="ND_convert_' in read(path), "without Inline the library nodes stay declared")
+        check('value="textures/' not in text, "without Copy Textures the paths are not rewritten")
+        # Nothing to export is an error, nothing written.
+        bpy.ops.object.select_all(action="DESELECT")
+        path = os.path.join(folder, "none.mtlx")
+        try:
+            bpy.ops.shadewire.export_mtlx(filepath=path, scope="SELECTED", executable=executable)
+        except RuntimeError as e:
+            check("no materials" in str(e), f"an empty selection reports: {e}")
+        else:
+            check(False, "an empty selection is an error")
+        check(not os.path.exists(path), "nothing is written on an empty selection")
+
+
+def test_export_menu():
+    labels = []
+
+    class Layout:
+        def operator(self, idname, text=""):
+            labels.append((idname, text))
+            return type("Props", (), {})()
+
+    class Menu:
+        layout = Layout()
+
+    addon.menu_export(Menu(), bpy.context)
+    check(("shadewire.export_mtlx", "MaterialX (Shadewire) (.mtlx)") in labels, f"the export menu lists MaterialX: {labels}")
+
+
 TESTS = [test_to_mtlx, test_merge_documents, test_merge_lobe_materials, test_merge_unnamed_elements, test_non_ascii_path,
-         test_old_executable_hint, test_module_without_front_end]
+         test_old_executable_hint, test_module_without_front_end, test_export_operator, test_export_menu]
 
 if __name__ == "__main__":
     for test in TESTS:
