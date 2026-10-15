@@ -235,3 +235,37 @@ fn map_range_over_vectors_remaps_and_writes_other_interpolations_as_linear() {
     assert!(close(&value, &Value::Color3([15.0; 3])), "{value:?}");
     assert_eq!(warnings, [r#"ShaderNodeMapRange "R": STEPPED over vectors written as Linear"#]);
 }
+
+#[test]
+fn smoothstep_over_an_inverted_from_range_ramps_as_blender_does() {
+    let socket = |id: &str, v: f32| {
+        format!(r#"{{"identifier": "{id}", "name": "{id}", "type": "VALUE", "enabled": true, "value": {v}}}"#)
+    };
+    let nodes = format!(
+        r#"{{"name": "R", "type": "ShaderNodeMapRange", "mute": false,
+      "properties": {{"clamp": false, "interpolation_type": "SMOOTHSTEP", "data_type": "FLOAT"}},
+      "inputs": [{}, {}, {}, {}, {}],
+      "outputs": [{{"identifier": "Result", "name": "Result", "type": "VALUE", "enabled": true}}], "internal_links": []}}"#,
+        socket("Value", 0.5),
+        socket("From Min", 2.0),
+        socket("From Max", 0.0),
+        socket("To Min", 10.0),
+        socket("To Max", 20.0),
+    );
+    let link = r#"[[["R", "Result"], ["Principled BSDF", "Emission Strength"]]]"#;
+    let (value, warnings) = lower_field(&nodes, link, "emission_luminance");
+    assert!(warnings.is_empty(), "{warnings:?}");
+    // t = (0.5 - 2) / (0 - 2) = 0.75, 3t^2 - 2t^3 = 0.84375
+    assert!(close(&value, &Value::Float(10.0 + 10.0 * 0.84375)), "{value:?}");
+}
+
+#[test]
+fn a_disabled_vector_math_output_lowers_nothing_upstream() {
+    let noise = r#"{"name": "Z", "type": "ShaderNodeTexNoise", "mute": false, "properties": {}, "inputs": [],
+      "outputs": [{"identifier": "Color", "name": "Color", "type": "RGBA", "enabled": true}], "internal_links": []}"#;
+    let nodes = format!("{}, {noise}", vector_math("ADD", [1.0; 3], [1.0; 3], [0.0; 3], 1.0));
+    let links = r#"[[["Z", "Color"], ["VM", "Vector"]], [["VM", "Value"], ["Principled BSDF", "Roughness"]]]"#;
+    let (value, warnings) = lower_field(&nodes, links, "specular_roughness");
+    assert_eq!(value, Value::Float(0.0));
+    assert_eq!(warnings, [r#"ShaderNodeVectorMath "VM": output Value is not produced by ADD, zero"#]);
+}

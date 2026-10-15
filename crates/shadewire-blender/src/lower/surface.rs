@@ -232,7 +232,7 @@ fn mixed_transparency(
     if sides == [None, None] {
         return Ok(None);
     }
-    let [bg, fg] = sides.map(|t| t.unwrap_or_else(|| l.float(0.0, origin)));
+    let [bg, fg] = sides.map(|t| t.unwrap_or_else(|| l.k(0.0, origin)));
     let inputs = [("bg", Arg::Node(bg)), ("fg", Arg::Node(fg)), ("mix", Arg::Node(fac))];
     l.op("mix", Type::Float, &inputs, origin).map(Some)
 }
@@ -241,7 +241,7 @@ fn mixed_transparency(
 fn added_transparency(l: &mut Lowerer, sides: [Option<NodeId>; 2], origin: &str) -> Result<Option<NodeId>, Error> {
     let [Some(a), Some(b)] = sides else { return Ok(sides[0].or(sides[1])) };
     let sum = l.op("add", Type::Float, &[("in1", Arg::Node(a)), ("in2", Arg::Node(b))], origin)?;
-    let one = l.float(1.0, origin);
+    let one = l.k(1.0, origin);
     l.op("min", Type::Float, &[("in1", Arg::Node(sum)), ("in2", Arg::Node(one))], origin).map(Some)
 }
 
@@ -344,7 +344,7 @@ fn side_weight(l: &mut Lowerer, fac: NodeId, second: bool, origin: &str) -> Resu
 }
 
 fn one_minus(l: &mut Lowerer, x: NodeId, origin: &str) -> Result<NodeId, Error> {
-    let one = l.float(1.0, origin);
+    let one = l.k(1.0, origin);
     l.op("subtract", Type::Float, &[("in1", Arg::Node(one)), ("in2", Arg::Node(x))], origin)
 }
 

@@ -36,7 +36,7 @@ pub fn lobe(l: &mut Lowerer, node: &FlatNode) -> Result<Option<ShaderNode>, Erro
             inputs.read(l, node, "Color", "tint", Type::Color3)?;
             inputs.read(l, node, "IOR", "ior", Type::Float)?;
             let roughness = l.input(node, "Roughness", Type::Float)?;
-            let isotropic = l.float(0.0, &format!("{}.anisotropy", node.name));
+            let isotropic = l.k(0.0, &format!("{}.anisotropy", node.name));
             inputs.put("roughness", rough2(l, node, roughness, isotropic)?);
             inputs.read_if_linked(l, node, "Normal", "normal")?;
             inputs.0.push(("scatter_mode".to_string(), Arg::Text(mode.to_string())));

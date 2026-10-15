@@ -61,7 +61,7 @@ pub fn fields(l: &mut Lowerer, node: &FlatNode) -> Result<Shading, Error> {
     }
     let origin = |what: &str| format!("{}.{what}", node.name);
     if let Some(level) = read(l, node, "Specular IOR Level", Type::Float)? {
-        let two = l.float(2.0, &origin("specular_weight"));
+        let two = l.k(2.0, &origin("specular_weight"));
         let weight = l.op(
             "multiply",
             Type::Float,
@@ -71,7 +71,7 @@ pub fn fields(l: &mut Lowerer, node: &FlatNode) -> Result<Shading, Error> {
         bind("specular_weight", weight);
     }
     if let Some(nm) = read(l, node, "Thin Film Thickness", Type::Float)? {
-        let per_nm = l.float(0.001, &origin("thin_film_thickness"));
+        let per_nm = l.k(0.001, &origin("thin_film_thickness"));
         let thickness = l.op(
             "multiply",
             Type::Float,
@@ -79,7 +79,7 @@ pub fn fields(l: &mut Lowerer, node: &FlatNode) -> Result<Shading, Error> {
             &origin("thin_film_thickness"),
         )?;
         bind("thin_film_thickness", thickness);
-        let (zero, one) = (l.float(0.0, &origin("thin_film_weight")), l.float(1.0, &origin("thin_film_weight")));
+        let (zero, one) = (l.k(0.0, &origin("thin_film_weight")), l.k(1.0, &origin("thin_film_weight")));
         let inputs =
             [("value1", Arg::Node(nm)), ("value2", Arg::Node(zero)), ("in1", Arg::Node(one)), ("in2", Arg::Node(zero))];
         bind("thin_film_weight", l.op("ifgreater", Type::Float, &inputs, &origin("thin_film_weight"))?);

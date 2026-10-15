@@ -227,15 +227,16 @@ pub fn vector_math(l: &mut Lowerer, node: &FlatNode, output: &str) -> Result<Nod
     let op = node.text("operation").unwrap_or("ADD");
     let o = node.name.as_str();
     let out_ty = if output == "Value" { F } else { V };
-    let a = l.input(node, "Vector", V)?;
     let Some((arity, scalar)) = vector_shape(op) else {
         l.warn(node, format!("operation {op} not lowered, the first value passes through"));
+        let a = l.input(node, "Vector", V)?;
         return l.convert(a, out_ty, o);
     };
     if (output == "Value") != scalar {
         l.warn(node, format!("output {output} is not produced by {op}, zero"));
         return Ok(l.e.constant(Value::zero(out_ty), o));
     }
+    let a = l.input(node, "Vector", V)?;
     let mut operands = [a; 3];
     for (slot, socket) in operands.iter_mut().zip(["Vector", "Vector_001", "Vector_002"]).take(arity).skip(1) {
         *slot = l.input(node, socket, V)?;
@@ -315,12 +316,11 @@ pub fn clamp(l: &mut Lowerer, node: &FlatNode, _output: &str) -> Result<NodeId, 
     let o = node.name.as_str();
     let value = l.input(node, "Value", F)?;
     let (min, max) = (l.input(node, "Min", F)?, l.input(node, "Max", F)?);
-    let (low, high) = if node.text("clamp_type") == Some("RANGE") {
-        (l.op2("min", F, min, max, o)?, l.op2("max", F, min, max, o)?)
+    if node.text("clamp_type") == Some("RANGE") {
+        l.clamp_between(value, min, max, F, o)
     } else {
-        (min, max)
-    };
-    l.op("clamp", F, &[("in", Arg::Node(value)), ("low", Arg::Node(low)), ("high", Arg::Node(high))], o)
+        l.op("clamp", F, &[("in", Arg::Node(value)), ("low", Arg::Node(min)), ("high", Arg::Node(max))], o)
+    }
 }
 
 /// The Map Range node over floats (`Result`) or vectors (`Vector`, `_FLOAT3` sockets): the interpolation from
@@ -357,9 +357,15 @@ pub fn map_range(l: &mut Lowerer, node: &FlatNode, output: &str) -> Result<NodeI
             let t = l.op2("divide", ty, stepped, steps, o)?;
             lerp(l, ty, t, to_min, to_max, o)?
         }
+        // Not the nodedef's `smoothstep`, which tests `in >= high` first and so jumps over an inverted From range.
         "SMOOTHSTEP" => {
-            let inputs = [("in", Arg::Node(v)), ("low", Arg::Node(from_min)), ("high", Arg::Node(from_max))];
-            let t = l.op("smoothstep", ty, &inputs, o)?;
+            let (two, three) = (l.k_of(2.0, ty, o), l.k_of(3.0, ty, o));
+            let t = unit_position(l, ty, v, from_min, from_max, o)?;
+            let t = l.clamp01(t, ty, o)?;
+            let squared = l.op2("multiply", ty, t, t, o)?;
+            let cubed = l.op2("multiply", ty, squared, t, o)?;
+            let (up, down) = (l.op2("multiply", ty, squared, three, o)?, l.op2("multiply", ty, cubed, two, o)?);
+            let t = l.op2("subtract", ty, up, down, o)?;
             lerp(l, ty, t, to_min, to_max, o)?
         }
         "SMOOTHERSTEP" => {
@@ -386,11 +392,7 @@ pub fn map_range(l: &mut Lowerer, node: &FlatNode, output: &str) -> Result<NodeI
             l.op("remap", ty, &inputs, o)?
         }
     };
-    if node.flag("clamp") {
-        let (low, high) = (l.op2("min", ty, to_min, to_max, o)?, l.op2("max", ty, to_min, to_max, o)?);
-        return l.op("clamp", ty, &[("in", Arg::Node(result)), ("low", Arg::Node(low)), ("high", Arg::Node(high))], o);
-    }
-    Ok(result)
+    if node.flag("clamp") { l.clamp_between(result, to_min, to_max, ty, o) } else { Ok(result) }
 }
 
 /// Where `v` lies between `from_min` (zero) and `from_max` (one).

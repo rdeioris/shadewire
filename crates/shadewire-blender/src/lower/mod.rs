@@ -204,14 +204,9 @@ impl<'a> Lowerer<'a> {
         self.warnings.push(format!("{} \"{}\": {}", node.kind, node.name, what.into()));
     }
 
-    /// A constant the handler itself introduces.
-    pub fn float(&mut self, x: f32, origin: &str) -> NodeId {
-        self.e.constant(Value::Float(x), origin)
-    }
-
-    /// A float constant the handler itself introduces; `float` under the name the operation tables use.
+    /// A float constant the handler itself introduces.
     pub fn k(&mut self, x: f32, origin: &str) -> NodeId {
-        self.float(x, origin)
+        self.e.constant(Value::Float(x), origin)
     }
 
     /// A constant of the vector type `ty` (`Color3`, else `Vector3`) with `x` in every channel.
@@ -280,6 +275,12 @@ impl<'a> Lowerer<'a> {
         let names = ["value1", "value2", "in1", "in2"];
         let inputs: Vec<(&str, Arg)> = names.into_iter().zip(ids).map(|(n, id)| (n, Arg::Node(id))).collect();
         self.op(category, ty, &inputs, origin)
+    }
+
+    /// `id` limited to the lower and the higher of `a` and `b`, whichever order they come in.
+    pub fn clamp_between(&mut self, id: NodeId, a: NodeId, b: NodeId, ty: Type, origin: &str) -> Result<NodeId, Error> {
+        let (low, high) = (self.op2("min", ty, a, b, origin)?, self.op2("max", ty, a, b, origin)?);
+        self.op("clamp", ty, &[("in", Arg::Node(id)), ("low", Arg::Node(low)), ("high", Arg::Node(high))], origin)
     }
 
     /// `id` limited to the range zero to one.
