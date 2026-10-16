@@ -1,0 +1,6 @@
+NVIDIA MDL SDK 2026.0.2 (https://github.com/NVIDIA/MDL-SDK, commit 1b9592c1b086b691b44d1a30eee4827d1ff55b8c), BSD-3-Clause (LICENSE):
+- std/*.mdl: src/mdl/compiler/stdmodule/{anno,debug,df,limits,math,scene,state,tex}.mdl, the declarations of the
+  standard modules
+- base.mdl: src/shaders/mdl/base/base.mdl
+- nvidia/core_definitions.mdl: examples/mdl/nvidia/core_definitions.mdl
+Line endings normalised.
