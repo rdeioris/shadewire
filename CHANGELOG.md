@@ -4,6 +4,8 @@
 
 - Graph builder: build a MaterialX document in memory from Rust (`DocumentBuilder`) or C (`shadewire_builder_*`),
   with typed values and host source paths in messages.
+- MaterialX: an element named twice among its siblings in one document (nodes, nodegraphs, outputs, interface
+  inputs, a node's inputs) is now an error; included documents merge first-wins, so a diamond include reads.
 
 ## 0.2.0 (2026-10-15)
 

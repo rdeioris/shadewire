@@ -270,6 +270,48 @@ fn duplicate_names_in_xml_are_errors_naming_the_line() {
     says(err, &["dup.mtlx:4", "g/a"]);
 }
 
+/// Builds `text` read from `dup.mtlx`, which must fail.
+fn xml_err(text: &str) -> Error {
+    build(&parse_str(text, None).unwrap(), Some("dup.mtlx")).unwrap_err()
+}
+
+#[test]
+fn a_node_with_the_same_input_twice_in_xml_is_an_error_naming_the_line() {
+    let err = xml_err(
+        "<materialx version=\"1.39\">\n<add name=\"a\" type=\"float\">\n<input name=\"in1\" type=\"float\" value=\"1\"/>\n\
+         <input name=\"in1\" type=\"float\" value=\"2\"/>\n</add></materialx>",
+    );
+    says(err, &["dup.mtlx:4", "a.in1", "defined twice"]);
+}
+
+#[test]
+fn an_empty_input_name_in_xml_is_an_error_naming_the_line() {
+    let err = xml_err(
+        "<materialx version=\"1.39\">\n<nodegraph name=\"g\">\n<add name=\"a\" type=\"float\">\n\
+         <input name=\"\" type=\"float\" value=\"1\"/>\n</add></nodegraph></materialx>",
+    );
+    says(err, &["dup.mtlx:4", "g/a."]);
+}
+
+#[test]
+fn a_nodegraph_name_clash_in_xml_is_an_error_naming_the_line() {
+    let err = xml_err(
+        "<materialx version=\"1.39\">\n<nodegraph name=\"g\"/>\n<add name=\"g\" type=\"float\"/>\n</materialx>",
+    );
+    says(err, &["dup.mtlx:3", "g is defined twice"]);
+    let err = xml_err("<materialx version=\"1.39\">\n<nodegraph name=\"g\"/>\n<nodegraph name=\"g\"/>\n</materialx>");
+    says(err, &["dup.mtlx:3", "g is defined twice"]);
+}
+
+#[test]
+fn an_output_named_as_a_node_of_its_nodegraph_in_xml_is_an_error_naming_the_line() {
+    let err = xml_err(
+        "<materialx version=\"1.39\">\n<nodegraph name=\"g\">\n<add name=\"a\" type=\"float\"/>\n\
+         <output name=\"a\" type=\"float\" nodename=\"a\"/>\n</nodegraph></materialx>",
+    );
+    says(err, &["dup.mtlx:4", "g/a", "defined twice"]);
+}
+
 #[test]
 fn a_missing_graph_output_fails_at_to_ir_naming_the_source_path() {
     let (mut b, _, _, _, sr) = small();
