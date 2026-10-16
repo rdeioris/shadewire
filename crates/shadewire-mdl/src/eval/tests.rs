@@ -273,3 +273,27 @@ fn a_component_written_by_a_run_time_index_selects() {
     let color = &fields.iter().find(|(n, _)| n == "c0_color").unwrap().1;
     assert_eq!(color, &Value::Color3([1.0, 0.0, 0.0]));
 }
+
+#[test]
+fn shadewire_noise_functions_read_as_their_ops() {
+    let prelude = "float shadewire_perlin_noise_float_3d(float3 p) { int a = int(p.x * 7.0); return float(a ^ (a + 1)); }\n\
+                   float3 shadewire_fractal_noise_vec3_2d(float2 p, int octaves, float lacunarity, float diminish) { int a = int(p.x * 7.0); return float3(float(a ^ octaves)); }";
+    let text = diffuse(
+        "1.7",
+        prelude,
+        "",
+        "color(shadewire_perlin_noise_float_3d(state::position())) + color(shadewire_fractal_noise_vec3_2d(float2(state::position().x), 3, 2.0, 0.5))",
+    );
+    let ir = lower_constants(&text);
+    let ops: Vec<shadewire::Op> = ir
+        .dag
+        .nodes
+        .iter()
+        .filter_map(|n| match &n.kind {
+            shadewire::NodeKind::Op { op, .. } => Some(*op),
+            _ => None,
+        })
+        .collect();
+    assert!(ops.contains(&shadewire::Op::Noise3d), "{}", ir.dag.dump());
+    assert!(ops.contains(&shadewire::Op::Fractal2d), "{}", ir.dag.dump());
+}

@@ -26,6 +26,9 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
         ret: Option<&Ty>,
         line: u32,
     ) -> Result<Option<Val>, Error> {
+        if let Some(v) = self.shadewire_library(func, args, ret)? {
+            return Ok(Some(v));
+        }
         if self.program.modules[f.module].name != "::base" {
             return Ok(None);
         }
@@ -99,6 +102,41 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
             _ => None,
         };
         Ok(result)
+    }
+
+    /// Shadewire's own noise functions, as its MDL writer prints them, read back as the IR ops they print: their
+    /// hashes need bit operations on run-time integers, which the IR has none of.
+    fn shadewire_library(
+        &mut self,
+        func: &Function,
+        args: &[(String, Val)],
+        ret: Option<&Ty>,
+    ) -> Result<Option<Val>, Error> {
+        let Some(rest) = func.name.strip_prefix("shadewire_") else { return Ok(None) };
+        let Some((ret, ir)) = ret.and_then(|t| t.ir().map(|ir| (t.clone(), ir))) else { return Ok(None) };
+        let nums: Option<Vec<Num>> = args.iter().map(|(_, v)| v.num().cloned()).collect();
+        let Some(nums) = nums else { return Ok(None) };
+        let dim3 = rest.ends_with("_3d");
+        let pick = |two: Op, three: Op| if dim3 { three } else { two };
+        let (op, op_args) = match (rest.split('_').next(), nums.len()) {
+            (Some("perlin"), 1) if rest.starts_with("perlin_noise_") => {
+                (pick(Op::Noise2d, Op::Noise3d), vec![kf(1.0), kf(0.0), nums[0].clone()])
+            }
+            (Some("fractal"), 4) if rest.starts_with("fractal_noise_") => {
+                let a = vec![kf(1.0), nums[1].clone(), nums[2].clone(), nums[3].clone(), nums[0].clone()];
+                (pick(Op::Fractal2d, Op::Fractal3d), a)
+            }
+            (Some("cell"), 1) if rest.starts_with("cell_noise_float_") => {
+                (pick(Op::CellNoise2d, Op::CellNoise3d), vec![nums[0].clone()])
+            }
+            // The writer prints metric 0 (Euclidean), the only one the IR's op computes.
+            (Some("worley"), 4) if rest.starts_with("worley_noise_") && nums[3].known() == Some(&Value::Integer(0)) => {
+                (pick(Op::WorleyNoise2d, Op::WorleyNoise3d), vec![nums[0].clone(), nums[1].clone(), nums[2].clone()])
+            }
+            _ => return Ok(None),
+        };
+        let n = self.emit(op, &op_args, ir, &format!("{}", func.name))?;
+        Ok(Some(Val::new(ret, V::Num(n))))
     }
 
     fn warn_noise(&mut self, kind: &str) {
