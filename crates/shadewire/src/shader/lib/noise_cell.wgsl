@@ -63,7 +63,10 @@ fn shadewire_cell_noise_vec3_3d(p: vec3<f32>) -> vec3<f32> {
     var a = s + bitcast<u32>(ix);
     var b = s + bitcast<u32>(iy);
     var c = s + bitcast<u32>(iz);
-    shadewire_bjmix(&a, &b, &c);
+    let m = shadewire_bjmix(a, b, c);
+    a = m.x;
+    b = m.y;
+    c = m.z;
     return vec3<f32>(
         shadewire_bits_to_01(shadewire_bjfinal(a, b, c)),
         shadewire_bits_to_01(shadewire_bjfinal(a + 1u, b, c)),
@@ -81,7 +84,10 @@ fn shadewire_cell_noise_vec3_4d(p: vec4<f32>) -> vec3<f32> {
     var a = s + bitcast<u32>(ix);
     var b = s + bitcast<u32>(iy);
     var c = s + bitcast<u32>(iz);
-    shadewire_bjmix(&a, &b, &c);
+    let m = shadewire_bjmix(a, b, c);
+    a = m.x;
+    b = m.y;
+    c = m.z;
     a += bitcast<u32>(iw);
     return vec3<f32>(
         shadewire_bits_to_01(shadewire_bjfinal(a, b, c)),

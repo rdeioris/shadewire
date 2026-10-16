@@ -58,10 +58,10 @@ fn shadewire_fade(t: f32) -> f32 {
 
 // mx_perlin_noise_float(vec2) (Rust perlin_noise_float_2d)
 fn shadewire_perlin_noise_float_2d(p: vec2<f32>) -> f32 {
-    var x: i32;
-    var y: i32;
-    let fx = shadewire_floorfrac(p.x, &x);
-    let fy = shadewire_floorfrac(p.y, &y);
+    let x = shadewire_floor(p.x);
+    let fx = shadewire_floorfrac(p.x);
+    let y = shadewire_floor(p.y);
+    let fy = shadewire_floorfrac(p.y);
     let u = shadewire_fade(fx);
     let v = shadewire_fade(fy);
     let x1 = x + 1;
@@ -79,12 +79,12 @@ fn shadewire_perlin_noise_float_2d(p: vec2<f32>) -> f32 {
 
 // mx_perlin_noise_float(vec3) (Rust perlin_noise_float_3d)
 fn shadewire_perlin_noise_float_3d(p: vec3<f32>) -> f32 {
-    var x: i32;
-    var y: i32;
-    var z: i32;
-    let fx = shadewire_floorfrac(p.x, &x);
-    let fy = shadewire_floorfrac(p.y, &y);
-    let fz = shadewire_floorfrac(p.z, &z);
+    let x = shadewire_floor(p.x);
+    let fx = shadewire_floorfrac(p.x);
+    let y = shadewire_floor(p.y);
+    let fy = shadewire_floorfrac(p.y);
+    let z = shadewire_floor(p.z);
+    let fz = shadewire_floorfrac(p.z);
     let u = shadewire_fade(fx);
     let v = shadewire_fade(fy);
     let w = shadewire_fade(fz);
@@ -109,10 +109,10 @@ fn shadewire_perlin_noise_float_3d(p: vec3<f32>) -> f32 {
 
 // mx_perlin_noise_vec3(vec2) (Rust perlin_noise_vec3_2d)
 fn shadewire_perlin_noise_vec3_2d(p: vec2<f32>) -> vec3<f32> {
-    var x: i32;
-    var y: i32;
-    let fx = shadewire_floorfrac(p.x, &x);
-    let fy = shadewire_floorfrac(p.y, &y);
+    let x = shadewire_floor(p.x);
+    let fx = shadewire_floorfrac(p.x);
+    let y = shadewire_floor(p.y);
+    let fy = shadewire_floorfrac(p.y);
     let u = shadewire_fade(fx);
     let v = shadewire_fade(fy);
     let x1 = x + 1;
@@ -130,12 +130,12 @@ fn shadewire_perlin_noise_vec3_2d(p: vec2<f32>) -> vec3<f32> {
 
 // mx_perlin_noise_vec3(vec3) (Rust perlin_noise_vec3_3d)
 fn shadewire_perlin_noise_vec3_3d(p: vec3<f32>) -> vec3<f32> {
-    var x: i32;
-    var y: i32;
-    var z: i32;
-    let fx = shadewire_floorfrac(p.x, &x);
-    let fy = shadewire_floorfrac(p.y, &y);
-    let fz = shadewire_floorfrac(p.z, &z);
+    let x = shadewire_floor(p.x);
+    let fx = shadewire_floorfrac(p.x);
+    let y = shadewire_floor(p.y);
+    let fy = shadewire_floorfrac(p.y);
+    let z = shadewire_floor(p.z);
+    let fz = shadewire_floorfrac(p.z);
     let u = shadewire_fade(fx);
     let v = shadewire_fade(fy);
     let w = shadewire_fade(fz);
