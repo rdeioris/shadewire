@@ -161,3 +161,81 @@ fn surface_unlit_is_emission() {
     assert!(out.code.contains("material_emission(emission: df::diffuse_edf(), intensity:"), "{}", out.code);
     assert_mdlc(&out.code, "unlit");
 }
+
+#[test]
+fn every_lobe_is_a_df() {
+    let dag = shadewire::shader::fixtures::every_lobe();
+    let source = shadewire::SourceInfo { source: "test".into(), mtlx_version: "1.39".into() };
+    let out = compile(&dag, &source, &MdlOptions { name: "every_lobe".into(), optimize: false }).unwrap();
+    for expected in [
+        "df::diffuse_reflection_bsdf(",
+        "df::diffuse_transmission_bsdf(",
+        "df::fresnel_factor(",
+        "df::color_custom_curve_layer(",
+        "df::sheen_bsdf(",
+        "df::weighted_layer(",
+        "df::normalized_mix(",
+        "df::unbounded_mix(",
+        "df::tint(",
+        "material_emission(emission: ",
+        "df::diffuse_edf()",
+    ] {
+        assert!(out.code.contains(expected), "{expected}\n{}", out.code);
+    }
+    assert!(
+        out.reflection.approximations.iter().any(|a| a.contains("subsurface_bsdf")),
+        "{:?}",
+        out.reflection.approximations
+    );
+    assert_mdlc(&out.code, "every_lobe");
+}
+
+const LAYERED: &str = r#"<?xml version="1.0"?>
+<materialx version="1.39">
+  <dielectric_bsdf name="coat" type="BSDF"><input name="ior" type="float" value="1.4" /></dielectric_bsdf>
+  <oren_nayar_diffuse_bsdf name="base" type="BSDF"><input name="color" type="color3" value="0.6, 0.3, 0.1" /></oren_nayar_diffuse_bsdf>
+  <layer name="l" type="BSDF"><input name="top" type="BSDF" nodename="coat" /><input name="base" type="BSDF" nodename="base" /></layer>
+  <surface name="s" type="surfaceshader"><input name="bsdf" type="BSDF" nodename="l" /></surface>
+  <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s" /></surfacematerial>
+</materialx>
+"#;
+
+#[test]
+fn layers_pass_their_base() {
+    let out = write(&mtlx(LAYERED, &LOBE_MODELS), "m");
+    assert_eq!(out.code.matches("df::fresnel_layer(").count(), 1, "{}", out.code);
+    let layer = out.code.lines().find(|l| l.contains("df::fresnel_layer(")).unwrap();
+    assert!(layer.contains("base: c"), "{layer}");
+    assert_eq!(out.code.matches("df::weighted_layer(").count(), 1, "the diffuse lobe's weight only\n{}", out.code);
+    assert_mdlc(&out.code, "layered");
+}
+
+const CUTOUT: &str = r#"<?xml version="1.0"?>
+<materialx version="1.39">
+  <oren_nayar_diffuse_bsdf name="d" type="BSDF" />
+  <surface name="s" type="surfaceshader">
+    <input name="bsdf" type="BSDF" nodename="d" />
+    <input name="opacity" type="float" value="0.4" />
+    <input name="thin_walled" type="boolean" value="true" />
+  </surface>
+  <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s" /></surfacematerial>
+</materialx>
+"#;
+
+#[test]
+fn opacity_and_thin_walled() {
+    let out = write(&mtlx(CUTOUT, &LOBE_MODELS), "m");
+    assert!(out.code.contains("thin_walled: "), "{}", out.code);
+    assert!(out.code.contains("geometry: material_geometry(cutout_opacity: "), "{}", out.code);
+    assert_mdlc(&out.code, "cutout");
+}
+
+#[test]
+fn an_empty_closure_is_a_black_material() {
+    let dag = shadewire::shader::fixtures::empty_closure();
+    let source = shadewire::SourceInfo { source: "test".into(), mtlx_version: "1.39".into() };
+    let out = compile(&dag, &source, &MdlOptions::default()).unwrap();
+    assert!(out.code.contains("} in material();"), "{}", out.code);
+    assert!(out.code.contains("export material material_() = let {"), "{}", out.code);
+    assert_mdlc(&out.code, "empty");
+}

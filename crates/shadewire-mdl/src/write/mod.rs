@@ -1,6 +1,7 @@
 //! The IR as a self-contained MDL 1.7 module: the shared shader tree printed with an MDL syntax, the surface as
 //! a `material` whose parameters are the uniforms and textures.
 
+pub mod df;
 pub mod module;
 pub mod names;
 pub mod syntax;
@@ -50,8 +51,22 @@ pub fn compile(dag: &Dag, source: &SourceInfo, options: &MdlOptions) -> Result<C
         CompileOptions { flip_v: false, implicit_derivatives: false, optimize: options.optimize, ..Default::default() };
     let (_, mut reflection, dag) = lower(dag, source, &shared)?;
     let (module, params) = module::build(&dag, &mut reflection);
-    let (lets, material) =
-        if model == "surface_unlit" { unlit(&dag, &mut reflection) } else { (Vec::new(), "material()".to_string()) };
+    let (lets, material) = match &dag.surface.closure {
+        None => unlit(&dag, &mut reflection),
+        Some(graph) => {
+            let uniforms: Vec<(String, String)> =
+                reflection.uniforms.iter().zip(&params).map(|(u, p)| (u.name.clone(), p.name.clone())).collect();
+            let uniform_param = |name: &str| uniforms.iter().find(|(u, _)| u == name).map(|(_, p)| p.clone());
+            let mut closures = df::Closures::new(&dag, graph, &uniform_param);
+            let material = closures.material();
+            for note in std::mem::take(&mut closures.notes) {
+                if !reflection.approximations.contains(&note) {
+                    reflection.approximations.push(note);
+                }
+            }
+            (closures.lines, material)
+        }
+    };
     let mut code = String::from(HEADER);
     code.push('\n');
     code.push_str(&syntax::print(&module));
@@ -65,7 +80,8 @@ pub fn compile(dag: &Dag, source: &SourceInfo, options: &MdlOptions) -> Result<C
         })
         .collect();
     let arguments: Vec<&str> = params.iter().map(|p| p.argument.as_str()).collect();
-    code.push_str(&format!("export material {}(\n{}\n) = let {{\n", mdl_ident(&options.name), declared.join(",\n")));
+    let declared = if declared.is_empty() { String::new() } else { format!("\n{}\n", declared.join(",\n")) };
+    code.push_str(&format!("export material {}({declared}) = let {{\n", mdl_ident(&options.name)));
     code.push_str(&format!(
         "    {} {SURFACE} = shadewire_eval_surface({});\n",
         struct_name(&dag.surface.model),

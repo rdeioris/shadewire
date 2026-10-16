@@ -88,7 +88,12 @@ fn parameters(reflection: &Reflection, notes: &mut Vec<String>) -> Vec<Param> {
         let name = unique(mdl_ident(&u.name));
         let color = u.ty == Type::Color3;
         let ty = Ty::of(u.ty);
-        let mdl_ty = if color { "color".to_string() } else { super::syntax::type_name(&ty) };
+        // Booleans are uniform: `thin_walled` must be, and MDL's toggles are.
+        let mdl_ty = match u.ty {
+            Type::Color3 => "color".to_string(),
+            Type::Boolean => "uniform bool".to_string(),
+            _ => super::syntax::type_name(&ty),
+        };
         let argument = if color { format!("float3({name})") } else { name.clone() };
         let ui = &u.ui;
         let mut annotations = Vec::new();
