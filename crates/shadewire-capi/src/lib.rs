@@ -7,6 +7,8 @@
 //!   `shadewire_strings`);
 //! - `shadewire.blender.to_ir`, `.material_names`: `shadewire_blender_to_ir` (with `shadewire_ir_options`),
 //!   `shadewire_blender_material_names`;
+//! - `shadewire.mdl.to_ir`, `.material_names`: `shadewire_mdl_to_ir` (with `shadewire_ir_options` and the MDL search
+//!   path), `shadewire_mdl_material_names`; `shadewire.mdl.compile`: `shadewire_compile` with `SHADEWIRE_TARGET_MDL`;
 //! - `shadewire.mtlx.from_ir`: `shadewire_ir_to_mtlx` (a `shadewire_document`, with `shadewire_document_text` and
 //!   `_warning_count` / `_warning`);
 //! - `shadewire_mtlx::list_dependencies` and the resolver argument of `to_ir`: `shadewire_mtlx_list_dependencies` (a
@@ -47,6 +49,7 @@ mod error;
 mod error_kind;
 mod guard;
 mod ir;
+mod mdl;
 mod names;
 mod options;
 mod resolver;
@@ -81,6 +84,7 @@ pub use ir::{
     shadewire_ir_model, shadewire_ir_optimize, shadewire_ir_source, shadewire_ir_source_version,
     shadewire_ir_structure_hash, shadewire_ir_warnings, shadewire_mtlx_to_ir,
 };
+pub use mdl::{shadewire_mdl_material_names, shadewire_mdl_to_ir};
 pub use names::{
     shadewire_mtlx_material_names, shadewire_strings, shadewire_strings_count, shadewire_strings_free,
     shadewire_strings_get,
@@ -92,7 +96,7 @@ pub use options::{
 pub use resolver::{shadewire_resolution, shadewire_resolution_fail, shadewire_resolution_set, shadewire_resolve_fn};
 pub use status::shadewire_status;
 pub use target::{
-    SHADEWIRE_TARGET_GLSL, SHADEWIRE_TARGET_GLSL_ES, SHADEWIRE_TARGET_HLSL, SHADEWIRE_TARGET_MSL,
+    SHADEWIRE_TARGET_GLSL, SHADEWIRE_TARGET_GLSL_ES, SHADEWIRE_TARGET_HLSL, SHADEWIRE_TARGET_MDL, SHADEWIRE_TARGET_MSL,
     SHADEWIRE_TARGET_WGSL, shadewire_target, shadewire_target_kind,
 };
 pub use version::{

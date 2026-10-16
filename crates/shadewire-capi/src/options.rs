@@ -12,7 +12,7 @@ use shadewire_nodes::IrOptions;
 use shadewire_wgsl::CompileOptions;
 
 use crate::resolver::{resolver, shadewire_resolve_fn};
-use crate::strings::{ArgError, opt_cstr};
+use crate::strings::{ArgError, opt_cstr, string_list};
 
 /// Options for MaterialX import. Set `struct_size` to `sizeof` the struct, or use `shadewire_mtlx_options_default`.
 ///
@@ -202,17 +202,10 @@ unsafe fn read_common(
     values_as_uniforms: *const bool,
     options: &mut IrOptions,
 ) -> Result<(), ArgError> {
-    if models.is_null() && model_count > 0 {
-        return Err(ArgError(format!("models is NULL but model_count is {model_count}")));
-    }
     if !models.is_null() {
-        let mut list = Vec::new();
-        for i in 0..model_count {
-            let entry = unsafe { *models.add(i) };
-            let text = unsafe { opt_cstr(entry) }?.ok_or_else(|| ArgError(format!("model {i} is NULL")))?;
-            list.push(text.to_string());
-        }
-        options.models = list;
+        options.models = unsafe { string_list(models, model_count, "model") }?.into_iter().map(String::from).collect();
+    } else if model_count > 0 {
+        return Err(ArgError(format!("models is NULL but model_count is {model_count}")));
     }
     if let Some(space) = unsafe { opt_cstr(working_colorspace) }? {
         options.working_colorspace = space.to_string();
