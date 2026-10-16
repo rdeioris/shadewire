@@ -79,7 +79,7 @@ pub struct shadewire_value {
 pub type shadewire_source_kind = u32;
 /// `node`, a node of the same nodegraph (or of the document), by `output` when it has several (NULL otherwise).
 pub const SHADEWIRE_SOURCE_NODE: shadewire_source_kind = 0;
-/// Output `output` of `nodegraph`.
+/// Output `output` of `nodegraph`, read from the document or from inside another nodegraph.
 pub const SHADEWIRE_SOURCE_NODEGRAPH: shadewire_source_kind = 1;
 /// The interface input `interface_name` of the enclosing nodegraph.
 pub const SHADEWIRE_SOURCE_INTERFACE: shadewire_source_kind = 2;
@@ -204,8 +204,9 @@ unsafe fn read_source<'a>(builder: &shadewire_builder, ptr: *const shadewire_sou
     }
 }
 
-/// A new, empty MaterialX 1.39 document whose nodedefs are looked up in the standard library; NULL only when
-/// allocation fails. Free it with `shadewire_builder_free`.
+/// A new, empty MaterialX 1.39 document whose nodedefs are looked up in the standard library. Free it with
+/// `shadewire_builder_free`. NULL only if making it panicked (a fault of the library): running out of memory aborts
+/// the process (Rust's default) rather than returning NULL.
 #[unsafe(no_mangle)]
 pub extern "C" fn shadewire_builder_new() -> *mut shadewire_builder {
     let made = std::panic::catch_unwind(|| {
@@ -398,19 +399,20 @@ pub unsafe extern "C" fn shadewire_builder_add_node(
 
 /// Adds a node `name` of `category` (for example "multiply") whose output is of MaterialX type `type` to `ng`, or to
 /// the document when `ng` is NULL, and writes its handle to `out` (written only on success). Its nodedef is picked
-/// when the document is lowered, as for XML, so its inputs need explicit types.
+/// when the document is lowered, as for XML, so its inputs need explicit types. `name` follows `ng`, as in
+/// `shadewire_builder_add_node`.
 ///
 /// # Safety
-/// `b` must be NULL or a live builder; `ng` NULL or any pointer (it is looked up, not read); `category`, `type`,
-/// `name` and `source_path` NULL or valid NUL-terminated strings; `out` valid for writing a pointer; `error` NULL or
+/// `b` must be NULL or a live builder; `ng` NULL or any pointer (it is looked up, not read); `name`, `category`,
+/// `type` and `source_path` NULL or valid NUL-terminated strings; `out` valid for writing a pointer; `error` NULL or
 /// valid for writing a pointer. Not thread-safe (see `shadewire_builder`).
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn shadewire_builder_add_node_category(
     b: *mut shadewire_builder,
     ng: *const shadewire_nodegraph,
+    name: *const c_char,
     category: *const c_char,
     r#type: *const c_char,
-    name: *const c_char,
     source_path: *const c_char,
     out: *mut *mut shadewire_node,
     error: *mut *mut shadewire_error,
@@ -424,9 +426,9 @@ pub unsafe extern "C" fn shadewire_builder_add_node_category(
                 }
                 let b = builder_mut(b)?;
                 let parent = b.parent(ng)?;
+                let name = required(name, "name")?;
                 let category = required(category, "category")?;
                 let ty = required(r#type, "type")?;
-                let name = required(name, "name")?;
                 let node = b.inner.add_node(parent, category, ty, name, opt_cstr(source_path)?)?;
                 *out = b.keep_node(node);
                 Ok(())
@@ -499,7 +501,9 @@ pub unsafe extern "C" fn shadewire_node_set_colorspace(
 
 /// Connects `input` of `n`, as MaterialX type `type` (NULL: the type `n`'s nodedef gives it), to `from`: a node of
 /// the same nodegraph (or of the document), an output of a nodegraph (which may be added later), or an interface
-/// input of the enclosing nodegraph. Inputs are write-once: an input already set or connected is an error.
+/// input of the enclosing nodegraph. A nodegraph's output (SHADEWIRE_SOURCE_NODEGRAPH) may be read from the document
+/// or from inside another nodegraph, as the XML reader accepts `nodegraph=` there. Inputs are write-once: an input
+/// already set or connected is an error.
 ///
 /// # Safety
 /// `b` must be NULL or a live builder; `n` NULL or any pointer (it is looked up, not read); `input`, `type` and

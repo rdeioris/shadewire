@@ -88,7 +88,7 @@ pub use document::{
 };
 pub use error::{
     shadewire_error, shadewire_error_file, shadewire_error_free, shadewire_error_get_kind, shadewire_error_line,
-    shadewire_error_message, shadewire_error_path,
+    shadewire_error_message, shadewire_error_path, shadewire_error_source_path,
 };
 pub use error_kind::shadewire_error_kind;
 pub use ir::{

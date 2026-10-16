@@ -138,7 +138,7 @@ static shadewire_status build_twin(shadewire_builder *b, shadewire_error **err) 
     TRY(shadewire_node_set_colorspace(b, img, "file", "srgb_texture", err));
     v = integer(0);
     TRY(shadewire_node_set_value(b, img, "frameoffset", NULL, &v, NULL, err));
-    TRY(shadewire_builder_add_node_category(b, ng, "multiply", "color3", "mul", NULL, &mul, err));
+    TRY(shadewire_builder_add_node_category(b, ng, "mul", "multiply", "color3", NULL, &mul, err));
     s = from_node(img, NULL);
     TRY(shadewire_node_connect(b, mul, "in1", "color3", &s, NULL, err));
     s = from_interface("tint");
@@ -209,9 +209,12 @@ int shadewire_ctest_builder_error_names_source_path(char *report, size_t report_
     shadewire_builder *b = shadewire_builder_new();
     shadewire_node *n = NULL;
     shadewire_error *err = NULL;
-    const char *message;
+    const char *message, *source_path;
     int step = 0;
 
+    if (b == NULL) {
+        return fail(report, report_len, 5, "shadewire_builder_new returned NULL", NULL);
+    }
     if (shadewire_builder_add_node(b, NULL, "n", "ND_no_such_nodedef", "/root/Looks/n", &n, &err) == SHADEWIRE_OK) {
         step = fail(report, report_len, 1, "an unknown nodedef was accepted", NULL);
         goto done;
@@ -224,6 +227,11 @@ int shadewire_ctest_builder_error_names_source_path(char *report, size_t report_
     if (message == NULL || strstr(message, "/root/Looks/n") == NULL ||
         shadewire_error_get_kind(err) == SHADEWIRE_ERROR_INVALID_ARGUMENT) {
         step = fail(report, report_len, 3, "the error does not name the source path", err);
+        goto done;
+    }
+    source_path = shadewire_error_source_path(err);
+    if (source_path == NULL || strcmp(source_path, "/root/Looks/n") != 0) {
+        step = fail(report, report_len, 4, "shadewire_error_source_path is not the source path", err);
         goto done;
     }
 
@@ -265,9 +273,9 @@ int shadewire_ctest_builder_rejects_null_and_bad_input(char *report, size_t repo
         step = fail(report, report_len, 3, "a name of invalid UTF-8 was accepted", NULL);
         goto done;
     }
-    if (shadewire_builder_add_node_category(other, NULL, "constant", "float", "c", NULL, &foreign, &err) !=
+    if (shadewire_builder_add_node_category(other, NULL, "c", "constant", "float", NULL, &foreign, &err) !=
             SHADEWIRE_OK ||
-        shadewire_builder_add_node_category(b, NULL, "constant", "float", "c", NULL, &n, &err) != SHADEWIRE_OK) {
+        shadewire_builder_add_node_category(b, NULL, "c", "constant", "float", NULL, &n, &err) != SHADEWIRE_OK) {
         step = fail(report, report_len, 4, "adding a constant failed", err);
         goto done;
     }
@@ -309,8 +317,12 @@ int shadewire_ctest_builder_to_ir_twice(char *report, size_t report_len) {
     shadewire_builder *b = shadewire_builder_new();
     shadewire_ir *first = NULL, *second = NULL;
     shadewire_error *err = NULL;
+    const char *first_json, *second_json;
     int step = 0;
 
+    if (b == NULL) {
+        return fail(report, report_len, 4, "shadewire_builder_new returned NULL", NULL);
+    }
     if (build_twin(b, &err) != SHADEWIRE_OK) {
         step = fail(report, report_len, 1, "building the twin failed", err);
         goto done;
@@ -320,7 +332,13 @@ int shadewire_ctest_builder_to_ir_twice(char *report, size_t report_len) {
         step = fail(report, report_len, 2, "lowering twice failed", err);
         goto done;
     }
-    if (first == second || strcmp(shadewire_ir_json(first, NULL), shadewire_ir_json(second, NULL)) != 0) {
+    first_json = shadewire_ir_json(first, NULL);
+    second_json = shadewire_ir_json(second, NULL);
+    if (first_json == NULL || second_json == NULL) {
+        step = fail(report, report_len, 5, "an IR has no JSON", NULL);
+        goto done;
+    }
+    if (first == second || strcmp(first_json, second_json) != 0) {
         step = fail(report, report_len, 3, "the two lowerings differ", NULL);
         goto done;
     }

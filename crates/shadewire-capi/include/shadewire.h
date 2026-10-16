@@ -247,7 +247,7 @@ typedef struct shadewire_compile_options {
 // `node`, a node of the same nodegraph (or of the document), by `output` when it has several (NULL otherwise).
 #define SHADEWIRE_SOURCE_NODE 0
 
-// Output `output` of `nodegraph`.
+// Output `output` of `nodegraph`, read from the document or from inside another nodegraph.
 #define SHADEWIRE_SOURCE_NODEGRAPH 1
 
 // The interface input `interface_name` of the enclosing nodegraph.
@@ -293,8 +293,9 @@ shadewire_status shadewire_blender_material_names(const char *text,
                                                   struct shadewire_strings **out,
                                                   struct shadewire_error **error);
 
-// A new, empty MaterialX 1.39 document whose nodedefs are looked up in the standard library; NULL only when
-// allocation fails. Free it with `shadewire_builder_free`.
+// A new, empty MaterialX 1.39 document whose nodedefs are looked up in the standard library. Free it with
+// `shadewire_builder_free`. NULL only if making it panicked (a fault of the library): running out of memory aborts
+// the process (Rust's default) rather than returning NULL.
 struct shadewire_builder *shadewire_builder_new(void);
 
 // Frees `b` and every nodegraph and node handle it gave out; NULL is allowed. IRs made from it stay valid.
@@ -376,17 +377,18 @@ shadewire_status shadewire_builder_add_node(struct shadewire_builder *b,
 
 // Adds a node `name` of `category` (for example "multiply") whose output is of MaterialX type `type` to `ng`, or to
 // the document when `ng` is NULL, and writes its handle to `out` (written only on success). Its nodedef is picked
-// when the document is lowered, as for XML, so its inputs need explicit types.
+// when the document is lowered, as for XML, so its inputs need explicit types. `name` follows `ng`, as in
+// `shadewire_builder_add_node`.
 //
 // # Safety
-// `b` must be NULL or a live builder; `ng` NULL or any pointer (it is looked up, not read); `category`, `type`,
-// `name` and `source_path` NULL or valid NUL-terminated strings; `out` valid for writing a pointer; `error` NULL or
+// `b` must be NULL or a live builder; `ng` NULL or any pointer (it is looked up, not read); `name`, `category`,
+// `type` and `source_path` NULL or valid NUL-terminated strings; `out` valid for writing a pointer; `error` NULL or
 // valid for writing a pointer. Not thread-safe (see `shadewire_builder`).
 shadewire_status shadewire_builder_add_node_category(struct shadewire_builder *b,
                                                      const struct shadewire_nodegraph *ng,
+                                                     const char *name,
                                                      const char *category,
                                                      const char *type,
-                                                     const char *name,
                                                      const char *source_path,
                                                      struct shadewire_node **out,
                                                      struct shadewire_error **error);
@@ -420,7 +422,9 @@ shadewire_status shadewire_node_set_colorspace(struct shadewire_builder *b,
 
 // Connects `input` of `n`, as MaterialX type `type` (NULL: the type `n`'s nodedef gives it), to `from`: a node of
 // the same nodegraph (or of the document), an output of a nodegraph (which may be added later), or an interface
-// input of the enclosing nodegraph. Inputs are write-once: an input already set or connected is an error.
+// input of the enclosing nodegraph. A nodegraph's output (SHADEWIRE_SOURCE_NODEGRAPH) may be read from the document
+// or from inside another nodegraph, as the XML reader accepts `nodegraph=` there. Inputs are write-once: an input
+// already set or connected is an error.
 //
 // # Safety
 // `b` must be NULL or a live builder; `n` NULL or any pointer (it is looked up, not read); `input`, `type` and
@@ -637,6 +641,13 @@ uint32_t shadewire_error_line(const struct shadewire_error *err);
 // # Safety
 // `err` must be NULL or a live error handle.
 const char *shadewire_error_path(const struct shadewire_error *err);
+
+// The host's source path of `err` (the `source_path` a builder call was given for the element it names), or NULL
+// when it has none (or `err` is NULL); valid until `err` is freed.
+//
+// # Safety
+// `err` must be NULL or a live error handle.
+const char *shadewire_error_source_path(const struct shadewire_error *err);
 
 // Frees `err`; NULL is allowed.
 //
