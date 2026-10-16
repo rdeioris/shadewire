@@ -383,3 +383,18 @@ fn a_search_path_module_reexporting_its_own_name_reexports_the_vendored_one() {
     let ir = lower_with(&text, &resolver).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(field_value(&ir, "c0_color"), Value::Color3([0.25; 3]));
 }
+
+#[test]
+fn an_enum_chosen_by_a_uniform_is_fixed_at_its_value() {
+    let prelude =
+        "enum kind { kind_a, kind_b };\ncolor pick(kind k) { return k == kind_a ? color(0.25) : color(1.0); }";
+    for (default, expected) in [("false", 1.0), ("true", 0.25)] {
+        let text = diffuse("1.7", prelude, &format!("uniform bool flip = {default}"), "pick(flip ? kind_a : kind_b)");
+        let ir = lower(&text);
+        assert_eq!(field_value(&ir, "c0_color"), Value::Color3([expected; 3]), "{default}");
+        assert_eq!(ir.warnings, ["main::m: a kind chosen by flip is fixed at its value"], "{default}");
+    }
+    let run_time = diffuse("1.7", prelude, "", "pick(state::position().x > 0.5 ? kind_a : kind_b)");
+    let message = try_lower(&run_time, &IrOptions::with_models(&LOBE_MODELS)).unwrap_err().to_string();
+    assert!(message.contains("a kind chosen by a value known only at run time"), "{message}");
+}

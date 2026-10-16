@@ -285,6 +285,43 @@ impl<'p, 'a> Eval<'p, 'a> {
         }
     }
 
+    /// The value node `id` has with every uniform at its value, and the uniforms it reads; `None` when it reads
+    /// context or a texture.
+    pub fn at_uniform_values(&self, id: NodeId) -> Option<(Value, Vec<String>)> {
+        let mut values = HashMap::new();
+        let mut uniforms = Vec::new();
+        let value = self.fold_uniforms(id, &mut values, &mut uniforms)?;
+        Some((value, uniforms))
+    }
+
+    fn fold_uniforms(
+        &self,
+        id: NodeId,
+        values: &mut HashMap<NodeId, Value>,
+        uniforms: &mut Vec<String>,
+    ) -> Option<Value> {
+        if let Some(v) = values.get(&id) {
+            return Some(v.clone());
+        }
+        let node = self.e.dag.node(id);
+        let value = match &node.kind {
+            NodeKind::Const(v) => v.clone(),
+            NodeKind::Uniform { name, value } => {
+                if !uniforms.contains(name) {
+                    uniforms.push(name.clone());
+                }
+                value.clone()
+            }
+            NodeKind::Op { op, args } if !op.reads_context() => {
+                let args = args.iter().map(|a| self.fold_uniforms(*a, values, uniforms)).collect::<Option<Vec<_>>>()?;
+                eval_op(op, &args, node.ty, &mut NoContext)
+            }
+            _ => return None,
+        };
+        values.insert(id, value.clone());
+        Some(value)
+    }
+
     pub fn context(&mut self, read: ContextRead, origin: &str) -> Num {
         if let Some(&id) = self.contexts.get(&read) {
             return Num::Node(id);

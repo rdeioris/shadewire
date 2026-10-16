@@ -680,11 +680,18 @@ impl<'p, 'a> Eval<'p, 'a> {
                 V::Df(Rc::new(Df::Select { cond: *c, then: x, otherwise: y }))
             }
             (x, y) if x == y => x,
-            _ => {
-                return Err(format!(
-                    "a {} chosen by a value known only at run time (a uniform parameter?)",
-                    self.type_name(&ty)
-                ));
+            // What a run-time select cannot choose between, chosen by uniforms: fixed at their values.
+            (x, y) => {
+                let Num::Node(c) = cond else { unreachable!("a known condition was taken above") };
+                let Some((value, uniforms)) = self.at_uniform_values(*c) else {
+                    return Err(format!(
+                        "a {} chosen by a value known only at run time (a uniform parameter?)",
+                        self.type_name(&ty)
+                    ));
+                };
+                let values = if uniforms.len() == 1 { "its value" } else { "their values" };
+                self.warn(format!("a {} chosen by {} is fixed at {values}", self.type_name(&ty), uniforms.join(", ")));
+                if value.as_bool() { x } else { y }
             }
         };
         Ok(Val::new(ty, v))
