@@ -2,6 +2,8 @@
 //! host functions defined over `::state`, and `shadewire_eval_surface` taking the uniforms and textures it reads as
 //! parameters (MDL has no uniform blocks and no samplers).
 
+use std::collections::HashSet;
+
 use shadewire::shader::material::{MaterialOptions, eval_surface, host_functions, model_struct};
 use shadewire::shader::names::UniformNames;
 use shadewire::shader::*;
@@ -41,7 +43,16 @@ pub fn build(dag: &Dag, reflection: &mut Reflection) -> (Module, Vec<Param>) {
         items.push(Item::Function(host_function(f, reflection, &mut notes)));
     }
     let mut surface = eval_surface(dag, reflection, &options);
-    let params = parameters(reflection, &mut notes);
+    let declared: HashSet<&str> = items
+        .iter()
+        .filter_map(|i| match i {
+            Item::Function(f) => Some(f.name.as_str()),
+            Item::Struct(s) => Some(s.name.as_str()),
+            Item::Const { name, .. } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
+    let params = parameters(reflection, &declared, &mut notes);
     rewrite(&mut surface.body, reflection, &params);
     surface.params = params.iter().map(|p| (p.name.clone(), p.ty.clone())).collect();
     items.push(Item::Function(surface));
@@ -70,8 +81,19 @@ pub fn literal(v: &Value, color: bool) -> String {
     }
 }
 
-/// The uniforms then the textures, each a material parameter.
-fn parameters(reflection: &Reflection, notes: &mut Vec<String>) -> Vec<Param> {
+/// Whether the writer itself may name something `name` in the scope parameters live in: the module's `declared`
+/// items, its own functions and textures (`shadewire_*`), the material's `let` (`s`, `c0`...) and the locals of
+/// `shadewire_eval_surface` (`n0`...).
+fn writer_owned(name: &str, declared: &HashSet<&str>) -> bool {
+    let numbered = |prefix: char| {
+        name.strip_prefix(prefix).is_some_and(|rest| !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_digit()))
+    };
+    name == "s" || numbered('c') || numbered('n') || declared.contains(name) || name.starts_with("shadewire_")
+}
+
+/// The uniforms then the textures, each a material parameter; a uniform's name is clear of the writer's own (an `x`
+/// put before it).
+fn parameters(reflection: &Reflection, declared: &HashSet<&str>, notes: &mut Vec<String>) -> Vec<Param> {
     let mut taken: Vec<String> = Vec::new();
     let mut unique = |base: String| {
         let mut name = base.clone();
@@ -85,7 +107,11 @@ fn parameters(reflection: &Reflection, notes: &mut Vec<String>) -> Vec<Param> {
     };
     let mut out = Vec::new();
     for u in &reflection.uniforms {
-        let name = unique(mdl_ident(&u.name));
+        let mut base = mdl_ident(&u.name);
+        if writer_owned(&base, declared) {
+            base = format!("x{base}");
+        }
+        let name = unique(base);
         let color = u.ty == Type::Color3;
         let ty = Ty::of(u.ty);
         // Booleans are uniform: `thin_walled` must be, and MDL's toggles are.

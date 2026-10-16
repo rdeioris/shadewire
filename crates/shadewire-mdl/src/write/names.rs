@@ -162,6 +162,10 @@ pub const RESERVED: &[&str] = &[
 /// while it is an MDL reserved word or a standard module's name.
 pub fn mdl_ident(name: &str) -> String {
     let mut out = ident(name);
+    // MDL identifiers start with a letter.
+    if !out.starts_with(|c: char| c.is_ascii_alphabetic()) {
+        out.insert(0, 'x');
+    }
     while RESERVED.contains(&out.as_str()) {
         out.push('_');
     }

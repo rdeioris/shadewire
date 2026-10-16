@@ -239,3 +239,61 @@ fn an_empty_closure_is_a_black_material() {
     assert!(out.code.contains("export material material_() = let {"), "{}", out.code);
     assert_mdlc(&out.code, "empty");
 }
+
+/// A diffuse material whose color is the product of the uniforms `name` and `other`.
+fn one_uniform(name: &str) -> String {
+    format!(
+        r#"<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="g">
+    <input name="{name}" type="float" value="0.3" />
+    <input name="other" type="float" value="0.5" />
+    <multiply name="m1" type="float"><input name="in1" type="float" interfacename="{name}" /><input name="in2" type="float" interfacename="other" /></multiply>
+    <convert name="c" type="color3"><input name="in" type="float" nodename="m1" /></convert>
+    <output name="out" type="color3" nodename="c" />
+  </nodegraph>
+  <oren_nayar_diffuse_bsdf name="d" type="BSDF"><input name="color" type="color3" nodegraph="g" output="out" /></oren_nayar_diffuse_bsdf>
+  <surface name="sf" type="surfaceshader"><input name="bsdf" type="BSDF" nodename="d" /></surface>
+  <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="sf" /></surfacematerial>
+</materialx>
+"#
+    )
+}
+
+#[test]
+fn authored_names_never_meet_the_writers_own() {
+    let lobes = IrOptions::with_models(&LOBE_MODELS);
+    let read_back = |code: &str, material: &str| {
+        let ir = shadewire_mdl::to_ir(code, None, Some(material), &lobes, &shadewire_mdl::Resolver::default())
+            .unwrap_or_else(|e| panic!("{material}: {e}\n{code}"));
+        let mut names: Vec<String> = ir
+            .dag
+            .nodes
+            .iter()
+            .filter_map(|n| match &n.kind {
+                shadewire::NodeKind::Uniform { name, .. } => Some(name.clone()),
+                _ => None,
+            })
+            .collect();
+        names.sort();
+        names
+    };
+    let uniforms =
+        ["s", "n3", "c0", "Surface", "shadewire_eval_surface", "shadewire_t0", "in", "material", "_hidden", "2nd"];
+    for (i, uniform) in uniforms.into_iter().enumerate() {
+        let ir = mtlx(&one_uniform(uniform), &LOBE_MODELS);
+        let out = write(&ir, "m");
+        assert_mdlc(&out.code, &format!("uniform_{i}"));
+        let names = read_back(&out.code, "m");
+        assert_eq!(names.len(), 2, "{uniform}: {names:?}");
+        assert!(names.iter().all(|n| n.starts_with(|c: char| c.is_ascii_alphabetic())), "{uniform}: {names:?}");
+    }
+    for (i, material) in ["bsdf", "1mat", "_m"].into_iter().enumerate() {
+        let ir = mtlx(&one_uniform("x"), &LOBE_MODELS);
+        let out = write(&ir, material);
+        assert_mdlc(&out.code, &format!("material_{i}"));
+        let name = shadewire_mdl::write::mdl_ident(material);
+        assert!(out.code.contains(&format!("export material {name}(")), "{material}: {name}");
+        read_back(&out.code, &name);
+    }
+}
