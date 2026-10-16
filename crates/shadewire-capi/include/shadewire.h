@@ -104,10 +104,12 @@ typedef struct shadewire_error shadewire_error;
 typedef struct shadewire_ir shadewire_ir;
 
 // A node of a builder (in the document or in a nodegraph), owned by it: valid until `shadewire_builder_free`, never
-// freed by the caller.
+// freed by the caller. Pass it only with its own builder, as for `shadewire_nodegraph`.
 typedef struct shadewire_node shadewire_node;
 
-// A nodegraph of a builder, owned by it: valid until `shadewire_builder_free`, never freed by the caller.
+// A nodegraph of a builder, owned by it: valid until `shadewire_builder_free`, never freed by the caller. Pass it
+// only with its own builder: another builder refuses it (it is looked up by address, not read), but after its
+// builder is freed its address may name an element of a newer builder.
 typedef struct shadewire_nodegraph shadewire_nodegraph;
 
 // The answer a `shadewire_resolve_fn` gives, written with `shadewire_resolution_set` or `_fail`. Owned by Shadewire

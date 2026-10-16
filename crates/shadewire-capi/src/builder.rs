@@ -3,8 +3,9 @@
 //! `shadewire_node` handles it owns.
 //!
 //! Handles are boxed records kept in maps of their builder, keyed by address. A call looks a handle up by its
-//! address in the builder it is given and never dereferences it, so a handle of another builder (live or freed) or a
-//! stray pointer is refused with an error, not read.
+//! address in the builder it is given and never dereferences it, so a handle of another builder or a stray pointer
+//! is refused with an error, not read. The one case left to the caller: once a builder is freed, the address of one of
+//! its handles may be reused by a handle of a later builder, and then names that builder's element.
 
 use std::collections::HashMap;
 use std::os::raw::c_char;
@@ -36,13 +37,15 @@ pub struct shadewire_builder {
     nodes: HashMap<usize, Box<shadewire_node>>,
 }
 
-/// A nodegraph of a builder, owned by it: valid until `shadewire_builder_free`, never freed by the caller.
+/// A nodegraph of a builder, owned by it: valid until `shadewire_builder_free`, never freed by the caller. Pass it
+/// only with its own builder: another builder refuses it (it is looked up by address, not read), but after its
+/// builder is freed its address may name an element of a newer builder.
 pub struct shadewire_nodegraph {
     graph: GraphRef,
 }
 
 /// A node of a builder (in the document or in a nodegraph), owned by it: valid until `shadewire_builder_free`, never
-/// freed by the caller.
+/// freed by the caller. Pass it only with its own builder, as for `shadewire_nodegraph`.
 pub struct shadewire_node {
     node: NodeRef,
 }
