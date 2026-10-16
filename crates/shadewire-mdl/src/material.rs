@@ -351,6 +351,13 @@ enum Tree {
     },
     Add(Box<Tree>, Box<Tree>),
     Multiply(Box<Tree>, Num),
+    /// `top` over `base` for a `weight` of the surface, `base` alone for the rest: `mix(fg = layer(top, base),
+    /// bg = base, mix = weight)`, one `base` node under both.
+    WeightedLayer {
+        top: Box<Tree>,
+        base: Box<Tree>,
+        weight: Num,
+    },
 }
 
 /// What lowering a distribution function needs around it: the normal its layers set, the material's ior.
@@ -507,8 +514,7 @@ impl<'p, 'a> Eval<'p, 'a> {
                     Around { normal: self.layer_normal(args).or(around.normal.clone()), ior: around.ior.clone() };
                 let top = self.bsdf_tree(&Self::df_arg(args, "layer"), &inner)?;
                 let base = self.bsdf_tree(&Self::df_arg(args, "base"), around)?;
-                let top = top.map(|t| weighted(t, w));
-                layered(top, base)
+                self.weighted_layer(top, base, w)
             }
             "fresnel_layer" | "color_fresnel_layer" => {
                 let w = Self::num_arg(args, "weight").unwrap_or(Num::Known(Value::Float(1.0)));
@@ -536,7 +542,7 @@ impl<'p, 'a> Eval<'p, 'a> {
                             "{}: a layer that is not a glossy lobe, weighted without its Fresnel curve",
                             at(self)
                         ));
-                        Some(weighted(other, w))
+                        return Ok(self.weighted_layer(Some(other), base, w));
                     }
                     None => None,
                 };
@@ -667,9 +673,21 @@ impl<'p, 'a> Eval<'p, 'a> {
                     parts.push((w, d));
                 }
                 let weights = self.mix_weights(name, parts.iter().map(|(w, _)| w.clone()).collect())?;
-                let mut sum: Option<Tree> = None;
+                let mut trees = Vec::new();
                 for ((_, d), w) in parts.iter().zip(weights) {
-                    let Some(t) = self.bsdf_tree(d, around)? else { continue };
+                    if let Some(t) = self.bsdf_tree(d, around)? {
+                        trees.push((w, t));
+                    }
+                }
+                let scalar = !name.starts_with("color_");
+                if scalar && let Some(nested) = nested_mix(&trees) {
+                    return Ok(Some(nested));
+                }
+                if scalar && trees.iter().any(|(_, t)| transmits(t)) {
+                    self.warn("a mix of transmissive lobes approximated");
+                }
+                let mut sum: Option<Tree> = None;
+                for (w, t) in trees {
                     let t = weighted(t, w);
                     sum = Some(match sum {
                         Some(s) => Tree::Add(Box::new(s), Box::new(t)),
@@ -691,6 +709,24 @@ impl<'p, 'a> Eval<'p, 'a> {
                 None
             }
         })
+    }
+
+    /// `top` over `base` for weight `w` of the surface. A float weight mixes the layered top with the base alone,
+    /// so what the weight leaves reaches the base whatever the top lets through; a color weight (MaterialX's mix
+    /// weight is a float) multiplies the top.
+    fn weighted_layer(&mut self, top: Option<Tree>, base: Option<Tree>, w: Num) -> Option<Tree> {
+        if self.num_type(&w) != Type::Float {
+            return layered(top.map(|t| weighted(t, w)), base);
+        }
+        match (top, base) {
+            (Some(top), Some(base)) => Some(match w.known() {
+                Some(Value::Float(1.0)) => Tree::Layer(Box::new(top), Box::new(base)),
+                Some(Value::Float(0.0)) => base,
+                _ => Tree::WeightedLayer { top: Box::new(top), base: Box::new(base), weight: w },
+            }),
+            (Some(top), None) => Some(weighted(top, w)),
+            (None, base) => base,
+        }
     }
 
     /// A mix's component weights: as given (unbounded), divided by their sum where it passes one (normalized), or
@@ -852,6 +888,46 @@ fn lobe_geometry(inputs: &mut Vec<(String, Arg)>, tangent: Option<Num>, normal: 
     }
 }
 
+/// Components whose weights are known and sum to one as nested mixes, `mix(c1, mix(c2, …, w2 / (1 − w1)), w1)`:
+/// exact, where a sum of weighted components lets through what each lobe lets through rather than the weighted
+/// whole. `None` when a weight is not known or the weights do not sum to one.
+fn nested_mix(components: &[(Num, Tree)]) -> Option<Tree> {
+    let mut known = Vec::new();
+    for (w, t) in components {
+        match w.known() {
+            Some(Value::Float(w)) if *w == 0.0 => {}
+            Some(Value::Float(w)) if *w > 0.0 => known.push((*w, t)),
+            _ => return None,
+        }
+    }
+    let total: f32 = known.iter().map(|(w, _)| w).sum();
+    let (last_weight, last) = known.pop()?;
+    if (total - 1.0).abs() > 1e-5 {
+        return None;
+    }
+    let (mut rest, mut nested) = (last_weight, last.clone());
+    for (w, t) in known.into_iter().rev() {
+        rest += w;
+        let weight = Num::Known(Value::Float(w / rest));
+        nested = Tree::Mix { fg: Box::new(t.clone()), bg: Box::new(nested), weight };
+    }
+    Some(nested)
+}
+
+/// Whether a lobe of `t` transmits: a translucent lobe, or one that transmits or reflects and transmits.
+fn transmits(t: &Tree) -> bool {
+    match t {
+        Tree::Lobe { kind, inputs } => {
+            *kind == "translucent_bsdf"
+                || inputs.iter().any(|(n, a)| n == "scatter_mode" && matches!(a, Arg::Text(m) if m != "R"))
+        }
+        Tree::Specular { mode, .. } => *mode != 0,
+        Tree::Layer(a, b) | Tree::Add(a, b) => transmits(a) || transmits(b),
+        Tree::Mix { fg: a, bg: b, .. } | Tree::WeightedLayer { top: a, base: b, .. } => transmits(a) || transmits(b),
+        Tree::Multiply(a, _) => transmits(a),
+    }
+}
+
 /// `t` scaled by `w`, unless `w` is a known one.
 fn weighted(t: Tree, w: Num) -> Tree {
     match w.known() {
@@ -904,6 +980,11 @@ fn with_thin_film(t: Tree, thickness: &Num, ior: &Num) -> Tree {
             Tree::Add(Box::new(with_thin_film(*a, thickness, ior)), Box::new(with_thin_film(*b, thickness, ior)))
         }
         Tree::Multiply(a, w) => Tree::Multiply(Box::new(with_thin_film(*a, thickness, ior)), w),
+        Tree::WeightedLayer { top, base, weight } => Tree::WeightedLayer {
+            top: Box::new(with_thin_film(*top, thickness, ior)),
+            base: Box::new(with_thin_film(*base, thickness, ior)),
+            weight,
+        },
         other => other,
     }
 }
@@ -976,6 +1057,18 @@ impl Nodes {
             Tree::Multiply(a, w) => {
                 let a = self.emit(ev, *a, closure, ior)?;
                 self.push("multiply", closure, vec![("in2".into(), num_arg(&w))], vec![("in1".into(), a)])
+            }
+            Tree::WeightedLayer { top, base, weight } => {
+                let top = self.emit(ev, *top, closure, ior)?;
+                let base = self.emit(ev, *base, closure, ior)?;
+                let links = vec![("top".into(), top), ("base".into(), base.clone())];
+                let layer = self.push("layer", closure, Vec::new(), links);
+                self.push(
+                    "mix",
+                    closure,
+                    vec![("mix".into(), num_arg(&weight))],
+                    vec![("fg".into(), layer), ("bg".into(), base)],
+                )
             }
         })
     }

@@ -210,6 +210,22 @@ fn layers_pass_their_base() {
     assert_mdlc(&out.code, "layered");
 }
 
+/// A weighted layer read from MDL (`mix(layer(top, base), base, w)`) is written as one again.
+#[test]
+fn a_weighted_layer_writes_as_one() {
+    let text = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/weighted.mdl")).unwrap();
+    let options = IrOptions::with_models(&LOBE_MODELS);
+    let ir = shadewire_mdl::to_ir(&text, None, Some("over_diffuse"), &options, &Default::default()).unwrap();
+    let out = write(&ir, "m");
+    let layer = out.code.lines().find(|l| l.contains("df::weighted_layer(") && l.contains("base: c"));
+    assert!(layer.is_some_and(|l| l.contains("weight: s.")), "{}", out.code);
+    assert!(!out.code.contains("normalized_mix"), "{}", out.code);
+    let back = shadewire_mdl::to_ir(&out.code, None, Some("m"), &options, &Default::default()).unwrap();
+    let graph = back.dag.surface.closure.as_ref().unwrap();
+    assert_eq!(graph.dump(), ir.dag.surface.closure.as_ref().unwrap().dump());
+    assert_mdlc(&out.code, "weighted");
+}
+
 const CUTOUT: &str = r#"<?xml version="1.0"?>
 <materialx version="1.39">
   <oren_nayar_diffuse_bsdf name="d" type="BSDF" />

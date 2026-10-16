@@ -55,8 +55,59 @@ pub struct FlatLobe {
     pub inputs: BTreeMap<String, Vec<f32>>,
 }
 
+/// What a BSDF does with light, as Shadewire's closure functions hold it: its response and its throughput.
+pub type Scatter = ([f32; 3], [f32; 3]);
+
+/// A lobe's own scatter, from its kind and its inputs.
+pub type LobeScatter = dyn Fn(&str, &BTreeMap<String, Vec<f32>>) -> Scatter;
+
+/// What `dag`'s BSDF tree scatters at `probe`, its nodes combined as Shadewire's closure functions combine them
+/// (`closure_base.wgsl`), each lobe's own scatter from `lobe` (its kind and its inputs, `weight` among them).
+pub fn bsdf_scatter(dag: &Dag, probe: &mut Probe, lobe: &LobeScatter) -> Scatter {
+    let fields: BTreeMap<String, Vec<f32>> =
+        eval_surface(dag, probe, &ProbeTextures).into_iter().map(|(n, v)| (n, v.floats())).collect();
+    let none = ([0.0; 3], [1.0; 3]);
+    let Some(graph) = &dag.surface.closure else { return none };
+    let Some(root) = graph.bsdf else { return none };
+    fn eval(
+        graph: &shadewire::ClosureGraph,
+        id: ClosureId,
+        fields: &BTreeMap<String, Vec<f32>>,
+        lobe: &LobeScatter,
+    ) -> Scatter {
+        let each = |f: &dyn Fn(usize) -> f32| [f(0), f(1), f(2)];
+        let as3 = |v: &[f32]| if v.len() == 1 { [v[0]; 3] } else { [v[0], v[1], v[2]] };
+        match &graph.nodes[id as usize] {
+            ClosureNode::Lobe { kind, inputs, .. } => {
+                let values = inputs.iter().map(|(input, field)| (input.clone(), fields[field].clone())).collect();
+                lobe(kind, &values)
+            }
+            ClosureNode::Layer { top, base } => {
+                let ((rt, tt), (rb, tb)) = (eval(graph, *top, fields, lobe), eval(graph, *base, fields, lobe));
+                (each(&|i| rt[i] + rb[i] * tt[i]), each(&|i| tt[i] * tb[i]))
+            }
+            ClosureNode::Mix { fg, bg, mix } => {
+                let ((rf, tf), (rb, tb)) = (eval(graph, *fg, fields, lobe), eval(graph, *bg, fields, lobe));
+                let m = fields[mix][0];
+                (each(&|i| rb[i] + (rf[i] - rb[i]) * m), each(&|i| tb[i] + (tf[i] - tb[i]) * m))
+            }
+            ClosureNode::Add { in1, in2 } => {
+                let ((r1, t1), (r2, t2)) = (eval(graph, *in1, fields, lobe), eval(graph, *in2, fields, lobe));
+                (each(&|i| r1[i] + r2[i]), each(&|i| (t1[i] + t2[i] - 1.0).max(0.0)))
+            }
+            ClosureNode::Multiply { in1, in2 } => {
+                let (r, t) = eval(graph, *in1, fields, lobe);
+                let w = as3(&fields[in2]);
+                (each(&|i| r[i] * w[i].clamp(0.0, 1.0)), t)
+            }
+        }
+    }
+    eval(graph, root, &fields, lobe)
+}
+
 /// The lobes of `dag`'s BSDF tree then its EDF tree, tops before bases, evaluated at `probe`. A uniform EDF's color
-/// folds into its weight, as MDL writes it (`tint(color, diffuse_edf())`).
+/// folds into its weight, as MDL writes it (`tint(color, diffuse_edf())`). The base of a weighted layer
+/// (`mix(fg = layer(top, base), bg = base, w)`) is one lobe at the whole weight, under the top at `w`.
 pub fn flat_lobes(dag: &Dag, probe: &mut Probe) -> Vec<FlatLobe> {
     let fields: BTreeMap<String, Vec<f32>> =
         eval_surface(dag, probe, &ProbeTextures).into_iter().map(|(n, v)| (n, v.floats())).collect();
@@ -95,6 +146,13 @@ pub fn flat_lobes(dag: &Dag, probe: &mut Probe) -> Vec<FlatLobe> {
             }
             ClosureNode::Mix { fg, bg, mix } => {
                 let m = fields[mix][0];
+                if let ClosureNode::Layer { top, base } = &graph.nodes[*fg as usize]
+                    && base == bg
+                {
+                    walk(graph, *top, times(weight, [m; 3]), fields, out, as3, times);
+                    walk(graph, *base, weight, fields, out, as3, times);
+                    return;
+                }
                 walk(graph, *fg, times(weight, [m; 3]), fields, out, as3, times);
                 walk(graph, *bg, times(weight, [1.0 - m; 3]), fields, out, as3, times);
             }

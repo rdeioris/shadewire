@@ -3,11 +3,9 @@ source: crates/shadewire-mdl/tests/materials.rs
 expression: text
 ---
 c0 = oren_nayar_diffuse_bsdf(color=c0_color, energy_compensation=c0_energy_compensation, normal=c0_normal, roughness=c0_roughness, weight=c0_weight)
-c1 = multiply(c0, c1_in2)
-c2 = generalized_schlick_bsdf(color0=c2_color0, color82=c2_color82, color90=c2_color90, exponent=c2_exponent, normal=c2_normal, retroreflective=c2_retroreflective, roughness=c2_roughness, tangent=c2_tangent, thinfilm_ior=c2_thinfilm_ior, thinfilm_thickness=c2_thinfilm_thickness, weight=c2_weight, distribution="ggx", scatter_mode="R")
-c3 = multiply(c2, c3_in2)
-c4 = add(c1, c3)
-bsdf = c4
+c1 = generalized_schlick_bsdf(color0=c1_color0, color82=c1_color82, color90=c1_color90, exponent=c1_exponent, normal=c1_normal, retroreflective=c1_retroreflective, roughness=c1_roughness, tangent=c1_tangent, thinfilm_ior=c1_thinfilm_ior, thinfilm_thickness=c1_thinfilm_thickness, weight=c1_weight, distribution="ggx", scatter_mode="R")
+c2 = mix(fg=c0, bg=c1, mix=c2_mix)
+bsdf = c2
 edf = none
 opacity = opacity
 --- fields
@@ -18,17 +16,16 @@ c0_energy_compensation = [0.0]
 c0_normal = context normal_world
 c0_roughness = [0.0]
 c0_weight = [1.0]
-c1_in2 = [0.5]
-c2_color0 = [1.0, 1.0, 1.0]
-c2_color82 = [1.0, 1.0, 1.0]
-c2_color90 = [1.0, 1.0, 1.0]
-c2_exponent = [5.0]
-c2_normal = context normal_world
-c2_retroreflective = [0.0]
-c2_roughness = [0.2, 0.2]
-c2_tangent = context tangent_world
-c2_thinfilm_ior = [1.5]
-c2_thinfilm_thickness = [0.0]
-c2_weight = [1.0]
-c3_in2 = [0.5]
+c1_color0 = [1.0, 1.0, 1.0]
+c1_color82 = [1.0, 1.0, 1.0]
+c1_color90 = [1.0, 1.0, 1.0]
+c1_exponent = [5.0]
+c1_normal = context normal_world
+c1_retroreflective = [0.0]
+c1_roughness = [0.2, 0.2]
+c1_tangent = context tangent_world
+c1_thinfilm_ior = [1.5]
+c1_thinfilm_thickness = [0.0]
+c1_weight = [1.0]
+c2_mix = [0.5]
 --- warnings

@@ -1,0 +1,27 @@
+---
+source: crates/shadewire-mdl/tests/materials.rs
+expression: text
+---
+c0 = oren_nayar_diffuse_bsdf(color=c0_color, energy_compensation=c0_energy_compensation, normal=c0_normal, roughness=c0_roughness, weight=c0_weight)
+c1 = multiply(c0, c1_in2)
+c2 = translucent_bsdf(color=c2_color, normal=c2_normal, weight=c2_weight)
+c3 = multiply(c2, c3_in2)
+c4 = add(c1, c3)
+bsdf = c4
+edf = none
+opacity = opacity
+--- fields
+opacity = [1.0]
+thin_walled = [0.0]
+c0_color = [0.5, 0.5, 0.5]
+c0_energy_compensation = [0.0]
+c0_normal = context normal_world
+c0_roughness = [0.0]
+c0_weight = [1.0]
+c1_in2 = [0.3]
+c2_color = [1.0, 1.0, 1.0]
+c2_normal = context normal_world
+c2_weight = [1.0]
+c3_in2 = [0.3]
+--- warnings
+main::partial: a mix of transmissive lobes approximated

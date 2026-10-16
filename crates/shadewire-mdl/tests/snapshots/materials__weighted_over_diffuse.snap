@@ -1,0 +1,30 @@
+---
+source: crates/shadewire-mdl/tests/materials.rs
+expression: text
+---
+c0 = conductor_bsdf(extinction=c0_extinction, ior=c0_ior, normal=c0_normal, retroreflective=c0_retroreflective, roughness=c0_roughness, tangent=c0_tangent, thinfilm_ior=c0_thinfilm_ior, thinfilm_thickness=c0_thinfilm_thickness, weight=c0_weight, distribution="ggx")
+c1 = oren_nayar_diffuse_bsdf(color=c1_color, energy_compensation=c1_energy_compensation, normal=c1_normal, roughness=c1_roughness, weight=c1_weight)
+c2 = layer(top=c0, base=c1)
+c3 = mix(fg=c2, bg=c1, mix=c3_mix)
+bsdf = c3
+edf = none
+opacity = opacity
+--- fields
+opacity = [1.0]
+thin_walled = [0.0]
+c0_extinction = [3.0, 3.0, 3.0]
+c0_ior = [0.2, 0.2, 0.2]
+c0_normal = context normal_world
+c0_retroreflective = [0.0]
+c0_roughness = [0.1, 0.1]
+c0_tangent = context tangent_world
+c0_thinfilm_ior = [1.5]
+c0_thinfilm_thickness = [0.0]
+c0_weight = [1.0]
+c1_color = [0.5, 0.5, 0.5]
+c1_energy_compensation = [0.0]
+c1_normal = context normal_world
+c1_roughness = [0.0]
+c1_weight = [1.0]
+c3_mix = uniform w
+--- warnings

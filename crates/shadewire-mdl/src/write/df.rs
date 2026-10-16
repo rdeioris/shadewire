@@ -106,12 +106,19 @@ impl<'a> Closures<'a> {
                 let top = self.bsdf(*top, None);
                 format!("df::weighted_layer(weight: 1.0, layer: {top}, base: {under})")
             }
-            ClosureNode::Mix { fg, bg, mix } => {
-                let (fg, bg, w) = (self.bsdf(*fg, None), self.bsdf(*bg, None), Self::read(mix));
-                format!(
-                    "df::normalized_mix(df::bsdf_component[](df::bsdf_component({w}, {fg}), df::bsdf_component(1.0 - {w}, {bg})))"
-                )
-            }
+            ClosureNode::Mix { fg, bg, mix } => match self.graph.nodes[*fg as usize] {
+                // The reader's weighted layer, `mix(layer(top, base), base, w)`.
+                ClosureNode::Layer { top, base } if base == *bg => {
+                    let (top, under) = (self.bsdf(top, None), self.bsdf(base, None));
+                    format!("df::weighted_layer(weight: {}, layer: {top}, base: {under})", Self::read(mix))
+                }
+                _ => {
+                    let (fg, bg, w) = (self.bsdf(*fg, None), self.bsdf(*bg, None), Self::read(mix));
+                    format!(
+                        "df::normalized_mix(df::bsdf_component[](df::bsdf_component({w}, {fg}), df::bsdf_component(1.0 - {w}, {bg})))"
+                    )
+                }
+            },
             ClosureNode::Add { in1, in2 } => {
                 let (a, b) = (self.bsdf(*in1, None), self.bsdf(*in2, None));
                 format!(
