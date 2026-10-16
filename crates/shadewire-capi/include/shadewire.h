@@ -244,7 +244,7 @@ typedef struct shadewire_compile_options {
 // `string` (NUL-terminated UTF-8), for a string or filename input.
 #define SHADEWIRE_VALUE_STRING 3
 
-// `node`, a node of the same scope, by `output` when it has several (NULL otherwise).
+// `node`, a node of the same nodegraph (or of the document), by `output` when it has several (NULL otherwise).
 #define SHADEWIRE_SOURCE_NODE 0
 
 // Output `output` of `nodegraph`.
@@ -419,8 +419,8 @@ shadewire_status shadewire_node_set_colorspace(struct shadewire_builder *b,
                                                struct shadewire_error **error);
 
 // Connects `input` of `n`, as MaterialX type `type` (NULL: the type `n`'s nodedef gives it), to `from`: a node of
-// the same scope, an output of a nodegraph (which may be added later), or an interface input of the enclosing
-// nodegraph. Inputs are write-once: an input already set or connected is an error.
+// the same nodegraph (or of the document), an output of a nodegraph (which may be added later), or an interface
+// input of the enclosing nodegraph. Inputs are write-once: an input already set or connected is an error.
 //
 // # Safety
 // `b` must be NULL or a live builder; `n` NULL or any pointer (it is looked up, not read); `input`, `type` and

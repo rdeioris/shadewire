@@ -77,7 +77,7 @@ pub struct shadewire_value {
 
 /// Which element a `shadewire_source` reads. Passed in from C, so a plain `u32`.
 pub type shadewire_source_kind = u32;
-/// `node`, a node of the same scope, by `output` when it has several (NULL otherwise).
+/// `node`, a node of the same nodegraph (or of the document), by `output` when it has several (NULL otherwise).
 pub const SHADEWIRE_SOURCE_NODE: shadewire_source_kind = 0;
 /// Output `output` of `nodegraph`.
 pub const SHADEWIRE_SOURCE_NODEGRAPH: shadewire_source_kind = 1;
@@ -112,7 +112,7 @@ impl shadewire_builder {
     }
 
     /// The nodegraph `ptr` names, `None` for NULL (the document).
-    fn scope(&self, ptr: *const shadewire_nodegraph) -> Result<Option<GraphRef>, ArgError> {
+    fn parent(&self, ptr: *const shadewire_nodegraph) -> Result<Option<GraphRef>, ArgError> {
         if ptr.is_null() { Ok(None) } else { self.graph(ptr).map(Some) }
     }
 
@@ -385,10 +385,10 @@ pub unsafe extern "C" fn shadewire_builder_add_node(
                     return Err(CapiError::Argument("out is NULL".to_string()));
                 }
                 let b = builder_mut(b)?;
-                let scope = b.scope(ng)?;
+                let parent = b.parent(ng)?;
                 let name = required(name, "name")?;
                 let nodedef = required(nodedef, "nodedef")?;
-                let node = b.inner.add_node_from_nodedef(scope, nodedef, name, opt_cstr(source_path)?)?;
+                let node = b.inner.add_node_from_nodedef(parent, nodedef, name, opt_cstr(source_path)?)?;
                 *out = b.keep_node(node);
                 Ok(())
             }),
@@ -423,11 +423,11 @@ pub unsafe extern "C" fn shadewire_builder_add_node_category(
                     return Err(CapiError::Argument("out is NULL".to_string()));
                 }
                 let b = builder_mut(b)?;
-                let scope = b.scope(ng)?;
+                let parent = b.parent(ng)?;
                 let category = required(category, "category")?;
                 let ty = required(r#type, "type")?;
                 let name = required(name, "name")?;
-                let node = b.inner.add_node(scope, category, ty, name, opt_cstr(source_path)?)?;
+                let node = b.inner.add_node(parent, category, ty, name, opt_cstr(source_path)?)?;
                 *out = b.keep_node(node);
                 Ok(())
             }),
@@ -498,8 +498,8 @@ pub unsafe extern "C" fn shadewire_node_set_colorspace(
 }
 
 /// Connects `input` of `n`, as MaterialX type `type` (NULL: the type `n`'s nodedef gives it), to `from`: a node of
-/// the same scope, an output of a nodegraph (which may be added later), or an interface input of the enclosing
-/// nodegraph. Inputs are write-once: an input already set or connected is an error.
+/// the same nodegraph (or of the document), an output of a nodegraph (which may be added later), or an interface
+/// input of the enclosing nodegraph. Inputs are write-once: an input already set or connected is an error.
 ///
 /// # Safety
 /// `b` must be NULL or a live builder; `n` NULL or any pointer (it is looked up, not read); `input`, `type` and
