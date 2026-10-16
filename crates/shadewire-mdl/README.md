@@ -34,10 +34,13 @@ their conversions, as the MDL SDK's compiler does, including the lenient convers
 - The material's parameters become uniforms named after them, with `anno::hard_range`, `soft_range` and `in_group`
   as UI hints; integer parameters stay constants (they are counts and modes). A parameter without a default is an
   error.
+- A value no IR node holds (an enum, a string, a texture) chosen at run time by uniforms (`uniform bool` parameters)
+  is fixed at their values, with a warning; chosen by anything else that varies, it is an error.
 - `import` finds a module in the `Resolver`'s directories (a relative import, `.::` or `..::`, next to the importing
   module), then in the vendored set. The standard modules are always the vendored ones: NVIDIA's declarations, their
   meaning in Rust. `::base` and `::nvidia::core_definitions` are NVIDIA's source, evaluated; a module of the same
-  name on the search path wins over them.
+  name on the search path wins over them, and one that imports its own name (Kit's `base.mdl`, which holds only
+  `export using ::base import *;`) imports the vendored one.
 - `::base`'s noise primitives index permutation tables at run time; they are MaterialX's noises instead, with one
   warning per noise kind.
 
@@ -104,6 +107,10 @@ without it:
   compiler.
 - `SHADEWIRE_MDL_SDK=path/to/MDL-SDK` parses every `.mdl` file of an SDK checkout and lowers its example
   materials.
+
+`SHADEWIRE_MDL_KIT=path/to/kit/mdl/core` (the folder holding Kit's `Base/` and `mdl/`, which are the search path)
+lowers every exported material of Kit's `Base/` to lobes (`tests/kit.rs`), OmniPBR in under 100 ms in a release
+build once its modules are loaded.
 
 ## Out of scope
 
