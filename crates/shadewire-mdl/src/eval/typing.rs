@@ -99,7 +99,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
             Ty::Scalar(Scalar::Bool) => Val::bool(false),
             Ty::Scalar(Scalar::Int) => Val::int(0),
             Ty::Scalar(_) => Val::known(ty.clone(), Value::Float(0.0)),
-            Ty::Vector(s, n) if s.is_floating() => zero(ty.ir().expect("a float vector")).with_count(*n),
+            Ty::Vector(s, n) if s.is_floating() => zero(ty.ir().expect("a float vector")),
             Ty::Vector(s, n) => {
                 let part = if *s == Scalar::Bool { Value::Boolean(false) } else { Value::Integer(0) };
                 Val::new(ty.clone(), V::Parts(vec![Num::Known(part); *n as usize]))
@@ -150,13 +150,5 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
             fields.push(value);
         }
         Ok(Val::new(Ty::Struct(id), V::Struct(fields)))
-    }
-}
-
-impl Val {
-    /// A known float vector value relabelled to `n` components: `zero` builds by IR type, which for vectors is the
-    /// right width already.
-    fn with_count(self, _n: u8) -> Val {
-        self
     }
 }

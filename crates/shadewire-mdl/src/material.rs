@@ -601,7 +601,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
     fn roughness(&mut self, r: &[Num; 2]) -> Result<Arg, Error> {
         let n = self
             .from_parts(&Ty::float_vector(2), r.to_vec(), "df.roughness")
-            .map_err(|m| Error::BadValue { at: Default::default(), message: m })?;
+            .map_err(|m| self.bad(Default::default(), m))?;
         Ok(num_arg(n.num().expect("a vector")))
     }
 

@@ -108,7 +108,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
     /// The `vector3` position of a noise argument: a float, float2 or float3 as it is (padded with zeros), a
     /// float4's time component moving the position along a fixed direction.
     fn noise_position(&mut self, v: &Val, origin: &str) -> Result<Num, Error> {
-        let fail = |_: &Self, m: String| Error::BadValue { at: Default::default(), message: format!("{origin}: {m}") };
+        let fail = |e: &Self, m: String| e.bad(Default::default(), format!("{origin}: {m}"));
         let mut parts = self.parts(v, origin).map_err(|m| fail(self, m))?;
         if parts.len() == 4 {
             let w = parts.pop().expect("four parts");
@@ -140,7 +140,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
     fn worley(&mut self, p: &Num, index: u32, origin: &str) -> Result<Num, Error> {
         let f =
             self.emit(Op::WorleyNoise3d, &[p.clone(), kf(1.0), Num::Known(Value::Integer(0))], Type::Vector2, origin)?;
-        self.extract(&f, index, origin).map_err(|m| Error::BadValue { at: Default::default(), message: m })
+        self.extract(&f, index, origin).map_err(|m| self.bad(Default::default(), m))
     }
 
     /// The gradient of `f` at `p` by forward differences, given `f(p)`.
@@ -160,9 +160,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
             let diff = self.emit(Op::Subtract, &[fq, at_p.clone()], Type::Float, origin)?;
             parts.push(self.emit(Op::Divide, &[diff, kf(EPSILON)], Type::Float, origin)?);
         }
-        let v = self
-            .from_parts(&vec3(), parts, origin)
-            .map_err(|m| Error::BadValue { at: Default::default(), message: m })?;
+        let v = self.from_parts(&vec3(), parts, origin).map_err(|m| self.bad(Default::default(), m))?;
         Ok(v.num().expect("a vector").clone())
     }
 

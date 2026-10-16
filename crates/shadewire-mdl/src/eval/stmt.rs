@@ -19,7 +19,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
         }
         let origin = Self::origin(f, s.line);
         let (module, function) = (f.module, f.function.clone());
-        let fail = |e: &Self, m: String| Error::BadValue { at: e.at(module, s.line, &function), message: m };
+        let fail = |e: &Self, m: String| e.bad(e.at(module, s.line, &function), m);
         match &s.kind {
             StmtKind::Block(body) => {
                 f.scopes.push(Default::default());

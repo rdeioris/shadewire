@@ -239,8 +239,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
     /// `v` converted implicitly (or with `explicit`, as a constructor would) to `to`, errors placed in `module`.
     pub fn convert(&mut self, v: Val, to: &Ty, explicit: bool, line: u32, module: usize) -> Result<Val, Error> {
         let origin = format!("{}:{line}", self.program.modules[module].name);
-        self.convert_val(v, to, explicit, &origin)
-            .map_err(|message| Error::BadValue { at: self.at(module, line, ""), message })
+        self.convert_val(v, to, explicit, &origin).map_err(|message| self.bad(self.at(module, line, ""), message))
     }
 
     /// `T name(args)`: a variable built by its type's constructor.
@@ -407,18 +406,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
             ExprKind::Index { base, index } => {
                 let (var, mut steps) = self.lvalue(f, flow, base)?;
                 let i = self.expr(f, flow, index)?;
-                steps.push(match i.known_int() {
-                    Some(k)
-                        if !matches!(
-                            self.read_steps(f, &f.lookup(&var).expect("a variable").val.clone(), &steps, target.line)?
-                                .v,
-                            V::Array(_)
-                        ) =>
-                    {
-                        Step::Component(k.max(0) as u32)
-                    }
-                    _ => Step::Index(i),
-                });
+                steps.push(Step::Index(i));
                 Ok((var, steps))
             }
             _ => Err(self.error(f, target.line, "not an assignable value")),
@@ -468,6 +456,25 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
                 parts[*i as usize] = value.num().expect("a scalar").clone();
                 self.from_parts(&v.ty, parts, &origin).map_err(|m| self.error(f, line, m))
             }
+            // An index into a vector or matrix: a component known now, else a select over the components.
+            Step::Index(i) if !matches!(v.v, V::Array(_)) => match i.known_int() {
+                Some(k) => self.write_steps(f, v, &[&[Step::Component(k.max(0) as u32)], rest].concat(), new, line),
+                None => {
+                    let count = match &v.v {
+                        V::Columns(c) => c.len(),
+                        _ => v.ty.width().unwrap_or(1) as usize,
+                    };
+                    let i = i.num().cloned().ok_or_else(|| self.error(f, line, "a non-numeric index"))?;
+                    let mut out = v.clone();
+                    for k in 0..count {
+                        let steps = [&[Step::Component(k as u32)], rest].concat();
+                        let written = self.write_steps(f, &out, &steps, new.clone(), line)?;
+                        let hit = self.compare_eq_int(&i, k as i32, &origin).map_err(|m| self.error(f, line, m))?;
+                        out = self.select(&hit, written, out, &origin).map_err(|m| self.error(f, line, m))?;
+                    }
+                    Ok(out)
+                }
+            },
             Step::Index(i) => {
                 let elements = v.elements().ok_or_else(|| self.error(f, line, "not an array"))?.to_vec();
                 let mut out = Vec::with_capacity(elements.len());

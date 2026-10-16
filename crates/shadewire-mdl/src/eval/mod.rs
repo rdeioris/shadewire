@@ -130,6 +130,8 @@ pub struct Eval<'p, 'r, 'a> {
     pub main: usize,
     /// Context reads made so far: one node each.
     pub contexts: HashMap<ContextRead, NodeId>,
+    /// The `Error::Limit` emission hit, kept so a caller that turns errors into messages still reports it.
+    pub limit: Option<Error>,
 }
 
 impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
@@ -145,6 +147,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
             depth: 0,
             main,
             contexts: HashMap::new(),
+            limit: None,
         }
     }
 
@@ -154,7 +157,15 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
     }
 
     pub fn error(&self, f: &Frame, line: u32, message: impl Into<String>) -> Error {
-        Error::BadValue { at: self.at(f.module, line, &f.function), message: message.into() }
+        self.bad(self.at(f.module, line, &f.function), message)
+    }
+
+    /// `Error::BadValue` at `at`; the limit instead once one was hit (its message reached here as text).
+    pub fn bad(&self, at: Location, message: impl Into<String>) -> Error {
+        match &self.limit {
+            Some(limit) => limit.clone(),
+            None => Error::BadValue { at, message: message.into() },
+        }
     }
 
     /// Records `{material}: {what}`, once.
@@ -200,7 +211,10 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
         let mut ids: Vec<NodeId> = args.iter().map(|a| self.node_of(a, origin)).collect();
         self.widen_args(op, &mut ids, ty, origin);
         let id = self.e.dag.add(Node { kind: NodeKind::Op { op, args: ids }, ty, origin: origin.to_string() });
-        self.e.check_node_limit()?;
+        if let Err(e) = self.e.check_node_limit() {
+            self.limit = Some(e.clone());
+            return Err(e);
+        }
         Ok(Num::Node(id))
     }
 
