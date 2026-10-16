@@ -175,3 +175,21 @@ fn a_parent_import_of_a_module_that_is_not_there_names_the_folder() {
     let error = glass_tint(&modules, &file).unwrap_err();
     assert!(error.contains("no MDL module") && error.contains("nope") && error.contains("glass.mdl:3"), "{error}");
 }
+
+#[test]
+fn a_module_reached_by_a_parent_import_finds_its_own_siblings() {
+    // glass.mdl reaches templates/wrapper.mdl, which imports util beside it without a prefix.
+    let glass = glass("siblings", "..::templates::wrapper::*", 1.0);
+    let templates = glass.parent().unwrap().parent().unwrap().join("templates");
+    std::fs::write(
+        templates.join("wrapper.mdl"),
+        "mdl 1.7;
+import util::*;
+export color tint() = util::tint();
+",
+    )
+    .unwrap();
+    std::fs::write(&glass, module("..::templates::wrapper::*").replace("util::tint()", "wrapper::tint()")).unwrap();
+    let modules = Modules::new(Resolver::default()).unwrap();
+    assert_eq!(glass_tint(&modules, &glass).unwrap(), vec![0.5; 3]);
+}

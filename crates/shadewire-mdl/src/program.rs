@@ -505,15 +505,22 @@ impl Program {
         names
     }
 
-    /// The file a relative import (`.::`, `..::`) names where the importer is on no search path, so that it has no package
-    /// to be relative to: the folder it lives in, or the one `..` goes up to, holds the module. `None` for any other import.
+    /// The file an import names beside or above the importer where the importer is on no search path, so that it has no
+    /// package to be relative to: for `.::` and `..::`, the folder it lives in or the one `..` goes up to holds the module;
+    /// for an import without a prefix, the module beside it if there is one. `None` for any other import, or the weakly
+    /// relative one with nothing beside it.
     fn relative_file(&self, from: usize, path: &ImportPath, at: &Location) -> Result<Option<PathBuf>, Error> {
-        let levels = match path.prefix {
-            Prefix::Current => 0,
-            Prefix::Parent(n) => n as usize,
-            _ => return Ok(None),
+        let (levels, strict) = match path.prefix {
+            Prefix::Current => (0, true),
+            Prefix::Parent(n) => (n as usize, true),
+            Prefix::None => (0, false),
+            Prefix::Absolute => return Ok(None),
         };
-        let Some(dir) = self.modules[from].dir.as_deref() else { return Ok(None) };
+        let m = &self.modules[from];
+        let Some(dir) = m.dir.as_deref() else { return Ok(None) };
+        if !strict && path.parts.first().is_some_and(|first| m.aliases.contains_key(first)) {
+            return Ok(None);
+        }
         let mut folder = canonical(dir);
         if self.resolver.paths.iter().any(|root| folder.starts_with(canonical(root))) {
             return Ok(None);
@@ -528,8 +535,10 @@ impl Program {
         let file = folder.join(module_file(&parts));
         if file.is_file() {
             Ok(Some(file))
-        } else {
+        } else if strict {
             Err(Error::Io(format!("{at}: no MDL module ::{} in {}", path.parts.join("::"), folder.display())))
+        } else {
+            Ok(None)
         }
     }
 
