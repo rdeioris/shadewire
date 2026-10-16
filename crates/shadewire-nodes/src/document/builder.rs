@@ -45,7 +45,8 @@ pub enum InputValue<'v> {
 }
 
 /// What an input or an output reads: a node of the same scope (by output name when it has several), an output of
-/// a nodegraph, or an interface input of the enclosing nodegraph.
+/// a nodegraph, or an interface input of the enclosing nodegraph. A nodegraph's output (`Source::Graph`) may be read
+/// from the document or from inside another nodegraph, as the XML reader accepts `nodegraph=` there.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Source<'s> {
     Node(NodeRef, Option<&'s str>),
@@ -261,7 +262,8 @@ impl DocumentBuilder {
     }
 
     /// Connects `input` to `from`. `ty: None` takes the input's type from the node's nodedef. A nodegraph's
-    /// outputs are looked up at elaboration, so they may be added after the connections that read them.
+    /// outputs are looked up at elaboration, so they may be added after the connections that read them, and may be
+    /// read from the document or from inside another nodegraph (`Source::Graph`), as in XML.
     pub fn connect(
         &mut self,
         n: NodeRef,

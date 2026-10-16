@@ -253,15 +253,22 @@ if (shadewire_node_connect(b, sr, "base_color", NULL, &from_img, NULL, &err) ||
     shadewire_node_set_value(b, sr, "base", NULL, &weight, NULL, &err) ||
     shadewire_builder_add_material(b, "Wood", sr, "/root/Looks/Wood", &err) ||
     shadewire_builder_to_ir(b, "Wood", NULL, &ir, &err)) {
+    goto done;
+}
+/* ... use `ir`, which is independent of the builder ... */
+done:
+if (err != NULL) {
     fprintf(stderr, "error: %s\n", shadewire_error_message(err, NULL)); /* names /root/Looks/... */
 }
-done:
-shadewire_builder_free(b); /* `ir` is independent of the builder */
+shadewire_ir_free(ir);
+shadewire_error_free(err);
+shadewire_builder_free(b);
 ```
 
 Nodes inside a nodegraph take its `shadewire_nodegraph` handle in place of NULL
 (`shadewire_builder_add_nodegraph`, `shadewire_nodegraph_add_input`, `_add_output`); a node of a category with no
-nodedef named (`shadewire_builder_add_node_category`) takes explicit input types.
+nodedef named (`shadewire_builder_add_node_category(b, ng, name, category, type, source_path, out, error)`) takes
+explicit input types. `shadewire_error_source_path` gives the `source_path` an error names, NULL when it has none.
 
 ## Bevy
 

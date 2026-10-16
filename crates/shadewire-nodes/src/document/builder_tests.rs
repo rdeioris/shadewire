@@ -362,10 +362,21 @@ fn an_elaboration_error_names_the_source_path() {
 
 #[test]
 fn handles_of_another_builder_are_refused() {
-    let (_, ng, mul, _, _) = small();
+    let (_, ng, mul, _, sr) = small();
     let mut other = DocumentBuilder::new();
     assert!(other.set_input(mul, "in1", Some("color3"), V::Floats(&[1.0, 1.0, 1.0]), None).is_err());
     assert!(other.add_interface_input(ng, "x", "float", None, None).is_err());
+
+    // A builder of the same shape: every index is in range there, so only the builder id can refuse.
+    let (mut twin, _, _, _, twin_sr) = small();
+    let before = twin.document().clone();
+    assert!(twin.set_input(mul, "in1", Some("color3"), V::Floats(&[1.0, 1.0, 1.0]), None).is_err());
+    assert!(twin.add_interface_input(ng, "x", "float", None, None).is_err());
+    assert!(twin.add_node(Some(ng), "add", "float", "a", None).is_err());
+    assert!(twin.add_output(Some(ng), "o", "color3", Source::Node(mul, None), None).is_err());
+    assert!(twin.connect(twin_sr, "base_color", None, Source::Graph(ng, "out"), None).is_err());
+    assert!(twin.add_material("M", sr, None).is_err());
+    assert_eq!(twin.document(), &before);
 }
 
 #[test]
