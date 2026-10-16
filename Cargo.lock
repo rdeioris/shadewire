@@ -3910,6 +3910,7 @@ dependencies = [
  "shadewire-gdshader",
  "shadewire-glsl",
  "shadewire-hlsl",
+ "shadewire-mdl",
  "shadewire-msl",
  "shadewire-mtlx",
  "shadewire-nodes",
