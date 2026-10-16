@@ -398,3 +398,16 @@ fn an_enum_chosen_by_a_uniform_is_fixed_at_its_value() {
     let message = try_lower(&run_time, &IrOptions::with_models(&LOBE_MODELS)).unwrap_err().to_string();
     assert!(message.contains("a kind chosen by a value known only at run time"), "{message}");
 }
+
+#[test]
+fn a_declaration_with_constructor_arguments_copies_a_value_of_its_type() {
+    let prelude = "bsdf layer() { bsdf b(df::diffuse_reflection_bsdf(tint: color(0.25))); return b; }\n\
+                   color read() { texture_2d t(texture_2d(\"wood.png\")); return tex::lookup_color(t, float2(0.5)); }";
+    let text = format!(
+        "mdl 1.7;\nimport ::df::*;\nimport ::tex::*;\n{prelude}\n\
+         export material m() = material(surface: material_surface(scattering: layer()), ior: read());\n"
+    );
+    let ir = lower_constants(&text);
+    assert_eq!(field_value(&ir, "c0_color"), Value::Color3([0.25; 3]));
+    assert!(ir.dag.textures.iter().any(|t| t.file.ends_with("wood.png")), "{:?}", ir.dag.textures);
+}

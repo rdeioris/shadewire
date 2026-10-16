@@ -712,7 +712,11 @@ impl<'p, 'a> Eval<'p, 'a> {
     // ---- constructors
 
     /// `ty(args)` for a type with a constructor of its own (not a struct).
-    pub fn construct(&mut self, ty: &Ty, args: Vec<Val>, origin: &str) -> OpResult<Val> {
+    pub fn construct(&mut self, ty: &Ty, mut args: Vec<Val>, origin: &str) -> OpResult<Val> {
+        // The copy constructor every type has.
+        if args.len() == 1 && args[0].ty == *ty {
+            return Ok(args.pop().expect("one"));
+        }
         match ty {
             Ty::Scalar(_) => match args.len() {
                 0 => Ok(self.zero_of(ty)),
