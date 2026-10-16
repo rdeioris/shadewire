@@ -429,3 +429,18 @@ fn a_connection_cycle_fails_naming_a_source_path() {
     let text = b.to_ir(None, &IrOptions::default()).unwrap_err().to_string();
     assert!(text.contains("/NG/a") || text.contains("/NG/c"), "{text}");
 }
+
+#[test]
+fn a_default_graph_handle_is_refused_outside_a_connection_source() {
+    let (mut b, _, _, _, _) = small();
+    let none = GraphRef::default();
+    assert!(b.add_node(Some(none), "add", "float", "a", None).is_err());
+    assert!(b.add_node_from_nodedef(Some(none), "ND_add_float", "a", None).is_err());
+    assert!(b.add_interface_input(none, "x", "float", None, None).is_err());
+    assert!(b.set_interface_colorspace(none, "k", "srgb_texture").is_err());
+    let mul_source = Source::Interface("k");
+    assert!(b.add_output(Some(none), "o", "float", mul_source, None).is_err());
+    // Nothing landed in the first nodegraph.
+    let graph = &b.document().nodegraphs[0];
+    assert_eq!((graph.interface.len(), graph.nodes.len(), graph.outputs.len()), (1, 2, 0));
+}

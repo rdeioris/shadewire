@@ -17,8 +17,9 @@ use crate::{IrOptions, MaterialIr};
 static NEXT_BUILDER: AtomicU64 = AtomicU64::new(1);
 
 /// A nodegraph of a builder. Handles carry their builder's id, so a handle given to another builder is refused
-/// rather than naming whatever element sits at the same index there. `GraphRef::default()` belongs to no builder:
-/// it is the first nodegraph of whichever builder it is given to, a zeroed handle a C host can write.
+/// rather than naming whatever element sits at the same index there. `GraphRef::default()` belongs to no builder,
+/// so every builder refuses it, except as a connection's source: there it names no nodegraph, and lowering fails
+/// naming the input and the output it read, as a dangling `nodegraph=` in XML does.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct GraphRef {
     builder: u64,
@@ -425,9 +426,9 @@ impl DocumentBuilder {
         Ok(())
     }
 
-    /// The nodegraph a handle names. A default handle names the first nodegraph.
+    /// The nodegraph a handle names; a handle of another builder, or the default one, names none.
     fn graph(&self, g: GraphRef, at: Site<'_>) -> Result<usize, Error> {
-        if (g.builder == self.id || g.builder == 0) && g.index < self.doc.nodegraphs.len() {
+        if g.builder == self.id && g.index < self.doc.nodegraphs.len() {
             return Ok(g.index);
         }
         Err(self.bad(at, String::new(), "not a nodegraph of this builder".to_string()))
@@ -551,6 +552,12 @@ impl DocumentBuilder {
                 }
                 let output = output.map(str::to_string);
                 Ok(Link { nodename: Some(node.name.clone()), output, ..Link::default() })
+            }
+            // The default handle becomes a name no nodegraph can have (MaterialX names hold no `<`), so the
+            // connection dangles until lowering, which reports it with the output asked for.
+            Source::Graph(g, output) if g == GraphRef::default() => {
+                let nodegraph = Some(format!("<no nodegraph: GraphRef::default() read for output {output}>"));
+                Ok(Link { nodegraph, output: Some(output.to_string()), ..Link::default() })
             }
             Source::Graph(g, output) => {
                 let g = self.graph(g, at)?;
