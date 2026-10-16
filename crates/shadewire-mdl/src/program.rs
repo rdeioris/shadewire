@@ -505,24 +505,73 @@ impl Program {
         names
     }
 
+    /// The file a relative import (`.::`, `..::`) names where the importer is on no search path, so that it has no package
+    /// to be relative to: the folder it lives in, or the one `..` goes up to, holds the module. `None` for any other import.
+    fn relative_file(&self, from: usize, path: &ImportPath, at: &Location) -> Result<Option<PathBuf>, Error> {
+        let levels = match path.prefix {
+            Prefix::Current => 0,
+            Prefix::Parent(n) => n as usize,
+            _ => return Ok(None),
+        };
+        let Some(dir) = self.modules[from].dir.as_deref() else { return Ok(None) };
+        let mut folder = canonical(dir);
+        if self.resolver.paths.iter().any(|root| folder.starts_with(canonical(root))) {
+            return Ok(None);
+        }
+        for _ in 0..levels {
+            folder = match folder.parent() {
+                Some(parent) => parent.to_path_buf(),
+                None => return Err(Error::Io(format!("{at}: a relative import goes above the file system root"))),
+            };
+        }
+        let parts: Vec<&str> = path.parts.iter().map(String::as_str).collect();
+        let file = folder.join(module_file(&parts));
+        if file.is_file() {
+            Ok(Some(file))
+        } else {
+            Err(Error::Io(format!("{at}: no MDL module ::{} in {}", path.parts.join("::"), folder.display())))
+        }
+    }
+
+    /// The module in `file`, which is on no search path, loaded with its imports on first use.
+    fn load_file(&mut self, file: &Path, at: &Location) -> Result<usize, Error> {
+        let key = canonical(file);
+        if let Some(&id) = self.by_file.get(&key) {
+            return Ok(id);
+        }
+        let shown = file.display().to_string();
+        let text = std::fs::read_to_string(file).map_err(|e| Error::Io(format!("{at}: {shown}: {e}")))?;
+        let ast = parse_module(&text, Some(&shown))?;
+        let stem = file.file_stem().and_then(|s| s.to_str()).unwrap_or("main");
+        let dir = file.parent().map(Path::to_path_buf);
+        let keys = Keys { file: Some(key), by_name: false };
+        self.install(format!("::{stem}"), ast, Some(shown), dir, Vec::new(), false, keys)
+    }
+
     fn import(&mut self, id: usize, import: &Import) -> Result<(), Error> {
         let (path, line) = match import {
             Import::Qualified { path, line, .. } | Import::Using { path, line, .. } => (path, *line),
             Import::Alias { .. } => return Ok(()),
         };
         let at = self.modules[id].at(line, "import");
-        let names = self.candidates(id, path);
-        let name = match names.iter().find(|n| self.exists(n)) {
-            Some(name) => name,
-            None if names.len() > 1 => {
-                return Err(Error::Io(format!("{at}: no MDL module {} on the search path", names.join(" or "))));
+        let target = match self.relative_file(id, path, &at)? {
+            Some(file) => self.load_file(&file, &at)?,
+            None => {
+                let names = self.candidates(id, path);
+                let name = match names.iter().find(|n| self.exists(n)) {
+                    Some(name) => name,
+                    None if names.len() > 1 => {
+                        return Err(Error::Io(format!(
+                            "{at}: no MDL module {} on the search path",
+                            names.join(" or ")
+                        )));
+                    }
+                    None => &names[0],
+                };
+                let target = self.load(name, &at)?;
+                if target == id && vendored(name).is_some() { self.load_shadowed(name)? } else { target }
             }
-            None => &names[0],
         };
-        let mut target = self.load(name, &at)?;
-        if target == id && vendored(name).is_some() {
-            target = self.load_shadowed(name)?;
-        }
         let written = path.parts.clone();
         match import {
             Import::Qualified { name, .. } => {

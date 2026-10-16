@@ -5,7 +5,7 @@ use std::path::{Component, Path, PathBuf};
 
 use shadewire::optimize::optimize;
 use shadewire::{LOBE_MODELS, NodeKind};
-use shadewire_mdl::{IrOptions, Resolver, to_ir};
+use shadewire_mdl::{IrOptions, Modules, Resolver, to_ir};
 
 const UTIL: &str = "mdl 1.7;\nexport color tint() = color(0.2, 0.4, 0.6);\n";
 
@@ -117,4 +117,61 @@ fn a_missing_module_names_both_places() {
     let root = kit("missing", None);
     let error = kit_tint(&root).unwrap_err();
     assert!(error.contains("::nvidia::support") && error.contains("::support"), "{error}");
+}
+
+/// `root/a/b/glass.mdl` importing `import` as `util`, and `root/a/templates/util.mdl` with `UTIL`'s tint scaled by `scale`.
+fn glass(name: &str, import: &str, scale: f32) -> PathBuf {
+    let root = Path::new(env!("CARGO_TARGET_TMPDIR")).join("mdl-imports").join(name);
+    std::fs::create_dir_all(root.join("a/b")).unwrap();
+    std::fs::create_dir_all(root.join("a/templates")).unwrap();
+    let util = format!("mdl 1.7;\nexport color tint() = color({:?});\n", 0.5 * scale);
+    std::fs::write(root.join("a/templates/util.mdl"), util).unwrap();
+    std::fs::write(root.join("a/b/glass.mdl"), module(import)).unwrap();
+    root.join("a/b/glass.mdl")
+}
+
+/// The diffuse tint of `file`'s material, loaded by file path with an empty search path.
+fn glass_tint(modules: &Modules, file: &Path) -> Result<Vec<f32>, String> {
+    let options = IrOptions::with_models(&LOBE_MODELS);
+    let ir = modules.to_ir(file.to_str().unwrap(), None, &[], &options).map_err(|e| e.to_string())?;
+    let dag = optimize(&ir.dag);
+    let tint = dag.surface.fields.iter().find(|f| f.name == "c0_color").expect("a diffuse tint");
+    match &dag.node(tint.node).kind {
+        NodeKind::Const(v) => Ok(v.floats().to_vec()),
+        other => panic!("the tint did not fold: {other:?}"),
+    }
+}
+
+#[test]
+fn a_parent_import_from_a_file_off_the_search_path_goes_up_a_folder() {
+    let file = glass("parent-off-path", "..::templates::util::*", 1.0);
+    let modules = Modules::new(Resolver::default()).unwrap();
+    assert_eq!(glass_tint(&modules, &file).unwrap(), vec![0.5; 3]);
+}
+
+#[test]
+fn off_path_imports_are_kept_by_file() {
+    let (one, two) =
+        (glass("off-path-one", "..::templates::util::*", 1.0), glass("off-path-two", "..::templates::util::*", 0.5));
+    let modules = Modules::new(Resolver::default()).unwrap();
+    assert_eq!(glass_tint(&modules, &one).unwrap(), vec![0.5; 3]);
+    assert_eq!(glass_tint(&modules, &two).unwrap(), vec![0.25; 3]);
+    assert_eq!(glass_tint(&modules, &one).unwrap(), vec![0.5; 3]);
+}
+
+#[test]
+fn a_parent_import_above_the_file_system_root_is_an_error() {
+    let above = format!("{}templates::util::*", "..::".repeat(200));
+    let file = glass("above-root", &above, 1.0);
+    let modules = Modules::new(Resolver::default()).unwrap();
+    let error = glass_tint(&modules, &file).unwrap_err();
+    assert!(error.contains("above the file system root") && error.contains("glass.mdl:3"), "{error}");
+}
+
+#[test]
+fn a_parent_import_of_a_module_that_is_not_there_names_the_folder() {
+    let file = glass("not-there", "..::templates::nope::*", 1.0);
+    let modules = Modules::new(Resolver::default()).unwrap();
+    let error = glass_tint(&modules, &file).unwrap_err();
+    assert!(error.contains("no MDL module") && error.contains("nope") && error.contains("glass.mdl:3"), "{error}");
 }
