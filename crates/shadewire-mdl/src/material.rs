@@ -154,12 +154,17 @@ type Resolved = (usize, usize, Vec<(String, Val)>);
 /// own, and the arguments the variants gave it, the outermost variant's first. A material that is no variant is itself.
 fn resolve_variant(ev: &mut Eval, mut module: usize, mut decl: usize) -> Result<Resolved, Error> {
     let mut defaults: Vec<(String, Val)> = Vec::new();
+    let mut seen = Vec::new();
     loop {
         let func = ev.program.function(module, decl).clone();
         if func.params.is_some() {
             return Ok((module, decl, defaults));
         }
         let fail = |ev: &Eval, message: &str| ev.bad(ev.at(module, func.line, &func.name), message.to_string());
+        if seen.contains(&(module, decl)) {
+            return Err(fail(ev, &format!("a cycle of variants through {}", func.name)));
+        }
+        seen.push((module, decl));
         let Body::Expr(Expr { kind: ExprKind::Call { callee, args }, .. }) = &func.body else {
             return Err(fail(ev, "a variant must call a material"));
         };

@@ -299,3 +299,17 @@ fn a_variant_of_a_variant_takes_the_outer_defaults_first() {
     assert_eq!(uniform(&dag, "tint"), Some(Value::Color3([0.6; 3])));
     assert_eq!(uniform(&dag, "rough"), Some(Value::Float(0.4)));
 }
+
+#[test]
+fn a_cycle_of_variants_is_an_error_not_a_hang() {
+    for (name, declarations) in [
+        ("variant-self", "export material v(*) = v();\n"),
+        ("variant-cycle", "export material v(*) = w();\nexport material w(*) = v();\n"),
+    ] {
+        let file = scratch(name).join("variants.mdl");
+        write(&file, &variants(declarations));
+        let modules = Modules::new(Resolver::default()).unwrap();
+        let error = modules.to_ir(file.to_str().unwrap(), Some("v"), &[], &lobes()).unwrap_err().to_string();
+        assert!(error.contains("variants.mdl:4") && error.contains("cycle") && error.contains(" v"), "{name}: {error}");
+    }
+}
