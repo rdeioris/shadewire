@@ -143,3 +143,56 @@ fn errors_name_the_line() {
     assert_eq!(at.line, 3);
     assert_eq!(at.file.as_deref(), Some("bad.mdl"));
 }
+
+#[test]
+fn windows_line_endings_and_bom_parse() {
+    let m = module("\u{feff}mdl 1.7;\r\nimport ::df::*;\r\nexport material m() = material();\r\n");
+    assert_eq!(m.decls.len(), 1);
+    let e = parse_module("mdl 1.7;\r\n\r\nfloat f() {\r\n  return 1.0 +;\r\n}\r\n", Some("w.mdl")).unwrap_err();
+    let Error::Parse { at, .. } = e else { panic!("{e:?}") };
+    assert_eq!(at.line, 4);
+}
+
+#[test]
+fn unicode_identifiers_and_relative_imports() {
+    let m = module("mdl 1.7;\nimport ..::..::'my pkg'::m::*;\nimport .::a::b;\n");
+    let Import::Qualified { path, name, .. } = &m.imports[0] else { panic!() };
+    assert_eq!(path.prefix, Prefix::Parent(2));
+    assert_eq!(path.parts, ["my pkg", "m"]);
+    assert_eq!(name, &None);
+    let Import::Qualified { path, name, .. } = &m.imports[1] else { panic!() };
+    assert_eq!(path.prefix, Prefix::Current);
+    assert_eq!(path.parts, ["a"]);
+    assert_eq!(name.as_deref(), Some("b"));
+}
+
+#[test]
+fn variant_and_annotated_return_type() {
+    let m = module("mdl 1.7;\nexport float3 [[ anno::unused() ]] f() varying [[ anno::hidden() ]] = float3(0);\n");
+    let DeclKind::Function(f) = &m.decls[0].kind else { panic!() };
+    assert_eq!(f.frequency, Some(Frequency::Varying));
+    assert_eq!(f.annotations[0].name.last(), "hidden");
+}
+
+#[test]
+fn package_aliases() {
+    let m = module("mdl 1.6;\nusing odd = \"down6_+\";\nusing deep = ::p1::p2;\nimport odd::m::*;\n");
+    assert_eq!(m.imports.len(), 3);
+    let Import::Alias { name, target, .. } = &m.imports[0] else { panic!("{:?}", m.imports[0]) };
+    assert_eq!(
+        (name.as_str(), target.prefix, target.parts.as_slice()),
+        ("odd", Prefix::None, &["down6_+".to_string()][..])
+    );
+    let Import::Alias { name, target, .. } = &m.imports[1] else { panic!() };
+    assert_eq!((name.as_str(), target.prefix), ("deep", Prefix::Absolute));
+    assert_eq!(target.parts, ["p1", "p2"]);
+}
+
+#[test]
+fn string_segments_in_import_paths() {
+    let m = module("mdl 1.6;\nusing up = ::\"up5_+\";\nimport ::p1::\"same5_+\"::f;\n");
+    let Import::Alias { target, .. } = &m.imports[0] else { panic!() };
+    assert_eq!(target.parts, ["up5_+"]);
+    let Import::Qualified { path, name, .. } = &m.imports[1] else { panic!() };
+    assert_eq!((path.parts.as_slice(), name.as_deref()), (&["p1".to_string(), "same5_+".to_string()][..], Some("f")));
+}

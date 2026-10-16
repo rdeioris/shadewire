@@ -123,6 +123,19 @@ fn import(p: P) -> Import {
             }
             Import::Using { export, path: path.expect("a using path"), names, line: at }
         }
+        Rule::using_alias => {
+            let mut name = String::new();
+            let mut target = ImportPath { prefix: Prefix::None, parts: Vec::new() };
+            for i in inner.into_inner() {
+                match i.as_rule() {
+                    Rule::ident => name = i.as_str().to_string(),
+                    Rule::string_lit => target.parts.push(unescape(&i.as_str()[1..i.as_str().len() - 1])),
+                    Rule::import_path => target = import_path(i),
+                    _ => {}
+                }
+            }
+            Import::Alias { name, target, line: at }
+        }
         other => unreachable!("import {other:?}"),
     }
 }
@@ -148,7 +161,7 @@ fn prefix(p: P) -> Prefix {
 
 fn path_part(p: &P) -> String {
     let s = p.as_str();
-    if s.starts_with('\'') { unescape(&s[1..s.len() - 1]) } else { s.to_string() }
+    if s.starts_with('\'') || s.starts_with('"') { unescape(&s[1..s.len() - 1]) } else { s.to_string() }
 }
 
 fn import_path(p: P) -> ImportPath {

@@ -69,15 +69,19 @@ module = { SOI ~ mdl_version ~ import_decl* ~ module_annotation? ~ global_decl* 
 mdl_version = { kw_mdl ~ float_lit ~ ";" }
 module_annotation = { kw_module ~ annotation_block ~ ";" }
 
-import_decl = { import_stmt | using_stmt }
+import_decl = { import_stmt | using_alias | using_stmt }
+// `using alias = "package";` or `using alias = ::a::b;`: a name for a package path (MDL 1.6).
+using_alias = { kw_using ~ ident ~ "=" ~ (string_lit | import_path) ~ ";" }
 import_stmt = { kw_import ~ qualified_import ~ ("," ~ qualified_import)* ~ ";" }
 using_stmt = { export? ~ kw_using ~ import_path ~ kw_import ~ (star | ident ~ ("," ~ ident)*) ~ ";" }
 export = { kw_export }
 star = { "*" }
 // `..::` repeated, `.::`, or `::` before the first name; `None` is relative to the search path.
 import_prefix = { ("..::")+ | ".::" | "::" }
-import_path = { import_prefix? ~ path_ident ~ ("::" ~ path_ident)* }
-qualified_import = { import_prefix? ~ (path_ident ~ "::")+ ~ (star | path_ident) }
+// Import paths also take package names as string literals (MDL 1.6).
+import_part = _{ path_ident | string_lit }
+import_path = { import_prefix? ~ import_part ~ ("::" ~ import_part)* }
+qualified_import = { import_prefix? ~ (import_part ~ "::")+ ~ (star | path_ident) }
 
 global_decl = {
     import_decl

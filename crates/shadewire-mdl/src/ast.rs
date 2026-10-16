@@ -66,6 +66,9 @@ pub enum Import {
     Qualified { path: ImportPath, name: Option<String>, line: u32 },
     /// `[export] using a::b import *;` (`names: None`) or `import x, y;`.
     Using { export: bool, path: ImportPath, names: Option<Vec<String>>, line: u32 },
+    /// `using name = "package";` or `using name = ::a::b;`: `name` stands for `target` at the start of later
+    /// import paths.
+    Alias { name: String, target: ImportPath, line: u32 },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -123,6 +123,8 @@ pub struct ModuleData {
     /// Names imported unqualified (`using`), with what they name.
     pub unqualified: HashMap<String, Vec<Entity>>,
     pub qualified: Vec<QualifiedImport>,
+    /// Package aliases (`using name = "package";`) by name.
+    pub aliases: HashMap<String, ImportPath>,
 }
 
 impl ModuleData {
@@ -291,6 +293,13 @@ impl<'r> Program<'r> {
             exported: HashSet::new(),
             unqualified: HashMap::new(),
             qualified: Vec::new(),
+            aliases: imports
+                .iter()
+                .filter_map(|i| match i {
+                    Import::Alias { name, target, .. } => Some((name.clone(), target.clone())),
+                    _ => None,
+                })
+                .collect(),
         });
         self.declare(id);
         for import in &imports {
@@ -360,6 +369,14 @@ impl<'r> Program<'r> {
     /// The absolute name of the module an import path names, from module `from`.
     fn absolute(&self, from: usize, path: &ImportPath) -> String {
         let m = &self.modules[from];
+        // A leading alias stands for its package path.
+        if path.prefix == Prefix::None
+            && let Some(target) = path.parts.first().and_then(|p| m.aliases.get(p))
+        {
+            let mut expanded = target.clone();
+            expanded.parts.extend(path.parts[1..].iter().cloned());
+            return self.absolute(from, &expanded);
+        }
         let mut parts: Vec<String> = match path.prefix {
             Prefix::Absolute => Vec::new(),
             Prefix::Current => m.package.clone(),
@@ -371,13 +388,22 @@ impl<'r> Program<'r> {
             // is what every module in the wild means.
             Prefix::None => Vec::new(),
         };
-        parts.extend(path.parts.iter().cloned());
+        // An alias of one package name stands for it anywhere in the path.
+        for p in &path.parts {
+            match m.aliases.get(p) {
+                Some(target) if target.prefix == Prefix::None && target.parts.len() == 1 => {
+                    parts.push(target.parts[0].clone())
+                }
+                _ => parts.push(p.clone()),
+            }
+        }
         parts.iter().map(|p| format!("::{p}")).collect()
     }
 
     fn import(&mut self, id: usize, import: &Import) -> Result<(), Error> {
         let (path, line) = match import {
             Import::Qualified { path, line, .. } | Import::Using { path, line, .. } => (path, *line),
+            Import::Alias { .. } => return Ok(()),
         };
         let at = self.modules[id].at(line, "import");
         let absolute = self.absolute(id, path);
@@ -388,6 +414,7 @@ impl<'r> Program<'r> {
                 let only = name.as_ref().map(|n| HashSet::from([n.clone()]));
                 self.modules[id].qualified.push(QualifiedImport { written, module: target, only });
             }
+            Import::Alias { .. } => unreachable!("aliases are recorded before imports"),
             Import::Using { export, names, .. } => {
                 let names: Vec<String> = match names {
                     Some(names) => names.clone(),
@@ -584,6 +611,58 @@ mod tests {
         assert!(!program.lookup(main, &q("anno::soft_range")).is_empty());
         assert!(matches!(program.lookup(main, &q("material")).as_slice(), [Entity::Struct(_)]));
         assert_eq!(program.materials(main), ["m"]);
+    }
+
+    #[test]
+    fn imports_through_a_package_alias() {
+        let root = std::env::temp_dir().join("shadewire-mdl-alias");
+        std::fs::create_dir_all(root.join("odd pkg")).unwrap();
+        std::fs::write(
+            root.join("odd pkg/m.mdl"),
+            "mdl 1.6;
+export color c() = color(0.5);
+",
+        )
+        .unwrap();
+        let resolver = Resolver::new(vec![root]);
+        let mut program = Program::new(&resolver).unwrap();
+        let main = program
+            .add_main(
+                "mdl 1.6;
+using odd = \"odd pkg\";
+import odd::m::*;
+",
+                None,
+            )
+            .unwrap();
+        assert!(program.by_name("::odd pkg::m").is_some());
+        let name = QualifiedName { absolute: false, parts: vec!["odd".into(), "m".into(), "c".into()] };
+        assert!(matches!(program.lookup(main, &name).as_slice(), [Entity::Function { .. }]));
+    }
+
+    #[test]
+    fn an_alias_inside_an_absolute_path() {
+        let root = std::env::temp_dir().join("shadewire-mdl-alias-inner");
+        std::fs::create_dir_all(root.join("p/odd pkg")).unwrap();
+        std::fs::write(
+            root.join("p/odd pkg/m.mdl"),
+            "mdl 1.6;
+export color c() = color(0.5);
+",
+        )
+        .unwrap();
+        let resolver = Resolver::new(vec![root]);
+        let mut program = Program::new(&resolver).unwrap();
+        program
+            .add_main(
+                "mdl 1.6;
+using odd = \"odd pkg\";
+import ::p::odd::m::*;
+",
+                None,
+            )
+            .unwrap();
+        assert!(program.by_name("::p::odd pkg::m").is_some());
     }
 
     #[test]
