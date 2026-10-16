@@ -3996,6 +3996,7 @@ dependencies = [
  "shadewire-blender",
  "shadewire-glsl",
  "shadewire-hlsl",
+ "shadewire-mdl",
  "shadewire-msl",
  "shadewire-mtlx",
  "shadewire-nodes",
