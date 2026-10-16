@@ -20,3 +20,5 @@ pub use material::{material_names, to_ir};
 /// The options and result types of [`to_ir`], re-exported so an MDL user needs one crate.
 pub use shadewire_nodes::{IrOptions, MaterialIr};
 pub mod write;
+
+pub use write::{MdlOptions, compile};

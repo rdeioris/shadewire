@@ -211,8 +211,12 @@ impl Syntax for Mdl {
         panic!("MDL has no pointers")
     }
 
+    /// Textures are uniform in MDL, parameters included.
     fn param(&self, name: &str, ty: &Ty) -> String {
-        format!("{} {name}", self.ty(ty))
+        match ty {
+            Ty::Texture2d => format!("uniform texture_2d {name}"),
+            _ => format!("{} {name}", self.ty(ty)),
+        }
     }
 
     fn extern_decl(&self, _f: &Function, _module: &Module) -> Option<String> {
@@ -222,6 +226,11 @@ impl Syntax for Mdl {
     fn resource(&self, _r: &Resource, _module: &Module) -> String {
         String::new()
     }
+}
+
+/// The MDL name of a shader type.
+pub fn type_name(ty: &Ty) -> String {
+    Mdl.ty(ty)
 }
 
 /// Prints a module as MDL (its items; the `mdl` line, imports and material are the caller's).

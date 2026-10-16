@@ -168,6 +168,19 @@ pub fn mdl_ident(name: &str) -> String {
     out
 }
 
+/// A file path as MDL names a resource: `/` separators, and no drive letter (MDL paths cannot hold `:`; an
+/// absolute path is then read against the search path). The second value says the drive was dropped.
+pub fn mdl_resource(path: &str) -> (String, bool) {
+    let path = path.replace('\\', "/");
+    let bytes = path.as_bytes();
+    if bytes.len() >= 2 && bytes[1] == b':' && bytes[0].is_ascii_alphabetic() {
+        let rest = &path[2..];
+        let rest = if rest.starts_with('/') { rest.to_string() } else { format!("/{rest}") };
+        return (rest, true);
+    }
+    (path, false)
+}
+
 /// `s` as an MDL string literal; backslashes become `/`, MDL's path separator.
 pub fn mdl_string(s: &str) -> String {
     let mut out = String::from("\"");
