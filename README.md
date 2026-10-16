@@ -223,6 +223,46 @@ document's include hrefs (`shadewire_dependencies_include_count` / `_include`) a
 applied (`_file_count` / `_file`), unresolved and without repeats; list each fetched include again for its own, then
 compile with a resolver that answers from memory. Free the list with `shadewire_dependencies_free`.
 
+### Building a graph from C
+
+A host that holds its own graph (a USD UsdShade network) builds the document in memory instead of writing XML for
+Shadewire to parse: `shadewire_builder_new`, then nodegraphs, nodes, typed values (`shadewire_value`) and connections
+(`shadewire_source`), then `shadewire_builder_to_ir`, which takes the same `shadewire_mtlx_options` and gives the same
+IR as the XML would. Each call checks what it adds, and every element may carry the host's own path for it
+(`source_path`), which messages show in place of a file and line. Inputs are write-once. Nodegraph and node handles
+belong to the builder until `shadewire_builder_free`; a builder is not thread-safe.
+
+```c
+static const float base = 0.8f;
+shadewire_builder *b = shadewire_builder_new();
+shadewire_node *img = NULL, *sr = NULL;
+shadewire_error *err = NULL;
+shadewire_ir *ir = NULL;
+shadewire_value file = {SHADEWIRE_VALUE_STRING, NULL, 0, 0, false, "wood.png"};
+shadewire_value weight = {SHADEWIRE_VALUE_FLOATS, &base, 1, 0, false, NULL};
+shadewire_source from_img = {SHADEWIRE_SOURCE_NODE, NULL, NULL, NULL, NULL};
+
+if (shadewire_builder_add_node(b, NULL, "img", "ND_image_color3", "/root/Looks/Wood/img", &img, &err) ||
+    shadewire_node_set_value(b, img, "file", NULL, &file, NULL, &err) ||
+    shadewire_node_set_colorspace(b, img, "file", "srgb_texture", &err) ||
+    shadewire_builder_add_node(b, NULL, "SR", "ND_standard_surface_surfaceshader", "/root/Looks/Wood", &sr, &err)) {
+    goto done;
+}
+from_img.node = img;
+if (shadewire_node_connect(b, sr, "base_color", NULL, &from_img, NULL, &err) ||
+    shadewire_node_set_value(b, sr, "base", NULL, &weight, NULL, &err) ||
+    shadewire_builder_add_material(b, "Wood", sr, "/root/Looks/Wood", &err) ||
+    shadewire_builder_to_ir(b, "Wood", NULL, &ir, &err)) {
+    fprintf(stderr, "error: %s\n", shadewire_error_message(err, NULL)); /* names /root/Looks/... */
+}
+done:
+shadewire_builder_free(b); /* `ir` is independent of the builder */
+```
+
+Nodes inside a nodegraph take its `shadewire_nodegraph` handle in place of NULL
+(`shadewire_builder_add_nodegraph`, `shadewire_nodegraph_add_input`, `_add_output`); a node of a category with no
+nodedef named (`shadewire_builder_add_node_category`) takes explicit input types.
+
 ## Bevy
 
 `shadewire-bevy` (Bevy 0.20) turns a MaterialX material into a `ShadewireMaterial`: a `StandardMaterial` (the base,

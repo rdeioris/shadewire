@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Graph builder: build a MaterialX document in memory from Rust (`DocumentBuilder`) or C (`shadewire_builder_*`),
+  with typed values and host source paths in messages.
+
 ## 0.2.0 (2026-10-15)
 
 Since 0.1.0.
