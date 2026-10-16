@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Highlights
+
+- **NVIDIA MDL, both ways.** `shadewire-mdl` reads MDL modules (1.0 to 1.11) with a compile-time evaluator: the
+  chosen material runs symbolically, known values fold, varying ones become IR nodes, calls inline, run-time branches
+  are predicated and loops unroll. The standard modules are NVIDIA's declarations with their meaning in Rust;
+  `::base` and `::nvidia::core_definitions` are vendored and evaluated (the noise primitives are MaterialX's noises,
+  with a warning). The `::df` tree becomes a closure tree of MaterialX's lobes, parameters become uniforms with their
+  ranges and groups as UI hints, and what is dropped or approximated is in `MaterialIr.warnings`. The writer
+  (`shadewire_mdl::compile`) prints any closure tree or `surface_unlit` material as a self-contained MDL 1.7 module
+  that imports only the standard modules; every vendored MaterialX example passes the MDL SDK's `mdlc` and reads back
+  to the same lobes.
+- **CLI:** `.mdl` input wherever a `.mtlx` is read (`--format mdl`), `--mdl-path DIR` for the MDL search path, and
+  `--lang mdl` (closure trees by default).
+- **Python:** `shadewire.mdl` (`to_ir`, `material_names`, `compile`).
+- **C:** `shadewire_mdl_to_ir`, `shadewire_mdl_material_names` and the `SHADEWIRE_TARGET_MDL` target.
+
+### Changes
+
+- The support libraries are pointer-free, so a language without out parameters can print them:
+  `shadewire_floorfrac(x)` returns the fraction alone and `shadewire_bjmix` returns its three words. The generated
+  code computes the same values; snapshots of the noise functions moved.
+
 ## 0.2.0 (2026-10-15)
 
 Since 0.1.0.
