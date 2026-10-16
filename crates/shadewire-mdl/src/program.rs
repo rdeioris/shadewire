@@ -160,6 +160,19 @@ pub struct Program<'r> {
     pub enums: Vec<EnumDef>,
     /// Modules whose imports are being loaded, to report cycles.
     loading: Vec<String>,
+    /// The main module's folder when it is under no search path root: a root after them, so its relative imports
+    /// resolve next to it.
+    main_root: Option<PathBuf>,
+}
+
+/// `path` as the file system names it (relative paths and `..` resolved), or as given when it does not exist. On
+/// Windows a drive path keeps its usual form, not the `\\?\` one, for the file names errors cite.
+fn canonical(path: &Path) -> PathBuf {
+    let Ok(full) = std::fs::canonicalize(path) else { return path.to_path_buf() };
+    match full.to_str().and_then(|s| s.strip_prefix(r"\\?\")) {
+        Some(drive) if !drive.starts_with("UNC") => PathBuf::from(drive),
+        _ => full,
+    }
 }
 
 impl<'r> Program<'r> {
@@ -171,6 +184,7 @@ impl<'r> Program<'r> {
             structs: Vec::new(),
             enums: Vec::new(),
             loading: Vec::new(),
+            main_root: None,
         };
         program.module(PRELUDE, &Location::default())?;
         Ok(program)
@@ -186,7 +200,14 @@ impl<'r> Program<'r> {
         let path = location.map(Path::new);
         let stem = path.and_then(|p| p.file_stem()).and_then(|s| s.to_str()).unwrap_or("main");
         let dir = path.and_then(|p| p.parent()).map(Path::to_path_buf);
-        let package = dir.as_deref().map(|d| self.package_of(d)).unwrap_or_default();
+        let package = match dir.as_deref().map(|d| (d, self.package_of(d))) {
+            Some((_, Some(package))) => package,
+            Some((d, None)) => {
+                self.main_root = Some(canonical(d));
+                Vec::new()
+            }
+            None => Vec::new(),
+        };
         let mut name = String::new();
         for p in package.iter().chain(std::iter::once(&stem.to_string())) {
             name.push_str("::");
@@ -195,14 +216,18 @@ impl<'r> Program<'r> {
         self.install(name, ast, location.map(str::to_string), dir, package, false)
     }
 
-    /// The packages of a folder: its path below the search path root holding it.
-    fn package_of(&self, dir: &Path) -> Vec<String> {
-        for root in &self.resolver.paths {
-            if let Ok(rest) = dir.strip_prefix(root) {
-                return rest.components().filter_map(|c| c.as_os_str().to_str().map(str::to_string)).collect();
-            }
-        }
-        Vec::new()
+    /// The packages of a folder: its path below the search path root holding it; `None` when no root holds it.
+    fn package_of(&self, dir: &Path) -> Option<Vec<String>> {
+        let dir = canonical(dir);
+        self.roots().find_map(|root| {
+            let rest = dir.strip_prefix(&root).ok()?;
+            Some(rest.components().filter_map(|c| c.as_os_str().to_str().map(str::to_string)).collect())
+        })
+    }
+
+    /// Where modules are looked for: the search path, then the main module's folder when it is on none of it.
+    fn roots(&self) -> impl Iterator<Item = PathBuf> + '_ {
+        self.resolver.paths.iter().map(|p| canonical(p)).chain(self.main_root.clone())
     }
 
     pub fn by_name(&self, name: &str) -> Option<usize> {
@@ -240,7 +265,7 @@ impl<'r> Program<'r> {
         for (i, p) in parts.iter().enumerate() {
             if i + 1 == parts.len() { relative.push(format!("{p}.mdl")) } else { relative.push(p) }
         }
-        self.resolver.paths.iter().map(|root| root.join(&relative)).find_map(|path| {
+        self.roots().map(|root| root.join(&relative)).find_map(|path| {
             let text = std::fs::read_to_string(&path).ok()?;
             Some((text, path))
         })
