@@ -8,18 +8,19 @@ use shadewire_nodes::document::PortType;
 use shadewire_nodes::elaborate::STACK_BYTES;
 use shadewire_nodes::{Arg, Elaborator, IrOptions, MaterialIr, ShaderNode, Synthetic};
 
-use crate::ast::{Annotation, DeclKind};
+use crate::ast::{Annotation, DeclKind, Param};
 use crate::eval::{Eval, Flow, Frame};
+use crate::modules::{ArgValue, Argument, Modules};
 use crate::program::{Program, Resolver};
-use crate::types::Ty;
-use crate::value::{Df, Num, Val};
+use crate::types::{TextureShape, Ty};
+use crate::value::{Df, Gamma, Num, Texture, V, Val};
 
 /// The exported materials of the module in `text`.
 pub fn material_names(text: &str, location: Option<&str>, resolver: &Resolver) -> Result<Vec<String>, Error> {
     on_reader_stack(|| {
-        let mut program = Program::new(resolver)?;
-        let main = program.add_main(text, location)?;
-        Ok(program.materials(main))
+        let modules = Modules::new(resolver.clone())?;
+        let main = modules.add_main(text, location)?;
+        Ok(modules.materials(main))
     })
 }
 
@@ -31,14 +32,24 @@ pub fn to_ir(
     options: &IrOptions,
     resolver: &Resolver,
 ) -> Result<MaterialIr, Error> {
-    on_reader_stack(|| to_ir_here(text, location, material, options, resolver))
+    on_reader_stack(|| {
+        let modules = Modules::new(resolver.clone())?;
+        let main = modules.add_main(text, location)?;
+        modules.lower(main, material, &[], options)
+    })
 }
 
+/// The name of the threads `on_reader_stack` starts.
+const READER: &str = "shadewire-mdl";
+
 /// Runs `run` on a thread with the elaborator's stack (`STACK_BYTES`), which parsing, evaluating and dropping a module
-/// nested up to `MAX_NESTING` fit in; on this thread when no thread can be started.
-fn on_reader_stack<T: Send>(run: impl Fn() -> T + Send + Sync) -> T {
+/// nested up to `MAX_NESTING` fit in; on this thread when it is one already, or when no thread can be started.
+pub(crate) fn on_reader_stack<T: Send>(run: impl Fn() -> T + Send + Sync) -> T {
+    if std::thread::current().name() == Some(READER) {
+        return run();
+    }
     std::thread::scope(|threads| {
-        let builder = std::thread::Builder::new().name("shadewire-mdl".to_string()).stack_size(STACK_BYTES);
+        let builder = std::thread::Builder::new().name(READER.to_string()).stack_size(STACK_BYTES);
         match builder.spawn_scoped(threads, &run) {
             Ok(handle) => match handle.join() {
                 Ok(result) => result,
@@ -49,15 +60,15 @@ fn on_reader_stack<T: Send>(run: impl Fn() -> T + Send + Sync) -> T {
     })
 }
 
-fn to_ir_here(
-    text: &str,
-    location: Option<&str>,
+/// Material `material` of module `main` (its only one when `None`) as IR for `options`, `arguments` in place of
+/// parameter defaults.
+pub(crate) fn to_ir_here(
+    program: &Program,
+    main: usize,
     material: Option<&str>,
+    arguments: &[Argument],
     options: &IrOptions,
-    resolver: &Resolver,
 ) -> Result<MaterialIr, Error> {
-    let mut program = Program::new(resolver)?;
-    let main = program.add_main(text, location)?;
     let names = program.materials(main);
     let name = match material {
         Some(m) => {
@@ -78,8 +89,8 @@ fn to_ir_here(
     let synthetic = Synthetic::new();
     let e = Elaborator::standalone(&synthetic, options);
     let label = format!("{}::{name}", program.modules[main].name.trim_start_matches("::"));
-    let mut ev = Eval::new(&program, e, main, &label);
-    let args = parameters(&mut ev, main, decl)?;
+    let mut ev = Eval::new(program, e, main, &label);
+    let args = parameters(&mut ev, main, decl, arguments)?;
     let value = ev.invoke(main, decl, args.clone(), Default::default(), 0)?;
     // The geometry's normal is the shading normal the surface sees: evaluate again with it in place.
     let normal = ev.field(&value, "geometry").and_then(|g| ev.field(g, "normal")).cloned();
@@ -135,30 +146,40 @@ fn ui_hints(ev: &mut Eval, module: usize, annotations: &[Annotation]) -> UiHints
     hints
 }
 
-/// The material's parameters: each default evaluated, and a value of an IR type known now made a uniform (or kept
-/// a constant, per the options) named after its parameter. Integers stay constants: MDL uses them for counts and
-/// modes, which loops and switches need known.
-fn parameters(ev: &mut Eval, module: usize, decl: usize) -> Result<Vec<Option<Val>>, Error> {
+/// The material's parameters: each argument, else its default evaluated, and a value of an IR type known now made a
+/// uniform (or kept a constant, per the options) named after its parameter. Integers stay constants: MDL uses them
+/// for counts and modes, which loops and switches need known. An argument naming no parameter is a warning.
+fn parameters(ev: &mut Eval, module: usize, decl: usize, arguments: &[Argument]) -> Result<Vec<Option<Val>>, Error> {
     let func = ev.program.function(module, decl).clone();
-    let Some(params) = &func.params else { return Ok(Vec::new()) };
+    let params = func.params.as_deref().unwrap_or_default();
+    for a in arguments {
+        if !params.iter().any(|p| p.name == a.name) {
+            ev.warn(format!("no parameter {}", a.name));
+        }
+    }
     let mut frame = Frame::new(module, &func.name);
     let mut flow = Flow::new();
     let mut out = Vec::new();
     for p in params {
-        let Some(default) = &p.default else {
-            return Err(Error::BadValue {
-                at: ev.at(module, p.line, &func.name),
-                message: format!("parameter {} has no default", p.name),
-            });
-        };
         let ty = ev.resolve_type(&mut frame, &p.ty, p.line)?;
-        let v = ev.expr(&mut frame, &mut flow, default)?;
-        let v = match ty {
-            Some(t) => {
-                let t = ev.complete_array(&t, &v);
-                ev.convert(v, &t, false, p.line, module)?
+        let v = match arguments.iter().find(|a| a.name == p.name) {
+            Some(a) => argument_val(ev, module, &func.name, p, ty.as_ref(), &a.value)?,
+            None => {
+                let Some(default) = &p.default else {
+                    return Err(Error::BadValue {
+                        at: ev.at(module, p.line, &func.name),
+                        message: format!("parameter {} has no default", p.name),
+                    });
+                };
+                let v = ev.expr(&mut frame, &mut flow, default)?;
+                match ty {
+                    Some(t) => {
+                        let t = ev.complete_array(&t, &v);
+                        ev.convert(v, &t, false, p.line, module)?
+                    }
+                    None => v,
+                }
             }
-            None => v,
         };
         let v = match (v.known_value().cloned(), v.ty.ir()) {
             (Some(value), Some(_)) if v.ty != Ty::INT => {
@@ -177,6 +198,60 @@ fn parameters(ev: &mut Eval, module: usize, decl: usize) -> Result<Vec<Option<Va
         out.push(Some(v));
     }
     Ok(out)
+}
+
+/// Parameter `p` (of type `ty`) of `function` given `value`: the value its default would have had.
+fn argument_val(
+    ev: &mut Eval,
+    module: usize,
+    function: &str,
+    p: &Param,
+    ty: Option<&Ty>,
+    value: &ArgValue,
+) -> Result<Val, Error> {
+    let bad = |ev: &Eval, message: String| ev.bad(ev.at(module, p.line, function), format!("{}: {message}", p.name));
+    let v = match value {
+        ArgValue::Value(v) => known_val(v).ok_or_else(|| bad(ev, "cannot take a matrix".to_string()))?,
+        ArgValue::Int(i) => {
+            if let Some(Ty::Enum(id)) = ty {
+                let def = &ev.program.enums[*id];
+                return match def.values.iter().find(|(_, v)| i64::from(*v) == *i) {
+                    Some((_, v)) => Ok(Val::new(Ty::Enum(*id), V::Enum(*v))),
+                    None => Err(bad(ev, format!("{} has no value {i}", def.name))),
+                };
+            }
+            Val::int(i32::try_from(*i).map_err(|_| bad(ev, format!("{i} is out of the int range")))?)
+        }
+        // What `texture_2d(file, gamma)` evaluates to.
+        ArgValue::Texture { file, colorspace } => {
+            let shape = match ty {
+                Some(Ty::Texture(shape)) => *shape,
+                None => TextureShape::Tex2d,
+                Some(other) => return Err(bad(ev, format!("a texture for a {}", ev.type_name(other)))),
+            };
+            let gamma = match colorspace.as_deref() {
+                Some(c) if c.eq_ignore_ascii_case("srgb") => Gamma::Srgb,
+                Some(c) if c.eq_ignore_ascii_case("raw") => Gamma::Linear,
+                _ => Gamma::Default,
+            };
+            let texture = Texture { shape, file: ev.resolve_resource(file), gamma };
+            return Ok(Val::new(Ty::Texture(shape), V::Texture(texture)));
+        }
+    };
+    let Some(ty) = ty else { return Ok(v) };
+    let origin = format!("{}:{}", ev.program.modules[module].name, p.line);
+    ev.convert_val(v, ty, false, &origin).map_err(|m| bad(ev, m))
+}
+
+/// A value as the evaluator holds it; `None` for a matrix, which it holds by column.
+fn known_val(v: &Value) -> Option<Val> {
+    Some(match v {
+        Value::Boolean(b) => Val::bool(*b),
+        Value::Integer(i) => Val::int(*i),
+        Value::Color4(c) => Val::known(Ty::float_vector(4), Value::Vector4(*c)),
+        Value::Matrix33(_) | Value::Matrix44(_) => return None,
+        other => Val::known(Ty::of_ir(other.ty()), other.clone()),
+    })
 }
 
 /// A pbrlib closure tree on its way to `ShaderNode`s.
@@ -213,7 +288,7 @@ struct Around {
     ior: Num,
 }
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     /// The value `state::normal()` has without a geometry normal.
     pub fn default_normal(&mut self) -> Option<Num> {
         Some(self.context(ContextRead::Normal(Space::World), "state::normal"))

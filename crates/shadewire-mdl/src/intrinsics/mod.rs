@@ -48,7 +48,7 @@ impl<'v> Params<'v> {
     }
 }
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     /// A standard module's function `func`, called with `args` bound to its parameters.
     pub fn intrinsic(
         &mut self,

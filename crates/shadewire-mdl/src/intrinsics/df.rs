@@ -6,7 +6,7 @@ use crate::eval::Eval;
 use crate::types::Ty;
 use crate::value::{Df, Val};
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     pub(super) fn df(&mut self, name: &str, p: &Params, ret: &Ty, line: u32, _origin: &str) -> Result<Val, String> {
         if ret.is_df() {
             let args = p.values.to_vec();

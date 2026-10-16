@@ -18,7 +18,7 @@ fn space(v: &Val) -> R<Space> {
     }
 }
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     /// The shading normal: the material's `geometry.normal` while its surface is evaluated.
     pub fn shading_normal(&mut self, origin: &str) -> Num {
         match self.normal {

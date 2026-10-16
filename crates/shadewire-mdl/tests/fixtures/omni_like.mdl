@@ -1,0 +1,25 @@
+mdl 1.7;
+import ::df::*;
+import ::tex::*;
+import ::anno::*;
+export enum mono_mode { mono_alpha, mono_average, mono_luminance, mono_maximum };
+export material omni_like(
+    color diffuse_color_constant = color(0.2) [[anno::display_name("Albedo Color")]],
+    uniform texture_2d diffuse_texture = texture_2d(),
+    float reflection_roughness_constant = 0.5 [[anno::hard_range(0.0, 1.0)]],
+    uniform bool enable_emission = false,
+    uniform mono_mode mode = mono_average,
+    int count = 1
+) = material(
+    surface: material_surface(
+        scattering: df::fresnel_layer(
+            ior: 1.5,
+            layer: df::microfacet_ggx_smith_bsdf(roughness_u: reflection_roughness_constant),
+            base: df::diffuse_reflection_bsdf(
+                tint: tex::texture_isvalid(diffuse_texture)
+                    ? tex::lookup_color(diffuse_texture, float2(0))
+                    : diffuse_color_constant)),
+        emission: material_emission(
+            emission: enable_emission ? df::diffuse_edf() : edf(),
+            intensity: color(float(count)))),
+    geometry: material_geometry(cutout_opacity: mode == mono_average ? 1.0 : 0.5));

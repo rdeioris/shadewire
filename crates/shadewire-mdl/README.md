@@ -46,6 +46,35 @@ non-GGX microfacet lobes, colored Fresnel IORs (averaged), texel reads and textu
 spaces other than internal, object and world, measured data, volumes, backfaces, hair and displacement (dropped).
 The source is `SourceInfo { source: "mdl", mtlx_version: "MDL 1.7" }`, with the module's version.
 
+### Modules
+
+A host lowering many materials of the same modules (a USD stage's thousands of `OmniPBR` instances) parses each
+module once with `Modules`, and lowers with arguments in place of parameter defaults:
+
+```rust
+use shadewire::{LOBE_MODELS, Value};
+use shadewire_mdl::{ArgValue, Argument, IrOptions, Modules, Resolver};
+
+let modules = Modules::new(Resolver::new(vec!["mdl".into()]))?;
+let args = [
+    Argument { name: "diffuse_color_constant".into(), value: ArgValue::Value(Value::Color3([0.8, 0.1, 0.1])) },
+    Argument {
+        name: "diffuse_texture".into(),
+        value: ArgValue::Texture { file: "textures/wood.png".into(), colorspace: Some("sRGB".into()) },
+    },
+];
+let lobes = IrOptions::with_models(&LOBE_MODELS);
+let ir = modules.to_ir("::OmniPBR", Some("OmniPBR"), &args, &lobes)?;
+```
+
+- A module is a name (`::OmniPBR`, found on the search path) or the path of a `.mdl` file; each loads once, on
+  first use. `Modules` is `Send + Sync`: any number of threads lower at once.
+- `ArgValue::Value` converts to the parameter's type as a default would (an error naming the parameter when it
+  cannot); `ArgValue::Texture` is `texture_2d(file, gamma)`, `sRGB` as `::tex::gamma_srgb`, `raw` as
+  `::tex::gamma_linear` and anything else as `::tex::gamma_default`; `ArgValue::Int` is an int, or the enum value
+  with that integer.
+- An argument naming no parameter is a warning, `{module}::{material}: no parameter {name}`.
+
 ## Writing
 
 `compile(&Dag, &SourceInfo, &MdlOptions)` prints the shared shader tree every back end prints, in MDL: the

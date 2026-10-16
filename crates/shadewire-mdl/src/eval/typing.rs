@@ -10,7 +10,7 @@ use crate::program::Entity;
 use crate::types::{Len, Scalar, StructId, Ty};
 use crate::value::{Df, Gamma, Num, Texture, V, Val};
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     /// The type `t` names in frame `f` (`auto` is `None`).
     pub fn resolve_type(&mut self, f: &mut Frame, t: &TypeRef, line: u32) -> Result<Option<Ty>, Error> {
         let Some(name) = &t.name else { return Ok(None) };

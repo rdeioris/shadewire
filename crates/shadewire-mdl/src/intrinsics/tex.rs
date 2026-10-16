@@ -36,7 +36,7 @@ pub fn colorspace(t: &Texture) -> Option<String> {
     }
 }
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     /// The `color4` sample of texture `t` at `coord` with the wrap modes.
     fn sample(&mut self, t: &Texture, coord: &Val, wrap_u: &Val, wrap_v: &Val, origin: &str) -> R<Num> {
         let coord = Self::n(coord)?;

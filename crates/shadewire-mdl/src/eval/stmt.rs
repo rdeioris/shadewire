@@ -12,7 +12,7 @@ fn known(b: bool) -> Num {
     Num::Known(Value::Boolean(b))
 }
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     pub fn exec(&mut self, f: &mut Frame, flow: &mut Flow, s: &Stmt) -> Result<(), Error> {
         if flow.dead() {
             return Ok(());

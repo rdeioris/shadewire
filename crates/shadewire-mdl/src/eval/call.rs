@@ -40,7 +40,7 @@ struct Binding {
     cost: u32,
 }
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     /// The arguments of a call, evaluated in the caller.
     pub fn args(&mut self, f: &mut Frame, flow: &mut Flow, args: &[Arg]) -> Result<Args, Error> {
         let mut out = Vec::with_capacity(args.len());

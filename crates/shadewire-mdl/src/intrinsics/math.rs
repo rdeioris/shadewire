@@ -19,7 +19,7 @@ fn kf(x: f32) -> Num {
 /// MDL's luminance weights for a `float3` (linear sRGB, CIE Y).
 const LUMA: [f32; 3] = [0.212671, 0.715160, 0.072169];
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     fn op_n(&mut self, op: Op, args: &[Num], ty: Type, origin: &str) -> R<Num> {
         self.emit(op, args, ty, origin).map_err(|e| e.to_string())
     }

@@ -20,7 +20,7 @@ pub enum Step {
 
 const COMPONENTS: [&str; 4] = ["x", "y", "z", "w"];
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     pub fn expr(&mut self, f: &mut Frame, flow: &mut Flow, e: &Expr) -> Result<Val, Error> {
         let origin = Self::origin(f, e.line);
         match &e.kind {

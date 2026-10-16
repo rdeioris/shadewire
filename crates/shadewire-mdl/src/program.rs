@@ -157,22 +157,22 @@ pub struct EnumDef {
     pub values: Vec<(String, i32)>,
 }
 
-pub struct Program<'r> {
-    resolver: &'r Resolver,
+pub struct Program {
+    resolver: Resolver,
     pub modules: Vec<ModuleData>,
     by_name: HashMap<String, usize>,
     pub structs: Vec<StructDef>,
     pub enums: Vec<EnumDef>,
     /// Modules whose imports are being loaded, to report cycles.
     loading: Vec<String>,
-    /// The main module's folder when it is under no search path root: a root after them, so its relative imports
+    /// While a main module under no search path root loads, its folder: a root after them, so its relative imports
     /// resolve next to it.
     main_root: Option<PathBuf>,
 }
 
 /// `path` as the file system names it (relative paths and `..` resolved), or as given when it does not exist. On
 /// Windows a drive path keeps its usual form, not the `\\?\` one, for the file names errors cite.
-fn canonical(path: &Path) -> PathBuf {
+pub(crate) fn canonical(path: &Path) -> PathBuf {
     let Ok(full) = std::fs::canonicalize(path) else { return path.to_path_buf() };
     match full.to_str().and_then(|s| s.strip_prefix(r"\\?\")) {
         Some(drive) if !drive.starts_with("UNC") => PathBuf::from(drive),
@@ -189,8 +189,8 @@ fn module_file(parts: &[&str]) -> PathBuf {
     file
 }
 
-impl<'r> Program<'r> {
-    pub fn new(resolver: &'r Resolver) -> Result<Program<'r>, Error> {
+impl Program {
+    pub fn new(resolver: Resolver) -> Result<Program, Error> {
         let mut program = Program {
             resolver,
             modules: Vec::new(),
@@ -210,6 +210,12 @@ impl<'r> Program<'r> {
 
     /// Adds the user's module from `text`; `location` is its file, whose folder relative imports start from.
     pub fn add_main(&mut self, text: &str, location: Option<&str>) -> Result<usize, Error> {
+        let result = self.add_main_loading(text, location);
+        self.main_root = None;
+        result
+    }
+
+    fn add_main_loading(&mut self, text: &str, location: Option<&str>) -> Result<usize, Error> {
         let ast = parse_module(text, location)?;
         let path = location.map(Path::new);
         let stem = path.and_then(|p| p.file_stem()).and_then(|s| s.to_str()).unwrap_or("main");
@@ -639,7 +645,7 @@ mod tests {
     #[test]
     fn the_prelude_declares_the_material_types() {
         let resolver = Resolver::default();
-        let program = Program::new(&resolver).unwrap();
+        let program = Program::new(resolver).unwrap();
         let prelude = program.prelude();
         for name in ["material", "material_surface", "material_emission", "material_volume", "material_geometry"] {
             assert!(matches!(program.exports(prelude, name).as_slice(), [Entity::Struct(_)]), "{name}");
@@ -650,7 +656,7 @@ mod tests {
     #[test]
     fn qualified_and_unqualified_imports() {
         let resolver = Resolver::default();
-        let mut program = Program::new(&resolver).unwrap();
+        let mut program = Program::new(resolver).unwrap();
         let main = program
             .add_main(
                 "mdl 1.7;\nimport ::df::*;\nusing ::anno import hard_range;\nexport material m() = material();\n",
@@ -684,7 +690,7 @@ export color c() = color(0.5);
         )
         .unwrap();
         let resolver = Resolver::new(vec![root]);
-        let mut program = Program::new(&resolver).unwrap();
+        let mut program = Program::new(resolver).unwrap();
         let main = program
             .add_main(
                 "mdl 1.6;
@@ -711,7 +717,7 @@ export color c() = color(0.5);
         )
         .unwrap();
         let resolver = Resolver::new(vec![root]);
-        let mut program = Program::new(&resolver).unwrap();
+        let mut program = Program::new(resolver).unwrap();
         program
             .add_main(
                 "mdl 1.6;
@@ -727,7 +733,7 @@ import ::p::odd::m::*;
     #[test]
     fn base_and_core_definitions_load_with_their_imports() {
         let resolver = Resolver::default();
-        let mut program = Program::new(&resolver).unwrap();
+        let mut program = Program::new(resolver).unwrap();
         let at = Location::default();
         let core = program.module("::nvidia::core_definitions", &at).unwrap();
         assert!(program.by_name("::base").is_some());

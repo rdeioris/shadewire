@@ -33,7 +33,7 @@ fn combined(a: Scalar, b: Scalar) -> Scalar {
     }
 }
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     // ---- components
 
     /// The components of a numeric value, each a scalar of the value's component type (a color's are floats).

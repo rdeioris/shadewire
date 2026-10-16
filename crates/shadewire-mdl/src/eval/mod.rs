@@ -117,8 +117,8 @@ impl ContextSource for NoContext {
     }
 }
 
-pub struct Eval<'p, 'r, 'a> {
-    pub program: &'p Program<'r>,
+pub struct Eval<'p, 'a> {
+    pub program: &'p Program,
     pub e: Elaborator<'a>,
     /// The module and material being read, for warnings.
     pub material: String,
@@ -140,8 +140,8 @@ pub struct Eval<'p, 'r, 'a> {
     pub limit: Option<Error>,
 }
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
-    pub fn new(program: &'p Program<'r>, e: Elaborator<'a>, main: usize, material: &str) -> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
+    pub fn new(program: &'p Program, e: Elaborator<'a>, main: usize, material: &str) -> Eval<'p, 'a> {
         Eval {
             program,
             e,

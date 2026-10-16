@@ -16,7 +16,7 @@ fn kf(x: f32) -> Num {
     Num::Known(Value::Float(x))
 }
 
-impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
+impl<'p, 'a> Eval<'p, 'a> {
     /// The value of a `::base` function with a handler of its own; `None` to evaluate its source.
     pub fn native(
         &mut self,
