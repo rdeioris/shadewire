@@ -20,6 +20,7 @@ pub mod synthetic;
 pub mod version;
 
 pub use document::Document;
+pub use document::builder::DocumentBuilder;
 pub use elaborate::{Arg, Elaborator, elaborate};
 pub use element::Element;
 pub use index::Index;
