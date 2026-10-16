@@ -49,6 +49,11 @@ pub trait Syntax: Sized {
         None
     }
 
+    /// Components of a vector by `xyzw` letters, of type `ty`.
+    fn swizzle(&self, p: &Printer<Self>, base: &Expr, components: &str, _ty: &Ty) -> String {
+        format!("{}.{components}", p.operand(base, 12))
+    }
+
     /// What a pointer parameter points to: a reference parameter needs no dereference.
     fn deref(&self, p: &Printer<Self>, inner: &Expr) -> String {
         p.expr(inner)
@@ -321,7 +326,7 @@ impl<'a, S: Syntax> Printer<'a, S> {
                 format!("{} {} {}", side(lhs, false), op.symbol(), side(rhs, true))
             }
             ExprKind::Member { base, member } => format!("{}.{member}", self.operand(base, 12)),
-            ExprKind::Swizzle { base, components } => format!("{}.{components}", self.operand(base, 12)),
+            ExprKind::Swizzle { base, components } => syntax.swizzle(self, base, components, &e.ty),
             ExprKind::Index { base, index } => format!("{}[{}]", self.operand(base, 12), self.expr(index)),
             ExprKind::Deref(inner) => syntax.deref(self, inner),
             ExprKind::AddressOf(inner) => syntax.address_of(self, inner),
