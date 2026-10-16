@@ -209,8 +209,18 @@ fn elaborate_here(doc: &Document, lib: &Library, options: &IrOptions, material: 
 /// Test helper: a DAG whose single surface field `out` is output `output` of user nodegraph `graph`.
 #[cfg(test)]
 pub(crate) fn elaborate_output(doc: &Document, graph: &str, output: &str) -> Result<Dag, Error> {
-    let options = IrOptions::default();
-    let mut elaborator = Elaborator::new(doc, crate::library::standard(), &options, "test");
+    elaborate_output_with(doc, graph, output, &IrOptions::default())
+}
+
+/// Test helper: `elaborate_output` under `options`.
+#[cfg(test)]
+pub(crate) fn elaborate_output_with(
+    doc: &Document,
+    graph: &str,
+    output: &str,
+    options: &IrOptions,
+) -> Result<Dag, Error> {
+    let mut elaborator = Elaborator::new(doc, crate::library::standard(), options, "test");
     let top = elaborator.top_scope(&doc.nodes);
     let at = elaborator.at(&top, Site::NONE, graph.to_string());
     let scope = elaborator.user_graph_scope(graph, &at)?;

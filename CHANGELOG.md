@@ -29,6 +29,8 @@
   inputs, a node's inputs) is now an error; included documents merge first-wins, so a diamond include reads.
 - `shadewire::Location` has a new public field, `source` (the host's source path, shown in place of file and line):
   breaking for struct literals and exhaustive patterns of `Location`.
+- Colorspace names: USD and OCIO aliases (`lin_srgb`, `*_scene`, ACES names, …) resolve to MaterialX's cmlib
+  colorspaces.
 
 ## 0.2.0 (2026-10-15)
 
