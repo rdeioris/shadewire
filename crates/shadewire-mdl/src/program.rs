@@ -160,11 +160,13 @@ pub struct EnumDef {
 pub struct Program {
     resolver: Resolver,
     pub modules: Vec<ModuleData>,
+    /// The modules a name means wherever it is imported: the vendored ones and those under a search path root.
     by_name: HashMap<String, usize>,
+    /// The modules read from files, by path: next to a main module on no search path, a name means the file in
+    /// that module's folder, so two such folders may each have their own module of a name.
+    by_file: HashMap<PathBuf, usize>,
     pub structs: Vec<StructDef>,
     pub enums: Vec<EnumDef>,
-    /// Modules whose imports are being loaded, to report cycles.
-    loading: Vec<String>,
     /// While a main module under no search path root loads, its folder: a root after them, so its relative imports
     /// resolve next to it.
     main_root: Option<PathBuf>,
@@ -178,6 +180,20 @@ pub(crate) fn canonical(path: &Path) -> PathBuf {
         Some(drive) if !drive.starts_with("UNC") => PathBuf::from(drive),
         _ => full,
     }
+}
+
+/// How much a program holds, to return to when a load fails.
+#[derive(Clone, Copy)]
+struct Mark {
+    modules: usize,
+    structs: usize,
+    enums: usize,
+}
+
+/// What an installed module is found by: the file it was read from, and whether its name means it everywhere.
+struct Keys {
+    file: Option<PathBuf>,
+    by_name: bool,
 }
 
 /// The file of the module whose path is `parts`, below a search path root.
@@ -195,9 +211,9 @@ impl Program {
             resolver,
             modules: Vec::new(),
             by_name: HashMap::new(),
+            by_file: HashMap::new(),
             structs: Vec::new(),
             enums: Vec::new(),
-            loading: Vec::new(),
             main_root: None,
         };
         program.module(PRELUDE, &Location::default())?;
@@ -208,10 +224,29 @@ impl Program {
         self.by_name[PRELUDE]
     }
 
-    /// Adds the user's module from `text`; `location` is its file, whose folder relative imports start from.
+    /// Adds the user's module from `text`; `location` is its file, whose folder relative imports start from. Nothing
+    /// it loads stays when it fails.
     pub fn add_main(&mut self, text: &str, location: Option<&str>) -> Result<usize, Error> {
-        let result = self.add_main_loading(text, location);
+        let result = self.all_or_nothing(|program| program.add_main_loading(text, location));
         self.main_root = None;
+        result
+    }
+
+    fn mark(&self) -> Mark {
+        Mark { modules: self.modules.len(), structs: self.structs.len(), enums: self.enums.len() }
+    }
+
+    /// `load`, or when it fails, the program as it was before.
+    fn all_or_nothing(&mut self, load: impl FnOnce(&mut Program) -> Result<usize, Error>) -> Result<usize, Error> {
+        let mark = self.mark();
+        let result = load(self);
+        if result.is_err() {
+            self.modules.truncate(mark.modules);
+            self.structs.truncate(mark.structs);
+            self.enums.truncate(mark.enums);
+            self.by_name.retain(|_, id| *id < mark.modules);
+            self.by_file.retain(|_, id| *id < mark.modules);
+        }
         result
     }
 
@@ -220,87 +255,93 @@ impl Program {
         let path = location.map(Path::new);
         let stem = path.and_then(|p| p.file_stem()).and_then(|s| s.to_str()).unwrap_or("main");
         let dir = path.and_then(|p| p.parent()).map(Path::to_path_buf);
-        let package = match dir.as_deref().map(|d| (d, self.package_of(d))) {
-            Some((_, Some(package))) => package,
+        let (package, on_search_path) = match dir.as_deref().map(|d| (d, self.package_of(d))) {
+            Some((_, Some(package))) => (package, true),
             Some((d, None)) => {
                 self.main_root = Some(canonical(d));
-                Vec::new()
+                (Vec::new(), false)
             }
-            None => Vec::new(),
+            None => (Vec::new(), false),
         };
         let mut name = String::new();
         for p in package.iter().chain(std::iter::once(&stem.to_string())) {
             name.push_str("::");
             name.push_str(p);
         }
-        self.install(name, ast, location.map(str::to_string), dir, package, false)
+        let keys = Keys { file: path.map(canonical), by_name: on_search_path };
+        self.install(name, ast, location.map(str::to_string), dir, package, false, keys)
     }
 
     /// The packages of a folder: its path below the search path root holding it; `None` when no root holds it.
     fn package_of(&self, dir: &Path) -> Option<Vec<String>> {
         let dir = canonical(dir);
-        self.roots().find_map(|root| {
+        self.roots().find_map(|(root, _)| {
             let rest = dir.strip_prefix(&root).ok()?;
             Some(rest.components().filter_map(|c| c.as_os_str().to_str().map(str::to_string)).collect())
         })
     }
 
-    /// Where modules are looked for: the search path, then the main module's folder when it is on none of it.
-    fn roots(&self) -> impl Iterator<Item = PathBuf> + '_ {
-        self.resolver.paths.iter().map(|p| canonical(p)).chain(self.main_root.clone())
+    /// Where modules are looked for: the search path, then the main module's folder when it is on none of it; each
+    /// with whether it is on the search path.
+    fn roots(&self) -> impl Iterator<Item = (PathBuf, bool)> + '_ {
+        let search_path = self.resolver.paths.iter().map(|p| (canonical(p), true));
+        search_path.chain(self.main_root.clone().map(|root| (root, false)))
     }
 
     pub fn by_name(&self, name: &str) -> Option<usize> {
         self.by_name.get(name).copied()
     }
 
-    /// The module `name` (`::a::b`), loaded with its imports on first use.
+    /// The module `name` (`::a::b`), loaded with its imports on first use. Nothing it loads stays when it fails.
     pub fn module(&mut self, name: &str, at: &Location) -> Result<usize, Error> {
-        if let Some(&id) = self.by_name.get(name) {
-            return Ok(id);
-        }
-        if self.loading.iter().any(|n| n == name) {
-            return Err(Error::Cycle { at: at.clone(), node: name.to_string() });
-        }
+        self.all_or_nothing(|program| program.load(name, at))
+    }
+
+    fn load(&mut self, name: &str, at: &Location) -> Result<usize, Error> {
         let parts: Vec<&str> = name.trim_start_matches("::").split("::").collect();
         let standard = STANDARD.contains(&name);
         let found = if standard || name == PRELUDE { None } else { self.find_file(&parts) };
-        let (text, file, dir) = match found {
-            Some((text, path)) => {
+        let loaded = match &found {
+            Some((path, _)) => self.by_file.get(path),
+            None => self.by_name.get(name),
+        };
+        if let Some(&id) = loaded {
+            return Ok(id);
+        }
+        let (text, file, dir, keys) = match found {
+            Some((path, on_search_path)) => {
+                let text = std::fs::read_to_string(&path).map_err(|e| Error::Io(format!("{}: {e}", path.display())))?;
                 let dir = path.parent().map(Path::to_path_buf);
-                (text, Some(path.display().to_string()), dir)
+                (text, Some(path.display().to_string()), dir, Keys { file: Some(path), by_name: on_search_path })
             }
             None => match vendored(name) {
-                Some(text) => (text.to_string(), None, None),
+                Some(text) => (text.to_string(), None, None, Keys { file: None, by_name: true }),
                 None => return Err(Error::Io(format!("{at}: no MDL module {name} on the search path"))),
             },
         };
         let ast = parse_module(&text, Some(file.as_deref().unwrap_or(name)))?;
         let package = parts[..parts.len() - 1].iter().map(|s| s.to_string()).collect();
-        self.install(name.to_string(), ast, file, dir, package, standard)
+        self.install(name.to_string(), ast, file, dir, package, standard, keys)
     }
 
-    fn find_file(&self, parts: &[&str]) -> Option<(String, PathBuf)> {
+    /// The file of the module whose path is `parts` under the first root holding it, and whether that root is on the
+    /// search path (not the main module's folder).
+    fn find_file(&self, parts: &[&str]) -> Option<(PathBuf, bool)> {
         let relative = module_file(parts);
-        self.roots().map(|root| root.join(&relative)).find_map(|path| {
-            let text = std::fs::read_to_string(&path).ok()?;
-            Some((text, path))
-        })
+        self.roots()
+            .map(|(root, on_search_path)| (root.join(&relative), on_search_path))
+            .find(|(path, _)| path.is_file())
     }
 
-    /// Whether the module `name` is loaded, on the search path or vendored.
+    /// Whether the module `name` is on the search path, next to the main module or vendored.
     fn exists(&self, name: &str) -> bool {
-        if self.by_name.contains_key(name) {
-            return true;
-        }
         let parts: Vec<&str> = name.trim_start_matches("::").split("::").collect();
-        let on_disk = !STANDARD.contains(&name)
-            && name != PRELUDE
-            && self.roots().any(|root| root.join(module_file(&parts)).is_file());
+        let on_disk = !STANDARD.contains(&name) && name != PRELUDE && self.find_file(&parts).is_some();
         on_disk || vendored(name).is_some()
     }
 
-    /// Registers a parsed module: its imports loaded first, then its declarations named.
+    /// Registers a parsed module under `keys`: its imports loaded first, then its declarations named.
+    #[allow(clippy::too_many_arguments)]
     fn install(
         &mut self,
         name: String,
@@ -309,24 +350,15 @@ impl Program {
         dir: Option<PathBuf>,
         package: Vec<String>,
         standard: bool,
-    ) -> Result<usize, Error> {
-        self.loading.push(name.clone());
-        let result = self.install_loading(name, ast, file, dir, package, standard);
-        self.loading.pop();
-        result
-    }
-
-    fn install_loading(
-        &mut self,
-        name: String,
-        ast: Module,
-        file: Option<String>,
-        dir: Option<PathBuf>,
-        package: Vec<String>,
-        standard: bool,
+        keys: Keys,
     ) -> Result<usize, Error> {
         let id = self.modules.len();
-        self.by_name.insert(name.clone(), id);
+        if keys.by_name {
+            self.by_name.insert(name.clone(), id);
+        }
+        if let Some(file) = keys.file {
+            self.by_file.insert(file, id);
+        }
         let imports: Vec<Import> = ast
             .imports
             .iter()
@@ -357,10 +389,7 @@ impl Program {
         });
         self.declare(id);
         for import in &imports {
-            if let Err(e) = self.import(id, import) {
-                self.by_name.remove(&self.modules[id].name.clone());
-                return Err(e);
-            }
+            self.import(id, import)?;
         }
         Ok(id)
     }
@@ -472,7 +501,7 @@ impl Program {
             }
             None => &names[0],
         };
-        let target = self.module(name, &at)?;
+        let target = self.load(name, &at)?;
         let written = path.parts.clone();
         match import {
             Import::Qualified { name, .. } => {

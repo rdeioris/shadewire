@@ -36,11 +36,12 @@ pub struct Modules {
 
 struct Loaded {
     program: Program,
-    /// The modules read from files, by canonical path.
-    files: HashMap<PathBuf, usize>,
+    /// What each module given loaded as: its id, or the error loading it failed with, which is not retried.
+    sources: HashMap<Source, Result<usize, Error>>,
 }
 
 /// What `Modules` is given: a module name (`::a::b`) or the path of a `.mdl` file.
+#[derive(Debug, PartialEq, Eq, Hash)]
 enum Source {
     Name(String),
     File(PathBuf),
@@ -56,20 +57,11 @@ impl Source {
     }
 }
 
-impl Loaded {
-    fn find(&self, source: &Source) -> Option<usize> {
-        match source {
-            Source::Name(name) => self.program.by_name(name),
-            Source::File(path) => self.files.get(path).copied(),
-        }
-    }
-}
-
 impl Modules {
     /// No modules loaded yet; `resolver` is where imports and module names are found.
     pub fn new(resolver: Resolver) -> Result<Modules, Error> {
         let program = Program::new(resolver)?;
-        Ok(Modules { loaded: RwLock::new(Loaded { program, files: HashMap::new() }) })
+        Ok(Modules { loaded: RwLock::new(Loaded { program, sources: HashMap::new() }) })
     }
 
     /// The exported materials of `module`: a module name (`::OmniPBR`) or a path to a `.mdl` file, loaded once.
@@ -115,25 +107,25 @@ impl Modules {
         to_ir_here(&self.read().program, id, material, arguments, options)
     }
 
-    /// The module `module` names, loaded on first use.
+    /// The module `module` names, loaded on first use; the error it failed with, on every later use.
     fn load(&self, module: &str) -> Result<usize, Error> {
         let source = Source::of(module);
-        if let Some(id) = self.read().find(&source) {
-            return Ok(id);
+        if let Some(result) = self.read().sources.get(&source) {
+            return result.clone();
         }
         let mut loaded = self.write();
-        if let Some(id) = loaded.find(&source) {
-            return Ok(id);
+        if let Some(result) = loaded.sources.get(&source) {
+            return result.clone();
         }
-        match source {
-            Source::Name(name) => loaded.program.module(&name, &Location::default()),
-            Source::File(path) => {
-                let text = std::fs::read_to_string(&path).map_err(|e| Error::Io(format!("{module}: {e}")))?;
-                let id = loaded.program.add_main(&text, Some(module))?;
-                loaded.files.insert(path, id);
-                Ok(id)
-            }
-        }
+        let result = match &source {
+            Source::Name(name) => loaded.program.module(name, &Location::default()),
+            Source::File(path) => match std::fs::read_to_string(path) {
+                Ok(text) => loaded.program.add_main(&text, Some(module)),
+                Err(e) => Err(Error::Io(format!("{module}: {e}"))),
+            },
+        };
+        loaded.sources.insert(source, result.clone());
+        result
     }
 
     fn read(&self) -> RwLockReadGuard<'_, Loaded> {
@@ -151,5 +143,39 @@ impl Drop for Modules {
         let loaded = self.loaded.get_mut().unwrap_or_else(PoisonError::into_inner);
         let modules = Mutex::new(std::mem::take(&mut loaded.program.modules));
         on_reader_stack(|| drop(std::mem::take(&mut *modules.lock().unwrap_or_else(PoisonError::into_inner))));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// How many modules, structs and enums the program holds.
+    fn size(modules: &Modules) -> (usize, usize, usize) {
+        let loaded = modules.read();
+        (loaded.program.modules.len(), loaded.program.structs.len(), loaded.program.enums.len())
+    }
+
+    #[test]
+    fn a_failed_load_is_kept_and_leaves_nothing_behind() {
+        let dir = std::env::temp_dir().join("shadewire-mdl-failed-load");
+        std::fs::create_dir_all(&dir).unwrap();
+        let text = "mdl 1.7;\nimport ::df::*;\nexport enum e { a };\nexport struct s { float x = 0.0; };\n\
+                    import ::missing::*;\nexport material m() = material();\n";
+        std::fs::write(dir.join("broken.mdl"), text).unwrap();
+        let file = dir.join("broken.mdl").to_string_lossy().to_string();
+        let modules = Modules::new(Resolver::new(vec![dir])).unwrap();
+        let options = IrOptions::default();
+        let before = size(&modules);
+        for module in [file.as_str(), "::broken"] {
+            let first = modules.to_ir(module, None, &[], &options).unwrap_err();
+            assert!(first.to_string().contains("::missing"), "{first}");
+            for _ in 0..5 {
+                assert_eq!(modules.to_ir(module, None, &[], &options).unwrap_err(), first);
+                assert_eq!(modules.material_names(module).unwrap_err(), first);
+            }
+            assert_eq!(size(&modules), before, "{module}");
+            assert_eq!(modules.read().sources.get(&Source::of(module)), Some(&Err(first)), "{module}");
+        }
     }
 }

@@ -68,7 +68,10 @@ let ir = modules.to_ir("::OmniPBR", Some("OmniPBR"), &args, &lobes)?;
 ```
 
 - A module is a name (`::OmniPBR`, found on the search path) or the path of a `.mdl` file; each loads once, on
-  first use. `Modules` is `Send + Sync`: any number of threads lower at once.
+  first use; one that fails to load fails with the same error on every later call, without loading again. A file
+  on no search path imports its siblings from its own folder: two folders may each hold their own `Paint_Base.mdl`,
+  and a local `OmniPBR.mdl` loaded by path does not stand in for `::OmniPBR`. `Modules` is `Send + Sync`: any
+  number of threads lower at once.
 - `ArgValue::Value` converts to the parameter's type as a default would (an error naming the parameter when it
   cannot); `ArgValue::Texture` is `texture_2d(file, gamma)`, `sRGB` as `::tex::gamma_srgb`, `raw` as
   `::tex::gamma_linear` and anything else as `::tex::gamma_default`; `ArgValue::Int` is an int, or the enum value

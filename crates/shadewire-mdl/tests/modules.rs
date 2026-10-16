@@ -177,3 +177,68 @@ fn a_loaded_module_lowers_quickly() {
     eprintln!("20 lowerings: {:?} each on average, {slowest:?} the slowest", total / 20);
     assert!(slowest < limit, "{slowest:?}");
 }
+
+/// A module of a material `m` whose `color c` defaults to `default`, after `head` (imports and declarations).
+fn material(head: &str, default: &str) -> String {
+    format!(
+        "mdl 1.7;\nimport ::df::*;\n{head}export material m(color c = {default}) = \
+         material(surface: material_surface(scattering: df::diffuse_reflection_bsdf(tint: c)));\n"
+    )
+}
+
+/// A module exporting `tint()`, `color(value)`, and a material `m` of that tint.
+fn library(value: f32) -> String {
+    material(&format!("export color tint() = color({value:?});\n"), "tint()")
+}
+
+fn write(path: &Path, text: &str) {
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, text).unwrap();
+}
+
+fn scratch(name: &str) -> PathBuf {
+    Path::new(env!("CARGO_TARGET_TMPDIR")).join("mdl-modules").join(name)
+}
+
+/// The default of material `m`'s `c` in `module`.
+fn tint(modules: &Modules, module: &Path) -> Option<Value> {
+    let ir = modules.to_ir(module.to_str().unwrap(), Some("m"), &[], &lobes()).unwrap();
+    uniform(&ir.dag, "c")
+}
+
+#[test]
+fn same_named_files_in_two_folders_import_their_own_siblings() {
+    let root = scratch("same-names");
+    for (folder, value) in [("a", 0.1), ("b", 0.9)] {
+        write(&root.join(folder).join("Paint_Satin.mdl"), &material("import Paint_Base::*;\n", "Paint_Base::tint()"));
+        write(&root.join(folder).join("Paint_Base.mdl"), &library(value));
+    }
+    let modules = Modules::new(Resolver::default()).unwrap();
+    let (a, b) = (root.join("a/Paint_Satin.mdl"), root.join("b/Paint_Satin.mdl"));
+    assert_eq!(tint(&modules, &a), Some(Value::Color3([0.1; 3])));
+    assert_eq!(tint(&modules, &b), Some(Value::Color3([0.9; 3])));
+    assert_eq!(tint(&modules, &a), Some(Value::Color3([0.1; 3])));
+}
+
+#[test]
+fn a_local_copy_and_the_search_path_module_of_its_name_stay_apart() {
+    let root = scratch("local-copy");
+    write(&root.join("search/OmniPBR.mdl"), &library(0.3));
+    write(&root.join("local/OmniPBR.mdl"), &library(0.7));
+    write(&root.join("user/user.mdl"), &material("import ::OmniPBR::*;\n", "OmniPBR::tint()"));
+    let (local, user) = (root.join("local/OmniPBR.mdl"), root.join("user/user.mdl"));
+    let by_name = |modules: &Modules| {
+        let ir = modules.to_ir("::OmniPBR", Some("m"), &[], &lobes()).unwrap();
+        uniform(&ir.dag, "c")
+    };
+    let resolver = Resolver::new(vec![root.join("search")]);
+    let modules = Modules::new(resolver.clone()).unwrap();
+    assert_eq!(tint(&modules, &local), Some(Value::Color3([0.7; 3])));
+    assert_eq!(by_name(&modules), Some(Value::Color3([0.3; 3])));
+    assert_eq!(tint(&modules, &user), Some(Value::Color3([0.3; 3])));
+    assert_eq!(tint(&modules, &local), Some(Value::Color3([0.7; 3])));
+    let modules = Modules::new(resolver).unwrap();
+    assert_eq!(by_name(&modules), Some(Value::Color3([0.3; 3])));
+    assert_eq!(tint(&modules, &local), Some(Value::Color3([0.7; 3])));
+    assert_eq!(by_name(&modules), Some(Value::Color3([0.3; 3])));
+}
