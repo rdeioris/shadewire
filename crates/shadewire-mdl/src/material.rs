@@ -16,9 +16,11 @@ use crate::value::{Df, Num, Val};
 
 /// The exported materials of the module in `text`.
 pub fn material_names(text: &str, location: Option<&str>, resolver: &Resolver) -> Result<Vec<String>, Error> {
-    let mut program = Program::new(resolver)?;
-    let main = program.add_main(text, location)?;
-    Ok(program.materials(main))
+    on_reader_stack(|| {
+        let mut program = Program::new(resolver)?;
+        let main = program.add_main(text, location)?;
+        Ok(program.materials(main))
+    })
 }
 
 /// Material `material` of the module in `text` (its only one when `None`) as IR for `options`.
@@ -29,15 +31,20 @@ pub fn to_ir(
     options: &IrOptions,
     resolver: &Resolver,
 ) -> Result<MaterialIr, Error> {
+    on_reader_stack(|| to_ir_here(text, location, material, options, resolver))
+}
+
+/// Runs `run` on a thread with the elaborator's stack (`STACK_BYTES`), which parsing, evaluating and dropping a module
+/// nested up to `MAX_NESTING` fit in; on this thread when no thread can be started.
+fn on_reader_stack<T: Send>(run: impl Fn() -> T + Send + Sync) -> T {
     std::thread::scope(|threads| {
         let builder = std::thread::Builder::new().name("shadewire-mdl".to_string()).stack_size(STACK_BYTES);
-        let run = || to_ir_here(text, location, material, options, resolver);
-        match builder.spawn_scoped(threads, run) {
+        match builder.spawn_scoped(threads, &run) {
             Ok(handle) => match handle.join() {
                 Ok(result) => result,
                 Err(panic) => std::panic::resume_unwind(panic),
             },
-            Err(_) => to_ir_here(text, location, material, options, resolver),
+            Err(_) => run(),
         }
     })
 }

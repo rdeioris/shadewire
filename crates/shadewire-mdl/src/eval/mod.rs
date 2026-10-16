@@ -28,6 +28,10 @@ pub const MAX_ITERATIONS: usize = 1024;
 /// The deepest call nesting: MDL has no recursion, so past this a module is malformed.
 pub const MAX_CALL_DEPTH: u32 = 256;
 
+/// The most statements and calls one material may run: loops each under `MAX_ITERATIONS` still multiply, and
+/// calls still fan out, past anything a material needs.
+pub const MAX_STEPS: u64 = 1_000_000;
+
 /// A local variable.
 #[derive(Clone, Debug)]
 pub struct Local {
@@ -126,6 +130,8 @@ pub struct Eval<'p, 'r, 'a> {
     /// What `state::normal()` reads: the material's `geometry.normal` while its surface is evaluated.
     pub normal: Option<NodeId>,
     pub depth: u32,
+    /// Statements run and calls made so far, against `MAX_STEPS`.
+    pub steps: u64,
     /// The first module of the program's own that is not a standard or vendored one, for texture paths.
     pub main: usize,
     /// Context reads made so far: one node each.
@@ -145,6 +151,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
             field_types: HashMap::new(),
             normal: None,
             depth: 0,
+            steps: 0,
             main,
             contexts: HashMap::new(),
             limit: None,
@@ -154,6 +161,20 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
     /// A location in module `module` at `line`, for errors.
     pub fn at(&self, module: usize, line: u32, path: &str) -> Location {
         self.program.modules[module].at(line, path)
+    }
+
+    /// Counts one statement or call at `line` of `module`; `Error::Limit` past `MAX_STEPS`.
+    pub fn step(&mut self, module: usize, line: u32, path: &str) -> Result<(), Error> {
+        self.steps += 1;
+        if self.steps <= MAX_STEPS {
+            return Ok(());
+        }
+        let limit = Error::Limit(format!(
+            "{}: the material runs more than {MAX_STEPS} steps (statements and calls)",
+            self.at(module, line, path)
+        ));
+        self.limit.get_or_insert(limit.clone());
+        Err(limit)
     }
 
     pub fn error(&self, f: &Frame, line: u32, message: impl Into<String>) -> Error {

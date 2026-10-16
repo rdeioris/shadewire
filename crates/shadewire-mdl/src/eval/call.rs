@@ -306,6 +306,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
                 self.at(module, line, "")
             )));
         }
+        self.step(module, line, "")?;
         self.depth += 1;
         let result = self.invoke_here(module, decl, args, sizes, line);
         self.depth -= 1;

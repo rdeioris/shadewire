@@ -17,6 +17,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
         if flow.dead() {
             return Ok(());
         }
+        self.step(f.module, s.line, &f.function)?;
         let origin = Self::origin(f, s.line);
         let (module, function) = (f.module, f.function.clone());
         let fail = |e: &Self, m: String| e.bad(e.at(module, s.line, &function), m);

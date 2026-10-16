@@ -247,6 +247,61 @@ fn loops_past_the_limit_and_huge_materials_fail_cleanly() {
 }
 
 #[test]
+fn work_without_end_fails_cleanly() {
+    let loops = "float g() { float y = 0.0; for (int i = 0; i < 1000; ++i) for (int j = 0; j < 1000; ++j) \
+                 for (int k = 0; k < 1000; ++k) y += 0.1; return y; }";
+    let mut calls = String::from("float f0(float x) { return x * 1.01; }\n");
+    for k in 1..=40 {
+        calls += &format!("float f{k}(float x) {{ return f{p}(x) + f{p}(x * 0.5); }}\n", p = k - 1);
+    }
+    calls += "float g() { return f40(state::texture_coordinate(0).x); }";
+    for (what, prelude) in [("a billion iterations", loops.to_string()), ("2^40 calls", calls)] {
+        let start = std::time::Instant::now();
+        let text = diffuse("1.7", &prelude, "", "color(g())");
+        let r = try_lower(&text, &IrOptions::with_models(&LOBE_MODELS));
+        assert!(matches!(&r, Err(shadewire::Error::Limit(m)) if m.contains("steps")), "{what}: {:?}", r.map(|_| ()));
+        assert!(start.elapsed().as_secs() < 60, "{what}: {:?}", start.elapsed());
+    }
+}
+
+#[test]
+fn deep_nesting_fails_cleanly_on_both_entry_points() {
+    let parens = |n: usize| format!("float g() {{ return {}0.5{}; }}", "(".repeat(n), ")".repeat(n));
+    let else_ifs = |n: usize| {
+        let chain: String = (0..n).map(|i| format!("if (x == {i}) return {i}.0; else ")).collect();
+        format!("float g() {{ int x = int(state::texture_coordinate(0).x * 10.0); {chain}return 0.5; }}")
+    };
+    let calls = |n: usize| {
+        format!("float h(float x) {{ return x; }}\nfloat g() {{ return {}0.5{}; }}", "h(".repeat(n), ")".repeat(n))
+    };
+    let sum = |n: usize| format!("float g() {{ return 0.0{}; }}", "+0.001".repeat(n));
+    let lobes = IrOptions::with_models(&LOBE_MODELS);
+    for (what, prelude, fits) in [
+        ("100 parentheses", parens(100), true),
+        ("150 nested calls", calls(150), true),
+        ("2000 terms", sum(2000), true),
+        ("1500 else ifs", else_ifs(1500), true),
+        ("20000 parentheses", parens(20000), false),
+        ("5000 else ifs", else_ifs(5000), false),
+        ("50000 terms", sum(50000), false),
+    ] {
+        let text = diffuse("1.7", &prelude, "", "color(g())");
+        let names = crate::material_names(&text, None, &Resolver::default());
+        let ir = try_lower(&text, &lobes);
+        if fits {
+            assert_eq!(names.unwrap_or_else(|e| panic!("{what}: {e}")), ["m"], "{what}");
+            ir.unwrap_or_else(|e| panic!("{what}: {e}"));
+        } else {
+            assert!(matches!(names, Err(shadewire::Error::Limit(_))), "{what}: {names:?}");
+            match ir {
+                Err(shadewire::Error::Limit(m)) => assert!(m.contains(":6"), "{what}: {m}"),
+                other => panic!("{what}: {:?}", other.map(|_| ())),
+            }
+        }
+    }
+}
+
+#[test]
 fn switch_falls_through() {
     let prelude = "int g(int k) { int n = 0; switch (k) { case 1: n += 1; case 2: n += 10; break; default: n = 100; } return n; }";
     assert_eq!(tint_of(prelude, "color(float(g(1) + g(2) * 1000 + g(5) * 1000000))"), Value::Color3([100010011.0; 3]));

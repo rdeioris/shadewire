@@ -1,6 +1,6 @@
 //! MDL source to [`ast`](crate::ast): the pest grammar in `mdl.pest`, then a walk over its pairs.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::sync::OnceLock;
 
 use pest::Parser;
@@ -16,25 +16,65 @@ struct MdlParser;
 
 type P<'i> = Pair<'i, Rule>;
 
+/// How deep statements and expressions may nest (each operand of an operator chain, each prefix and postfix counts as
+/// a level): what is built, evaluated and dropped recursively stays well inside the reader's stack.
+pub const MAX_NESTING: usize = 2048;
+
 thread_local! {
     /// The byte offset each line of the text being built starts at: pest's own `line_col` scans from the start.
     static LINE_STARTS: RefCell<Vec<usize>> = const { RefCell::new(Vec::new()) };
+    /// How deep the walk is now.
+    static DEPTH: Cell<usize> = const { Cell::new(0) };
+    /// The line where the walk first went past `MAX_NESTING`.
+    static TOO_DEEP: Cell<Option<u32>> = const { Cell::new(None) };
 }
 
-/// Runs `build` with the line table of `text` in place.
-fn with_lines<T>(text: &str, build: impl FnOnce() -> T) -> T {
+/// Runs `build` with the line table of `text` in place and the nesting count at zero; `Error::Limit` naming `file`
+/// when the text nests past `MAX_NESTING`.
+fn walk<T>(text: &str, file: Option<&str>, build: impl FnOnce() -> T) -> Result<T, Error> {
     let starts = std::iter::once(0).chain(text.match_indices('\n').map(|(i, _)| i + 1)).collect();
     let previous = LINE_STARTS.with(|l| l.replace(starts));
+    let (depth, deep) = (DEPTH.replace(0), TOO_DEEP.replace(None));
     let out = build();
     LINE_STARTS.with(|l| l.replace(previous));
+    let too_deep = TOO_DEEP.replace(deep);
+    DEPTH.set(depth);
+    match too_deep {
+        None => Ok(out),
+        Some(line) => {
+            drop(out);
+            Err(Error::Limit(format!(
+                "{}:{line}: statements and expressions nested more than {MAX_NESTING} deep",
+                file.unwrap_or("<module>")
+            )))
+        }
+    }
+}
+
+/// `build`'s result `levels` deeper than now; `stub`'s once that is past `MAX_NESTING` (the walk then fails).
+fn nested<T>(at: u32, levels: usize, build: impl FnOnce() -> T, stub: impl FnOnce() -> T) -> T {
+    let depth = DEPTH.get() + levels;
+    if depth > MAX_NESTING {
+        if TOO_DEEP.get().is_none() {
+            TOO_DEEP.set(Some(at));
+        }
+        return stub();
+    }
+    DEPTH.set(depth);
+    let out = build();
+    DEPTH.set(depth - levels);
     out
+}
+
+fn stub_expr(at: u32) -> Expr {
+    Expr::new(ExprKind::Literal(Literal::Int(0)), at)
 }
 
 /// Parses a whole module. `file` names it in errors.
 pub fn parse_module(text: &str, file: Option<&str>) -> Result<Module, Error> {
     let mut pairs = MdlParser::parse(Rule::module, text).map_err(|e| parse_error(e, file))?;
     let module = pairs.next().expect("a module");
-    Ok(with_lines(text, || build_module(module)))
+    walk(text, file, || build_module(module))
 }
 
 /// Parses one expression, for tests and for values given on the command line.
@@ -45,7 +85,7 @@ pub fn parse_expr(text: &str) -> Result<Expr, Error> {
         let at = Location { file: None, line: 1, path: String::new() };
         return Err(Error::Parse { at, message: format!("unexpected input after {:?}", pair.as_str()) });
     }
-    Ok(with_lines(text, || expr(pair)))
+    walk(text, None, || expr(pair))
 }
 
 fn parse_error(e: pest::error::Error<Rule>, file: Option<&str>) -> Error {
@@ -62,6 +102,13 @@ fn parse_error(e: pest::error::Error<Rule>, file: Option<&str>) -> Error {
         }
         pest::error::ErrorVariant::CustomError { message } => message.clone(),
     };
+    if matches!(&e.variant, pest::error::ErrorVariant::CustomError { message } if message.contains("limit")) {
+        // pest's own guard on its recursion: the text nests too deep to parse.
+        return Error::Limit(format!(
+            "{}:{line}: column {col}: nested too deep to parse ({expected})",
+            file.unwrap_or("<module>")
+        ));
+    }
     let at = Location { file: file.map(str::to_string), line, path: String::new() };
     Error::Parse { at, message: format!("column {col}: {expected}") }
 }
@@ -485,6 +532,10 @@ fn block(p: P) -> Vec<Stmt> {
 
 fn stmt(p: P) -> Stmt {
     let at = line(&p);
+    nested(at, 1, || stmt_here(p, at), || Stmt { kind: StmtKind::Block(Vec::new()), line: at })
+}
+
+fn stmt_here(p: P, at: u32) -> Stmt {
     let inner = if p.as_rule() == Rule::stmt { p.into_inner().next().expect("a statement") } else { p };
     let kind = match inner.as_rule() {
         Rule::compound_stmt => StmtKind::Block(block(inner)),
@@ -639,14 +690,19 @@ fn bin_op(rule: Rule) -> BinOp {
     }
 }
 
-fn binary(pairs: Pairs<Rule>) -> Expr {
-    pratt()
-        .map_primary(expr)
-        .map_infix(|lhs, op, rhs| {
-            let at = lhs.line;
-            Expr::new(ExprKind::Binary { op: bin_op(op.as_rule()), lhs: Box::new(lhs), rhs: Box::new(rhs) }, at)
-        })
-        .parse(pairs)
+/// An operator chain: as deep as it has operators.
+fn binary(pairs: Pairs<Rule>, at: u32) -> Expr {
+    let operators = pairs.len() / 2;
+    let build = || {
+        pratt()
+            .map_primary(expr)
+            .map_infix(|lhs, op, rhs| {
+                let at = lhs.line;
+                Expr::new(ExprKind::Binary { op: bin_op(op.as_rule()), lhs: Box::new(lhs), rhs: Box::new(rhs) }, at)
+            })
+            .parse(pairs)
+    };
+    nested(at, operators, build, || stub_expr(at))
 }
 
 fn assign_op(text: &str) -> Option<BinOp> {
@@ -669,6 +725,10 @@ fn assign_op(text: &str) -> Option<BinOp> {
 
 fn expr(p: P) -> Expr {
     let at = line(&p);
+    nested(at, 1, || expr_here(p, at), || stub_expr(at))
+}
+
+fn expr_here(p: P, at: u32) -> Expr {
     match p.as_rule() {
         Rule::expr => {
             let mut items: Vec<Expr> = p.into_inner().map(expr).collect();
@@ -701,12 +761,13 @@ fn expr(p: P) -> Expr {
         }
         Rule::binary_expr => {
             let inner = p.into_inner();
-            if inner.len() == 1 { expr(inner.peek().expect("one")) } else { binary(inner) }
+            if inner.len() == 1 { expr(inner.peek().expect("one")) } else { binary(inner, at) }
         }
         Rule::unary_expr => {
             let items: Vec<P> = p.into_inner().collect();
             let (prefixes, last) = items.split_at(items.len() - 1);
-            let mut value = expr(last[0].clone());
+            let operand = last[0].clone();
+            let mut value = nested(at, prefixes.len(), || expr(operand), || stub_expr(at));
             for op in prefixes.iter().rev() {
                 let op = match op.as_str() {
                     "-" => UnaryOp::Neg,
@@ -735,7 +796,8 @@ fn expr(p: P) -> Expr {
         }
         Rule::postfix_expr => {
             let mut inner = p.into_inner();
-            let mut value = expr(inner.next().expect("a primary"));
+            let primary = inner.next().expect("a primary");
+            let mut value = nested(at, inner.len(), || expr(primary), || stub_expr(at));
             for post in inner {
                 let post = post.into_inner().next().expect("a postfix");
                 let at = line(&post);
