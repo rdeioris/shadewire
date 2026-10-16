@@ -13,7 +13,8 @@ use crate::types::{EnumId, StructId};
 
 /// Where `import` finds modules: the MDL search path. A module `::a::b` is `a/b.mdl` under the first path holding
 /// it; the standard modules are always the vendored ones, and `::base` and `::nvidia::core_definitions` the
-/// vendored ones unless the search path has them.
+/// vendored ones unless the search path has them. A module on the search path that imports its own name (a stub
+/// holding `export using ::base import *;`, as Kit's are) imports the vendored one.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Resolver {
     pub paths: Vec<PathBuf>,
@@ -165,6 +166,8 @@ pub struct Program {
     /// The modules read from files, by path: next to a main module on no search path, a name means the file in
     /// that module's folder, so two such folders may each have their own module of a name.
     by_file: HashMap<PathBuf, usize>,
+    /// The vendored modules a module of the same name on the search path imports, by name.
+    shadowed: HashMap<String, usize>,
     pub structs: Vec<StructDef>,
     pub enums: Vec<EnumDef>,
     /// While a main module under no search path root loads, its folder: a root after them, so its relative imports
@@ -212,6 +215,7 @@ impl Program {
             modules: Vec::new(),
             by_name: HashMap::new(),
             by_file: HashMap::new(),
+            shadowed: HashMap::new(),
             structs: Vec::new(),
             enums: Vec::new(),
             main_root: None,
@@ -246,6 +250,7 @@ impl Program {
             self.enums.truncate(mark.enums);
             self.by_name.retain(|_, id| *id < mark.modules);
             self.by_file.retain(|_, id| *id < mark.modules);
+            self.shadowed.retain(|_, id| *id < mark.modules);
         }
         result
     }
@@ -322,6 +327,19 @@ impl Program {
         let ast = parse_module(&text, Some(file.as_deref().unwrap_or(name)))?;
         let package = parts[..parts.len() - 1].iter().map(|s| s.to_string()).collect();
         self.install(name.to_string(), ast, file, dir, package, standard, keys)
+    }
+
+    /// The vendored module `name`, which a module of that name on the search path stands in for everywhere else.
+    fn load_shadowed(&mut self, name: &str) -> Result<usize, Error> {
+        if let Some(&id) = self.shadowed.get(name) {
+            return Ok(id);
+        }
+        let text = vendored(name).expect("a vendored module");
+        let ast = parse_module(text, Some(name))?;
+        let parts: Vec<&str> = name.trim_start_matches("::").split("::").collect();
+        let package = parts[..parts.len() - 1].iter().map(|s| s.to_string()).collect();
+        self.shadowed.insert(name.to_string(), self.modules.len());
+        self.install(name.to_string(), ast, None, None, package, false, Keys { file: None, by_name: false })
     }
 
     /// The file of the module whose path is `parts` under the first root holding it, and whether that root is on the
@@ -501,7 +519,10 @@ impl Program {
             }
             None => &names[0],
         };
-        let target = self.load(name, &at)?;
+        let mut target = self.load(name, &at)?;
+        if target == id && vendored(name).is_some() {
+            target = self.load_shadowed(name)?;
+        }
         let written = path.parts.clone();
         match import {
             Import::Qualified { name, .. } => {

@@ -352,3 +352,34 @@ fn shadewire_noise_functions_read_as_their_ops() {
     assert!(ops.contains(&shadewire::Op::Noise3d), "{}", ir.dag.dump());
     assert!(ops.contains(&shadewire::Op::Fractal2d), "{}", ir.dag.dump());
 }
+
+/// A search path folder holding `files` (name, text), fresh for test `name`.
+fn search_path(name: &str, files: &[(&str, &str)]) -> Resolver {
+    let root = std::env::temp_dir().join(format!("shadewire-mdl-{name}"));
+    let _ = std::fs::remove_dir_all(&root);
+    for (file, text) in files {
+        let path = root.join(file);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    }
+    Resolver::new(vec![root])
+}
+
+fn lower_with(text: &str, resolver: &Resolver) -> Result<MaterialIr, shadewire::Error> {
+    let mut options = IrOptions::with_models(&LOBE_MODELS);
+    options.values_as_uniforms = false;
+    to_ir(text, None, None, &options, resolver)
+}
+
+#[test]
+fn a_search_path_module_reexporting_its_own_name_reexports_the_vendored_one() {
+    let resolver = search_path("stub-base", &[("base.mdl", "mdl 1.7;\nexport using ::base import *;\n")]);
+    let text = diffuse(
+        "1.7",
+        "import ::base::*;\ncolor pick(base::mono_mode m) { return m == base::mono_average ? color(0.25) : color(1.0); }",
+        "uniform base::mono_mode mode = base::mono_average",
+        "pick(mode)",
+    );
+    let ir = lower_with(&text, &resolver).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(field_value(&ir, "c0_color"), Value::Color3([0.25; 3]));
+}
