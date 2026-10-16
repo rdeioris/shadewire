@@ -83,7 +83,7 @@ pub fn context(dag: &Dag, live: &[bool]) -> Result<ContextReflection, Error> {
                 match types.get(&name) {
                     Some(first) if *first != ty => {
                         return Err(Error::TypeMismatch {
-                            at: Location { file: None, line: 0, path: node.origin.clone() },
+                            at: Location { file: None, line: 0, path: node.origin.clone(), source: None },
                             expected: first.mtlx_name().to_string(),
                             found: ty.mtlx_name().to_string(),
                         });

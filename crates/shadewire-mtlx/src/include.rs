@@ -63,7 +63,7 @@ impl PartialEq for Resolver {
 }
 
 fn fail(location: Option<&str>, line: u32, message: String) -> Error {
-    Error::Parse { at: Location { file: location.map(str::to_string), line, path: String::new() }, message }
+    Error::Parse { at: Location { file: location.map(str::to_string), line, path: String::new(), source: None }, message }
 }
 
 /// Replace each `xi:include` child with the children of the included document. `location` names the document and

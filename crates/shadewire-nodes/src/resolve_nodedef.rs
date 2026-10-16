@@ -100,7 +100,7 @@ mod tests {
     }
 
     fn at() -> Location {
-        Location { file: None, line: 1, path: "test".to_string() }
+        Location { file: None, line: 1, path: "test".to_string(), source: None }
     }
 
     fn resolve(n: &Node, given: &[(&str, PortType)]) -> Result<String, Error> {

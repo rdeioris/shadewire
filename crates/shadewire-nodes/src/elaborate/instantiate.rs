@@ -74,7 +74,7 @@ impl<'a> Elaborator<'a> {
     ) -> Result<NodeId, Error> {
         let origin = self.unique_origin(origin);
         let origin = origin.as_str();
-        let at = Location { file: None, line: 0, path: origin.to_string() };
+        let at = Location { file: None, line: 0, path: origin.to_string(), source: None };
         let Some(synthetic) = self.synthetic else {
             return Err(Error::BadValue { at, message: "instantiate needs Elaborator::standalone".to_string() });
         };
@@ -87,6 +87,7 @@ impl<'a> Elaborator<'a> {
             version: None,
             inputs: doc_inputs,
             line: 0,
+            source: None,
         });
         let scope = self.synthetic_scope(&[], interface);
         let id = self.instance(&scope, node, output, &at)?;

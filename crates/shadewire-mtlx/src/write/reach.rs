@@ -39,7 +39,7 @@ impl Patterns<'_> {
         }
         self.write_leaf(dag, node);
         let written = self.node_names.get(&node).cloned().ok_or_else(|| Error::BadValue {
-            at: Location { file: None, line: 0, path: n.origin.clone() },
+            at: Location { file: None, line: 0, path: n.origin.clone(), source: None },
             message: format!("node {} is read by the shader but never written", node.0),
         })?;
         let source = if self.uniform_names.contains_key(&node) {

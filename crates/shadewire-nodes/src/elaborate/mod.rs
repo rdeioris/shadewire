@@ -48,7 +48,7 @@ use std::collections::{HashMap, HashSet};
 
 use shadewire::{Compound, Dag, Error, Location, NodeId, SurfaceField, Type, Value};
 
-use crate::document::{Document, PortType};
+use crate::document::{Document, PortType, Site};
 use crate::index::Index;
 use crate::library::Library;
 use crate::options::IrOptions;
@@ -129,10 +129,11 @@ impl<'a> Elaborator<'a> {
         }
     }
 
-    /// A location in `scope`: its library file, or the elaborated document's.
-    pub fn at(&self, scope: &Scope<'a>, line: u32, path: String) -> Location {
+    /// A location in `scope`: its library file, or the elaborated document's; the element's `source_path` when a
+    /// builder gave it one.
+    pub fn at(&self, scope: &Scope<'a>, site: Site<'_>, path: String) -> Location {
         let file = scope.file.map(str::to_string).or_else(|| self.file.clone());
-        Location { file, line, path }
+        Location { file, line: site.line, path, source: site.source.map(str::to_string) }
     }
 
     /// The value type of a port. Matrices and non-value ports are unsupported.
@@ -211,7 +212,7 @@ pub(crate) fn elaborate_output(doc: &Document, graph: &str, output: &str) -> Res
     let options = IrOptions::default();
     let mut elaborator = Elaborator::new(doc, crate::library::standard(), &options, "test");
     let top = elaborator.top_scope(&doc.nodes);
-    let at = elaborator.at(&top, 0, graph.to_string());
+    let at = elaborator.at(&top, Site::NONE, graph.to_string());
     let scope = elaborator.user_graph_scope(graph, &at)?;
     let id = elaborator.graph_output(&scope, Some(output), &at)?;
     let ty = elaborator.dag.node(id).ty;

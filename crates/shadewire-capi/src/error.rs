@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn a_located_core_error_carries_its_location() {
-        let at = Location { file: Some("m.mtlx".into()), line: 7, path: "g/n".into() };
+        let at = Location { file: Some("m.mtlx".into()), line: 7, path: "g/n".into(), source: None };
         let err = fail_with(Error::TypeMismatch { at, expected: "float".into(), found: "color3".into() }.into());
         unsafe {
             assert_eq!(shadewire_error_get_kind(err), shadewire_error_kind::SHADEWIRE_ERROR_GRAPH);
@@ -237,7 +237,7 @@ mod tests {
 
     #[test]
     fn a_located_error_without_a_file_has_a_null_file() {
-        let at = Location { file: None, line: 3, path: "p".into() };
+        let at = Location { file: None, line: 3, path: "p".into(), source: None };
         let err = fail_with(Error::Parse { at, message: "bad".into() }.into());
         unsafe {
             assert!(shadewire_error_file(err).is_null());
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn location_of_returns_the_at_of_every_located_variant() {
-        let at = || Location { file: Some("f.mtlx".into()), line: 4, path: "a/b".into() };
+        let at = || Location { file: Some("f.mtlx".into()), line: 4, path: "a/b".into(), source: None };
         let located = [
             Error::Parse { at: at(), message: "m".into() },
             Error::UnsupportedVersion { at: at(), version: "v".into() },

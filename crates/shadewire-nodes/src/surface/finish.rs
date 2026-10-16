@@ -28,7 +28,7 @@ impl<'a> Elaborator<'a> {
     pub fn finish_model(mut self, model: &str, fields: &[(&str, Arg)], origin: &str) -> Result<Dag, Error> {
         let origin = self.unique_origin(origin);
         let origin = origin.as_str();
-        let at = Location { file: None, line: 0, path: origin.to_string() };
+        let at = Location { file: None, line: 0, path: origin.to_string(), source: None };
         let Some(synthetic) = self.synthetic else {
             return Err(Error::BadValue { at, message: "finish_model needs Elaborator::standalone".to_string() });
         };
@@ -41,6 +41,7 @@ impl<'a> Elaborator<'a> {
             version: None,
             inputs,
             line: 0,
+            source: None,
         });
         let scope = self.synthetic_scope(&[], interface);
         self.finish_at(&scope, node)
@@ -48,7 +49,7 @@ impl<'a> Elaborator<'a> {
 
     /// The dag finished as the closure tree under the node named `surface` among `nodes`.
     pub fn finish_closure(mut self, nodes: Vec<ShaderNode>, surface: &str) -> Result<Dag, Error> {
-        let at = Location { file: None, line: 0, path: surface.to_string() };
+        let at = Location { file: None, line: 0, path: surface.to_string(), source: None };
         let Some(synthetic) = self.synthetic else {
             return Err(Error::BadValue { at, message: "finish_closure needs Elaborator::standalone".to_string() });
         };
@@ -75,6 +76,7 @@ impl<'a> Elaborator<'a> {
                 version: None,
                 inputs,
                 line: 0,
+                source: None,
             });
         }
         let group = synthetic.group(doc_nodes);

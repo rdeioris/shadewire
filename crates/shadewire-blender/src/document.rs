@@ -147,7 +147,7 @@ impl Node {
 }
 
 pub(crate) fn at(message: impl Into<String>) -> Location {
-    Location { file: None, line: 0, path: message.into() }
+    Location { file: None, line: 0, path: message.into(), source: None }
 }
 
 /// The document, checked to be a `shadewire-blender-graph` of a version this crate reads.

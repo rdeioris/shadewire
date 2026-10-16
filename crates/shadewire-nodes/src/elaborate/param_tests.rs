@@ -66,7 +66,7 @@ fn geompropvalue_color_default_in_a_colorspace_folds_to_a_constant() {
     let options = IrOptions::default();
     let mut e = Elaborator::new(&d, crate::library::standard(), &options, "test");
     let top = e.top_scope(&d.nodes);
-    let at = e.at(&top, 0, "g".to_string());
+    let at = e.at(&top, crate::document::Site::NONE, "g".to_string());
     let scope = e.user_graph_scope("g", &at).unwrap();
     e.graph_output(&scope, Some("out"), &at).unwrap();
     let Some(Value::Color3(c)) = e.geomprop_defaults.get("tint") else { panic!("{:?}", e.geomprop_defaults) };
@@ -97,7 +97,7 @@ fn distance_on_a_non_constant_value_multiplies() {
     let mut e = Elaborator::new(&d, crate::library::standard(), &options, "test");
     let read = NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 });
     let uv = e.dag.add(Node { kind: read, ty: Type::Vector2, origin: String::new() });
-    let at = Location { file: None, line: 0, path: "x".to_string() };
+    let at = Location { file: None, line: 0, path: "x".to_string(), source: None };
     let id = e.convert_unit(uv, Type::Vector2, Some("centimeter"), Some("distance"), Some("meter"), &at).unwrap();
     let NodeKind::Op { op: Op::Multiply, args } = &e.dag.node(id).kind else { panic!("{:?}", e.dag.node(id)) };
     assert_eq!(args[0], uv);

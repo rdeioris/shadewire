@@ -180,6 +180,7 @@ fn nodedef<'a>(index: &Index<'a>, category: &str, output: PortType) -> Result<&'
         version: None,
         inputs: Vec::new(),
         line: 0,
+        source: None,
     };
-    resolve_nodedef(index, &node, &[], &Location { file: None, line: 0, path: category.to_string() })
+    resolve_nodedef(index, &node, &[], &Location { file: None, line: 0, path: category.to_string(), source: None })
 }

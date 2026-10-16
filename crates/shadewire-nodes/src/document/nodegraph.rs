@@ -14,6 +14,8 @@ pub struct Output {
     pub output: Option<String>,
     pub interfacename: Option<String>,
     pub line: u32,
+    /// Where the host authored it (a builder's `source_path`); shown in messages in place of the line.
+    pub source: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -24,6 +26,8 @@ pub struct NodeGraph {
     pub nodes: Vec<Node>,
     pub outputs: Vec<Output>,
     pub line: u32,
+    /// Where the host authored it (a builder's `source_path`); shown in messages in place of the line.
+    pub source: Option<String>,
 }
 
 pub fn build_output(element: &Element) -> Output {
@@ -35,6 +39,7 @@ pub fn build_output(element: &Element) -> Output {
         output: own(element.attr("output")),
         interfacename: own(element.attr("interfacename")),
         line: element.line,
+        source: None,
     }
 }
 
@@ -52,5 +57,6 @@ pub fn build_nodegraph(element: &Element, inherit: &Inherit) -> NodeGraph {
             .collect(),
         outputs: element.children.iter().filter(|c| c.category == "output").map(build_output).collect(),
         line: element.line,
+        source: None,
     }
 }

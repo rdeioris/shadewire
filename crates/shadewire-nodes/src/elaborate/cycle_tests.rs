@@ -78,7 +78,7 @@ fn a_failed_node_does_not_stay_in_progress() {
     let options = crate::IrOptions::default();
     let mut e = super::Elaborator::new(&d, crate::library::standard(), &options, "test");
     let top = e.top_scope(&d.nodes);
-    let at = e.at(&top, 0, "g".to_string());
+    let at = e.at(&top, crate::document::Site::NONE, "g".to_string());
     let scope = e.user_graph_scope("g", &at).unwrap();
     assert!(matches!(e.node_output(&scope, "bad", None), Err(Error::BadValue { .. })));
     assert!(e.in_progress.is_empty());

@@ -50,7 +50,7 @@ impl Patterns<'_> {
             return Ok(Source::Value(value_text(value)));
         }
         let name = self.node_names.get(&id).ok_or_else(|| Error::BadValue {
-            at: Location { file: None, line: 0, path: dag.node(id).origin.clone() },
+            at: Location { file: None, line: 0, path: dag.node(id).origin.clone(), source: None },
             message: format!("node {} is read but not written", id.0),
         })?;
         if self.uniform_names.contains_key(&id) {
@@ -99,7 +99,7 @@ impl Patterns<'_> {
         let category = category_for(op, args.len());
         let arg_types: Vec<_> = args.iter().map(|a| dag.node(*a).ty).collect();
         let nd = nodedef_for(index, &category.name, node.ty, &arg_types).ok_or_else(|| Error::BadValue {
-            at: Location { file: None, line: 0, path: node.origin.clone() },
+            at: Location { file: None, line: 0, path: node.origin.clone(), source: None },
             message: format!("no library node writes {op:?} as {}", node.ty.mtlx_name()),
         })?;
         let mut inputs = Vec::new();
