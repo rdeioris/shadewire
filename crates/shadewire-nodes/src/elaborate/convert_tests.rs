@@ -4,9 +4,10 @@ use shadewire::interpret::{ContextSource, NoTextures, eval_surface};
 use shadewire::optimize::optimize;
 use shadewire::{ContextRead, Dag, Error, NodeKind, Op, Space, TransformKind, Value};
 
-use super::elaborate_output;
 use super::tests::doc;
+use super::{elaborate_output, elaborate_output_with};
 use crate::document::Document;
+use crate::options::IrOptions;
 
 struct Zeros;
 impl ContextSource for Zeros {
@@ -82,6 +83,96 @@ fn unknown_colorspace_is_unsupported() {
     let err = elaborate_output(&constant_in("color3", "1,0,0", "martian"), "g", "out").unwrap_err();
     let Error::UnsupportedColorspace { colorspace, .. } = err else { panic!("{err:?}") };
     assert_eq!(colorspace, "martian");
+}
+
+/// The IR of a color3 constant `0.8,0.4,0.2` authored in `colorspace`, as text.
+fn constant_ir(colorspace: &str) -> String {
+    elaborate_output(&constant_in("color3", "0.8,0.4,0.2", colorspace), "g", "out")
+        .unwrap_or_else(|e| panic!("{colorspace}: {e}"))
+        .dump()
+}
+
+fn assert_same_ir_as(canonical: &str, aliases: &[&str]) {
+    let want = constant_ir(canonical);
+    for alias in aliases {
+        assert_eq!(constant_ir(alias), want, "{alias} should read as {canonical}");
+    }
+}
+
+#[test]
+fn linear_rec709_aliases_are_the_working_colorspace() {
+    let none = constant_ir("none");
+    assert_eq!(constant_ir("lin_rec709"), none);
+    assert_same_ir_as(
+        "lin_rec709",
+        &[
+            "lin_srgb",
+            "lin_rec709_scene",
+            "Linear Rec.709 (sRGB)",
+            "Utility - Linear - sRGB",
+            "Utility - Linear - Rec.709",
+        ],
+    );
+}
+
+#[test]
+fn srgb_texture_aliases_convert_like_srgb_texture() {
+    assert_ne!(constant_ir("srgb_texture"), constant_ir("none"));
+    assert_same_ir_as(
+        "srgb_texture",
+        &["srgb_rec709_scene", "srgb_tx", "sRGB - Texture", "Utility - sRGB - Texture", "sRGB Encoded Rec.709 (sRGB)"],
+    );
+}
+
+#[test]
+fn acescg_aliases_convert_like_acescg() {
+    assert_ne!(constant_ir("acescg"), constant_ir("none"));
+    assert_same_ir_as("acescg", &["ACEScg", "ACES - ACEScg", "lin_ap1", "lin_ap1_scene"]);
+}
+
+#[test]
+fn usd_scene_names_convert_like_their_cmlib_spaces() {
+    assert_same_ir_as("g22_rec709", &["g22_rec709_scene"]);
+    assert_same_ir_as("g18_rec709", &["g18_rec709_scene", "gamma18"]);
+    assert_same_ir_as("g22_ap1", &["g22_ap1_scene"]);
+    assert_same_ir_as("lin_displayp3", &["lin_p3d65_scene"]);
+    assert_same_ir_as("srgb_displayp3", &["srgb_p3d65_scene"]);
+    assert_same_ir_as("lin_adobergb", &["lin_adobergb_scene"]);
+    assert_same_ir_as("adobergb", &["g22_adobergb_scene"]);
+}
+
+#[test]
+fn every_alias_converts_like_its_cmlib_colorspace() {
+    for (alias, canonical) in super::colorspace::ALIASES {
+        assert_same_ir_as(canonical, &[alias]);
+    }
+}
+
+#[test]
+fn not_color_names_behave_as_raw() {
+    assert_same_ir_as("raw", &["data", "identity", "Raw", "Utility - Raw"]);
+    assert_eq!(constant_ir("data"), constant_ir("none"));
+}
+
+#[test]
+fn unknown_colorspace_error_names_the_authored_string() {
+    for authored in ["martian", "LIN_SRGB", "srgb_ap1_scene", "Linear Rec.709"] {
+        let err = elaborate_output(&constant_in("color3", "1,0,0", authored), "g", "out").unwrap_err();
+        let Error::UnsupportedColorspace { colorspace, .. } = err else { panic!("{err:?}") };
+        assert_eq!(colorspace, authored);
+    }
+}
+
+#[test]
+fn an_aliased_working_colorspace_is_canonicalised() {
+    let options = IrOptions { working_colorspace: "lin_srgb".to_string(), ..IrOptions::default() };
+    let ir = |colorspace: &str| {
+        elaborate_output_with(&constant_in("color3", "0.8,0.4,0.2", colorspace), "g", "out", &options)
+            .unwrap_or_else(|e| panic!("{colorspace}: {e}"))
+            .dump()
+    };
+    assert_eq!(ir("lin_rec709"), constant_ir("none"));
+    assert_eq!(ir("srgb_texture"), constant_ir("srgb_texture"));
 }
 
 #[test]
