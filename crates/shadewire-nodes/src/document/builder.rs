@@ -117,6 +117,16 @@ impl DocumentBuilder {
         &self.doc
     }
 
+    /// The document, for the XML reader's elements outside the namespace of nodes (nodedefs, unitdefs, ...) and
+    /// its version and file, which it sets before inserting anything so messages name the file.
+    pub(crate) fn document_mut(&mut self) -> &mut Document {
+        &mut self.doc
+    }
+
+    pub(crate) fn into_document(self) -> Document {
+        self.doc
+    }
+
     pub fn add_nodegraph(&mut self, name: &str, source: Option<&str>) -> Result<GraphRef, Error> {
         self.push_nodegraph(NodeGraph {
             name: name.to_string(),

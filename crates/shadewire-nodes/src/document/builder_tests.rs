@@ -263,7 +263,6 @@ fn duplicate_names_are_errors_naming_the_source_path() {
 }
 
 #[test]
-#[ignore = "Task 3"]
 fn duplicate_names_in_xml_are_errors_naming_the_line() {
     let text = "<materialx version=\"1.39\">\n<nodegraph name=\"g\">\n<add name=\"a\" type=\"float\"/>\n\
                 <add name=\"a\" type=\"float\"/>\n</nodegraph></materialx>";
