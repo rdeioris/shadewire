@@ -514,7 +514,7 @@ impl<'p, 'a> Eval<'p, 'a> {
                     Around { normal: self.layer_normal(args).or(around.normal.clone()), ior: around.ior.clone() };
                 let top = self.bsdf_tree(&Self::df_arg(args, "layer"), &inner)?;
                 let base = self.bsdf_tree(&Self::df_arg(args, "base"), around)?;
-                self.weighted_layer(top, base, w)
+                self.weighted_layer(top, base, w)?
             }
             "fresnel_layer" | "color_fresnel_layer" => {
                 let w = Self::num_arg(args, "weight").unwrap_or(Num::Known(Value::Float(1.0)));
@@ -542,7 +542,7 @@ impl<'p, 'a> Eval<'p, 'a> {
                             "{}: a layer that is not a glossy lobe, weighted without its Fresnel curve",
                             at(self)
                         ));
-                        return Ok(self.weighted_layer(Some(other), base, w));
+                        return self.weighted_layer(Some(other), base, w);
                     }
                     None => None,
                 };
@@ -713,20 +713,25 @@ impl<'p, 'a> Eval<'p, 'a> {
 
     /// `top` over `base` for weight `w` of the surface. A float weight mixes the layered top with the base alone,
     /// so what the weight leaves reaches the base whatever the top lets through; a color weight (MaterialX's mix
-    /// weight is a float) multiplies the top.
-    fn weighted_layer(&mut self, top: Option<Tree>, base: Option<Tree>, w: Num) -> Option<Tree> {
+    /// weight is a float) multiplies the top. A float weight is limited to [0, 1], its `hard_range`.
+    fn weighted_layer(&mut self, top: Option<Tree>, base: Option<Tree>, w: Num) -> Result<Option<Tree>, Error> {
         if self.num_type(&w) != Type::Float {
-            return layered(top.map(|t| weighted(t, w)), base);
+            return Ok(layered(top.map(|t| weighted(t, w)), base));
         }
-        match (top, base) {
-            (Some(top), Some(base)) => Some(match w.known() {
-                Some(Value::Float(1.0)) => Tree::Layer(Box::new(top), Box::new(base)),
-                Some(Value::Float(0.0)) => base,
-                _ => Tree::WeightedLayer { top: Box::new(top), base: Box::new(base), weight: w },
-            }),
+        Ok(match (top, base) {
+            (Some(top), Some(base)) => {
+                let (zero, one) = (Num::Known(Value::Float(0.0)), Num::Known(Value::Float(1.0)));
+                let w = self.emit(Op::Clamp, &[w, zero, one], Type::Float, "df::weighted_layer")?;
+                Some(match w.known() {
+                    Some(Value::Float(1.0)) => Tree::Layer(Box::new(top), Box::new(base)),
+                    Some(Value::Float(0.0)) => base,
+                    _ => Tree::WeightedLayer { top: Box::new(top), base: Box::new(base), weight: w },
+                })
+            }
+            // A multiply limits its weight itself.
             (Some(top), None) => Some(weighted(top, w)),
             (None, base) => base,
-        }
+        })
     }
 
     /// A mix's component weights: as given (unbounded), divided by their sum where it passes one (normalized), or

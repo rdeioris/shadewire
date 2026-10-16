@@ -32,11 +32,11 @@ their conversions, as the MDL SDK's compiler does, including the lenient convers
 - An MDL material is a closure tree: the `::df` tree maps onto MaterialX's pbrlib lobes, so `IrOptions` must
   accept `surface` (`LOBE_MODELS`); otherwise `to_ir` is `Error::NoTranslation`, as for any other front end.
 - A pbrlib `multiply` scales a closure's response but keeps its throughput, which would block what lies under a
-  weighted lobe. So `weighted_layer(w, top, base)` reads as `mix(layer(top, base), base, w)`, one `base` node under
-  both, and a `normalized_mix`, `clamped_mix` or `unbounded_mix` whose weights are known and sum to one as nested
-  `mix`es. The color forms (`color_weighted_layer`, `tint`, the color mixes: MaterialX's mix weight is a float)
-  multiply; the other mixes are an `add` of multiplied components, with a warning when a float mix's component
-  transmits.
+  weighted lobe. So `weighted_layer(w, top, base)` reads as `mix(layer(top, base), base, w)`, `w` limited to [0, 1]
+  and one `base` node under both, and a `normalized_mix`, `clamped_mix` or `unbounded_mix` whose weights are known and
+  sum to one as nested `mix`es. The color forms (`color_weighted_layer`, `tint`, the color mixes: MaterialX's mix
+  weight is a float) multiply; the other mixes are an `add` of multiplied components, with a warning when a float
+  mix's component transmits.
 - The material's parameters become uniforms named after them, with `anno::hard_range`, `soft_range` and `in_group`
   as UI hints; integer parameters stay constants (they are counts and modes). A parameter without a default is an
   error.

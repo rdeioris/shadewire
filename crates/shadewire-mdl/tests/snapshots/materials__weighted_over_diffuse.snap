@@ -26,5 +26,5 @@ c1_energy_compensation = [0.0]
 c1_normal = context normal_world
 c1_roughness = [0.0]
 c1_weight = [1.0]
-c3_mix = uniform w
+c3_mix = computed
 --- warnings

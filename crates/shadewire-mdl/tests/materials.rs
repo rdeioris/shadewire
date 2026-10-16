@@ -154,3 +154,15 @@ fn a_partial_mix_of_transmissive_lobes_warns() {
     assert!(ir.warnings.iter().any(|w| w.ends_with("a mix of transmissive lobes approximated")), "{:?}", ir.warnings);
     assert!(weighted("split", None).warnings.is_empty());
 }
+
+/// A layer's weight is limited to [0, 1], as MDL's `hard_range` has it: 1.2 is the layered top, -0.3 the base alone.
+#[test]
+fn a_weighted_layer_clamps_its_weight() {
+    let (response, _) = scatter(&weighted("over_diffuse", Some(1.2)).dag);
+    assert!(near(response, 0.9), "{response:?}");
+    let (response, _) = scatter(&weighted("over_diffuse", Some(-0.3)).dag);
+    assert!(near(response, 0.5), "{response:?}");
+    let ir = weighted("known_over_diffuse", None);
+    let graph = ir.dag.surface.closure.as_ref().unwrap();
+    assert!(matches!(graph.nodes[graph.bsdf.unwrap() as usize], ClosureNode::Layer { .. }), "{}", graph.dump());
+}

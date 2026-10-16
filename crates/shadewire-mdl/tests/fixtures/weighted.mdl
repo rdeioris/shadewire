@@ -11,3 +11,7 @@ export material split() = material(surface: material_surface(scattering: df::nor
 export material partial() = material(surface: material_surface(scattering: df::unbounded_mix(df::bsdf_component[](
     df::bsdf_component(0.3, df::diffuse_reflection_bsdf(tint: color(0.5))),
     df::bsdf_component(0.3, df::diffuse_transmission_bsdf())))));
+export material known_over_diffuse() = material(surface: material_surface(scattering: df::weighted_layer(
+    weight: 1.2,
+    layer: df::fresnel_factor(ior: color(0.2), extinction_coefficient: color(3.0), base: df::microfacet_ggx_smith_bsdf(roughness_u: 0.1)),
+    base: df::diffuse_reflection_bsdf(tint: color(0.5)))));
