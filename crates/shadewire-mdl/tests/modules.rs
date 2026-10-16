@@ -242,3 +242,60 @@ fn a_local_copy_and_the_search_path_module_of_its_name_stay_apart() {
     assert_eq!(tint(&modules, &local), Some(Value::Color3([0.7; 3])));
     assert_eq!(by_name(&modules), Some(Value::Color3([0.3; 3])));
 }
+
+/// A module of material `base(color tint = color(0.1))` and what `variants` declare after it.
+fn variants(declarations: &str) -> String {
+    format!(
+        "mdl 1.7;\nimport ::df::*;\nexport material base(color tint = color(0.1), float rough = 0.2) = \
+         material(surface: material_surface(scattering: df::diffuse_reflection_bsdf(tint: tint, roughness: rough)));\n\
+         {declarations}"
+    )
+}
+
+fn variant_ir(name: &str, text: &str, arguments: &[Argument]) -> shadewire_mdl::MaterialIr {
+    let file = scratch(name).join("variants.mdl");
+    write(&file, text);
+    let modules = Modules::new(Resolver::default()).unwrap();
+    modules.to_ir(file.to_str().unwrap(), Some("v"), arguments, &lobes()).unwrap()
+}
+
+#[test]
+fn a_variant_has_the_parameters_of_its_base_with_its_own_defaults() {
+    let text = variants("export material v(*) = base(tint: color(0.5));\n");
+    let ir = variant_ir("variant-defaults", &text, &[]);
+    assert!(ir.warnings.is_empty(), "{:?}", ir.warnings);
+    let dag = optimize(&ir.dag);
+    assert_eq!(uniform(&dag, "tint"), Some(Value::Color3([0.5; 3])));
+    // What the variant does not set keeps the base's default.
+    assert_eq!(uniform(&dag, "rough"), Some(Value::Float(0.2)));
+}
+
+#[test]
+fn a_callers_argument_wins_over_a_variants() {
+    let text = variants("export material v(*) = base(tint: color(0.5));\n");
+    let tint = arg("tint", ArgValue::Value(Value::Color3([0.9; 3])));
+    let rough = arg("rough", ArgValue::Value(Value::Float(0.7)));
+    let ir = variant_ir("variant-arguments", &text, &[tint, rough]);
+    assert!(ir.warnings.is_empty(), "{:?}", ir.warnings);
+    let dag = optimize(&ir.dag);
+    assert_eq!(uniform(&dag, "tint"), Some(Value::Color3([0.9; 3])));
+    assert_eq!(uniform(&dag, "rough"), Some(Value::Float(0.7)));
+}
+
+#[test]
+fn an_unknown_argument_to_a_variant_is_a_warning() {
+    let text = variants("export material v(*) = base(tint: color(0.5));\n");
+    let ir = variant_ir("variant-unknown", &text, &[arg("nope", ArgValue::Value(Value::Float(1.0)))]);
+    assert_eq!(ir.warnings, ["variants::v: no parameter nope"]);
+}
+
+#[test]
+fn a_variant_of_a_variant_takes_the_outer_defaults_first() {
+    let text = variants(
+        "export material mid(*) = base(tint: color(0.3), rough: 0.4);\n\
+         export material v(*) = mid(tint: color(0.6));\n",
+    );
+    let dag = optimize(&variant_ir("variant-chain", &text, &[]).dag);
+    assert_eq!(uniform(&dag, "tint"), Some(Value::Color3([0.6; 3])));
+    assert_eq!(uniform(&dag, "rough"), Some(Value::Float(0.4)));
+}

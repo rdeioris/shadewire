@@ -8,10 +8,10 @@ use shadewire_nodes::document::PortType;
 use shadewire_nodes::elaborate::STACK_BYTES;
 use shadewire_nodes::{Arg, Elaborator, IrOptions, MaterialIr, ShaderNode, Synthetic};
 
-use crate::ast::{Annotation, DeclKind, Param};
+use crate::ast::{Annotation, Body, DeclKind, Expr, ExprKind, Param};
 use crate::eval::{Eval, Flow, Frame};
 use crate::modules::{ArgValue, Argument, Modules};
-use crate::program::{Program, Resolver};
+use crate::program::{Entity, Program, Resolver};
 use crate::types::{TextureShape, Ty};
 use crate::value::{Df, Gamma, Num, Texture, V, Val};
 
@@ -90,15 +90,16 @@ pub(crate) fn to_ir_here(
     let e = Elaborator::standalone(&synthetic, options);
     let label = format!("{}::{name}", program.modules[main].name.trim_start_matches("::"));
     let mut ev = Eval::new(program, e, main, &label);
-    let args = parameters(&mut ev, main, decl, arguments)?;
-    let value = ev.invoke(main, decl, args.clone(), Default::default(), 0)?;
+    let (module, decl, defaults) = resolve_variant(&mut ev, main, decl)?;
+    let args = parameters(&mut ev, module, decl, arguments, &defaults)?;
+    let value = ev.invoke(module, decl, args.clone(), Default::default(), 0)?;
     // The geometry's normal is the shading normal the surface sees: evaluate again with it in place.
     let normal = ev.field(&value, "geometry").and_then(|g| ev.field(g, "normal")).cloned();
     let value = match normal.as_ref().and_then(|n| n.num().cloned()) {
         Some(n) if Some(&n) != ev.default_normal().as_ref() => {
             let id = ev.node_of(&n, "geometry.normal");
             ev.normal = Some(id);
-            ev.invoke(main, decl, args, Default::default(), 0)?
+            ev.invoke(module, decl, args, Default::default(), 0)?
         }
         _ => value,
     };
@@ -146,10 +147,71 @@ fn ui_hints(ev: &mut Eval, module: usize, annotations: &[Annotation]) -> UiHints
     hints
 }
 
-/// The material's parameters: each argument, else its default evaluated, and a value of an IR type known now made a
+/// A material's module and declaration, and the defaults its variants give its parameters.
+type Resolved = (usize, usize, Vec<(String, Val)>);
+
+/// The material a variant (`material v(*) = base(a: 1);`) is, down its chain of bases: the first one with parameters of its
+/// own, and the arguments the variants gave it, the outermost variant's first. A material that is no variant is itself.
+fn resolve_variant(ev: &mut Eval, mut module: usize, mut decl: usize) -> Result<Resolved, Error> {
+    let mut defaults: Vec<(String, Val)> = Vec::new();
+    loop {
+        let func = ev.program.function(module, decl).clone();
+        if func.params.is_some() {
+            return Ok((module, decl, defaults));
+        }
+        let fail = |ev: &Eval, message: &str| ev.bad(ev.at(module, func.line, &func.name), message.to_string());
+        let Body::Expr(Expr { kind: ExprKind::Call { callee, args }, .. }) = &func.body else {
+            return Err(fail(ev, "a variant must call a material"));
+        };
+        let ExprKind::Name(name) = &callee.kind else { return Err(fail(ev, "a variant must call a named material")) };
+        let mut frame = Frame::new(module, &func.name);
+        let mut flow = Flow::new();
+        let given = ev.args(&mut frame, &mut flow, args)?;
+        let bases: Vec<(usize, usize)> = ev
+            .program
+            .lookup(module, name)
+            .into_iter()
+            .filter_map(|e| match e {
+                Entity::Function { module, decl } => Some((module, decl)),
+                _ => None,
+            })
+            .collect();
+        // Of overloads, the one that has every parameter the variant names.
+        let has_all = |ev: &Eval, (m, d): (usize, usize)| match &ev.program.function(m, d).params {
+            None => true,
+            Some(params) => given.iter().all(|(n, _)| n.as_ref().is_none_or(|n| params.iter().any(|p| p.name == *n))),
+        };
+        let Some(&(base_module, base_decl)) = bases.iter().find(|b| has_all(ev, **b)).or(bases.first()) else {
+            return Err(fail(ev, &format!("unknown material {name}")));
+        };
+        let params = ev.program.function(base_module, base_decl).params.clone();
+        for (index, (given_name, value)) in given.into_iter().enumerate() {
+            let param = match (given_name, &params) {
+                (Some(n), _) => n,
+                (None, Some(params)) => match params.get(index) {
+                    Some(p) => p.name.clone(),
+                    None => return Err(fail(ev, &format!("too many arguments to {name}"))),
+                },
+                (None, None) => return Err(fail(ev, "a variant of a variant takes its arguments by name")),
+            };
+            if !defaults.iter().any(|(n, _)| *n == param) {
+                defaults.push((param, value));
+            }
+        }
+        (module, decl) = (base_module, base_decl);
+    }
+}
+
+/// The material's parameters: each argument, else the default a variant gave it, else its default evaluated, and a value of an IR type known now made a
 /// uniform (or kept a constant, per the options) named after its parameter. Integers stay constants: MDL uses them
 /// for counts and modes, which loops and switches need known. An argument naming no parameter is a warning.
-fn parameters(ev: &mut Eval, module: usize, decl: usize, arguments: &[Argument]) -> Result<Vec<Option<Val>>, Error> {
+fn parameters(
+    ev: &mut Eval,
+    module: usize,
+    decl: usize,
+    arguments: &[Argument],
+    defaults: &[(String, Val)],
+) -> Result<Vec<Option<Val>>, Error> {
     let func = ev.program.function(module, decl).clone();
     let params = func.params.as_deref().unwrap_or_default();
     for a in arguments {
@@ -165,13 +227,18 @@ fn parameters(ev: &mut Eval, module: usize, decl: usize, arguments: &[Argument])
         let v = match arguments.iter().find(|a| a.name == p.name) {
             Some(a) => argument_val(ev, module, &func.name, p, ty.as_ref(), &a.value)?,
             None => {
-                let Some(default) = &p.default else {
-                    return Err(Error::BadValue {
-                        at: ev.at(module, p.line, &func.name),
-                        message: format!("parameter {} has no default", p.name),
-                    });
+                let v = match defaults.iter().find(|(n, _)| *n == p.name) {
+                    Some((_, v)) => v.clone(),
+                    None => {
+                        let Some(default) = &p.default else {
+                            return Err(Error::BadValue {
+                                at: ev.at(module, p.line, &func.name),
+                                message: format!("parameter {} has no default", p.name),
+                            });
+                        };
+                        ev.expr(&mut frame, &mut flow, default)?
+                    }
                 };
-                let v = ev.expr(&mut frame, &mut flow, default)?;
                 match ty {
                     Some(t) => {
                         let t = ev.complete_array(&t, &v);
