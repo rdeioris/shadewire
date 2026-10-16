@@ -1,0 +1,7 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material velvet() = material(surface: material_surface(scattering:
+    df::sheen_bsdf(roughness: 0.4, tint: color(0.8, 0.2, 0.3), multiscatter_tint: color(1.0), multiscatter: df::diffuse_reflection_bsdf(tint: color(0.3)))));

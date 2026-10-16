@@ -843,7 +843,8 @@ fn finish(ev: &mut Eval, m: &Val) -> Result<(Vec<ShaderNode>, String), Error> {
     let ior = ev.gray(&ior, "material", "ior")?;
     let scattering = df_at(ev, &["surface", "scattering"]);
     let emission = df_at(ev, &["surface", "emission", "emission"]);
-    let around = Around { normal: None, ior: ior.clone() };
+    // The geometry normal is every lobe's normal (MDL's lobes take theirs from it, or from a layer).
+    let around = Around { normal: ev.normal.map(Num::Node), ior: ior.clone() };
     let bsdf = ev.bsdf_tree(&scattering, &around)?;
     let mut edf = ev.edf_tree(&emission)?;
     if let Some(e) = edf.take() {

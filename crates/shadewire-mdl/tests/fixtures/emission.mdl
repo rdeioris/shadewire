@@ -1,0 +1,11 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material exitance(color c = color(3.14159265, 0, 0)) = material(surface: material_surface(
+    emission: material_emission(emission: df::diffuse_edf(), intensity: c)));
+export material power() = material(surface: material_surface(
+    emission: material_emission(emission: df::diffuse_edf(), intensity: color(10.0), mode: intensity_power)));
+export material spot() = material(surface: material_surface(
+    emission: material_emission(emission: df::spot_edf(exponent: 4.0), intensity: color(1.0))));

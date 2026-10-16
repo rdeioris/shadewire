@@ -1,0 +1,17 @@
+---
+source: crates/shadewire-mdl/tests/materials.rs
+expression: text
+---
+c0 = oren_nayar_diffuse_bsdf(color=c0_color, energy_compensation=c0_energy_compensation, normal=c0_normal, roughness=c0_roughness, weight=c0_weight)
+bsdf = c0
+edf = none
+opacity = opacity
+--- fields
+opacity = [1.0]
+thin_walled = [0.0]
+c0_color = uniform tint
+c0_energy_compensation = [0.0]
+c0_normal = context normal_world
+c0_roughness = uniform roughness
+c0_weight = [1.0]
+--- warnings

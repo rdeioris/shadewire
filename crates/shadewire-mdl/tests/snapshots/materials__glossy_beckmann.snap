@@ -1,0 +1,24 @@
+---
+source: crates/shadewire-mdl/tests/materials.rs
+expression: text
+---
+c0 = generalized_schlick_bsdf(color0=c0_color0, color82=c0_color82, color90=c0_color90, exponent=c0_exponent, normal=c0_normal, retroreflective=c0_retroreflective, roughness=c0_roughness, tangent=c0_tangent, thinfilm_ior=c0_thinfilm_ior, thinfilm_thickness=c0_thinfilm_thickness, weight=c0_weight, distribution="ggx", scatter_mode="R")
+bsdf = c0
+edf = none
+opacity = opacity
+--- fields
+opacity = [1.0]
+thin_walled = [0.0]
+c0_color0 = [1.0, 1.0, 1.0]
+c0_color82 = [1.0, 1.0, 1.0]
+c0_color90 = [1.0, 1.0, 1.0]
+c0_exponent = [5.0]
+c0_normal = context normal_world
+c0_retroreflective = [0.0]
+c0_roughness = [0.1, 0.1]
+c0_tangent = context tangent_world
+c0_thinfilm_ior = [1.5]
+c0_thinfilm_thickness = [0.0]
+c0_weight = [1.0]
+--- warnings
+main::beckmann: df::microfacet_beckmann_smith_bsdf (line 8): a GGX lobe

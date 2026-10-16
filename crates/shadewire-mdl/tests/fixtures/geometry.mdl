@@ -1,0 +1,12 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material normal_mapped() = material(
+    surface: material_surface(scattering: df::diffuse_reflection_bsdf(tint: color(0.5))),
+    geometry: material_geometry(normal: math::normalize(state::normal() + float3(0.0, 0.1, 0.0))));
+export material cutout(float o = 0.5) = material(
+    surface: material_surface(scattering: df::diffuse_reflection_bsdf()),
+    geometry: material_geometry(cutout_opacity: o));
+export material thin() = material(thin_walled: true, surface: material_surface(scattering: df::diffuse_transmission_bsdf()));
