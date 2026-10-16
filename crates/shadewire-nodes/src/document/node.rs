@@ -19,6 +19,8 @@ pub struct Input {
     pub unittype: Option<String>,
     pub ui: UiAttrs,
     pub line: u32,
+    /// Where the host authored it (a builder's `source_path`); shown in messages in place of the line.
+    pub source: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -31,6 +33,8 @@ pub struct Node {
     pub version: Option<String>,
     pub inputs: Vec<Input>,
     pub line: u32,
+    /// Where the host authored it (a builder's `source_path`); shown in messages in place of the line.
+    pub source: Option<String>,
 }
 
 /// `inherit` is the context of the node (document and graph already folded in).
@@ -51,6 +55,7 @@ pub fn build_input(element: &Element, inherit: &Inherit) -> Input {
         unittype: own(element.attr("unittype")),
         ui: UiAttrs::read(element),
         line: element.line,
+        source: None,
     }
 }
 
@@ -64,5 +69,6 @@ pub fn build_node(element: &Element, inherit: &Inherit) -> Node {
         version: own(element.attr("version")),
         inputs: element.children.iter().filter(|c| c.category == "input").map(|c| build_input(c, &inherit)).collect(),
         line: element.line,
+        source: None,
     }
 }

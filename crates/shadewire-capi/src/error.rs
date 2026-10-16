@@ -14,6 +14,7 @@ pub struct shadewire_error {
     file: Option<CString>,
     line: u32,
     path: CString,
+    source_path: Option<CString>,
 }
 
 /// Everything a C API body can fail with.
@@ -83,11 +84,19 @@ pub(crate) fn from_core(error: &shadewire::Error) -> shadewire_error {
         file: at.and_then(|l| l.file.clone()).map(c_string),
         line: at.map_or(0, |l| l.line),
         path: c_string(at.map_or_else(String::new, |l| l.path.clone())),
+        source_path: at.and_then(|l| l.source.clone()).map(c_string),
     }
 }
 
 fn unlocated(kind: shadewire_error_kind, message: String) -> shadewire_error {
-    shadewire_error { kind, message: c_string(message), file: None, line: 0, path: c_string(String::new()) }
+    shadewire_error {
+        kind,
+        message: c_string(message),
+        file: None,
+        line: 0,
+        path: c_string(String::new()),
+        source_path: None,
+    }
 }
 
 /// Builds an invalid-argument error object.
@@ -175,6 +184,19 @@ pub unsafe extern "C" fn shadewire_error_path(err: *const shadewire_error) -> *c
     }
 }
 
+/// The host's source path of `err` (the `source_path` a builder call was given for the element it names), or NULL
+/// when it has none (or `err` is NULL); valid until `err` is freed.
+///
+/// # Safety
+/// `err` must be NULL or a live error handle.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn shadewire_error_source_path(err: *const shadewire_error) -> *const c_char {
+    match unsafe { err.as_ref() }.and_then(|e| e.source_path.as_ref()) {
+        Some(source_path) => source_path.as_ptr(),
+        None => std::ptr::null(),
+    }
+}
+
 /// Frees `err`; NULL is allowed.
 ///
 /// # Safety
@@ -208,7 +230,7 @@ mod tests {
 
     #[test]
     fn a_located_core_error_carries_its_location() {
-        let at = Location { file: Some("m.mtlx".into()), line: 7, path: "g/n".into() };
+        let at = Location { file: Some("m.mtlx".into()), line: 7, path: "g/n".into(), source: None };
         let err = fail_with(Error::TypeMismatch { at, expected: "float".into(), found: "color3".into() }.into());
         unsafe {
             assert_eq!(shadewire_error_get_kind(err), shadewire_error_kind::SHADEWIRE_ERROR_GRAPH);
@@ -219,6 +241,27 @@ mod tests {
             let message = text(shadewire_error_message(err, &mut len));
             assert!(message.contains("type mismatch"), "{message}");
             assert_eq!(len, message.len());
+            shadewire_error_free(err);
+        }
+    }
+
+    #[test]
+    fn a_located_error_with_a_source_carries_it() {
+        let at = Location { file: None, line: 0, path: "n".into(), source: Some("/root/Looks/n".into()) };
+        let err = fail_with(Error::BadValue { at, message: "no nodedef".into() }.into());
+        unsafe {
+            assert_eq!(text(shadewire_error_source_path(err)), "/root/Looks/n");
+            shadewire_error_free(err);
+        }
+        let at = Location { file: Some("m.mtlx".into()), line: 7, path: "g/n".into(), source: None };
+        let err = fail_with(Error::BadValue { at, message: "bad".into() }.into());
+        unsafe {
+            assert!(shadewire_error_source_path(err).is_null());
+            shadewire_error_free(err);
+        }
+        let err = fail_with(Error::NoMaterial.into());
+        unsafe {
+            assert!(shadewire_error_source_path(err).is_null());
             shadewire_error_free(err);
         }
     }
@@ -237,7 +280,7 @@ mod tests {
 
     #[test]
     fn a_located_error_without_a_file_has_a_null_file() {
-        let at = Location { file: None, line: 3, path: "p".into() };
+        let at = Location { file: None, line: 3, path: "p".into(), source: None };
         let err = fail_with(Error::Parse { at, message: "bad".into() }.into());
         unsafe {
             assert!(shadewire_error_file(err).is_null());
@@ -280,7 +323,7 @@ mod tests {
 
     #[test]
     fn location_of_returns_the_at_of_every_located_variant() {
-        let at = || Location { file: Some("f.mtlx".into()), line: 4, path: "a/b".into() };
+        let at = || Location { file: Some("f.mtlx".into()), line: 4, path: "a/b".into(), source: None };
         let located = [
             Error::Parse { at: at(), message: "m".into() },
             Error::UnsupportedVersion { at: at(), version: "v".into() },
@@ -336,6 +379,7 @@ mod tests {
             assert!(shadewire_error_file(std::ptr::null()).is_null());
             assert_eq!(shadewire_error_line(std::ptr::null()), 0);
             assert!(shadewire_error_path(std::ptr::null()).is_null());
+            assert!(shadewire_error_source_path(std::ptr::null()).is_null());
         }
     }
 }

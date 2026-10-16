@@ -63,11 +63,15 @@ impl PartialEq for Resolver {
 }
 
 fn fail(location: Option<&str>, line: u32, message: String) -> Error {
-    Error::Parse { at: Location { file: location.map(str::to_string), line, path: String::new() }, message }
+    Error::Parse {
+        at: Location { file: location.map(str::to_string), line, path: String::new(), source: None },
+        message,
+    }
 }
 
-/// Replace each `xi:include` child with the children of the included document. `location` names the document and
-/// is the base its includes resolve against; without one, an include is an error.
+/// Replace each `xi:include` child with the children of the included document, but for those named as an element
+/// already there: included documents merge first-wins. `location` names the document and is the base its includes
+/// resolve against; without one, an include is an error.
 pub fn resolve_includes(root: Element, location: Option<&str>, resolver: &Resolver) -> Result<Element, Error> {
     resolve(root, location, resolver, 0)
 }
@@ -89,7 +93,14 @@ fn resolve(mut root: Element, location: Option<&str>, resolver: &Resolver, depth
         let resolved = resolver.resolve(base, href).map_err(|message| fail(location, child.line, message))?;
         let included = parse_included(&resolved)?;
         let included = resolve(included, Some(&resolved.location), resolver, depth + 1)?;
-        root.children.extend(included.children);
+        // Includes merge first-wins, as upstream `Document::importLibrary` skips names the document already has:
+        // a diamond (two includes of one library) lands it once. Duplicates within one document stay an error.
+        for child in included.children {
+            let name = child.name();
+            if name.is_empty() || !root.children.iter().any(|c| c.name() == name) {
+                root.children.push(child);
+            }
+        }
     }
     Ok(root)
 }
@@ -158,6 +169,35 @@ mod tests {
         let bad = parse_str(r#"<materialx><xi:include href="x.mtlx"/></materialx>"#, None).unwrap();
         let err = resolve_includes(bad, Some("mem://lib/top.mtlx"), &resolver).unwrap_err();
         assert!(err.to_string().contains("no mem://lib/x.mtlx"), "{err}");
+    }
+
+    /// A diamond: the top includes `b` and `c`, and both include `d`. The document builds, `d` lands once, and of
+    /// two includes defining the same name the first wins, as upstream `Document::importLibrary` skips names the
+    /// document already has.
+    #[test]
+    fn a_diamond_include_builds_and_the_first_definition_wins() {
+        let resolver = Resolver::new(|_, href| {
+            let text = match href {
+                "b.mtlx" => {
+                    r#"<materialx><xi:include href="d.mtlx"/><constant name="k" type="float"><input name="value" type="float" value="1"/></constant></materialx>"#
+                }
+                "c.mtlx" => {
+                    r#"<materialx><xi:include href="d.mtlx"/><constant name="k" type="float"><input name="value" type="float" value="2"/></constant></materialx>"#
+                }
+                "d.mtlx" => r#"<materialx><nodegraph name="NG_d"/><constant name="d" type="float"/></materialx>"#,
+                _ => return Err(format!("no {href}")),
+            };
+            Ok(Resolved { location: format!("mem://{href}"), text: text.to_string() })
+        });
+        let text = r#"<materialx version="1.39"><xi:include href="b.mtlx"/><xi:include href="c.mtlx"/></materialx>"#;
+        let root = resolve_includes(parse_str(text, None).unwrap(), Some("mem://top.mtlx"), &resolver).unwrap();
+        let names: Vec<_> = root.children.iter().map(|c| c.name()).collect();
+        assert_eq!(names, ["NG_d", "d", "k"]);
+
+        let doc = shadewire_nodes::document::build::build(&root, Some("mem://top.mtlx")).unwrap();
+        let k = doc.nodes.iter().find(|n| n.name == "k").unwrap();
+        assert_eq!(k.inputs[0].value.as_deref(), Some("1"));
+        assert_eq!(doc.nodegraphs.len(), 1);
     }
 
     #[test]

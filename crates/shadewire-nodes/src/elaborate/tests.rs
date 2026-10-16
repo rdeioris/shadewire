@@ -233,7 +233,7 @@ fn library_graph_errors_name_the_library_file() {
     let options = crate::IrOptions::default();
     let mut elaborator = super::Elaborator::new(&d, &library, &options, "test");
     let top = elaborator.top_scope(&d.nodes);
-    let at = elaborator.at(&top, 0, "g".to_string());
+    let at = elaborator.at(&top, crate::document::Site::NONE, "g".to_string());
     let scope = elaborator.user_graph_scope("g", &at).unwrap();
     let err = elaborator.graph_output(&scope, Some("out"), &at).unwrap_err();
     let Error::UnknownNode { at, category } = err else { panic!("{err:?}") };

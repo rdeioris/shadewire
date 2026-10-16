@@ -20,6 +20,8 @@ pub struct PortDef {
     pub enum_values: Option<String>,
     pub ui: UiAttrs,
     pub line: u32,
+    /// Where the host authored it (a builder's `source_path`); shown in messages in place of the line.
+    pub source: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -53,6 +55,7 @@ pub fn build_port_def(element: &Element, inherit: &Inherit) -> PortDef {
         enum_values: own(element.attr("enum")),
         ui: UiAttrs::read(element),
         line: element.line,
+        source: None,
     }
 }
 

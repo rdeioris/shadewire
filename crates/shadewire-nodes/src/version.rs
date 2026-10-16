@@ -8,7 +8,7 @@ pub fn document_version(root: &Element) -> Result<(u32, u32), Error> {
         return Ok((1, 39));
     };
     let bad = || Error::Parse {
-        at: Location { file: None, line: root.line, path: String::new() },
+        at: Location { file: None, line: root.line, path: String::new(), source: None },
         message: format!("bad version \"{text}\""),
     };
     let (major, minor) = text.split_once('.').ok_or_else(bad)?;

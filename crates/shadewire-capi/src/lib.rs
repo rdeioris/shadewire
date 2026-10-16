@@ -7,6 +7,9 @@
 //!   `shadewire_strings`);
 //! - `shadewire.blender.to_ir`, `.material_names`: `shadewire_blender_to_ir` (with `shadewire_ir_options`),
 //!   `shadewire_blender_material_names`;
+//! - `shadewire_nodes::DocumentBuilder` (a MaterialX document built in memory): `shadewire_builder` with its
+//!   `shadewire_nodegraph` and `shadewire_node` handles, typed `shadewire_value`s and `shadewire_source`s, and
+//!   `shadewire_builder_to_ir`;
 //! - `shadewire.mtlx.from_ir`: `shadewire_ir_to_mtlx` (a `shadewire_document`, with `shadewire_document_text` and
 //!   `_warning_count` / `_warning`);
 //! - `shadewire_mtlx::list_dependencies` and the resolver argument of `to_ir`: `shadewire_mtlx_list_dependencies` (a
@@ -29,17 +32,19 @@
 //! Option structs carry `struct_size` and grow only by appending fields after their current end; their tail padding
 //! is reserved as explicit `reserved` bytes that callers set to zero and the library ignores on read.
 //!
-//! Threads: handles are immutable once returned, so any number of threads may call the accessors and
-//! `shadewire_compile` on the same handle at once (lazily built texts such as the IR dump
+//! Threads: handles other than a `shadewire_builder` are immutable once returned, so any number of threads may call
+//! the accessors and `shadewire_compile` on the same handle at once (lazily built texts such as the IR dump
 //! are built once, safely). Free a handle exactly once, after every reader is done with it. A `resolve` callback is
 //! called only on the thread of the call whose options name it, and only during that call; it needs locking only for
-//! `user_data` the host shares between calls running at once.
+//! `user_data` the host shares between calls running at once. A `shadewire_builder` is mutable and not thread-safe:
+//! calls on one builder must not overlap.
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/shadewire-mark.svg",
     html_favicon_url = "https://raw.githubusercontent.com/rdeioris/shadewire/main/assets/logo/png/shadewire-mark-64.png"
 )]
 
 mod blender;
+mod builder;
 mod compiled;
 mod dependencies;
 mod document;
@@ -57,6 +62,16 @@ mod threads;
 mod version;
 
 pub use blender::{shadewire_blender_material_names, shadewire_blender_to_ir};
+pub use builder::{
+    SHADEWIRE_SOURCE_INTERFACE, SHADEWIRE_SOURCE_NODE, SHADEWIRE_SOURCE_NODEGRAPH, SHADEWIRE_VALUE_BOOLEAN,
+    SHADEWIRE_VALUE_FLOATS, SHADEWIRE_VALUE_INTEGER, SHADEWIRE_VALUE_STRING, shadewire_builder,
+    shadewire_builder_add_material, shadewire_builder_add_node, shadewire_builder_add_node_category,
+    shadewire_builder_add_nodegraph, shadewire_builder_free, shadewire_builder_new, shadewire_builder_to_ir,
+    shadewire_node, shadewire_node_connect, shadewire_node_set_colorspace, shadewire_node_set_value,
+    shadewire_nodegraph, shadewire_nodegraph_add_input, shadewire_nodegraph_add_output,
+    shadewire_nodegraph_set_input_colorspace, shadewire_source, shadewire_source_kind, shadewire_value,
+    shadewire_value_kind,
+};
 pub use compiled::{
     shadewire_compile, shadewire_compiled, shadewire_compiled_code, shadewire_compiled_free,
     shadewire_compiled_ir_dump, shadewire_compiled_language, shadewire_compiled_model_struct,
@@ -73,7 +88,7 @@ pub use document::{
 };
 pub use error::{
     shadewire_error, shadewire_error_file, shadewire_error_free, shadewire_error_get_kind, shadewire_error_line,
-    shadewire_error_message, shadewire_error_path,
+    shadewire_error_message, shadewire_error_path, shadewire_error_source_path,
 };
 pub use error_kind::shadewire_error_kind;
 pub use ir::{

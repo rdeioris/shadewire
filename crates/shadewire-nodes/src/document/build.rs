@@ -1,6 +1,7 @@
 use shadewire::Error;
 
 use super::Document;
+use super::builder::DocumentBuilder;
 use super::geompropdef::build_geompropdef;
 use super::inherit::Inherit;
 use super::node::build_node;
@@ -10,17 +11,21 @@ use super::unitdef::build_unitdef;
 use crate::element::Element;
 use crate::version::document_version;
 
-/// Build the typed document from the (include-resolved) root element.
+/// Build the typed document from the (include-resolved) root element. Nodes, nodegraphs and outputs go in through
+/// the builder, so their names are checked as for a document built in memory: unique in their scope, and a node's
+/// inputs unique.
 pub fn build(root: &Element, file: Option<&str>) -> Result<Document, Error> {
-    let mut doc = Document::empty();
+    let mut builder = DocumentBuilder::new();
+    let doc = builder.document_mut();
     doc.version = document_version(root)?;
     doc.file = file.map(str::to_string);
     let inherit = Inherit::default().enter(root);
     for child in &root.children {
+        let doc = builder.document_mut();
         match child.category.as_str() {
             "nodedef" => doc.nodedefs.push(build_nodedef(child, &inherit)),
-            "nodegraph" => doc.nodegraphs.push(build_nodegraph(child, &inherit)),
-            "output" => doc.outputs.push(build_output(child)),
+            "nodegraph" => builder.push_nodegraph(build_nodegraph(child, &inherit)).map(|_| ())?,
+            "output" => builder.push_output(None, build_output(child))?,
             "unitdef" => doc.unitdefs.push(build_unitdef(child, file)?),
             "geompropdef" => doc.geompropdefs.push(build_geompropdef(child)),
             "implementation" => {
@@ -30,10 +35,10 @@ pub fn build(root: &Element, file: Option<&str>) -> Result<Document, Error> {
             }
             "unittypedef" | "typedef" | "look" | "token" | "materialassign" | "variantset" | "variantassign"
             | "visibility" | "collection" | "propertyset" | "propertysetassign" | "attributedef" | "lookgroup" => {}
-            _ => doc.nodes.push(build_node(child, &inherit)),
+            _ => builder.push_node(None, build_node(child, &inherit)).map(|_| ())?,
         }
     }
-    Ok(doc)
+    Ok(builder.into_document())
 }
 
 #[cfg(test)]

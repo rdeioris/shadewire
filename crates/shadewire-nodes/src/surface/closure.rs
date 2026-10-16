@@ -106,7 +106,7 @@ impl<'a> Elaborator<'a> {
                 Ok(SurfaceClosures { bsdf, edf, values })
             }
             SurfaceSource::Model { node, scope, .. } => Err(Error::UnsupportedSurface {
-                at: self.at(scope, node.line, scope.origin(&node.name)),
+                at: self.at(scope, node.site(), scope.origin(&node.name)),
                 node: node.name.clone(),
                 reason: "a shading model mixed with a surface node".to_string(),
             }),
@@ -148,7 +148,7 @@ impl<'a> Elaborator<'a> {
 
     fn closure_error(&self, scope: &Scope<'a>, node: &Node, reason: String) -> Error {
         Error::UnsupportedSurface {
-            at: self.at(scope, node.line, scope.origin(&node.name)),
+            at: self.at(scope, node.site(), scope.origin(&node.name)),
             node: node.name.clone(),
             reason,
         }
@@ -176,7 +176,7 @@ impl<'a> Elaborator<'a> {
         input: &'a Input,
         depth: u32,
     ) -> Result<Option<ClosureId>, Error> {
-        let at = self.at(scope, input.line, format!("{}.{}", scope.path, input.name));
+        let at = self.at(scope, input.site(), format!("{}.{}", scope.path, input.name));
         if depth > MAX_DEPTH {
             return Err(Error::Cycle { at, node: input.name.clone() });
         }
@@ -218,7 +218,7 @@ impl<'a> Elaborator<'a> {
             at: at.clone(),
             message: format!("{} has no closure output {}", graph.name, output.unwrap_or("")),
         })?;
-        let out_at = self.at(scope, found.line, scope.origin(&found.name));
+        let out_at = self.at(scope, found.site(), scope.origin(&found.name));
         if let Some(name) = &found.nodename {
             let target = scope
                 .find_node(name)
@@ -251,7 +251,7 @@ impl<'a> Elaborator<'a> {
     }
 
     fn closure_nodedef(&self, scope: &Scope<'a>, node: &Node) -> Result<&'a NodeDef, Error> {
-        let at = self.at(scope, node.line, scope.origin(&node.name));
+        let at = self.at(scope, node.site(), scope.origin(&node.name));
         let input_types: Vec<(String, PortType)> =
             node.inputs.iter().map(|i| (i.name.clone(), i.port_type.clone())).collect();
         resolve_nodedef(&self.index, node, &input_types, &at)
@@ -319,7 +319,7 @@ impl<'a> Elaborator<'a> {
         depth: u32,
     ) -> Result<Option<ClosureId>, Error> {
         let nd = self.closure_nodedef(scope, node)?;
-        let at = self.at(scope, node.line, scope.origin(&node.name));
+        let at = self.at(scope, node.site(), scope.origin(&node.name));
         if let Some(graph) = self.index.graph_for_nodedef(&nd.name) {
             let interface = self.bind_interface(scope, node, nd, scope.user)?;
             let child = Scope {

@@ -34,7 +34,7 @@ impl<'a> Lines<'a> {
 const MAX_NESTING: usize = 64;
 
 fn fail(file: Option<&str>, line: u32, message: String) -> Error {
-    Error::Parse { at: Location { file: file.map(str::to_string), line, path: String::new() }, message }
+    Error::Parse { at: Location { file: file.map(str::to_string), line, path: String::new(), source: None }, message }
 }
 
 fn open(start: &BytesStart, line: u32, file: Option<&str>) -> Result<Element, Error> {

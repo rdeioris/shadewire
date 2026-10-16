@@ -42,6 +42,7 @@ pub fn value_input(name: &str, port_type: PortType, value: &str, line: u32) -> I
         unittype: None,
         ui: Default::default(),
         line,
+        source: None,
     }
 }
 
@@ -78,5 +79,6 @@ pub fn new_node(category: &str, name: &str, port_type: PortType, inputs: Vec<Inp
         version: None,
         inputs,
         line,
+        source: None,
     }
 }

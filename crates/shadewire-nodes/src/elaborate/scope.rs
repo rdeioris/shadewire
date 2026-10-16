@@ -80,7 +80,12 @@ impl<'a> Elaborator<'a> {
         let id = self.new_scope_id();
         let mut interface = HashMap::new();
         for port in &graph.interface {
-            let port_at = Location { file: self.file.clone(), line: port.line, path: format!("{name}/{}", port.name) };
+            let port_at = Location {
+                file: self.file.clone(),
+                line: port.line,
+                path: format!("{name}/{}", port.name),
+                source: port.source.clone(),
+            };
             if port.nodename.is_some() {
                 return Err(Error::BadValue {
                     at: port_at,

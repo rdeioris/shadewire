@@ -3,11 +3,17 @@ pub struct Location {
     pub file: Option<String>,
     pub line: u32,
     pub path: String,
+    /// Where the host authored the element, when it built the document itself (a graph builder's `source_path`,
+    /// such as a USD prim path); shown in place of the file and line.
+    pub source: Option<String>,
 }
 
 impl std::fmt::Display for Location {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{} ({})", self.file.as_deref().unwrap_or("<string>"), self.line, self.path)
+        match &self.source {
+            Some(source) => write!(f, "{source} ({})", self.path),
+            None => write!(f, "{}:{} ({})", self.file.as_deref().unwrap_or("<string>"), self.line, self.path),
+        }
     }
 }
 
@@ -54,4 +60,26 @@ pub enum Error {
     /// A back end asked for a language version it cannot print, such as GLSL 300 (desktop) or ES 330.
     #[error("unsupported target: {0}")]
     UnsupportedTarget(String),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Location;
+
+    #[test]
+    fn a_location_reads_file_line_and_path() {
+        let at = Location { file: Some("m.mtlx".into()), line: 7, path: "g/n".into(), source: None };
+        assert_eq!(at.to_string(), "m.mtlx:7 (g/n)");
+    }
+
+    #[test]
+    fn a_source_path_replaces_file_and_line() {
+        let at = Location {
+            file: None,
+            line: 0,
+            path: "NG/Image.file".into(),
+            source: Some("/root/_materials/Gun_Metal/NG/Image.inputs:file".into()),
+        };
+        assert_eq!(at.to_string(), "/root/_materials/Gun_Metal/NG/Image.inputs:file (NG/Image.file)");
+    }
 }

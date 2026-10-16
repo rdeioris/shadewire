@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Graph builder: build a MaterialX document in memory from Rust (`DocumentBuilder`) or C (`shadewire_builder_*`),
+  with typed values and host source paths in messages (`shadewire_error_source_path` returns one).
+- MaterialX: an element named twice among its siblings in one document (nodes, nodegraphs, outputs, interface
+  inputs, a node's inputs) is now an error; included documents merge first-wins, so a diamond include reads.
+- `shadewire::Location` has a new public field, `source` (the host's source path, shown in place of file and line):
+  breaking for struct literals and exhaustive patterns of `Location`.
+
 ## 0.2.0 (2026-10-15)
 
 Since 0.1.0.

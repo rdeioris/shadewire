@@ -33,7 +33,7 @@ pub fn upgrade(mut doc: Document) -> Result<Document, Error> {
             Ok(doc)
         }
         (major, minor) => Err(Error::UnsupportedVersion {
-            at: Location { file: doc.file.clone(), line: 0, path: String::new() },
+            at: Location { file: doc.file.clone(), line: 0, path: String::new(), source: None },
             version: format!("{major}.{minor}"),
         }),
     }

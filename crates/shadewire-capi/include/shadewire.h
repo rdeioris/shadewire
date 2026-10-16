@@ -69,6 +69,18 @@ typedef uint32_t shadewire_error_kind;
 #endif // __STDC_VERSION__ >= 202311L
 #endif // __cplusplus
 
+// A MaterialX document under construction. Make it with `shadewire_builder_new`, fill it with the
+// `shadewire_builder_*`, `shadewire_nodegraph_*` and `shadewire_node_*` functions, lower it with
+// `shadewire_builder_to_ir` (as often as needed), and free it with `shadewire_builder_free`.
+//
+// Each element is checked as it is added, so a mistake fails the call that made it; a failed call leaves the
+// builder as it was. Every element may carry the host's own path for it (`source_path`, NULL for none), which
+// messages show in place of a file and line.
+//
+// A builder is not thread-safe: calls on one builder (including `shadewire_builder_to_ir`) must not overlap. It
+// may be used from any thread, one call at a time; separate builders are independent.
+typedef struct shadewire_builder shadewire_builder;
+
 // A compiled material: the code in its language (the model's struct, `shadewire_eval_surface()`, the closure
 // functions, declarations of the host functions it calls), its reflection, and the IR the code was printed from
 // (optimized when the options asked for it). Free it with `shadewire_compiled_free`.
@@ -90,6 +102,15 @@ typedef struct shadewire_error shadewire_error;
 // closure tree over them). Made by `shadewire_mtlx_to_ir` or `shadewire_blender_to_ir`, compiled by
 // `shadewire_compile`. Free it with `shadewire_ir_free`.
 typedef struct shadewire_ir shadewire_ir;
+
+// A node of a builder (in the document or in a nodegraph), owned by it: valid until `shadewire_builder_free`, never
+// freed by the caller. Pass it only with its own builder, as for `shadewire_nodegraph`.
+typedef struct shadewire_node shadewire_node;
+
+// A nodegraph of a builder, owned by it: valid until `shadewire_builder_free`, never freed by the caller. Pass it
+// only with its own builder: another builder refuses it (it is looked up by address, not read), but after its
+// builder is freed its address may name an element of a newer builder.
+typedef struct shadewire_nodegraph shadewire_nodegraph;
 
 // The answer a `shadewire_resolve_fn` gives, written with `shadewire_resolution_set` or `_fail`. Owned by Shadewire
 // and valid only during the callback.
@@ -113,38 +134,36 @@ typedef struct shadewire_ir_options {
   uint8_t reserved[7];
 } shadewire_ir_options;
 
-// Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
-typedef uint32_t shadewire_target_kind;
+// Which field of a `shadewire_value` holds the value. Passed in from C, so a plain `u32`.
+typedef uint32_t shadewire_value_kind;
 
-// A target language and its version.
-//
-// `version` is the `#version` number for GLSL (330, 400, 410, 420, 430, 440, 450, 460; 0 for 420) and GLSL ES
-// (300, 310, 320; 0 for 300), and ignored for WGSL, HLSL and MSL. Any other version is
-// SHADEWIRE_ERROR_INVALID_ARGUMENT. Python's `shadewire.glsl.compile(version=, es=)`.
-typedef struct shadewire_target {
-  shadewire_target_kind kind;
-  uint32_t version;
-} shadewire_target;
+// A typed value: `kind` says which field is read; the others are ignored. A kind that does not fit the input's type
+// is an error, and so is a float count that does not match it or a non-finite float. `floats` may be NULL only when
+// `count` is 0; `string` must not be NULL for SHADEWIRE_VALUE_STRING. `boolean` is true for any non-zero byte.
+typedef struct shadewire_value {
+  shadewire_value_kind kind;
+  const float *floats;
+  size_t count;
+  int32_t integer;
+  bool boolean;
+  const char *string;
+} shadewire_value;
 
-// Options for compilation (the keyword arguments of Python's `compile`). Set `struct_size` to `sizeof` the struct,
-// or use `shadewire_compile_options_default`. The booleans are true for any non-zero byte.
+// Which element a `shadewire_source` reads. Passed in from C, so a plain `u32`.
+typedef uint32_t shadewire_source_kind;
+
+// What an input or an output reads; `kind` says which fields are read, the others are ignored.
 //
-// `group` and `first_binding` place the uniform block, textures and samplers. `reserve_uniform_binding` keeps
-// `first_binding` for the uniform block even when the material has no uniforms, so textures start at
-// `first_binding + 1` (for hosts that bind their own buffer there). `flip_v` flips V when sampling (images uploaded
-// top row first). `optimize` runs the optimizer first. `implicit_derivatives` false makes the code run in a compute
-// stage (level-0 samples, zero derivatives).
-//
-// New fields are only appended at the end.
-typedef struct shadewire_compile_options {
-  uint32_t struct_size;
-  uint32_t group;
-  uint32_t first_binding;
-  bool reserve_uniform_binding;
-  bool flip_v;
-  bool optimize;
-  bool implicit_derivatives;
-} shadewire_compile_options;
+// SHADEWIRE_SOURCE_NODE needs `node` (`output` may be NULL); SHADEWIRE_SOURCE_NODEGRAPH needs `nodegraph` and
+// `output`; SHADEWIRE_SOURCE_INTERFACE needs `interface_name`. A NULL where one is needed, a handle of another
+// builder, or an unknown kind is an error.
+typedef struct shadewire_source {
+  shadewire_source_kind kind;
+  const struct shadewire_node *node;
+  const struct shadewire_nodegraph *nodegraph;
+  const char *output;
+  const char *interface_name;
+} shadewire_source;
 
 // Resolves one `xi:include`: `base` is the including document's location (as given to `shadewire_mtlx_to_ir`, or
 // as an earlier answer named it) and `href` the include's `href`, both NUL-terminated UTF-8 valid only during the
@@ -179,6 +198,60 @@ typedef struct shadewire_mtlx_options {
   shadewire_resolve_fn resolve;
   void *resolve_user_data;
 } shadewire_mtlx_options;
+
+// Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
+typedef uint32_t shadewire_target_kind;
+
+// A target language and its version.
+//
+// `version` is the `#version` number for GLSL (330, 400, 410, 420, 430, 440, 450, 460; 0 for 420) and GLSL ES
+// (300, 310, 320; 0 for 300), and ignored for WGSL, HLSL and MSL. Any other version is
+// SHADEWIRE_ERROR_INVALID_ARGUMENT. Python's `shadewire.glsl.compile(version=, es=)`.
+typedef struct shadewire_target {
+  shadewire_target_kind kind;
+  uint32_t version;
+} shadewire_target;
+
+// Options for compilation (the keyword arguments of Python's `compile`). Set `struct_size` to `sizeof` the struct,
+// or use `shadewire_compile_options_default`. The booleans are true for any non-zero byte.
+//
+// `group` and `first_binding` place the uniform block, textures and samplers. `reserve_uniform_binding` keeps
+// `first_binding` for the uniform block even when the material has no uniforms, so textures start at
+// `first_binding + 1` (for hosts that bind their own buffer there). `flip_v` flips V when sampling (images uploaded
+// top row first). `optimize` runs the optimizer first. `implicit_derivatives` false makes the code run in a compute
+// stage (level-0 samples, zero derivatives).
+//
+// New fields are only appended at the end.
+typedef struct shadewire_compile_options {
+  uint32_t struct_size;
+  uint32_t group;
+  uint32_t first_binding;
+  bool reserve_uniform_binding;
+  bool flip_v;
+  bool optimize;
+  bool implicit_derivatives;
+} shadewire_compile_options;
+
+// `floats` holds `count` floats: 1 for a float, 3 for a color3, and so on for every float-based type.
+#define SHADEWIRE_VALUE_FLOATS 0
+
+// `integer`, for an integer input.
+#define SHADEWIRE_VALUE_INTEGER 1
+
+// `boolean`, for a boolean input.
+#define SHADEWIRE_VALUE_BOOLEAN 2
+
+// `string` (NUL-terminated UTF-8), for a string or filename input.
+#define SHADEWIRE_VALUE_STRING 3
+
+// `node`, a node of the same nodegraph (or of the document), by `output` when it has several (NULL otherwise).
+#define SHADEWIRE_SOURCE_NODE 0
+
+// Output `output` of `nodegraph`, read from the document or from inside another nodegraph.
+#define SHADEWIRE_SOURCE_NODEGRAPH 1
+
+// The interface input `interface_name` of the enclosing nodegraph.
+#define SHADEWIRE_SOURCE_INTERFACE 2
 
 #define SHADEWIRE_TARGET_WGSL 0
 
@@ -219,6 +292,179 @@ shadewire_status shadewire_blender_material_names(const char *text,
                                                   size_t len,
                                                   struct shadewire_strings **out,
                                                   struct shadewire_error **error);
+
+// A new, empty MaterialX 1.39 document whose nodedefs are looked up in the standard library. Free it with
+// `shadewire_builder_free`. NULL only if making it panicked (a fault of the library): running out of memory aborts
+// the process (Rust's default) rather than returning NULL.
+struct shadewire_builder *shadewire_builder_new(void);
+
+// Frees `b` and every nodegraph and node handle it gave out; NULL is allowed. IRs made from it stay valid.
+//
+// # Safety
+// `b` must be NULL or a builder from `shadewire_builder_new` not yet freed, with no call on it running.
+void shadewire_builder_free(struct shadewire_builder *b);
+
+// Adds a nodegraph named `name` to the document and writes its handle to `out` (written only on success). The name
+// is unique among the document's nodes, nodegraphs and outputs.
+//
+// # Safety
+// `b` must be NULL or a live builder; `name` and `source_path` NULL or valid NUL-terminated strings; `out` valid for
+// writing a pointer; `error` NULL or valid for writing a pointer. Not thread-safe (see `shadewire_builder`).
+shadewire_status shadewire_builder_add_nodegraph(struct shadewire_builder *b,
+                                                 const char *name,
+                                                 const char *source_path,
+                                                 struct shadewire_nodegraph **out,
+                                                 struct shadewire_error **error);
+
+// Adds an interface input `name` of MaterialX type `type` to `ng`, with `value` as its default (NULL for none).
+//
+// # Safety
+// `b` must be NULL or a live builder; `ng` NULL or any pointer (it is looked up, not read); `name`, `type` and
+// `source_path` NULL or valid NUL-terminated strings; `value` NULL or valid (see `shadewire_value`); `error` NULL or
+// valid for writing a pointer. Not thread-safe (see `shadewire_builder`).
+shadewire_status shadewire_nodegraph_add_input(struct shadewire_builder *b,
+                                               const struct shadewire_nodegraph *ng,
+                                               const char *name,
+                                               const char *type,
+                                               const struct shadewire_value *value,
+                                               const char *source_path,
+                                               struct shadewire_error **error);
+
+// Sets the colorspace of the interface input `name` of `ng`, already added. A type without one (a float) drops it,
+// as the XML reader does.
+//
+// # Safety
+// `b` must be NULL or a live builder; `ng` NULL or any pointer (it is looked up, not read); `name` and `colorspace`
+// NULL or valid NUL-terminated strings; `error` NULL or valid for writing a pointer. Not thread-safe (see
+// `shadewire_builder`).
+shadewire_status shadewire_nodegraph_set_input_colorspace(struct shadewire_builder *b,
+                                                          const struct shadewire_nodegraph *ng,
+                                                          const char *name,
+                                                          const char *colorspace,
+                                                          struct shadewire_error **error);
+
+// Adds an output `name` of MaterialX type `type` to `ng`, reading `from` (a node of `ng` or one of its interface
+// inputs). Connections to it may be made before it is added.
+//
+// # Safety
+// `b` must be NULL or a live builder; `ng` NULL or any pointer (it is looked up, not read); `name`, `type` and
+// `source_path` NULL or valid NUL-terminated strings; `from` NULL or valid (see `shadewire_source`); `error` NULL or
+// valid for writing a pointer. Not thread-safe (see `shadewire_builder`).
+shadewire_status shadewire_nodegraph_add_output(struct shadewire_builder *b,
+                                                const struct shadewire_nodegraph *ng,
+                                                const char *name,
+                                                const char *type,
+                                                const struct shadewire_source *from,
+                                                const char *source_path,
+                                                struct shadewire_error **error);
+
+// Adds a node `name` of the nodedef `nodedef` (for example "ND_image_color3") to `ng`, or to the document when `ng`
+// is NULL, and writes its handle to `out` (written only on success). Its category and output type come from the
+// nodedef; one of several outputs makes a multi-output node, read by output name. Inputs set or connected with a
+// NULL type then take theirs from the nodedef. An unknown nodedef is an error naming `source_path`.
+//
+// # Safety
+// `b` must be NULL or a live builder; `ng` NULL or any pointer (it is looked up, not read); `name`, `nodedef` and
+// `source_path` NULL or valid NUL-terminated strings; `out` valid for writing a pointer; `error` NULL or valid for
+// writing a pointer. Not thread-safe (see `shadewire_builder`).
+shadewire_status shadewire_builder_add_node(struct shadewire_builder *b,
+                                            const struct shadewire_nodegraph *ng,
+                                            const char *name,
+                                            const char *nodedef,
+                                            const char *source_path,
+                                            struct shadewire_node **out,
+                                            struct shadewire_error **error);
+
+// Adds a node `name` of `category` (for example "multiply") whose output is of MaterialX type `type` to `ng`, or to
+// the document when `ng` is NULL, and writes its handle to `out` (written only on success). Its nodedef is picked
+// when the document is lowered, as for XML, so its inputs need explicit types. `name` follows `ng`, as in
+// `shadewire_builder_add_node`.
+//
+// # Safety
+// `b` must be NULL or a live builder; `ng` NULL or any pointer (it is looked up, not read); `name`, `category`,
+// `type` and `source_path` NULL or valid NUL-terminated strings; `out` valid for writing a pointer; `error` NULL or
+// valid for writing a pointer. Not thread-safe (see `shadewire_builder`).
+shadewire_status shadewire_builder_add_node_category(struct shadewire_builder *b,
+                                                     const struct shadewire_nodegraph *ng,
+                                                     const char *name,
+                                                     const char *category,
+                                                     const char *type,
+                                                     const char *source_path,
+                                                     struct shadewire_node **out,
+                                                     struct shadewire_error **error);
+
+// Sets `input` of `n` to `value`, as MaterialX type `type` (NULL: the type `n`'s nodedef gives it). Inputs are
+// write-once: an input already set or connected is an error.
+//
+// # Safety
+// `b` must be NULL or a live builder; `n` NULL or any pointer (it is looked up, not read); `input`, `type` and
+// `source_path` NULL or valid NUL-terminated strings; `value` NULL or valid (see `shadewire_value`); `error` NULL or
+// valid for writing a pointer. Not thread-safe (see `shadewire_builder`).
+shadewire_status shadewire_node_set_value(struct shadewire_builder *b,
+                                          const struct shadewire_node *n,
+                                          const char *input,
+                                          const char *type,
+                                          const struct shadewire_value *value,
+                                          const char *source_path,
+                                          struct shadewire_error **error);
+
+// Sets the colorspace of `input` of `n`, already set or connected, whatever its type.
+//
+// # Safety
+// `b` must be NULL or a live builder; `n` NULL or any pointer (it is looked up, not read); `input` and `colorspace`
+// NULL or valid NUL-terminated strings; `error` NULL or valid for writing a pointer. Not thread-safe (see
+// `shadewire_builder`).
+shadewire_status shadewire_node_set_colorspace(struct shadewire_builder *b,
+                                               const struct shadewire_node *n,
+                                               const char *input,
+                                               const char *colorspace,
+                                               struct shadewire_error **error);
+
+// Connects `input` of `n`, as MaterialX type `type` (NULL: the type `n`'s nodedef gives it), to `from`: a node of
+// the same nodegraph (or of the document), an output of a nodegraph (which may be added later), or an interface
+// input of the enclosing nodegraph. A nodegraph's output (SHADEWIRE_SOURCE_NODEGRAPH) may be read from the document
+// or from inside another nodegraph, as the XML reader accepts `nodegraph=` there. Inputs are write-once: an input
+// already set or connected is an error.
+//
+// # Safety
+// `b` must be NULL or a live builder; `n` NULL or any pointer (it is looked up, not read); `input`, `type` and
+// `source_path` NULL or valid NUL-terminated strings; `from` NULL or valid (see `shadewire_source`); `error` NULL or
+// valid for writing a pointer. Not thread-safe (see `shadewire_builder`).
+shadewire_status shadewire_node_connect(struct shadewire_builder *b,
+                                        const struct shadewire_node *n,
+                                        const char *input,
+                                        const char *type,
+                                        const struct shadewire_source *from,
+                                        const char *source_path,
+                                        struct shadewire_error **error);
+
+// Adds a `surfacematerial` named `name` reading `surface`, which must be a surfaceshader node of the document itself
+// (added with a NULL nodegraph).
+//
+// # Safety
+// `b` must be NULL or a live builder; `surface` NULL or any pointer (it is looked up, not read); `name` and
+// `source_path` NULL or valid NUL-terminated strings; `error` NULL or valid for writing a pointer. Not thread-safe
+// (see `shadewire_builder`).
+shadewire_status shadewire_builder_add_material(struct shadewire_builder *b,
+                                                const char *name,
+                                                const struct shadewire_node *surface,
+                                                const char *source_path,
+                                                struct shadewire_error **error);
+
+// Lowers `material` (NULL for the document's only one: SHADEWIRE_ERROR_MATERIAL when it has several) to the IR, as
+// `shadewire_mtlx_to_ir` does a parsed document, and writes the handle to `out` (written only on success). `b` is
+// unchanged, so it may be edited and lowered again. `options` may be NULL for the defaults; its `resolve` is unused,
+// as a built document has no includes. The IR is not optimized.
+//
+// # Safety
+// `b` must be NULL or a live builder; `material` NULL or a valid NUL-terminated string; `options` NULL or valid (see
+// `shadewire_mtlx_options`); `out` valid for writing a pointer; `error` NULL or valid for writing a pointer. Not
+// thread-safe (see `shadewire_builder`): no other call on `b` may run meanwhile.
+shadewire_status shadewire_builder_to_ir(const struct shadewire_builder *b,
+                                         const char *material,
+                                         const struct shadewire_mtlx_options *options,
+                                         struct shadewire_ir **out,
+                                         struct shadewire_error **error);
 
 // Compiles `ir` to the code of `target` and its reflection and writes the handle to `out`. `options` may be NULL for
 // the defaults. `*out` is written only on success.
@@ -395,6 +641,13 @@ uint32_t shadewire_error_line(const struct shadewire_error *err);
 // # Safety
 // `err` must be NULL or a live error handle.
 const char *shadewire_error_path(const struct shadewire_error *err);
+
+// The host's source path of `err` (the `source_path` a builder call was given for the element it names), or NULL
+// when it has none (or `err` is NULL); valid until `err` is freed.
+//
+// # Safety
+// `err` must be NULL or a live error handle.
+const char *shadewire_error_source_path(const struct shadewire_error *err);
 
 // Frees `err`; NULL is allowed.
 //

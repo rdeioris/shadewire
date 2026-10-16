@@ -1,6 +1,9 @@
 //! The typed MaterialX document.
 
 pub mod build;
+pub mod builder;
+#[cfg(test)]
+mod builder_tests;
 pub mod flatten;
 pub mod geompropdef;
 pub mod inherit;
@@ -18,6 +21,32 @@ pub use nodegraph::{NodeGraph, Output};
 pub use port_type::PortType;
 pub use ui::UiAttrs;
 pub use unitdef::UnitDef;
+
+/// Where an element was authored: its line in the document's file, and the host's own path for it when a builder
+/// set one (`source_path`, shown in messages in place of the file and line).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Site<'s> {
+    pub line: u32,
+    pub source: Option<&'s str>,
+}
+
+impl Site<'_> {
+    /// No site: line 0, no source.
+    pub const NONE: Site<'static> = Site { line: 0, source: None };
+}
+
+macro_rules! sited {
+    ($($ty:ty),*) => {$(
+        impl $ty {
+            /// Where this element was authored.
+            pub fn site(&self) -> Site<'_> {
+                Site { line: self.line, source: self.source.as_deref() }
+            }
+        }
+    )*};
+}
+
+sited!(Input, Node, NodeGraph, Output, PortDef);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Document {

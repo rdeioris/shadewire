@@ -90,7 +90,7 @@ impl<'a> Elaborator<'a> {
 
     fn unsupported(&self, scope: &Scope<'a>, node: &Node, reason: &str) -> Error {
         Error::UnsupportedSurface {
-            at: self.at(scope, node.line, scope.origin(&node.name)),
+            at: self.at(scope, node.site(), scope.origin(&node.name)),
             node: node.name.clone(),
             reason: reason.to_string(),
         }
@@ -104,7 +104,7 @@ impl<'a> Elaborator<'a> {
         input_name: &str,
         depth: u32,
     ) -> Result<SurfaceSource<'a>, Error> {
-        let at = self.at(scope, node.line, scope.origin(&node.name));
+        let at = self.at(scope, node.site(), scope.origin(&node.name));
         if depth > MAX_DEPTH {
             return Err(Error::Cycle { at, node: node.name.clone() });
         }
@@ -156,7 +156,7 @@ impl<'a> Elaborator<'a> {
             at: at.clone(),
             message: format!("{} has no surfaceshader output {}", graph.name, output.unwrap_or("")),
         })?;
-        let out_at = self.at(scope, found.line, scope.origin(&found.name));
+        let out_at = self.at(scope, found.site(), scope.origin(&found.name));
         if let Some(name) = &found.nodename {
             let target = scope
                 .find_node(name)
@@ -193,7 +193,7 @@ impl<'a> Elaborator<'a> {
 
     /// What shader node `node` is: a model, a mix, a `dot`, or a graph-implemented nodedef.
     fn find_surface_at(&mut self, scope: &Scope<'a>, node: &'a Node, depth: u32) -> Result<SurfaceSource<'a>, Error> {
-        let at = self.at(scope, node.line, scope.origin(&node.name));
+        let at = self.at(scope, node.site(), scope.origin(&node.name));
         let is_shader = node.port_type == PortType::SurfaceShader;
         if KNOWN_MODELS.contains(&node.category.as_str()) {
             let nodedef = self.shader_nodedef(node, &at)?;

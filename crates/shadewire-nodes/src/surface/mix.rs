@@ -36,7 +36,7 @@ impl<'a> Elaborator<'a> {
             }
             SurfaceSource::Mix { fg, bg, mix_input } => self.mixed_fields(fg, bg, mix_input),
             SurfaceSource::Closure { node, scope, .. } => Err(Error::UnsupportedSurface {
-                at: self.at(scope, node.line, scope.origin(&node.name)),
+                at: self.at(scope, node.site(), scope.origin(&node.name)),
                 node: node.name.clone(),
                 reason: "a surface node mixed with a shading model".to_string(),
             }),
@@ -53,7 +53,7 @@ impl<'a> Elaborator<'a> {
         let fg_fields = self.surface_fields(fg)?;
         let bg_fields = self.surface_fields(bg)?;
         if !sides_line_up(&fg_fields, &bg_fields) {
-            let at = self.at(&mix.scope, mix.node.line, mix.scope.origin(&mix.node.name));
+            let at = self.at(&mix.scope, mix.node.site(), mix.scope.origin(&mix.node.name));
             return Err(Error::UnsupportedSurface {
                 at,
                 node: mix.node.name.clone(),

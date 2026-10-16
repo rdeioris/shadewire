@@ -53,5 +53,6 @@ pub fn input(name: &str, port_type: PortType) -> Input {
         unittype: None,
         ui: UiAttrs::default(),
         line: 0,
+        source: None,
     }
 }
