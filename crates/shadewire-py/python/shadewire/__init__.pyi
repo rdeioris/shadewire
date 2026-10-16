@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Tuple
 from . import blender as blender
 from . import glsl as glsl
 from . import hlsl as hlsl
+from . import mdl as mdl
 from . import msl as msl
 from . import mtlx as mtlx
 from . import wgsl as wgsl

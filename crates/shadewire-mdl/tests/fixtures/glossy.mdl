@@ -1,0 +1,11 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material ggx(float r = 0.2) = material(surface: material_surface(scattering:
+    df::microfacet_ggx_smith_bsdf(roughness_u: r, roughness_v: r * 0.5, tint: color(0.9))));
+export material beckmann() = material(surface: material_surface(scattering: df::microfacet_beckmann_smith_bsdf(roughness_u: 0.1)));
+export material mirror() = material(surface: material_surface(scattering: df::specular_bsdf(tint: color(1.0))));
+export material glass() = material(ior: color(1.5), surface: material_surface(scattering:
+    df::microfacet_ggx_smith_bsdf(roughness_u: 0.05, mode: df::scatter_reflect_transmit)));

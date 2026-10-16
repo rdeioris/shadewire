@@ -1,0 +1,14 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material schlick() = material(surface: material_surface(scattering:
+    df::custom_curve_layer(normal_reflectivity: 0.04, grazing_reflectivity: 1.0, exponent: 5.0, weight: 1.0,
+        layer: df::microfacet_ggx_smith_bsdf(roughness_u: 0.3), base: df::diffuse_reflection_bsdf(tint: color(0.2, 0.4, 0.8)))));
+export material colored() = material(surface: material_surface(scattering:
+    df::color_custom_curve_layer(normal_reflectivity: color(0.9, 0.6, 0.3), grazing_reflectivity: color(1.0),
+        layer: df::microfacet_ggx_smith_bsdf(roughness_u: 0.2))));
+export material directional() = material(surface: material_surface(scattering:
+    df::directional_factor(normal_tint: color(0.95, 0.64, 0.54), grazing_tint: color(1.0), exponent: 3.0,
+        base: df::microfacet_ggx_smith_bsdf(roughness_u: 0.15))));

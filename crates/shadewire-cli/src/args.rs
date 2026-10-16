@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 #[command(
     name = "shadewire",
     version,
-    about = "Compile MaterialX documents and Blender material graphs to shader code"
+    about = "Compile MaterialX documents, Blender material graphs and MDL modules to shader code"
 )]
 pub struct Args {
     #[command(subcommand)]
@@ -15,7 +15,7 @@ pub struct Args {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Compile a MaterialX document or a Blender graph
+    /// Compile a MaterialX document, a Blender graph or an MDL module
     Compile(CompileArgs),
     /// Print the IR of a material (the DAG the shader is emitted from)
     Ir(IrArgs),
@@ -27,20 +27,28 @@ pub enum Command {
 
 #[derive(Parser, Debug)]
 pub struct ListArgs {
-    /// The .mtlx document or .json Blender graph
+    /// The .mtlx document, .json Blender graph or .mdl module
     pub file: PathBuf,
-    /// The input's format; default: by extension (`.json` is a Blender graph, anything else MaterialX)
+    /// The input's format; default: by extension (`.json` is a Blender graph, `.mdl` an MDL module, anything else
+    /// MaterialX)
     #[arg(long, value_enum)]
     pub format: Option<Format>,
+    /// A folder of the MDL search path (repeatable), where `import` finds modules
+    #[arg(long = "mdl-path")]
+    pub mdl_paths: Vec<PathBuf>,
 }
 
 #[derive(Parser, Debug)]
 pub struct MtlxArgs {
-    /// The .mtlx document or .json Blender graph
+    /// The .mtlx document, .json Blender graph or .mdl module
     pub file: PathBuf,
-    /// The input's format; default: by extension (`.json` is a Blender graph, anything else MaterialX)
+    /// The input's format; default: by extension (`.json` is a Blender graph, `.mdl` an MDL module, anything else
+    /// MaterialX)
     #[arg(long, value_enum)]
     pub format: Option<Format>,
+    /// A folder of the MDL search path (repeatable), where `import` finds modules
+    #[arg(long = "mdl-path")]
+    pub mdl_paths: Vec<PathBuf>,
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,
@@ -71,6 +79,8 @@ pub enum Format {
     Mtlx,
     /// A Blender material graph (the Blender extension's File > Export > Material Graph)
     Blender,
+    /// An NVIDIA MDL module
+    Mdl,
 }
 
 /// The language of the generated code: each a back end of its own.
@@ -83,6 +93,8 @@ pub enum Lang {
     Msl,
     /// A complete Godot 4 spatial shader
     Gdshader,
+    /// A self-contained NVIDIA MDL 1.7 module (closure trees and surface_unlit)
+    Mdl,
 }
 
 /// How opacity reaches Godot (`--lang gdshader`).
@@ -97,11 +109,15 @@ pub enum Transparency {
 
 #[derive(Parser, Debug)]
 pub struct IrArgs {
-    /// The .mtlx document or .json Blender graph
+    /// The .mtlx document, .json Blender graph or .mdl module
     pub file: PathBuf,
-    /// The input's format; default: by extension (`.json` is a Blender graph, anything else MaterialX)
+    /// The input's format; default: by extension (`.json` is a Blender graph, `.mdl` an MDL module, anything else
+    /// MaterialX)
     #[arg(long, value_enum)]
     pub format: Option<Format>,
+    /// A folder of the MDL search path (repeatable), where `import` finds modules
+    #[arg(long = "mdl-path")]
+    pub mdl_paths: Vec<PathBuf>,
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,
@@ -124,11 +140,15 @@ pub struct IrArgs {
 
 #[derive(Parser, Debug)]
 pub struct CompileArgs {
-    /// The .mtlx document or .json Blender graph
+    /// The .mtlx document, .json Blender graph or .mdl module
     pub file: PathBuf,
-    /// The input's format; default: by extension (`.json` is a Blender graph, anything else MaterialX)
+    /// The input's format; default: by extension (`.json` is a Blender graph, `.mdl` an MDL module, anything else
+    /// MaterialX)
     #[arg(long, value_enum)]
     pub format: Option<Format>,
+    /// A folder of the MDL search path (repeatable), where `import` finds modules
+    #[arg(long = "mdl-path")]
+    pub mdl_paths: Vec<PathBuf>,
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,

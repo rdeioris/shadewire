@@ -23,6 +23,7 @@ shadewire-wgsl.workspace = true
 shadewire-glsl.workspace = true
 shadewire-hlsl.workspace = true
 shadewire-msl.workspace = true
+shadewire-mdl.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]

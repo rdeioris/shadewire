@@ -9,12 +9,14 @@ pub const SHADEWIRE_TARGET_GLSL: shadewire_target_kind = 1;
 pub const SHADEWIRE_TARGET_GLSL_ES: shadewire_target_kind = 2;
 pub const SHADEWIRE_TARGET_HLSL: shadewire_target_kind = 3;
 pub const SHADEWIRE_TARGET_MSL: shadewire_target_kind = 4;
+pub const SHADEWIRE_TARGET_MDL: shadewire_target_kind = 5;
 
 /// A target language and its version.
 ///
 /// `version` is the `#version` number for GLSL (330, 400, 410, 420, 430, 440, 450, 460; 0 for 420) and GLSL ES
-/// (300, 310, 320; 0 for 300), and ignored for WGSL, HLSL and MSL. Any other version is
-/// SHADEWIRE_ERROR_INVALID_ARGUMENT. Python's `shadewire.glsl.compile(version=, es=)`.
+/// (300, 310, 320; 0 for 300), and ignored for WGSL, HLSL, MSL and MDL. Any other version is
+/// SHADEWIRE_ERROR_INVALID_ARGUMENT. Python's `shadewire.glsl.compile(version=, es=)`. MDL is
+/// a self-contained MDL 1.7 module exporting `material`, for the `surface` and `surface_unlit` models only.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct shadewire_target {
@@ -29,6 +31,7 @@ pub(crate) enum Backend {
     Glsl(shadewire_glsl::Version),
     Hlsl,
     Msl,
+    Mdl,
 }
 
 /// The GLSL version `version` names (0 for the default), as the glsl crate checks it.
@@ -49,6 +52,7 @@ pub(crate) fn backend(target: shadewire_target) -> Result<Backend, ArgError> {
         SHADEWIRE_TARGET_GLSL_ES => glsl(true, target.version),
         SHADEWIRE_TARGET_HLSL => Ok(Backend::Hlsl),
         SHADEWIRE_TARGET_MSL => Ok(Backend::Msl),
+        SHADEWIRE_TARGET_MDL => Ok(Backend::Mdl),
         other => Err(ArgError(format!("unknown target kind {other}"))),
     }
 }
@@ -63,10 +67,11 @@ mod tests {
     }
 
     #[test]
-    fn wgsl_hlsl_and_msl_ignore_the_version() {
+    fn wgsl_hlsl_msl_and_mdl_ignore_the_version() {
         assert_eq!(t(SHADEWIRE_TARGET_WGSL, 12345), Ok(Backend::Wgsl));
         assert_eq!(t(SHADEWIRE_TARGET_HLSL, 60), Ok(Backend::Hlsl));
         assert_eq!(t(SHADEWIRE_TARGET_MSL, 7), Ok(Backend::Msl));
+        assert_eq!(t(SHADEWIRE_TARGET_MDL, 17), Ok(Backend::Mdl));
     }
 
     #[test]
@@ -91,7 +96,7 @@ mod tests {
 
     #[test]
     fn unknown_kinds_are_rejected() {
-        assert!(t(5, 0).is_err());
+        assert!(t(6, 0).is_err());
         assert!(t(u32::MAX, 0).is_err());
     }
 }

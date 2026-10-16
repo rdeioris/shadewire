@@ -3,3 +3,6 @@ crates/shadewire/tests/oracle/_work/
 tools/matlib/_data/
 __pycache__/
 blender/shadewire/wheels/
+crates/shadewire-py/python/shadewire/*.pyd
+crates/shadewire-py/python/shadewire/*.pdb
+crates/shadewire-py/python/shadewire/*.so

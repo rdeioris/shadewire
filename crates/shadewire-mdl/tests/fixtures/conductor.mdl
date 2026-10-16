@@ -1,0 +1,11 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material gold() = material(surface: material_surface(scattering:
+    df::fresnel_factor(ior: color(0.18, 0.42, 1.37), extinction_coefficient: color(3.42, 2.35, 1.77),
+        base: df::microfacet_ggx_smith_bsdf(roughness_u: 0.25))));
+export material tinted_gold() = material(surface: material_surface(scattering:
+    df::fresnel_factor(ior: color(0.18, 0.42, 1.37), extinction_coefficient: color(3.42, 2.35, 1.77),
+        base: df::microfacet_ggx_smith_bsdf(roughness_u: 0.25, tint: color(0.9, 0.8, 0.7)))));

@@ -1,5 +1,6 @@
 /* C99 smoke test of the Shadewire C API: list a MaterialX file's materials, lower it to the IR and read it back as
- * JSON, compile it to WGSL and to HLSL, check a parse error, resolve includes from memory, list dependencies. */
+ * JSON, compile it to WGSL and to HLSL, check a parse error, resolve includes from memory, list dependencies, write
+ * an MDL module back as MDL. */
 
 #include "shadewire.h"
 
@@ -120,6 +121,42 @@ static int compile_and_translate(const char *text, size_t len, const char *path,
     if (step == 0) {
         step = compile_to(text, len, path, SHADEWIRE_TARGET_HLSL, "shadewire_eval_surface() {", 4, report, report_len);
     }
+    return step;
+}
+
+/* An MDL module lowered with the closure-tree models, written back as MDL. */
+static int mdl_round_trip(char *report, size_t report_len) {
+    static const char module[] = "mdl 1.7;\nimport ::df::*;\n"
+                                 "export material m() = material(surface: material_surface(scattering: "
+                                 "df::diffuse_reflection_bsdf()));\n";
+    static const char *const models[] = {"surface", "surface_unlit"};
+    shadewire_ir_options options;
+    shadewire_ir *ir = NULL;
+    shadewire_compiled *compiled = NULL;
+    shadewire_error *err = NULL;
+    shadewire_target target;
+    const char *code;
+    int step = 0;
+
+    shadewire_ir_options_default(&options);
+    options.models = models;
+    options.model_count = 2;
+    target.kind = SHADEWIRE_TARGET_MDL;
+    target.version = 0;
+    if (shadewire_mdl_to_ir(module, sizeof module - 1, NULL, NULL, &options, NULL, 0, &ir, &err) != SHADEWIRE_OK ||
+        shadewire_compile(ir, target, NULL, &compiled, &err) != SHADEWIRE_OK) {
+        step = fail(report, report_len, 20, "lowering or writing MDL failed", err);
+        goto done;
+    }
+    code = shadewire_compiled_code(compiled, NULL);
+    if (code == NULL || strncmp(code, "mdl 1.7;", 8) != 0 || strcmp(shadewire_compiled_language(compiled), "mdl") != 0) {
+        step = fail(report, report_len, 21, "the MDL module lacks its version line", NULL);
+    }
+
+done:
+    shadewire_compiled_free(compiled);
+    shadewire_ir_free(ir);
+    shadewire_error_free(err);
     return step;
 }
 
@@ -298,6 +335,9 @@ int shadewire_smoke(const char *mtlx_path, char *report, size_t report_len) {
     }
     if (step == 0) {
         step = dependencies(report, report_len);
+    }
+    if (step == 0) {
+        step = mdl_round_trip(report, report_len);
     }
     if (step == 0 && shadewire_version() != header_version()) {
         step = fail(report, report_len, 9, "the header version macros differ from shadewire_version()", NULL);

@@ -52,9 +52,9 @@ fn shadewire_worley_distance_3d(p: vec3<f32>, x: i32, y: i32, z: i32, xoff: i32,
 
 // mx_worley_noise_float(vec2, float, int, int) (Rust worley_noise_float_2d)
 fn shadewire_worley_noise_float_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -> f32 {
-    var xi: i32;
-    var yi: i32;
-    let localpos = vec2<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi));
+    let xi = shadewire_floor(p.x);
+    let yi = shadewire_floor(p.y);
+    let localpos = vec2<f32>(shadewire_floorfrac(p.x), shadewire_floorfrac(p.y));
     var sqdist = 1e6; // Some big number for jitter > 1 (not all GPUs may be IEEE)
     var minpos = vec2<f32>(0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
@@ -78,9 +78,9 @@ fn shadewire_worley_noise_float_2d(p: vec2<f32>, jitter: f32, style: i32, metric
 
 // mx_worley_noise_vec2(vec2, float, int, int) (Rust worley_noise_vec2_2d)
 fn shadewire_worley_noise_vec2_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -> vec2<f32> {
-    var xi: i32;
-    var yi: i32;
-    let localpos = vec2<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi));
+    let xi = shadewire_floor(p.x);
+    let yi = shadewire_floor(p.y);
+    let localpos = vec2<f32>(shadewire_floorfrac(p.x), shadewire_floorfrac(p.y));
     var sqdist = vec2<f32>(1e6, 1e6);
     var minpos = vec2<f32>(0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
@@ -108,9 +108,9 @@ fn shadewire_worley_noise_vec2_2d(p: vec2<f32>, jitter: f32, style: i32, metric:
 
 // mx_worley_noise_vec3(vec2, float, int, int) (Rust worley_noise_vec3_2d)
 fn shadewire_worley_noise_vec3_2d(p: vec2<f32>, jitter: f32, style: i32, metric: i32) -> vec3<f32> {
-    var xi: i32;
-    var yi: i32;
-    let localpos = vec2<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi));
+    let xi = shadewire_floor(p.x);
+    let yi = shadewire_floor(p.y);
+    let localpos = vec2<f32>(shadewire_floorfrac(p.x), shadewire_floorfrac(p.y));
     var sqdist = vec3<f32>(1e6, 1e6, 1e6);
     var minpos = vec2<f32>(0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
@@ -141,10 +141,10 @@ fn shadewire_worley_noise_vec3_2d(p: vec2<f32>, jitter: f32, style: i32, metric:
 
 // mx_worley_noise_float(vec3, float, int, int) (Rust worley_noise_float_3d)
 fn shadewire_worley_noise_float_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -> f32 {
-    var xi: i32;
-    var yi: i32;
-    var zi: i32;
-    let localpos = vec3<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi), shadewire_floorfrac(p.z, &zi));
+    let xi = shadewire_floor(p.x);
+    let yi = shadewire_floor(p.y);
+    let zi = shadewire_floor(p.z);
+    let localpos = vec3<f32>(shadewire_floorfrac(p.x), shadewire_floorfrac(p.y), shadewire_floorfrac(p.z));
     var sqdist = 1e6;
     var minpos = vec3<f32>(0.0, 0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
@@ -170,10 +170,10 @@ fn shadewire_worley_noise_float_3d(p: vec3<f32>, jitter: f32, style: i32, metric
 
 // mx_worley_noise_vec2(vec3, float, int, int) (Rust worley_noise_vec2_3d)
 fn shadewire_worley_noise_vec2_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -> vec2<f32> {
-    var xi: i32;
-    var yi: i32;
-    var zi: i32;
-    let localpos = vec3<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi), shadewire_floorfrac(p.z, &zi));
+    let xi = shadewire_floor(p.x);
+    let yi = shadewire_floor(p.y);
+    let zi = shadewire_floor(p.z);
+    let localpos = vec3<f32>(shadewire_floorfrac(p.x), shadewire_floorfrac(p.y), shadewire_floorfrac(p.z));
     var sqdist = vec2<f32>(1e6, 1e6);
     var minpos = vec3<f32>(0.0, 0.0, 0.0);
     for (var x = -1; x <= 1; x++) {
@@ -203,10 +203,10 @@ fn shadewire_worley_noise_vec2_3d(p: vec3<f32>, jitter: f32, style: i32, metric:
 
 // mx_worley_noise_vec3(vec3, float, int, int) (Rust worley_noise_vec3_3d)
 fn shadewire_worley_noise_vec3_3d(p: vec3<f32>, jitter: f32, style: i32, metric: i32) -> vec3<f32> {
-    var xi: i32;
-    var yi: i32;
-    var zi: i32;
-    let localpos = vec3<f32>(shadewire_floorfrac(p.x, &xi), shadewire_floorfrac(p.y, &yi), shadewire_floorfrac(p.z, &zi));
+    let xi = shadewire_floor(p.x);
+    let yi = shadewire_floor(p.y);
+    let zi = shadewire_floor(p.z);
+    let localpos = vec3<f32>(shadewire_floorfrac(p.x), shadewire_floorfrac(p.y), shadewire_floorfrac(p.z));
     var sqdist = vec3<f32>(1e6, 1e6, 1e6);
     var minpos = vec3<f32>(0.0, 0.0, 0.0);
     for (var x = -1; x <= 1; x++) {

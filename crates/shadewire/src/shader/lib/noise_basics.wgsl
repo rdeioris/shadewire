@@ -19,10 +19,9 @@ fn shadewire_floor(x: f32) -> i32 {
     return i32(floor(x));
 }
 
-// mx_floorfrac (Rust floorfrac, which returns the pair): the fraction, the floor through `i`.
-fn shadewire_floorfrac(x: f32, i: ptr<function, i32>) -> f32 {
-    *i = shadewire_floor(x);
-    return x - f32(*i);
+// mx_floorfrac (Rust floorfrac, which returns the pair): the fraction; the floor is shadewire_floor(x).
+fn shadewire_floorfrac(x: f32) -> f32 {
+    return x - f32(shadewire_floor(x));
 }
 
 // mx_bilerp(float) (Rust bilerp_float)

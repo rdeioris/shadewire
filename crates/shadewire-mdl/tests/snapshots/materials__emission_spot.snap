@@ -1,0 +1,14 @@
+---
+source: crates/shadewire-mdl/tests/materials.rs
+expression: text
+---
+c0 = uniform_edf(color=c0_color)
+bsdf = none
+edf = c0
+opacity = opacity
+--- fields
+opacity = [1.0]
+thin_walled = [0.0]
+c0_color = [0.31830987, 0.31830987, 0.31830987]
+--- warnings
+main::spot: df::spot_edf (line 11): uniform emission

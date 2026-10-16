@@ -43,6 +43,15 @@ print(compiled.reflection["textures"])           # files, colorspaces, bindings
   for warning in ir.warnings:                      # 'ShaderNodeBevel "Bevel": not lowered, output Normal ...'
       print(warning)
   ```
+- `shadewire.mdl`: `to_ir(text, material=None, models=None, ..., paths=None, location=None)` and
+  `material_names(text, paths=None, location=None)` read an NVIDIA MDL module (`paths` is the MDL search path); an
+  MDL material is a closure tree, so `models` must accept `surface`. `compile(ir, name="material")` writes the IR as a
+  self-contained MDL 1.7 module:
+
+  ```python
+  ir = mdl.to_ir(open("material.mdl", encoding="utf-8").read(), models=["surface", "surface_unlit"], paths=["mdl"])
+  module = mdl.compile(mtlx.to_ir(text, models=["surface", "surface_unlit"]), name="wood").code
+  ```
 - `shadewire.Ir`: `optimize()`, `dump()`, `to_dict()` (the IR as a JSON-like document), `model`, `structure_hash`,
   `warnings`.
 - `shadewire.wgsl`, `shadewire.glsl`, `shadewire.hlsl`, `shadewire.msl`: `compile(ir, ...)` returns a

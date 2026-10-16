@@ -86,6 +86,28 @@ pub(crate) unsafe fn opt_cstr<'a>(ptr: *const c_char) -> Result<Option<&'a str>,
     text.to_str().map(Some).map_err(|_| ArgError("text is not valid UTF-8".to_string()))
 }
 
+/// Reads `count` NUL-terminated UTF-8 strings at `ptr`, naming each `what` in errors: NULL with a count of 0 is the
+/// empty list, NULL with a count or a NULL entry an error.
+///
+/// # Safety
+/// `ptr` must be NULL or hold `count` pointers, each NULL or a valid NUL-terminated string that outlives `'a`.
+pub(crate) unsafe fn string_list<'a>(
+    ptr: *const *const c_char,
+    count: usize,
+    what: &str,
+) -> Result<Vec<&'a str>, ArgError> {
+    if ptr.is_null() {
+        return if count == 0 {
+            Ok(Vec::new())
+        } else {
+            Err(ArgError(format!("{what}s is NULL but the count is {count}")))
+        };
+    }
+    (0..count)
+        .map(|i| unsafe { opt_cstr(*ptr.add(i)) }?.ok_or_else(|| ArgError(format!("{what} {i} is NULL"))))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

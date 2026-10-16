@@ -1,0 +1,7 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material toggle(uniform bool on = true) = material(surface: material_surface(scattering:
+    on ? df::diffuse_reflection_bsdf(tint: color(1, 0, 0)) : df::diffuse_transmission_bsdf(tint: color(0, 0, 1))));

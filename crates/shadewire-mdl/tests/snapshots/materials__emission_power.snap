@@ -1,0 +1,14 @@
+---
+source: crates/shadewire-mdl/tests/materials.rs
+expression: text
+---
+c0 = uniform_edf(color=c0_color)
+bsdf = none
+edf = c0
+opacity = opacity
+--- fields
+opacity = [1.0]
+thin_walled = [0.0]
+c0_color = [3.1830988, 3.1830988, 3.1830988]
+--- warnings
+main::power: emission intensity_power read as radiant exitance

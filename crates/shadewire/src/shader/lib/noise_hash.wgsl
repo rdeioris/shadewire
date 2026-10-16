@@ -9,14 +9,18 @@ fn shadewire_rotl32(x: u32, k: i32) -> u32 {
     return (x << u32(k)) | (x >> (32u - u32(k)));
 }
 
-// mx_bjmix (Rust bjmix)
-fn shadewire_bjmix(a: ptr<function, u32>, b: ptr<function, u32>, c: ptr<function, u32>) {
-    *a -= *c; *a ^= shadewire_rotl32(*c, 4);  *c += *b;
-    *b -= *a; *b ^= shadewire_rotl32(*a, 6);  *a += *c;
-    *c -= *b; *c ^= shadewire_rotl32(*b, 8);  *b += *a;
-    *a -= *c; *a ^= shadewire_rotl32(*c, 16); *c += *b;
-    *b -= *a; *b ^= shadewire_rotl32(*a, 19); *a += *c;
-    *c -= *b; *c ^= shadewire_rotl32(*b, 4);  *b += *a;
+// mx_bjmix (Rust bjmix): the three mixed words.
+fn shadewire_bjmix(a_in: u32, b_in: u32, c_in: u32) -> vec3<u32> {
+    var a = a_in;
+    var b = b_in;
+    var c = c_in;
+    a -= c; a ^= shadewire_rotl32(c, 4);  c += b;
+    b -= a; b ^= shadewire_rotl32(a, 6);  a += c;
+    c -= b; c ^= shadewire_rotl32(b, 8);  b += a;
+    a -= c; a ^= shadewire_rotl32(c, 16); c += b;
+    b -= a; b ^= shadewire_rotl32(a, 19); a += c;
+    c -= b; c ^= shadewire_rotl32(b, 4);  b += a;
+    return vec3<u32>(a, b, c);
 }
 
 // mx_bjfinal (Rust bjfinal)
@@ -72,7 +76,10 @@ fn shadewire_hash_int_4(x: i32, y: i32, z: i32, xx: i32) -> u32 {
     var a = s + bitcast<u32>(x);
     var b = s + bitcast<u32>(y);
     var c = s + bitcast<u32>(z);
-    shadewire_bjmix(&a, &b, &c);
+    let m = shadewire_bjmix(a, b, c);
+    a = m.x;
+    b = m.y;
+    c = m.z;
     a += bitcast<u32>(xx);
     return shadewire_bjfinal(a, b, c);
 }
@@ -84,7 +91,10 @@ fn shadewire_hash_int_5(x: i32, y: i32, z: i32, xx: i32, yy: i32) -> u32 {
     var a = s + bitcast<u32>(x);
     var b = s + bitcast<u32>(y);
     var c = s + bitcast<u32>(z);
-    shadewire_bjmix(&a, &b, &c);
+    let m = shadewire_bjmix(a, b, c);
+    a = m.x;
+    b = m.y;
+    c = m.z;
     a += bitcast<u32>(xx);
     b += bitcast<u32>(yy);
     return shadewire_bjfinal(a, b, c);

@@ -1,0 +1,20 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material normalized() = material(surface: material_surface(scattering: df::normalized_mix(df::bsdf_component[](
+    df::bsdf_component(0.75, df::diffuse_reflection_bsdf(tint: color(1, 0, 0))),
+    df::bsdf_component(0.75, df::microfacet_ggx_smith_bsdf(roughness_u: 0.2))))));
+export material clamped() = material(surface: material_surface(scattering: df::clamped_mix(df::bsdf_component[](
+    df::bsdf_component(0.75, df::diffuse_reflection_bsdf(tint: color(1, 0, 0))),
+    df::bsdf_component(0.75, df::diffuse_transmission_bsdf())))));
+export material unbounded() = material(surface: material_surface(scattering: df::unbounded_mix(df::bsdf_component[](
+    df::bsdf_component(0.5, df::diffuse_reflection_bsdf()),
+    df::bsdf_component(0.5, df::diffuse_transmission_bsdf())))));
+export material color_normalized() = material(surface: material_surface(scattering: df::color_normalized_mix(df::color_bsdf_component[](
+    df::color_bsdf_component(color(1, 0.5, 0), df::diffuse_reflection_bsdf()),
+    df::color_bsdf_component(color(0, 0.5, 1), df::diffuse_transmission_bsdf())))));
+export material weighted(float w = 0.4) = material(surface: material_surface(scattering:
+    df::weighted_layer(weight: w, layer: df::diffuse_reflection_bsdf(tint: color(0.2)), base: df::diffuse_transmission_bsdf())));
+export material tinted() = material(surface: material_surface(scattering: df::tint(color(0.5, 1.0, 0.5), df::diffuse_reflection_bsdf())));

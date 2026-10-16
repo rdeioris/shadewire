@@ -1,0 +1,214 @@
+// The syntax of MDL 1.0 to 1.11 (the specification's Appendix A), as a PEG. Built-in type names (`float3`,
+// `color`, `material`, ...) are identifiers here; names are resolved after parsing.
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" | "\u{feff}" | "\u{0c}" }
+COMMENT    = _{ block_comment | "//" ~ (!"\n" ~ ANY)* }
+block_comment = _{ "/*" ~ (block_comment | !"*/" ~ ANY)* ~ "*/" }
+
+ident_char = _{ ASCII_ALPHANUMERIC | "_" }
+
+kw_mdl             = @{ "mdl" ~ !ident_char }
+kw_import          = @{ "import" ~ !ident_char }
+kw_export          = @{ "export" ~ !ident_char }
+kw_using           = @{ "using" ~ !ident_char }
+kw_module          = @{ "module" ~ !ident_char }
+kw_declarative     = @{ "declarative" ~ !ident_char }
+kw_struct          = @{ "struct" ~ !ident_char }
+kw_struct_category = @{ "struct_category" ~ !ident_char }
+kw_enum            = @{ "enum" ~ !ident_char }
+kw_typedef         = @{ "typedef" ~ !ident_char }
+kw_const           = @{ "const" ~ !ident_char }
+kw_annotation      = @{ "annotation" ~ !ident_char }
+kw_let             = @{ "let" ~ !ident_char }
+kw_in              = @{ "in" ~ !ident_char }
+kw_if              = @{ "if" ~ !ident_char }
+kw_else            = @{ "else" ~ !ident_char }
+kw_switch          = @{ "switch" ~ !ident_char }
+kw_case            = @{ "case" ~ !ident_char }
+kw_default         = @{ "default" ~ !ident_char }
+kw_while           = @{ "while" ~ !ident_char }
+kw_do              = @{ "do" ~ !ident_char }
+kw_for             = @{ "for" ~ !ident_char }
+kw_break           = @{ "break" ~ !ident_char }
+kw_continue        = @{ "continue" ~ !ident_char }
+kw_return          = @{ "return" ~ !ident_char }
+kw_uniform         = @{ "uniform" ~ !ident_char }
+kw_varying         = @{ "varying" ~ !ident_char }
+kw_auto            = @{ "auto" ~ !ident_char }
+kw_cast            = @{ "cast" ~ !ident_char }
+kw_true            = @{ "true" ~ !ident_char }
+kw_false           = @{ "false" ~ !ident_char }
+
+keyword = @{
+    ("mdl" | "import" | "export" | "using" | "module" | "declarative" | "struct_category" | "struct" | "enum"
+    | "typedef" | "const" | "annotation" | "let" | "in" | "if" | "else" | "switch" | "case" | "default"
+    | "while" | "do" | "for" | "break" | "continue" | "return" | "uniform" | "varying" | "auto" | "cast"
+    | "true" | "false") ~ !ident_char
+}
+
+ident = @{ !keyword ~ (ASCII_ALPHA | "_") ~ ident_char* }
+unicode_ident = @{ "'" ~ ("\\" ~ ANY | !("'" | "\\") ~ ANY)* ~ "'" }
+path_ident = _{ ident | unicode_ident }
+
+// ---- literals
+float_lit = @{
+    (
+        ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ exponent?
+        | "." ~ ASCII_DIGIT+ ~ exponent?
+        | ASCII_DIGIT+ ~ exponent
+    ) ~ (^"f" | ^"d")? ~ !ident_char
+}
+exponent = _{ ^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+ }
+int_lit = @{ ("0" ~ ^"x" ~ ASCII_HEX_DIGIT+ | ASCII_DIGIT+) ~ !ident_char }
+string_lit = @{ "\"" ~ ("\\" ~ ANY | !("\"" | "\\") ~ ANY)* ~ "\"" }
+bool_lit = { kw_true | kw_false }
+literal = { float_lit | int_lit | bool_lit | string_lit+ }
+
+// ---- module
+module = { SOI ~ mdl_version ~ import_decl* ~ module_annotation? ~ global_decl* ~ EOI }
+mdl_version = { kw_mdl ~ float_lit ~ ";" }
+module_annotation = { kw_module ~ annotation_block ~ ";" }
+
+import_decl = { import_stmt | using_alias | using_stmt }
+// `using alias = "package";` or `using alias = ::a::b;`: a name for a package path (MDL 1.6).
+using_alias = { kw_using ~ ident ~ "=" ~ (string_lit | import_path) ~ ";" }
+import_stmt = { kw_import ~ qualified_import ~ ("," ~ qualified_import)* ~ ";" }
+using_stmt = { export? ~ kw_using ~ import_path ~ kw_import ~ (star | ident ~ ("," ~ ident)*) ~ ";" }
+export = { kw_export }
+star = { "*" }
+// `..::` repeated, `.::`, or `::` before the first name; `None` is relative to the search path.
+import_prefix = { ("..::")+ | ".::" | "::" }
+// Import paths also take package names as string literals (MDL 1.6).
+import_part = _{ path_ident | string_lit }
+import_path = { import_prefix? ~ import_part ~ ("::" ~ import_part)* }
+qualified_import = { import_prefix? ~ (import_part ~ "::")+ ~ (star | path_ident) }
+
+global_decl = {
+    import_decl
+    | export? ~ (annotation_decl | struct_category_decl | struct_decl | enum_decl | typedef_decl | const_decl
+                 | function_decl)
+}
+
+annotation_decl = { kw_annotation ~ ident ~ param_list ~ annotation_block? ~ ";" }
+struct_category_decl = { kw_struct_category ~ ident ~ annotation_block? ~ ";" }
+struct_decl = {
+    declarative? ~ kw_struct ~ ident ~ (kw_in ~ qualified_name)? ~ annotation_block?
+    ~ "{" ~ field_decl* ~ "}" ~ ";"
+}
+declarative = { kw_declarative }
+field_decl = { type_ ~ ident ~ ("=" ~ assign_expr)? ~ annotation_block? ~ ";" }
+enum_decl = {
+    kw_enum ~ ident ~ annotation_block? ~ "{" ~ enum_value ~ ("," ~ enum_value)* ~ ","? ~ "}" ~ ";"
+}
+enum_value = { ident ~ ("=" ~ assign_expr)? ~ annotation_block? }
+typedef_decl = { kw_typedef ~ type_ ~ ident ~ ";" }
+const_decl = { kw_const ~ type_ ~ const_declarator ~ ("," ~ const_declarator)* ~ ";" }
+const_declarator = { ident ~ (arg_list | "=" ~ cond_expr) ~ annotation_block? }
+
+function_decl = {
+    declarative? ~ type_ ~ annotation_block? ~ ident ~ (
+        variant_params ~ annotation_block? ~ "=" ~ expr ~ ";"
+        | param_list ~ frequency? ~ annotation_block? ~ (";" | compound_stmt | "=" ~ expr ~ ";")
+    )
+}
+variant_params = { "(" ~ "*" ~ ")" }
+param_list = { "(" ~ (param ~ ("," ~ param)* ~ ","?)? ~ ")" }
+param = { type_ ~ ident ~ ("=" ~ assign_expr)? ~ annotation_block? }
+
+// ---- types
+type_ = { frequency? ~ (auto | array_type) }
+auto = { kw_auto }
+frequency = { kw_uniform | kw_varying }
+array_type = { qualified_name ~ (!"[[" ~ "[" ~ array_size? ~ "]")? }
+array_size = { deferred_size | cond_expr }
+deferred_size = { "<" ~ ident ~ ">" }
+qualified_name = { absolute? ~ path_ident ~ ("::" ~ path_ident)* }
+absolute = { "::" }
+
+// ---- annotations
+annotation_block = { "[[" ~ (annotation ~ ("," ~ annotation)* ~ ","?)? ~ "]]" }
+annotation = { qualified_name ~ arg_list }
+
+// ---- statements
+compound_stmt = { "{" ~ stmt* ~ "}" }
+stmt = {
+    compound_stmt
+    | if_stmt
+    | switch_stmt
+    | while_stmt
+    | do_stmt
+    | for_stmt
+    | break_stmt
+    | continue_stmt
+    | return_stmt
+    | struct_decl
+    | enum_decl
+    | typedef_decl
+    | const_decl
+    | var_decl
+    | expr_stmt
+}
+var_decl = { type_ ~ var_declarator ~ ("," ~ var_declarator)* ~ ";" }
+var_declarator = { ident ~ (arg_list | "=" ~ assign_expr)? ~ annotation_block? }
+expr_stmt = { expr? ~ ";" }
+if_stmt = { kw_if ~ "(" ~ expr ~ ")" ~ stmt ~ (kw_else ~ stmt)? }
+switch_stmt = { kw_switch ~ "(" ~ expr ~ ")" ~ "{" ~ switch_case* ~ "}" }
+switch_case = { (kw_case ~ expr ~ ":" | default_label) ~ stmt* }
+default_label = { kw_default ~ ":" }
+while_stmt = { kw_while ~ "(" ~ expr ~ ")" ~ stmt }
+do_stmt = { kw_do ~ stmt ~ kw_while ~ "(" ~ expr ~ ")" ~ ";" }
+for_stmt = { kw_for ~ "(" ~ (var_decl | expr_stmt) ~ for_cond ~ ";" ~ for_update ~ ")" ~ stmt }
+for_cond = { expr? }
+for_update = { expr? }
+break_stmt = { kw_break ~ ";" }
+continue_stmt = { kw_continue ~ ";" }
+return_stmt = { kw_return ~ expr? ~ ";" }
+
+// ---- expressions
+expr = { assign_expr ~ ("," ~ assign_expr)* }
+assign_expr = { cond_expr ~ (assign_op ~ assign_expr)? }
+assign_op = @{
+    ">>>=" | "<<=" | ">>=" | "*=" | "/=" | "%=" | "+=" | "-=" | "&=" | "^=" | "|=" | "=" ~ !"="
+}
+cond_expr = { binary_expr ~ ("?" ~ expr ~ ":" ~ assign_expr)? }
+binary_expr = { unary_expr ~ (bin_op ~ unary_expr)* }
+bin_op = _{
+    op_lor | op_land | op_shru | op_shl | op_shr | op_le | op_ge | op_eq | op_ne | op_lt | op_gt
+    | op_add | op_sub | op_mul | op_div | op_rem | op_band | op_bxor | op_bor
+}
+op_lor  = { "||" }
+op_land = { "&&" }
+op_shru = { ">>>" ~ !"=" }
+op_shl  = { "<<" ~ !"=" }
+op_shr  = { ">>" ~ !("=" | ">") }
+op_le   = { "<=" }
+op_ge   = { ">=" }
+op_eq   = { "==" }
+op_ne   = { "!=" }
+op_lt   = { "<" }
+op_gt   = { ">" }
+op_add  = { "+" ~ !"=" }
+op_sub  = { "-" ~ !"=" }
+op_mul  = { "*" ~ !"=" }
+op_div  = { "/" ~ !"=" }
+op_rem  = { "%" ~ !"=" }
+op_band = { "&" ~ !("&" | "=") }
+op_bxor = { "^" ~ !"=" }
+op_bor  = { "|" ~ !("|" | "=") }
+
+unary_expr = { prefix_op* ~ (let_expr | postfix_expr) }
+prefix_op = { "++" | "--" | "!" | "~" | "+" | "-" }
+let_expr = { kw_let ~ ("{" ~ var_decl+ ~ "}" | var_decl) ~ kw_in ~ assign_expr }
+postfix_expr = { primary ~ postfix* }
+postfix = { inc | dec | member | arg_list | index }
+inc = { "++" }
+dec = { "--" }
+member = { "." ~ ident }
+index = { !"[[" ~ "[" ~ expr ~ "]" }
+primary = { literal | array_ctor | paren | cast_expr | qualified_name }
+paren = { "(" ~ expr ~ ")" }
+array_ctor = { qualified_name ~ "[" ~ array_size? ~ "]" ~ &"(" }
+cast_expr = { kw_cast ~ "<" ~ array_type ~ ">" ~ "(" ~ unary_expr ~ ")" }
+arg_list = { "(" ~ (arg ~ ("," ~ arg)* ~ ","?)? ~ ")" }
+arg = { (ident ~ named_colon)? ~ assign_expr }
+named_colon = @{ ":" ~ !":" }

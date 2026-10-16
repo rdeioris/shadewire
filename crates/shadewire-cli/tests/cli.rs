@@ -231,3 +231,52 @@ fn blender_warnings_go_to_stderr() {
     assert!(stderr.contains("not lowered"), "{stderr}");
     assert!(stderr.contains("ShaderNodeLightPath"), "{stderr}");
 }
+
+const MDL_MIXES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../shadewire-mdl/tests/fixtures/mixes.mdl");
+
+const PORCELAIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../shadewire-mtlx/tests/fixtures/porcelain.mtlx");
+
+#[test]
+fn mdl_modules_list_and_compile_with_lobes() {
+    let out = run(&["list", MDL_MIXES]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    for name in ["normalized", "clamped", "unbounded", "color_normalized"] {
+        assert!(stdout.lines().any(|l| l == name), "{stdout}");
+    }
+    let out = run(&["compile", MDL_MIXES, "--material", "normalized", "--lobes", "--lang", "wgsl"]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let out = run(&["compile", MDL_MIXES, "--material", "normalized"]);
+    assert!(!out.status.success());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("no translation from surface"));
+}
+
+#[test]
+fn lang_mdl_writes_a_module() {
+    let mdl = scratch("porcelain.mdl");
+    let out = run(&["compile", PORCELAIN, "--lang", "mdl", "-o", mdl.to_str().unwrap()]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(std::fs::read_to_string(&mdl).unwrap().starts_with("mdl 1.7;"));
+    let out = run(&["compile", EXAMPLE, "--lang", "mdl", "--model", "standard_surface"]);
+    assert!(!out.status.success());
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("no translation"),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+#[test]
+fn mdl_path_resolves_imports() {
+    let dir = scratch("mdl-lib");
+    std::fs::create_dir_all(dir.join("lib")).unwrap();
+    std::fs::write(dir.join("lib/tints.mdl"), "mdl 1.7;\nexport color red() = color(1.0, 0.0, 0.0);\n").unwrap();
+    let main = scratch("uses_lib.mdl");
+    let text = "mdl 1.7;\nimport ::df::*;\nimport ::lib::tints::*;\n\
+                export material m() = material(surface: material_surface(scattering: df::diffuse_reflection_bsdf(tint: lib::tints::red())));\n";
+    std::fs::write(&main, text).unwrap();
+    let out = run(&["ir", main.to_str().unwrap(), "--lobes", "--mdl-path", dir.to_str().unwrap()]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let out = run(&["ir", main.to_str().unwrap(), "--lobes"]);
+    assert!(!out.status.success());
+}

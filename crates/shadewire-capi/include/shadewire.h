@@ -205,8 +205,9 @@ typedef uint32_t shadewire_target_kind;
 // A target language and its version.
 //
 // `version` is the `#version` number for GLSL (330, 400, 410, 420, 430, 440, 450, 460; 0 for 420) and GLSL ES
-// (300, 310, 320; 0 for 300), and ignored for WGSL, HLSL and MSL. Any other version is
-// SHADEWIRE_ERROR_INVALID_ARGUMENT. Python's `shadewire.glsl.compile(version=, es=)`.
+// (300, 310, 320; 0 for 300), and ignored for WGSL, HLSL, MSL and MDL. Any other version is
+// SHADEWIRE_ERROR_INVALID_ARGUMENT. Python's `shadewire.glsl.compile(version=, es=)`. MDL is
+// a self-contained MDL 1.7 module exporting `material`, for the `surface` and `surface_unlit` models only.
 typedef struct shadewire_target {
   shadewire_target_kind kind;
   uint32_t version;
@@ -262,6 +263,8 @@ typedef struct shadewire_compile_options {
 #define SHADEWIRE_TARGET_HLSL 3
 
 #define SHADEWIRE_TARGET_MSL 4
+
+#define SHADEWIRE_TARGET_MDL 5
 
 #ifdef __cplusplus
 extern "C" {
@@ -478,7 +481,7 @@ shadewire_status shadewire_compile(const struct shadewire_ir *ir,
                                    struct shadewire_compiled **out,
                                    struct shadewire_error **error);
 
-// The language of the code: "wgsl", "glsl" (GLSL ES too), "hlsl" or "msl"; static. NULL when `c` is NULL.
+// The language of the code: "wgsl", "glsl" (GLSL ES too), "hlsl", "msl" or "mdl"; static. NULL when `c` is NULL.
 //
 // # Safety
 // `c` must be NULL or a live handle.
@@ -746,6 +749,42 @@ shadewire_status shadewire_ir_warnings(const struct shadewire_ir *ir,
 // # Safety
 // `ir` must be NULL or a handle from this library not yet freed.
 void shadewire_ir_free(struct shadewire_ir *ir);
+
+// Lowers material `material` of the MDL module `text` (`len` bytes of UTF-8, not NUL-terminated) to the IR and writes
+// the handle to `out`. `location` names the module's file (NULL for none): errors cite it, and its directory is
+// searched for relative imports. `material` selects an exported material by name (NULL for the module's only one:
+// SHADEWIRE_ERROR_MATERIAL when it has several). `paths` holds `path_count` directories of the MDL search path, where
+// `import` finds modules (NULL and 0 for none; the standard modules and `::base` are built in). An MDL material is a
+// closure tree, so `options` must accept the `surface` model: the defaults (`options` NULL) refuse it. The IR is not
+// optimized; the front end's warnings are read with `shadewire_ir_warnings`. `*out` is written only on success.
+//
+// # Safety
+// `text` must hold `len` readable bytes (NULL is reported, not dereferenced); `location` and `material` NULL or valid
+// NUL-terminated strings; `options` NULL or valid (see `shadewire_ir_options`); `paths` NULL or holding `path_count`
+// pointers, each a valid NUL-terminated string (NULL entries are reported); `out` valid for writing a pointer; `error`
+// NULL or valid for writing a pointer.
+shadewire_status shadewire_mdl_to_ir(const char *text,
+                                     size_t len,
+                                     const char *location,
+                                     const char *material,
+                                     const struct shadewire_ir_options *options,
+                                     const char *const *paths,
+                                     size_t path_count,
+                                     struct shadewire_ir **out,
+                                     struct shadewire_error **error);
+
+// The names of an MDL module's exported materials, in module order, written to `out`. `text`, `len`, `location`,
+// `paths` and `path_count` as `shadewire_mdl_to_ir`. `*out` is written only on success.
+//
+// # Safety
+// As `shadewire_mdl_to_ir`.
+shadewire_status shadewire_mdl_material_names(const char *text,
+                                              size_t len,
+                                              const char *location,
+                                              const char *const *paths,
+                                              size_t path_count,
+                                              struct shadewire_strings **out,
+                                              struct shadewire_error **error);
 
 // The names of a MaterialX document's materials (its includes' too), in document order, written to `out`. `text`,
 // `len` and `location` as `shadewire_mtlx_to_ir`; of `options` (NULL for the defaults) only the resolver is read.

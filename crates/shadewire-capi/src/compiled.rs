@@ -1,4 +1,4 @@
-//! The back ends (Python's `shadewire.wgsl`, `.glsl`, `.hlsl`, `.msl`): the IR to code and reflection, as the opaque
+//! The back ends (Python's `shadewire.wgsl`, `.glsl`, `.hlsl`, `.msl`, `.mdl`): the IR to code and reflection, as the opaque
 //! `shadewire_compiled` handle (Python's `shadewire.Compiled`).
 
 use std::ffi::{CStr, CString};
@@ -8,6 +8,7 @@ use std::sync::OnceLock;
 
 use shadewire::model_struct_name;
 use shadewire::shader::{CompileOptions, Compiled};
+use shadewire_mdl::MdlOptions;
 
 use crate::error::{CapiError, shadewire_error};
 use crate::guard::guarded;
@@ -40,6 +41,10 @@ fn build(
         Backend::Glsl(version) => (shadewire_glsl::compile(dag, source, options, version)?, c"glsl"),
         Backend::Hlsl => (shadewire_hlsl::compile(dag, source, options)?, c"hlsl"),
         Backend::Msl => (shadewire_msl::compile(dag, source, options)?, c"msl"),
+        Backend::Mdl => {
+            let mdl = MdlOptions { optimize: options.optimize, ..MdlOptions::default() };
+            (shadewire_mdl::compile(dag, source, &mdl)?, c"mdl")
+        }
     };
     let json = serde_json::to_string_pretty(&compiled.reflection)
         .map_err(|e| CapiError::Internal(format!("reflection could not be serialised: {e}")))?;
@@ -84,7 +89,7 @@ pub unsafe extern "C" fn shadewire_compile(
     }
 }
 
-/// The language of the code: "wgsl", "glsl" (GLSL ES too), "hlsl" or "msl"; static. NULL when `c` is NULL.
+/// The language of the code: "wgsl", "glsl" (GLSL ES too), "hlsl", "msl" or "mdl"; static. NULL when `c` is NULL.
 ///
 /// # Safety
 /// `c` must be NULL or a live handle.

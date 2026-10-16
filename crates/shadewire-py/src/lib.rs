@@ -219,6 +219,69 @@ fn blender_material_names(py: Python<'_>, text: String) -> PyResult<Vec<String>>
     py.detach(|| shadewire_blender::material_names(&text)).map_err(error)
 }
 
+// ---------------------------------------------------------------------------------------------------- mdl
+
+/// An MDL module to the IR (not optimized). `material` picks one of its exported materials (None: its only one);
+/// `paths` is the MDL search path; `location` names the module's file, whose folder relative imports start from.
+/// An MDL material is a closure tree: `models` must accept `surface`. `working_colorspace` and
+/// `values_as_uniforms` as `shadewire.mtlx.to_ir`'s.
+#[pyfunction]
+#[pyo3(name = "to_ir", signature = (text, material=None, models=None, working_colorspace=None, values_as_uniforms=true, paths=None, location=None))]
+#[allow(clippy::too_many_arguments)]
+fn mdl_to_ir(
+    py: Python<'_>,
+    text: String,
+    material: Option<String>,
+    models: Option<Vec<String>>,
+    working_colorspace: Option<String>,
+    values_as_uniforms: bool,
+    paths: Option<Vec<String>>,
+    location: Option<String>,
+) -> PyResult<PyIr> {
+    let mut options = IrOptions { values_as_uniforms, ..IrOptions::default() };
+    if let Some(models) = models {
+        options.models = models;
+    }
+    if let Some(colorspace) = working_colorspace {
+        options.working_colorspace = colorspace;
+    }
+    let resolver = shadewire_mdl::Resolver::new(paths.unwrap_or_default().into_iter().map(Into::into).collect());
+    let ir = py
+        .detach(|| shadewire_mdl::to_ir(&text, location.as_deref(), material.as_deref(), &options, &resolver))
+        .map_err(error)?;
+    Ok(PyIr { dag: ir.dag, source: ir.source, warnings: ir.warnings })
+}
+
+/// The exported materials of an MDL module, in declaration order.
+#[pyfunction]
+#[pyo3(name = "material_names", signature = (text, paths=None, location=None))]
+fn mdl_material_names(
+    py: Python<'_>,
+    text: String,
+    paths: Option<Vec<String>>,
+    location: Option<String>,
+) -> PyResult<Vec<String>> {
+    let resolver = shadewire_mdl::Resolver::new(paths.unwrap_or_default().into_iter().map(Into::into).collect());
+    py.detach(|| shadewire_mdl::material_names(&text, location.as_deref(), &resolver)).map_err(error)
+}
+
+/// The IR as a self-contained MDL 1.7 module exporting one material called `name` (made a valid MDL identifier).
+/// The IR must be a closure tree or `surface_unlit` (lower with `models=["surface", "surface_unlit"]`).
+#[pyfunction]
+#[pyo3(name = "compile", signature = (ir, name="material", optimize=true))]
+fn compile_mdl(py: Python<'_>, ir: &PyIr, name: &str, optimize: bool) -> PyResult<PyCompiled> {
+    let options = shadewire_mdl::MdlOptions { name: name.to_string(), optimize };
+    let compiled = py.detach(|| shadewire_mdl::compile(&ir.dag, &ir.source, &options)).map_err(error)?;
+    Ok(PyCompiled {
+        language: "mdl",
+        code: compiled.code,
+        reflection: compiled.reflection,
+        dag: compiled.dag,
+        source: ir.source.clone(),
+        warnings: ir.warnings.clone(),
+    })
+}
+
 // ---------------------------------------------------------------------------------------------------- back ends
 
 /// A compiled material: the generated code in its language (the model's struct, `shadewire_eval_surface()`, the
@@ -236,7 +299,7 @@ struct PyCompiled {
 
 #[pymethods]
 impl PyCompiled {
-    /// `wgsl`, `glsl`, `hlsl` or `msl`.
+    /// `wgsl`, `glsl`, `hlsl`, `msl` or `mdl`.
     #[getter]
     fn language(&self) -> &str {
         self.language
@@ -420,6 +483,11 @@ fn shadewire_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let blender = submodule(m, "blender")?;
     blender.add_function(wrap_pyfunction!(blender_to_ir, &blender)?)?;
     blender.add_function(wrap_pyfunction!(blender_material_names, &blender)?)?;
+
+    let mdl = submodule(m, "mdl")?;
+    mdl.add_function(wrap_pyfunction!(mdl_to_ir, &mdl)?)?;
+    mdl.add_function(wrap_pyfunction!(mdl_material_names, &mdl)?)?;
+    mdl.add_function(wrap_pyfunction!(compile_mdl, &mdl)?)?;
 
     m.add_class::<PyCompiled>()?;
     let wgsl = submodule(m, "wgsl")?;

@@ -1,0 +1,9 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material over_ggx(float ior = 1.45) = material(surface: material_surface(scattering:
+    df::fresnel_layer(ior: ior, weight: 0.8, layer: df::microfacet_ggx_smith_bsdf(roughness_u: 0.1), base: df::diffuse_reflection_bsdf(tint: color(0.6)))));
+export material over_diffuse() = material(surface: material_surface(scattering:
+    df::fresnel_layer(ior: 1.5, layer: df::diffuse_reflection_bsdf(), base: df::diffuse_transmission_bsdf())));

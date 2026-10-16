@@ -1,0 +1,25 @@
+[package]
+name = "shadewire-mdl"
+description = "NVIDIA MDL reader and writer for Shadewire: MDL modules to the IR, and the IR as a self-contained MDL module"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT AND BSD-3-Clause"
+authors.workspace = true
+repository.workspace = true
+readme = "README.md"
+homepage.workspace = true
+keywords = ["mdl", "materialx", "shader", "material", "pbr"]
+categories = ["graphics", "rendering", "parser-implementations"]
+
+[dependencies]
+shadewire.workspace = true
+shadewire-nodes.workspace = true
+pest.workspace = true
+pest_derive.workspace = true
+
+[dev-dependencies]
+shadewire = { workspace = true, features = ["test-support"] }
+shadewire-mtlx.workspace = true
+shadewire-wgsl = { workspace = true, features = ["validate"] }
+insta.workspace = true

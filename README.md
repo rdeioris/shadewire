@@ -8,9 +8,9 @@
 # Shadewire
 
 Shadewire is a compiler for material graphs. A **front end** reads a material description
-(MaterialX 1.38 and 1.39 today) into Shadewire's IR, a typed DAG that computes the material's surface; a
+(MaterialX 1.38 and 1.39, Blender material graphs, NVIDIA MDL modules) into Shadewire's IR, a typed DAG that computes the material's surface; a
 **back end** prints the IR as shader code in the language a renderer speaks: WGSL, GLSL, GLSL ES, HLSL, Metal,
-or a complete Godot 4 shader. With the code comes reflection that says what the host must bind: the uniform
+a complete Godot 4 shader, or an MDL module. With the code comes reflection that says what the host must bind: the uniform
 block and its offsets, the textures and their colorspaces, and whether each surface parameter is a constant,
 a uniform, computed from uniforms, or varies per fragment.
 
@@ -33,8 +33,8 @@ API, a Python module (`pip install shadewire`), a Bevy plugin, a Godot 4 extensi
 `ShaderMaterial`s, and a Blender extension that imports MaterialX (and the MaterialX materials of USD scenes)
 as Blender node trees.
 
-Licensed under MIT; vendored MaterialX files are Apache-2.0 and the noise and color code derives from Open
-Shading Language, BSD-3-Clause (see NOTICE). The Blender add-on (`blender/shadewire`) is GPL-3.0-or-later, as
+Licensed under MIT; vendored MaterialX files are Apache-2.0, the noise and color code derives from Open
+Shading Language, BSD-3-Clause, and the vendored MDL SDK modules are NVIDIA's, BSD-3-Clause (see NOTICE). The Blender add-on (`blender/shadewire`) is GPL-3.0-or-later, as
 extensions.blender.org requires. Pre-release: APIs change between versions without compatibility shims.
 
 ## Crates
@@ -48,16 +48,17 @@ caller (your code, the CLI, the C API) composes them.
 | `shadewire-nodes` | the node library: MaterialX's standard nodes and Shadewire's own, resolved and instantiated into the IR; what every front end lowers through (`Elaborator`, `instantiate`, `finish_model`, `finish_closure`) | `shadewire` |
 | `shadewire-mtlx` | front end: MaterialX 1.38/1.39 documents → IR (`to_ir`) | `shadewire`, `shadewire-nodes` |
 | `shadewire-blender` | front end: the Blender extension's material graph JSON → IR (`to_ir`) | `shadewire`, `shadewire-nodes`, `serde_json` |
+| `shadewire-mdl` | front end and back end: NVIDIA MDL modules → IR (`to_ir`, a compile-time evaluator of the module) and IR → a self-contained MDL 1.7 module (`compile`) | `shadewire`, `shadewire-nodes`, `pest` |
 | `shadewire-wgsl` | back end: IR → WGSL + reflection (`compile`) | `shadewire` |
 | `shadewire-glsl` | back end: IR → a GLSL library (desktop from 330, ES from 300) + reflection | `shadewire` |
 | `shadewire-gdshader` | back end: IR → a complete Godot 4 spatial shader (`.gdshader`) + reflection: named models mapped onto Godot's outputs, or closure trees lit by MaterialX's reference lobes in `light()` | `shadewire` |
 | `shadewire-hlsl` | back end: IR → an HLSL library (shader model 5.1 and up) + reflection | `shadewire` |
 | `shadewire-msl` | back end: IR → a Metal Shading Language library + reflection | `shadewire` |
-| `shadewire-cli` | the `shadewire` command: MaterialX documents or Blender graphs (`.json`) in, any back end out | all of the above |
-| `shadewire-capi` | C API (`shadewire.h`): MaterialX or Blender graphs → code in any back end's language + reflection | `shadewire`, `shadewire-mtlx`, `shadewire-blender`, `shadewire-nodes`, the back ends |
+| `shadewire-cli` | the `shadewire` command: MaterialX documents, Blender graphs (`.json`) or MDL modules (`.mdl`) in, any back end out | all of the above |
+| `shadewire-capi` | C API (`shadewire.h`): MaterialX, Blender graphs or MDL → code in any back end's language + reflection | `shadewire`, `shadewire-mtlx`, `shadewire-blender`, `shadewire-mdl`, `shadewire-nodes`, the back ends |
 | `shadewire-bevy` | Bevy 0.20: MaterialX → a `StandardMaterial` extension with a generated fragment shader (`ShadewirePlugin`, `FromMtlx`) | `shadewire`, `shadewire-mtlx`, `shadewire-nodes`, `shadewire-wgsl`, `bevy` |
 | `shadewire-godot` | Godot 4.4+ extension (gdext; its own workspace, Rust 1.94): `.mtlx` → `ShaderMaterial` at runtime (`Shadewire`, `load()`) and on import | `shadewire`, `shadewire-mtlx`, `shadewire-nodes`, `shadewire-gdshader`, `godot` |
-| `shadewire-py` | the `shadewire` Python module (PyO3, stable ABI from CPython 3.8): `shadewire.mtlx`, `.blender`, `.wgsl`, `.glsl`, `.hlsl`, `.msl` | `shadewire`, `shadewire-mtlx`, `shadewire-blender`, `shadewire-nodes`, the back ends |
+| `shadewire-py` | the `shadewire` Python module (PyO3, stable ABI from CPython 3.8): `shadewire.mtlx`, `.blender`, `.mdl`, `.wgsl`, `.glsl`, `.hlsl`, `.msl` | `shadewire`, `shadewire-mtlx`, `shadewire-blender`, `shadewire-mdl`, `shadewire-nodes`, the back ends |
 
 Each back end is a printer of the shared shader tree: everything they have in common (the material's code, the
 support libraries, operator precedence, declaration order, identifiers valid in every language) lives in the core.
@@ -75,6 +76,8 @@ back ends.
 | MaterialX materials in a Godot project or game | the `shadewire-godot` addon ([its README](crates/shadewire-godot/README.md)) | — |
 | MaterialX → GLSL, GLSL ES, HLSL or MSL | `shadewire-mtlx`, `shadewire-glsl` / `-hlsl` / `-msl` | — |
 | Blender material graphs → the IR | `shadewire-blender` and a back end | — |
+| MDL modules → the IR (and so any back end) | `shadewire-mdl` and a back end | — |
+| MaterialX or Blender materials → MDL (Omniverse, Iray) | `shadewire-mtlx` or `shadewire-blender`, `shadewire-mdl` | — |
 | Your own IR (any source) → any of them | `shadewire` and the back end | — |
 | Your own graph format → the IR | `shadewire`, `shadewire-nodes` | — |
 | A command-line tool | `shadewire-cli` (the `shadewire` binary) | — |
@@ -119,16 +122,20 @@ shadewire ir material.mtlx               # print the IR (optimized; --no-optimiz
 shadewire list scene.mtlx                # the document's material names
 shadewire mtlx material.mtlx [--material NAME] [--model M]... [--lobes] [--inline] [--optimize] [--constants] [-o FILE]
 shadewire compile material.json --lang wgsl   # a Blender material graph
+shadewire compile material.mdl --lobes --mdl-path ./mdl --lang wgsl   # an MDL module
+shadewire compile material.mtlx --lang mdl -o material.mdl   # a self-contained MDL 1.7 module
 ```
 
-- Every command reads a Blender material graph (the JSON the Blender extension's File > Export > Material Graph writes) wherever it reads a `.mtlx`: a `.json` file is one, `--format mtlx|blender` overrides the extension. What the Blender front end dropped or approximated prints to stderr, one line per node.
+- Every command reads a Blender material graph (the JSON the Blender extension's File > Export > Material Graph writes) wherever it reads a `.mtlx`: a `.json` file is one, `--format mtlx|blender|mdl` overrides the extension. What the Blender front end dropped or approximated prints to stderr, one line per node.
+- Every command reads an NVIDIA MDL module (`.mdl`) the same way. An MDL material is a closure tree, so it needs `--lobes` (or `--model surface`); `--mdl-path DIR` (repeatable) is the MDL search path `import` looks in, after which the standard modules, `::base` and `::nvidia::core_definitions` are built in. What the MDL front end dropped or approximated prints to stderr.
 
 - `shadewire mtlx` writes the material back as MaterialX: includes resolved, 1.38 upgraded, library nodes kept as nodes. `--inline` expands library nodes; `--optimize` folds constants first and writes leaf ops (the optimizer drops the compounds); `--constants` bakes authored values in as constants.
 - `--material NAME` picks the material when the document has several.
 - `--model MODEL` (repeatable) names the surface models the host accepts: an accepted model comes out as its struct, filled by `shadewire_eval_surface()`, for the host to light. By default `open_pbr_surface`, `standard_surface`, `gltf_pbr` and `surface_unlit`. A material of another model is an error, not a translation, unless `surface` is accepted: then it opens into its closure tree.
 - `--lobes` accepts only `surface` and `surface_unlit`, so every material opens into its closure tree and the shader brings MaterialX's reference lobes to light it (`shadewire_eval_bsdf` and the rest), on every back end. It cannot be combined with `--model`; `ir` takes it too.
 - `--lang gdshader` writes a complete Godot 4 `shader_type spatial;` file. Godot binds by name: uniforms keep their authored names, made valid identifiers clear of reserved and generated ones (`GdshaderOutput::uniform_names`); textures are `shadewire_t<index>`, bound raw since the shader converts colorspaces. By default named models (`open_pbr_surface`, `standard_surface`, `gltf_pbr`, `UsdPreviewSurface`, `disney_principled`, `surface_unlit`) are mapped onto Godot's outputs and lit by Godot's BRDF, and a pbrlib `surface` is lit by MaterialX's reference lobes in a generated `light()`; with `--lobes` every material is lit that way (ambient light and reflections then see the closure's albedo as diffuse). What Godot cannot represent is listed in the reflection's `approximations`. Scalar uniforms get `hint_range` from the soft limits, else the hard ones (each end separately); uniforms with a `uifolder` go in `group_uniforms` named after it (`/` becomes `.`, one subgroup level), the rest and the textures in `material`. `--transparency auto|opaque|scissor|hash|blend` (default `auto`: opaque for a constant opacity of 1, scissor for a constant glTF MASK or USD threshold, blend otherwise) and `--emission-scale` (default 1) apply to it only: with another `--lang` they are an error.
-- `--lang wgsl|glsl|glsl-es|hlsl|msl|gdshader` picks the back end; `--glsl-version N` the GLSL version (default 420, 300 for `glsl-es`).
+- `--lang mdl` writes a self-contained MDL 1.7 module (it imports only the standard modules) exporting the material under its name: patterns as MDL functions, the closure tree as `::df` calls, uniforms as annotated parameters, textures as `texture_2d` parameters. It opens every material into its closure tree by default; a named `--model` is an error. What MDL 1.7 cannot say is in the reflection's `approximations`.
+- `--lang wgsl|glsl|glsl-es|hlsl|msl|gdshader|mdl` picks the back end; `--glsl-version N` the GLSL version (default 420, 300 for `glsl-es`).
 - `--reflection FILE` writes the reflection JSON; it is written only when the shader was produced.
 - `--no-optimize` skips constant folding, simplification and sharing.
 - `--constants` bakes authored values in instead of exposing them as uniforms.
@@ -177,17 +184,19 @@ The C API follows the Python module name for name:
 | `shadewire.mtlx.material_names(text, location)` | `shadewire_mtlx_material_names(text, len, location, &mtlx_options, &strings, &err)`, then `shadewire_strings_count` / `_get` |
 | `shadewire.blender.to_ir(text, material, models, working_colorspace, values_as_uniforms)` | `shadewire_blender_to_ir(text, len, material, &ir_options, &ir, &err)` (`shadewire_ir_options`: the MaterialX options without the resolver) |
 | `shadewire.blender.material_names(text)` | `shadewire_blender_material_names(text, len, &strings, &err)` |
+| `shadewire.mdl.to_ir(text, material, models, ..., paths, location)` | `shadewire_mdl_to_ir(text, len, location, material, &ir_options, paths, path_count, &ir, &err)` (`paths`: the MDL search path) |
+| `shadewire.mdl.material_names(text, paths, location)` | `shadewire_mdl_material_names(text, len, location, paths, path_count, &strings, &err)` |
 | `shadewire.mtlx.from_ir(ir, inline, name)` (text and warnings) | `shadewire_ir_to_mtlx(ir, inline_nodes, name, &doc, &err)`, then `shadewire_document_text`, `_warning_count` / `_warning`, `_free` |
 | `Ir.optimize()`, `.dump()`, `.to_dict()` | `shadewire_ir_optimize(ir, &optimized, &err)`, `shadewire_ir_dump`, `shadewire_ir_json` |
 | `Ir.model`, `.source`, `.structure_hash` | `shadewire_ir_model`, `shadewire_ir_source` and `_source_version`, `shadewire_ir_structure_hash` |
 | `Ir.warnings` | `shadewire_ir_warnings(ir, &strings, &err)` (what the front end dropped or approximated) |
-| `shadewire.wgsl.compile(ir, ...)` (and `glsl`, `hlsl`, `msl`) | `shadewire_compile(ir, target, &compile_options, &compiled, &err)` |
+| `shadewire.wgsl.compile(ir, ...)` (and `glsl`, `hlsl`, `msl`, `mdl`) | `shadewire_compile(ir, target, &compile_options, &compiled, &err)` |
 | `Compiled.language`, `.code`, `.reflection`, `.model_struct` | `shadewire_compiled_language`, `_code`, `_reflection_json`, `_model_struct` |
 | `Compiled.ir` | `shadewire_compiled_ir_dump` (the IR the code was printed from) |
 | `IR_FORMAT_VERSION`, `version()` | `SHADEWIRE_IR_FORMAT_VERSION`, `shadewire_version_string()` |
 
 The target is `SHADEWIRE_TARGET_WGSL`, `_GLSL` (`#version` 330, 400 to 460; 0 for 420), `_GLSL_ES` (300 to 320; 0 for 300),
-`_HLSL` or `_MSL`. `shadewire_compile_options` holds the back ends' keyword arguments (`group`, `first_binding`,
+`_HLSL`, `_MSL` or `_MDL` (an MDL 1.7 module; closure trees and `surface_unlit` only). `shadewire_compile_options` holds the back ends' keyword arguments (`group`, `first_binding`,
 `reserve_uniform_binding`, `flip_v`, `optimize`, `implicit_derivatives`); `shadewire_*_options_default` fills them.
 `crates/shadewire-capi-ctest` builds the same calls as a C99 (C11 on MSVC) test.
 
@@ -354,6 +363,7 @@ print(compiled.code, compiled.reflection["uniforms"])
 ```
 
 The module mirrors the crates: `shadewire.mtlx` (`to_ir`, `material_names`, `list_dependencies`, `from_ir`),
+`shadewire.blender` and `shadewire.mdl` (`to_ir`, `material_names`; `mdl.compile` writes an MDL module),
 `shadewire.Ir` (`optimize`, `dump`, `to_dict`, `model`, `structure_hash`) and one `compile` per back end, each returning a
 `Compiled` (`code`, `language`, `reflection`, `model_struct`). `mtlx.from_ir(ir, inline=False, name="material")`
 writes an IR back as MaterialX and returns `(text, warnings)`. One wheel per platform serves every CPython from 3.8
@@ -409,10 +419,14 @@ Bindings follow the reflection's numbers in each language's terms:
 
 - gdshader: a complete `shader_type spatial;` file, bound by name: uniforms keep their authored names, textures are
   `shadewire_t{index}`.
+- MDL: a module exporting one material, bound by name as its parameters: uniforms keep their authored names, made
+  valid MDL identifiers, textures are `uniform texture_2d shadewire_t{index}` parameters.
 
 Each back end's tests compile every test material with the real compiler when it is installed: naga for WGSL,
 glslangValidator for GLSL, dxc for HLSL (found on PATH, in `$VULKAN_SDK/Bin`, or as `$SHADEWIRE_GLSLANGVALIDATOR` /
-`$SHADEWIRE_DXC`), `xcrun metal` for MSL (macOS with Xcode's Metal toolchain) and Godot itself for gdshader (below).
+`$SHADEWIRE_DXC`), `xcrun metal` for MSL (macOS with Xcode's Metal toolchain), the MDL SDK's `mdlc` for MDL (on PATH or as
+`$SHADEWIRE_MDLC`) and Godot itself for gdshader (below). `$SHADEWIRE_MDL_SDK`, an MDL SDK checkout, also has
+the MDL front end parse every module of the SDK and lower its example materials.
 `SHADEWIRE_REQUIRE_TOOLS=1` makes a missing one a failure.
 
 ## Development

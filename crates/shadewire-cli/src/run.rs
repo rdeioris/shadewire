@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use shadewire::optimize::optimize;
 use shadewire::shader::{CompileOptions, Compiled};
@@ -25,6 +25,7 @@ fn io(e: std::io::Error, what: &Path) -> Error {
 fn format_of(file: &Path, given: Option<Format>) -> Format {
     given.unwrap_or_else(|| match file.extension().and_then(|e| e.to_str()) {
         Some(e) if e.eq_ignore_ascii_case("json") => Format::Blender,
+        Some(e) if e.eq_ignore_ascii_case("mdl") => Format::Mdl,
         _ => Format::Mtlx,
     })
 }
@@ -33,6 +34,7 @@ fn format_of(file: &Path, given: Option<Format>) -> Format {
 fn read_ir(
     file: &Path,
     format: Option<Format>,
+    mdl_paths: &[PathBuf],
     material: Option<&str>,
     options: &IrOptions,
 ) -> Result<MaterialIr, Error> {
@@ -41,6 +43,10 @@ fn read_ir(
     let ir = match format_of(file, format) {
         Format::Mtlx => to_ir(&text, Some(&location), material, options, &Resolver::default())?,
         Format::Blender => shadewire_blender::to_ir(&text, material, options)?,
+        Format::Mdl => {
+            let resolver = shadewire_mdl::Resolver::new(mdl_paths.to_vec());
+            shadewire_mdl::to_ir(&text, Some(&location), material, options, &resolver)?
+        }
     };
     for warning in &ir.warnings {
         eprintln!("{warning}");
@@ -49,11 +55,16 @@ fn read_ir(
 }
 
 /// The material names of `file`.
-fn names(file: &Path, format: Option<Format>) -> Result<Vec<String>, Error> {
+fn names(file: &Path, format: Option<Format>, mdl_paths: &[PathBuf]) -> Result<Vec<String>, Error> {
     let text = std::fs::read_to_string(file).map_err(|e| io(e, file))?;
+    let location = file.display().to_string();
     match format_of(file, format) {
-        Format::Mtlx => material_names(&text, Some(&file.display().to_string()), &Resolver::default()),
+        Format::Mtlx => material_names(&text, Some(&location), &Resolver::default()),
         Format::Blender => shadewire_blender::material_names(&text),
+        Format::Mdl => {
+            let resolver = shadewire_mdl::Resolver::new(mdl_paths.to_vec());
+            shadewire_mdl::material_names(&text, Some(&location), &resolver)
+        }
     }
 }
 
@@ -81,7 +92,7 @@ fn compile_options(args: &CompileArgs) -> CompileOptions {
 
 fn ir_command(args: &IrArgs) -> Result<(), Error> {
     let lower = ir_options(&args.models, args.lobes, None, args.constants);
-    let ir = read_ir(&args.file, args.format, args.material.as_deref(), &lower)?;
+    let ir = read_ir(&args.file, args.format, &args.mdl_paths, args.material.as_deref(), &lower)?;
     let dag = if args.no_optimize { ir.dag } else { optimize(&ir.dag) };
     if args.json {
         let text = serde_json::to_string(&shadewire::export::export(&dag)).map_err(|e| Error::Io(e.to_string()))?;
@@ -93,7 +104,7 @@ fn ir_command(args: &IrArgs) -> Result<(), Error> {
 }
 
 fn list_command(args: &ListArgs) -> Result<(), Error> {
-    for name in names(&args.file, args.format)? {
+    for name in names(&args.file, args.format, &args.mdl_paths)? {
         println!("{name}");
     }
     Ok(())
@@ -101,12 +112,12 @@ fn list_command(args: &ListArgs) -> Result<(), Error> {
 
 fn mtlx_command(args: &MtlxArgs) -> Result<(), Error> {
     let lower = ir_options(&args.models, args.lobes, None, args.constants);
-    let ir = read_ir(&args.file, args.format, args.material.as_deref(), &lower)?;
+    let ir = read_ir(&args.file, args.format, &args.mdl_paths, args.material.as_deref(), &lower)?;
     let dag = if args.optimize { optimize(&ir.dag) } else { ir.dag };
     // `read_ir` without `--material` succeeded, so the document has exactly one material.
     let material = match &args.material {
         Some(material) => material.clone(),
-        None => names(&args.file, args.format)?.swap_remove(0),
+        None => names(&args.file, args.format, &args.mdl_paths)?.swap_remove(0),
     };
     let options = WriteOptions { inline: args.inline, name: material, ..WriteOptions::default() };
     let written = from_ir(&dag, &options)?;
@@ -136,6 +147,11 @@ fn compile(ir: &MaterialIr, args: &CompileArgs) -> Result<Compiled, Error> {
             let out = shadewire_gdshader::compile(dag, source, &gdshader_options(args))?;
             Ok(Compiled { code: out.code, reflection: out.reflection, dag: out.dag })
         }
+        Lang::Mdl => {
+            let name = args.material.clone().unwrap_or_else(|| "material".to_string());
+            let mdl = shadewire_mdl::MdlOptions { name, optimize: !args.no_optimize };
+            shadewire_mdl::compile(dag, source, &mdl)
+        }
     }
 }
 
@@ -157,10 +173,14 @@ fn gdshader_options(args: &CompileArgs) -> shadewire_gdshader::GdshaderOptions {
 }
 
 fn compile_command(args: &CompileArgs) -> Result<(), Error> {
-    // The Godot back end has its own model list: the six it maps, and closure trees.
-    let default = (args.lang == Lang::Gdshader).then_some(&shadewire_gdshader::MODELS[..]);
+    // The Godot back end has its own model list: the six it maps, and closure trees; MDL takes closure trees.
+    let default = match args.lang {
+        Lang::Gdshader => Some(&shadewire_gdshader::MODELS[..]),
+        Lang::Mdl => Some(&LOBE_MODELS[..]),
+        _ => None,
+    };
     let lower = ir_options(&args.models, args.lobes, default, args.constants);
-    let ir = read_ir(&args.file, args.format, args.material.as_deref(), &lower)?;
+    let ir = read_ir(&args.file, args.format, &args.mdl_paths, args.material.as_deref(), &lower)?;
     let compiled = compile(&ir, args)?;
     if let Some(path) = &args.reflection {
         let json = serde_json::to_string_pretty(&compiled.reflection).map_err(|e| Error::Io(e.to_string()))?;

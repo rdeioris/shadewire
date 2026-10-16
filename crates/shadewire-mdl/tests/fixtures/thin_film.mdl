@@ -1,0 +1,7 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material soap() = material(surface: material_surface(scattering:
+    df::thin_film(thickness: 400.0, ior: color(1.33), base: df::fresnel_layer(ior: 1.5, layer: df::microfacet_ggx_smith_bsdf(roughness_u: 0.05)))));

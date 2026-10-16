@@ -216,12 +216,12 @@ mod tests {
     }
 
     #[test]
-    fn structs_literals_and_pointers() {
+    fn structs_literals_and_bitcasts() {
         let text = msl(&fixtures::every_lobe());
         assert!(text.contains("return ShadewireBsdf{"), "{text}");
         assert!(text.contains("constant float SHADEWIRE_PI = 3.1415927f;"), "{text}");
         let text = msl(&fixtures::library_ops());
-        assert!(text.contains("thread uint& a"), "{text}");
+        assert!(text.contains("uint3 shadewire_bjmix(uint a_in, uint b_in, uint c_in)"), "{text}");
         assert!(text.contains("as_type<uint>("), "{text}");
         assert_eq!(msl_type(Type::Vector2), "float2");
     }

@@ -1,0 +1,9 @@
+mdl 1.7;
+import ::df::*;
+import ::math::*;
+import ::state::*;
+import ::anno::*;
+export material reflection(color tint = color(0.8, 0.5, 0.2), float roughness = 0.3) = material(
+    surface: material_surface(scattering: df::diffuse_reflection_bsdf(tint: tint, roughness: roughness)));
+export material dusty() = material(surface: material_surface(scattering: df::dusty_diffuse_reflection_bsdf(tint: color(0.5))));
+export material transmission() = material(surface: material_surface(scattering: df::diffuse_transmission_bsdf(tint: color(0.9))));
