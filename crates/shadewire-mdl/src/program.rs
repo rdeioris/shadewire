@@ -180,6 +180,15 @@ fn canonical(path: &Path) -> PathBuf {
     }
 }
 
+/// The file of the module whose path is `parts`, below a search path root.
+fn module_file(parts: &[&str]) -> PathBuf {
+    let mut file = PathBuf::new();
+    for (i, p) in parts.iter().enumerate() {
+        if i + 1 == parts.len() { file.push(format!("{p}.mdl")) } else { file.push(p) }
+    }
+    file
+}
+
 impl<'r> Program<'r> {
     pub fn new(resolver: &'r Resolver) -> Result<Program<'r>, Error> {
         let mut program = Program {
@@ -266,14 +275,23 @@ impl<'r> Program<'r> {
     }
 
     fn find_file(&self, parts: &[&str]) -> Option<(String, PathBuf)> {
-        let mut relative = PathBuf::new();
-        for (i, p) in parts.iter().enumerate() {
-            if i + 1 == parts.len() { relative.push(format!("{p}.mdl")) } else { relative.push(p) }
-        }
+        let relative = module_file(parts);
         self.roots().map(|root| root.join(&relative)).find_map(|path| {
             let text = std::fs::read_to_string(&path).ok()?;
             Some((text, path))
         })
+    }
+
+    /// Whether the module `name` is loaded, on the search path or vendored.
+    fn exists(&self, name: &str) -> bool {
+        if self.by_name.contains_key(name) {
+            return true;
+        }
+        let parts: Vec<&str> = name.trim_start_matches("::").split("::").collect();
+        let on_disk = !STANDARD.contains(&name)
+            && name != PRELUDE
+            && self.roots().any(|root| root.join(module_file(&parts)).is_file());
+        on_disk || vendored(name).is_some()
     }
 
     /// Registers a parsed module: its imports loaded first, then its declarations named.
@@ -396,8 +414,9 @@ impl<'r> Program<'r> {
         self.modules[id].ast.decls = decls;
     }
 
-    /// The absolute name of the module an import path names, from module `from`.
-    fn absolute(&self, from: usize, path: &ImportPath) -> String {
+    /// The absolute names of the modules an import path may name from module `from`, the first that exists being the
+    /// one. A path without prefix is weakly relative: the module beside the importer first, then the search path root.
+    fn candidates(&self, from: usize, path: &ImportPath) -> Vec<String> {
         let m = &self.modules[from];
         // A leading alias stands for its package path.
         if path.prefix == Prefix::None
@@ -405,7 +424,7 @@ impl<'r> Program<'r> {
         {
             let mut expanded = target.clone();
             expanded.parts.extend(path.parts[1..].iter().cloned());
-            return self.absolute(from, &expanded);
+            return self.candidates(from, &expanded);
         }
         let mut parts: Vec<String> = match path.prefix {
             Prefix::Absolute => Vec::new(),
@@ -414,8 +433,6 @@ impl<'r> Program<'r> {
                 let keep = m.package.len().saturating_sub(n as usize);
                 m.package[..keep].to_vec()
             }
-            // Before MDL 1.6 a path without prefix is relative to the current package first; the search path root
-            // is what every module in the wild means.
             Prefix::None => Vec::new(),
         };
         // An alias of one package name stands for it anywhere in the path.
@@ -427,7 +444,12 @@ impl<'r> Program<'r> {
                 _ => parts.push(p.clone()),
             }
         }
-        parts.iter().map(|p| format!("::{p}")).collect()
+        let name = |parts: &[String]| -> String { parts.iter().map(|p| format!("::{p}")).collect() };
+        let mut names = vec![name(&parts)];
+        if path.prefix == Prefix::None && !m.package.is_empty() {
+            names.insert(0, name(&[m.package.as_slice(), parts.as_slice()].concat()));
+        }
+        names
     }
 
     fn import(&mut self, id: usize, import: &Import) -> Result<(), Error> {
@@ -436,8 +458,15 @@ impl<'r> Program<'r> {
             Import::Alias { .. } => return Ok(()),
         };
         let at = self.modules[id].at(line, "import");
-        let absolute = self.absolute(id, path);
-        let target = self.module(&absolute, &at)?;
+        let names = self.candidates(id, path);
+        let name = match names.iter().find(|n| self.exists(n)) {
+            Some(name) => name,
+            None if names.len() > 1 => {
+                return Err(Error::Io(format!("{at}: no MDL module {} on the search path", names.join(" or "))));
+            }
+            None => &names[0],
+        };
+        let target = self.module(name, &at)?;
         let written = path.parts.clone();
         match import {
             Import::Qualified { name, .. } => {

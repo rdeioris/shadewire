@@ -3,7 +3,8 @@
 
 use std::path::{Component, Path, PathBuf};
 
-use shadewire::LOBE_MODELS;
+use shadewire::optimize::optimize;
+use shadewire::{LOBE_MODELS, NodeKind};
 use shadewire_mdl::{IrOptions, Resolver, to_ir};
 
 const UTIL: &str = "mdl 1.7;\nexport color tint() = color(0.2, 0.4, 0.6);\n";
@@ -67,4 +68,53 @@ fn relative_imports_resolve_from_relative_paths() {
     // An error in an imported module names its file as a person would write it.
     let broken = lower(&relative.join("pkg/broken.mdl"), &[]).unwrap_err();
     assert!(broken.contains("bad.mdl:2") && !broken.contains(r"\\?\"), "{broken}");
+}
+
+const KIT_MAIN: &str = "mdl 1.8;\nimport ::df::*;\nimport ::nvidia::core::*;\n\
+    export material m() = material(surface: material_surface(scattering: \
+    df::diffuse_reflection_bsdf(tint: nvidia::core::c())));\n";
+
+/// A search path root `kit/mdl` holding `nvidia/core.mdl`, which imports `support` without a prefix, and `support.mdl`
+/// where `support_at` (below the root) says; `None` for none.
+fn kit(name: &str, support_at: Option<&str>) -> PathBuf {
+    let root = Path::new(env!("CARGO_TARGET_TMPDIR")).join("mdl-imports").join(name).join("kit/mdl");
+    std::fs::create_dir_all(root.join("nvidia")).unwrap();
+    std::fs::write(root.join("nvidia/core.mdl"), "mdl 1.8;\nimport support::*;\nexport color c() = support::s();\n")
+        .unwrap();
+    if let Some(support_at) = support_at {
+        std::fs::write(root.join(support_at), "mdl 1.8;\nexport color s() = color(0.25);\n").unwrap();
+    }
+    root
+}
+
+/// The diffuse tint of `KIT_MAIN` lowered against the search path `root`.
+fn kit_tint(root: &Path) -> Result<Vec<f32>, String> {
+    let options = IrOptions::with_models(&LOBE_MODELS);
+    let ir = to_ir(KIT_MAIN, None, Some("m"), &options, &Resolver::new(vec![root.to_path_buf()]))
+        .map_err(|e| e.to_string())?;
+    let dag = optimize(&ir.dag);
+    let tint = dag.surface.fields.iter().find(|f| f.name == "c0_color").expect("a diffuse tint");
+    match &dag.node(tint.node).kind {
+        NodeKind::Const(v) => Ok(v.floats().to_vec()),
+        other => panic!("the tint did not fold: {other:?}"),
+    }
+}
+
+#[test]
+fn imports_without_a_prefix_look_beside_the_importer_first() {
+    let root = kit("beside", Some("nvidia/support.mdl"));
+    assert_eq!(kit_tint(&root).unwrap(), vec![0.25; 3]);
+}
+
+#[test]
+fn imports_without_a_prefix_fall_back_to_the_search_path() {
+    let root = kit("search-path", Some("support.mdl"));
+    assert_eq!(kit_tint(&root).unwrap(), vec![0.25; 3]);
+}
+
+#[test]
+fn a_missing_module_names_both_places() {
+    let root = kit("missing", None);
+    let error = kit_tint(&root).unwrap_err();
+    assert!(error.contains("::nvidia::support") && error.contains("::support"), "{error}");
 }
