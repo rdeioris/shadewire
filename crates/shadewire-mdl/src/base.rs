@@ -135,7 +135,7 @@ impl<'p, 'r, 'a> Eval<'p, 'r, 'a> {
             }
             _ => return Ok(None),
         };
-        let n = self.emit(op, &op_args, ir, &format!("{}", func.name))?;
+        let n = self.emit(op, &op_args, ir, &func.name)?;
         Ok(Some(Val::new(ret, V::Num(n))))
     }
 
