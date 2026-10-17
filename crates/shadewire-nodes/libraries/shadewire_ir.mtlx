@@ -160,4 +160,35 @@
     <output name="out" type="color4" />
   </nodedef>
 
+  <!-- Bitwise operators on two's-complement integers (MDL's &, |, ^, <<, >> and >>>); shift amounts are taken modulo 32. -->
+  <nodedef name="ND_shadewire_bitwise_and_integer" node="shadewire_bitwise_and" nodegroup="math">
+    <input name="in1" type="integer" value="0" />
+    <input name="in2" type="integer" value="0" />
+    <output name="out" type="integer" />
+  </nodedef>
+  <nodedef name="ND_shadewire_bitwise_or_integer" node="shadewire_bitwise_or" nodegroup="math">
+    <input name="in1" type="integer" value="0" />
+    <input name="in2" type="integer" value="0" />
+    <output name="out" type="integer" />
+  </nodedef>
+  <nodedef name="ND_shadewire_bitwise_xor_integer" node="shadewire_bitwise_xor" nodegroup="math">
+    <input name="in1" type="integer" value="0" />
+    <input name="in2" type="integer" value="0" />
+    <output name="out" type="integer" />
+  </nodedef>
+  <nodedef name="ND_shadewire_shift_left_integer" node="shadewire_shift_left" nodegroup="math">
+    <input name="in1" type="integer" value="0" />
+    <input name="in2" type="integer" value="0" />
+    <output name="out" type="integer" />
+  </nodedef>
+  <nodedef name="ND_shadewire_shift_right_integer" node="shadewire_shift_right" nodegroup="math">
+    <input name="in1" type="integer" value="0" />
+    <input name="in2" type="integer" value="0" />
+    <output name="out" type="integer" />
+  </nodedef>
+  <nodedef name="ND_shadewire_shift_right_unsigned_integer" node="shadewire_shift_right_unsigned" nodegroup="math">
+    <input name="in1" type="integer" value="0" />
+    <input name="in2" type="integer" value="0" />
+    <output name="out" type="integer" />
+  </nodedef>
 </materialx>
