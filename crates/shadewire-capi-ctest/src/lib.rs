@@ -14,6 +14,10 @@ unsafe extern "C" {
     pub fn shadewire_ctest_builder_error_names_source_path(report: *mut c_char, report_len: usize) -> i32;
     pub fn shadewire_ctest_builder_rejects_null_and_bad_input(report: *mut c_char, report_len: usize) -> i32;
     pub fn shadewire_ctest_builder_to_ir_twice(report: *mut c_char, report_len: usize) -> i32;
+
+    // The MDL argument tests (tests/mdl_args.c), with the same contract.
+    pub fn shadewire_ctest_mdl_args_texture_branch(report: *mut c_char, report_len: usize) -> i32;
+    pub fn shadewire_ctest_mdl_args_refused(report: *mut c_char, report_len: usize) -> i32;
 }
 
 /// The library version, through the C API, so the Rust side of the archive stays linked.

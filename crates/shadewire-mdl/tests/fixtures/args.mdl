@@ -1,0 +1,29 @@
+mdl 1.7;
+import ::df::*;
+import ::tex::*;
+import ::anno::*;
+
+// One parameter of each kind a host passes as an argument: float, float2, color, an enum of sparse values, bool,
+// string and texture_2d. The texture, when valid, replaces the color.
+export enum finish_mode { finish_matte = 0, finish_satin = 3, finish_gloss = 7 };
+
+export material args(
+    color base_color = color(0.5) [[anno::display_name("Base Color")]],
+    uniform texture_2d base_texture = texture_2d(),
+    float2 roughness = float2(0.4, 0.4) [[anno::hard_range(float2(0.0), float2(1.0))]],
+    float ior = 1.5,
+    uniform bool thin = false,
+    uniform finish_mode finish = finish_matte,
+    uniform string preset = "plain"
+) = material(
+    thin_walled: thin,
+    surface: material_surface(
+        scattering: df::fresnel_layer(
+            ior: preset == "lacquer" ? 1.8 : ior,
+            layer: df::microfacet_ggx_smith_bsdf(roughness_u: roughness.x, roughness_v: roughness.y),
+            base: df::diffuse_reflection_bsdf(
+                tint: tex::texture_isvalid(base_texture)
+                    ? tex::lookup_color(base_texture, float2(0.5))
+                    : base_color))),
+    geometry: material_geometry(
+        cutout_opacity: finish == finish_gloss ? 0.25 : (finish == finish_satin ? 0.5 : 1.0)));

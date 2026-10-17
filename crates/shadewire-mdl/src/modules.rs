@@ -29,6 +29,41 @@ pub enum ArgValue {
     Int(i64),
 }
 
+/// A material argument as a host holds it (a USD `Shader` prim's `inputs:*`), converted to its parameter's declared
+/// type by MDL's rules; see [`MdlArgValue`]. Given to [`crate::to_ir_with_args`], where a name that is no parameter is an
+/// error.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MdlArgument {
+    pub name: String,
+    pub value: MdlArgValue,
+}
+
+/// The value of an [`MdlArgument`]. A value that does not convert to its parameter's type is an error naming the
+/// parameter and both types.
+#[derive(Clone, Debug, PartialEq)]
+pub enum MdlArgValue {
+    /// One float for a `float` (or `double`), two to four for a `float2` to `float4` (or `double`), three for a
+    /// `color`.
+    Float(Vec<f32>),
+    /// An `int`, an enum's value with that integer, or a `float` (or `double`), MDL's implicit conversion.
+    Int(i32),
+    /// A `bool`.
+    Bool(bool),
+    /// A `string`.
+    String(String),
+    /// A `texture_2d(path, gamma)`: `sRGB` is `::tex::gamma_srgb`, `raw` is `::tex::gamma_linear`, `auto`, any other
+    /// colorspace or none is `::tex::gamma_default`.
+    Texture { path: String, colorspace: Option<String> },
+}
+
+/// The arguments of one lowering: lenient ([`Argument`], an unknown name a warning) or typed ([`MdlArgument`], an
+/// unknown name an error).
+#[derive(Clone, Copy)]
+pub(crate) enum Arguments<'a> {
+    Lenient(&'a [Argument]),
+    Typed(&'a [MdlArgument]),
+}
+
 /// MDL modules, each parsed once with its imports, and their materials lowered to IR. A load that panics leaves the
 /// modules unusable: every later call is an error.
 pub struct Modules {
@@ -85,7 +120,22 @@ impl Modules {
     ) -> Result<MaterialIr, Error> {
         on_reader_stack(|| {
             let id = self.load(module)?;
-            self.lower(id, material, arguments, options)
+            self.lower(id, material, Arguments::Lenient(arguments), options)
+        })
+    }
+
+    /// As [`Modules::to_ir`] with typed arguments, as [`crate::to_ir_with_args`] takes them: an argument naming no
+    /// parameter is an error too.
+    pub fn to_ir_with_args(
+        &self,
+        module: &str,
+        material: Option<&str>,
+        arguments: &[MdlArgument],
+        options: &IrOptions,
+    ) -> Result<MaterialIr, Error> {
+        on_reader_stack(|| {
+            let id = self.load(module)?;
+            self.lower(id, material, Arguments::Typed(arguments), options)
         })
     }
 
@@ -102,7 +152,7 @@ impl Modules {
         &self,
         id: usize,
         material: Option<&str>,
-        arguments: &[Argument],
+        arguments: Arguments,
         options: &IrOptions,
     ) -> Result<MaterialIr, Error> {
         to_ir_here(&self.read()?.program, id, material, arguments, options)

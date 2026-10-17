@@ -1,12 +1,14 @@
-//! The NVIDIA MDL front end (Python's `shadewire.mdl`): `shadewire_mdl_to_ir`, `shadewire_mdl_material_names`. The
-//! MDL back end is `shadewire_compile` with `SHADEWIRE_TARGET_MDL`.
+//! The NVIDIA MDL front end (Python's `shadewire.mdl`): `shadewire_mdl_to_ir`, `shadewire_mdl_to_ir_args`,
+//! `shadewire_mdl_material_names`. The MDL back end is `shadewire_compile` with `SHADEWIRE_TARGET_MDL`.
 
 use std::os::raw::c_char;
 use std::panic::AssertUnwindSafe;
 use std::path::PathBuf;
 
-use shadewire_mdl::Resolver;
+use shadewire_mdl::{MdlArgValue, MdlArgument, Resolver};
+use shadewire_nodes::document::builder::InputValue;
 
+use crate::builder::{read_value, shadewire_value};
 use crate::error::{CapiError, shadewire_error};
 use crate::guard::guarded;
 use crate::ir::shadewire_ir;
@@ -22,6 +24,61 @@ use crate::strings::{ArgError, opt_cstr, string_list, text_arg};
 unsafe fn resolver(paths: *const *const c_char, path_count: usize) -> Result<Resolver, ArgError> {
     let paths = unsafe { string_list(paths, path_count, "path") }?;
     Ok(Resolver::new(paths.into_iter().map(PathBuf::from).collect()))
+}
+
+/// An argument of an MDL material, in place of its parameter `name`'s default (NUL-terminated UTF-8). `value` converts
+/// to the parameter's declared type by MDL's rules: SHADEWIRE_VALUE_FLOATS of count 1 to a `float`, of count 2 to 4 to
+/// a `float2` to `float4`, of count 3 to a `color`; SHADEWIRE_VALUE_INTEGER to an `int`, to the enum value with that
+/// integer, or to a `float`; SHADEWIRE_VALUE_BOOLEAN to a `bool`; SHADEWIRE_VALUE_STRING to a `string`. With
+/// `is_texture`, the SHADEWIRE_VALUE_STRING is a texture's path and the argument a `texture_2d(path, gamma)`, its gamma
+/// given by `colorspace`: "sRGB" is `::tex::gamma_srgb`, "raw" `::tex::gamma_linear`, NULL, "auto" or any other
+/// `::tex::gamma_default`. `colorspace` is read only with `is_texture`. A USD `Shader` prim's `inputs:*` map onto it:
+/// `float`, `color3f`, `int` (enums too), `bool`, and `asset` (a texture, its `colorSpace` metadata the colorspace).
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct shadewire_mdl_arg {
+    pub name: *const c_char,
+    pub value: shadewire_value,
+    pub is_texture: bool,
+    pub colorspace: *const c_char,
+}
+
+/// The `count` arguments at `args` (NULL and 0 for none). Fields are read one by one, `is_texture` as its byte.
+///
+/// # Safety
+/// `args` must be NULL or hold `count` readable `shadewire_mdl_arg`s whose pointers are valid as its doc comment says.
+unsafe fn read_args(args: *const shadewire_mdl_arg, count: usize) -> Result<Vec<MdlArgument>, ArgError> {
+    if count == 0 {
+        return Ok(Vec::new());
+    }
+    if args.is_null() {
+        return Err(ArgError(format!("args is NULL but the count is {count}")));
+    }
+    let mut out = Vec::with_capacity(count);
+    for i in 0..count {
+        let arg = unsafe { args.add(i) };
+        let name = unsafe { opt_cstr((&raw const (*arg).name).read()) }?
+            .ok_or_else(|| ArgError(format!("argument {i}: name is NULL")))?;
+        let bad = |message: String| ArgError(format!("argument {name}: {message}"));
+        let is_texture = unsafe { (&raw const (*arg).is_texture).cast::<u8>().read() } != 0;
+        let value = unsafe { read_value(&raw const (*arg).value) }.map_err(|e| bad(e.0))?;
+        let value = match value {
+            InputValue::Text(path) if is_texture => {
+                let colorspace = unsafe { opt_cstr((&raw const (*arg).colorspace).read()) }.map_err(|e| bad(e.0))?;
+                MdlArgValue::Texture { path: path.to_string(), colorspace: colorspace.map(str::to_string) }
+            }
+            _ if is_texture => return Err(bad("a texture's path is a SHADEWIRE_VALUE_STRING".to_string())),
+            InputValue::Floats(f) if f.iter().any(|x| !x.is_finite()) => {
+                return Err(bad("a float is not finite".to_string()));
+            }
+            InputValue::Floats(f) => MdlArgValue::Float(f.to_vec()),
+            InputValue::Integer(i) => MdlArgValue::Int(i),
+            InputValue::Boolean(b) => MdlArgValue::Bool(b),
+            InputValue::Text(s) => MdlArgValue::String(s.to_string()),
+        };
+        out.push(MdlArgument { name: name.to_string(), value });
+    }
+    Ok(out)
 }
 
 /// Lowers material `material` of the MDL module `text` (`len` bytes of UTF-8, not NUL-terminated) to the IR and writes
@@ -63,6 +120,53 @@ pub unsafe extern "C" fn shadewire_mdl_to_ir(
                 let options = read_ir_options(options)?;
                 let resolver = resolver(paths, path_count)?;
                 let ir = shadewire_mdl::to_ir(text, location, material, &options, &resolver)?;
+                *out = Box::into_raw(Box::new(shadewire_ir::new(ir)));
+                Ok(())
+            }),
+        )
+    }
+}
+
+/// As `shadewire_mdl_to_ir`, the `arg_count` arguments at `args` (NULL and 0 for none; see `shadewire_mdl_arg`) in
+/// place of the material's parameter defaults before it is evaluated, so what they decide folds: a texture argument
+/// makes `tex::texture_isvalid` true. With `values_as_uniforms`, a float, vector, color or bool argument is the default
+/// of its parameter's uniform; ints, enums, strings and textures stay constants. An argument naming no parameter, or
+/// one that does not convert to its parameter's type, is an error naming the parameter (and both types).
+/// `shadewire_mdl_to_ir` is this call with no arguments.
+///
+/// # Safety
+/// As `shadewire_mdl_to_ir`; `args` NULL or holding `arg_count` readable `shadewire_mdl_arg`s, each `name` a valid
+/// NUL-terminated string (NULL is reported), each `value` valid (see `shadewire_value`), each `colorspace` NULL or a
+/// valid NUL-terminated string.
+#[unsafe(no_mangle)]
+#[allow(clippy::too_many_arguments)]
+pub unsafe extern "C" fn shadewire_mdl_to_ir_args(
+    text: *const c_char,
+    len: usize,
+    location: *const c_char,
+    material: *const c_char,
+    options: *const shadewire_ir_options,
+    paths: *const *const c_char,
+    path_count: usize,
+    args: *const shadewire_mdl_arg,
+    arg_count: usize,
+    out: *mut *mut shadewire_ir,
+    error: *mut *mut shadewire_error,
+) -> shadewire_status {
+    unsafe {
+        guarded(
+            error,
+            AssertUnwindSafe(|| {
+                if out.is_null() {
+                    return Err(CapiError::Argument("out is NULL".to_string()));
+                }
+                let text = text_arg(text, len)?;
+                let location = opt_cstr(location)?;
+                let material = opt_cstr(material)?;
+                let options = read_ir_options(options)?;
+                let resolver = resolver(paths, path_count)?;
+                let args = read_args(args, arg_count)?;
+                let ir = shadewire_mdl::to_ir_with_args(text, location, material, &args, &options, &resolver)?;
                 *out = Box::into_raw(Box::new(shadewire_ir::new(ir)));
                 Ok(())
             }),
@@ -213,6 +317,40 @@ mod tests {
             )
         };
         assert_eq!(status, SHADEWIRE_ERROR, "a NULL path list with a count");
+    }
+
+    #[test]
+    fn mdl_args_are_read_and_checked() {
+        use crate::builder::{SHADEWIRE_VALUE_FLOATS, SHADEWIRE_VALUE_STRING};
+        let name = CString::new("tex").unwrap();
+        let path = CString::new("oak.png").unwrap();
+        let raw = CString::new("raw").unwrap();
+        let value = |kind, floats: &[f32]| shadewire_value {
+            kind,
+            floats: floats.as_ptr(),
+            count: floats.len(),
+            integer: 0,
+            boolean: false,
+            string: path.as_ptr(),
+        };
+        let texture = shadewire_mdl_arg {
+            name: name.as_ptr(),
+            value: value(SHADEWIRE_VALUE_STRING, &[]),
+            is_texture: true,
+            colorspace: raw.as_ptr(),
+        };
+        let read = unsafe { read_args(&texture, 1) }.unwrap();
+        let expected = MdlArgValue::Texture { path: "oak.png".into(), colorspace: Some("raw".into()) };
+        assert_eq!(read, [MdlArgument { name: "tex".into(), value: expected }]);
+        assert_eq!(unsafe { read_args(std::ptr::null(), 0) }.unwrap(), []);
+        assert!(unsafe { read_args(std::ptr::null(), 1) }.is_err());
+        let unnamed = shadewire_mdl_arg { name: std::ptr::null(), ..texture };
+        assert!(unsafe { read_args(&unnamed, 1) }.is_err());
+        let floats = shadewire_mdl_arg { value: value(SHADEWIRE_VALUE_FLOATS, &[1.0]), ..texture };
+        assert!(unsafe { read_args(&floats, 1) }.is_err(), "a texture of floats");
+        let nan = shadewire_mdl_arg { value: value(SHADEWIRE_VALUE_FLOATS, &[f32::NAN]), is_texture: false, ..texture };
+        let err = unsafe { read_args(&nan, 1) }.unwrap_err();
+        assert!(err.0.contains("tex") && err.0.contains("finite"), "{}", err.0);
     }
 
     #[test]

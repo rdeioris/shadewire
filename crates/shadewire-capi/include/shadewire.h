@@ -233,6 +233,21 @@ typedef struct shadewire_compile_options {
   bool implicit_derivatives;
 } shadewire_compile_options;
 
+// An argument of an MDL material, in place of its parameter `name`'s default (NUL-terminated UTF-8). `value` converts
+// to the parameter's declared type by MDL's rules: SHADEWIRE_VALUE_FLOATS of count 1 to a `float`, of count 2 to 4 to
+// a `float2` to `float4`, of count 3 to a `color`; SHADEWIRE_VALUE_INTEGER to an `int`, to the enum value with that
+// integer, or to a `float`; SHADEWIRE_VALUE_BOOLEAN to a `bool`; SHADEWIRE_VALUE_STRING to a `string`. With
+// `is_texture`, the SHADEWIRE_VALUE_STRING is a texture's path and the argument a `texture_2d(path, gamma)`, its gamma
+// given by `colorspace`: "sRGB" is `::tex::gamma_srgb`, "raw" `::tex::gamma_linear`, NULL, "auto" or any other
+// `::tex::gamma_default`. `colorspace` is read only with `is_texture`. A USD `Shader` prim's `inputs:*` map onto it:
+// `float`, `color3f`, `int` (enums too), `bool`, and `asset` (a texture, its `colorSpace` metadata the colorspace).
+typedef struct shadewire_mdl_arg {
+  const char *name;
+  struct shadewire_value value;
+  bool is_texture;
+  const char *colorspace;
+} shadewire_mdl_arg;
+
 // `floats` holds `count` floats: 1 for a float, 3 for a color3, and so on for every float-based type.
 #define SHADEWIRE_VALUE_FLOATS 0
 
@@ -772,6 +787,29 @@ shadewire_status shadewire_mdl_to_ir(const char *text,
                                      size_t path_count,
                                      struct shadewire_ir **out,
                                      struct shadewire_error **error);
+
+// As `shadewire_mdl_to_ir`, the `arg_count` arguments at `args` (NULL and 0 for none; see `shadewire_mdl_arg`) in
+// place of the material's parameter defaults before it is evaluated, so what they decide folds: a texture argument
+// makes `tex::texture_isvalid` true. With `values_as_uniforms`, a float, vector, color or bool argument is the default
+// of its parameter's uniform; ints, enums, strings and textures stay constants. An argument naming no parameter, or
+// one that does not convert to its parameter's type, is an error naming the parameter (and both types).
+// `shadewire_mdl_to_ir` is this call with no arguments.
+//
+// # Safety
+// As `shadewire_mdl_to_ir`; `args` NULL or holding `arg_count` readable `shadewire_mdl_arg`s, each `name` a valid
+// NUL-terminated string (NULL is reported), each `value` valid (see `shadewire_value`), each `colorspace` NULL or a
+// valid NUL-terminated string.
+shadewire_status shadewire_mdl_to_ir_args(const char *text,
+                                          size_t len,
+                                          const char *location,
+                                          const char *material,
+                                          const struct shadewire_ir_options *options,
+                                          const char *const *paths,
+                                          size_t path_count,
+                                          const struct shadewire_mdl_arg *args,
+                                          size_t arg_count,
+                                          struct shadewire_ir **out,
+                                          struct shadewire_error **error);
 
 // The names of an MDL module's exported materials, in module order, written to `out`. `text`, `len`, `location`,
 // `paths` and `path_count` as `shadewire_mdl_to_ir`. `*out` is written only on success.
