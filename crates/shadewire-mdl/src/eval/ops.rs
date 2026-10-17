@@ -439,6 +439,11 @@ impl<'p, 'a> Eval<'p, 'a> {
             };
             return Ok(ki(r));
         }
+        // A known integer operand of the form `2^n - 1`, for `BitAnd` below.
+        let low_mask = match y.known().or(x.known()) {
+            Some(Value::Integer(m)) if ir == Type::Integer && *m > 0 && (*m as u32 + 1).is_power_of_two() => Some(*m),
+            _ => None,
+        };
         match op {
             Add => self.op(Op::Add, &[x.clone(), y.clone()], ir, origin),
             Sub => self.op(Op::Subtract, &[x.clone(), y.clone()], ir, origin),
@@ -477,14 +482,10 @@ impl<'p, 'a> Eval<'p, 'a> {
                 }
             }
             // `x & (2^n - 1)`: the floored remainder by 2^n, in two's complement.
-            BitAnd
-                if ir == Type::Integer
-                    && let Some(Value::Integer(m)) = y.known().or(x.known())
-                    && *m > 0
-                    && (*m as u32 + 1).is_power_of_two() =>
-            {
+            BitAnd if low_mask.is_some() => {
+                let m = low_mask.expect("low mask");
                 let a = if x.known().is_some() { y } else { x };
-                let k = (*m as f32) + 1.0;
+                let k = (m as f32) + 1.0;
                 let fa = self.int_to_float(a, origin)?;
                 let q = self.op(Op::Divide, &[fa.clone(), kf(k)], Type::Float, origin)?;
                 let q = self.op(Op::Floor, &[q], Type::Float, origin)?;
