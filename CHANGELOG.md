@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (unreleased)
+
+Since 0.2.0.
 
 ### Highlights
 
@@ -13,6 +15,9 @@
   (`shadewire_mdl::compile`) prints any closure tree or `surface_unlit` material as a self-contained MDL 1.7 module
   that imports only the standard modules; every vendored MaterialX example passes the MDL SDK's `mdlc` and reads back
   to the same lobes.
+- **`Modules`: load once, lower many times.** `shadewire_mdl::Modules` parses each module once with its imports and
+  lowers its materials as often as asked, from any number of threads, with `Argument`s in place of parameter
+  defaults. A module is named (`::a::b`) or given as a `.mdl` path.
 - **CLI:** `.mdl` input wherever a `.mtlx` is read (`--format mdl`), `--mdl-path DIR` for the MDL search path, and
   `--lang mdl` (closure trees by default).
 - **Python:** `shadewire.mdl` (`to_ir`, `material_names`, `compile`).
@@ -20,7 +25,7 @@
   with typed values and host source paths in messages (`shadewire_error_source_path` returns one).
 - **C:** `shadewire_mdl_to_ir`, `shadewire_mdl_material_names` and the `SHADEWIRE_TARGET_MDL` target.
 
-### Changes
+### Breaking changes
 
 - The support libraries are pointer-free, so a language without out parameters can print them:
   `shadewire_floorfrac(x)` returns the fraction alone and `shadewire_bjmix` returns its three words. The generated
@@ -31,6 +36,21 @@
   breaking for struct literals and exhaustive patterns of `Location`.
 - Colorspace names: USD and OCIO aliases (`lin_srgb`, `*_scene`, ACES names, …) resolve to MaterialX's cmlib
   colorspaces.
+
+### MDL reader (`shadewire-mdl`)
+
+- Imports: an unprefixed import looks beside the importing module first; a file off the search path resolves its
+  relative and unprefixed imports against its own folder, and is keyed by its path.
+- A search-path module that re-exports its own name (Kit's `::base` stub) re-exports the vendored one.
+- A failed load is kept and leaves nothing behind; a load that panics leaves `Modules` an error for every later call.
+- Hostile modules fail with `Error::Limit`: statements and expressions nest at most 2048 levels, and a material runs
+  at most a million statements and calls.
+- A top-level variant takes its base's parameters; a cycle of variants is an error.
+- A declaration with constructor arguments (`bsdf b(...)`) copies a value of its type.
+- A value a run-time select cannot hold, chosen by uniforms, is fixed at the uniforms' values.
+- Weighted layers mix the layered top with their base, the weight limited to [0, 1].
+- The writer never gives a parameter one of its own names, and every identifier starts with a letter.
+- Opt-in test corpora: the MDL SDK's sources and example materials, and Kit's core library.
 
 ## 0.2.0 (2026-10-15)
 
