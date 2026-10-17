@@ -20,7 +20,7 @@ pub fn material_names(text: &str, location: Option<&str>, resolver: &Resolver) -
     on_reader_stack(|| {
         let modules = Modules::new(resolver.clone())?;
         let main = modules.add_main(text, location)?;
-        Ok(modules.materials(main))
+        modules.materials(main)
     })
 }
 

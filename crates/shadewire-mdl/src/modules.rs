@@ -29,7 +29,8 @@ pub enum ArgValue {
     Int(i64),
 }
 
-/// MDL modules, each parsed once with its imports, and their materials lowered to IR.
+/// MDL modules, each parsed once with its imports, and their materials lowered to IR. A load that panics leaves the
+/// modules unusable: every later call is an error.
 pub struct Modules {
     loaded: RwLock<Loaded>,
 }
@@ -68,7 +69,7 @@ impl Modules {
     pub fn material_names(&self, module: &str) -> Result<Vec<String>, Error> {
         on_reader_stack(|| {
             let id = self.load(module)?;
-            Ok(self.materials(id))
+            self.materials(id)
         })
     }
 
@@ -90,11 +91,11 @@ impl Modules {
 
     /// Adds the module in `text`, read from `location`, as a main module every call of this adds anew.
     pub(crate) fn add_main(&self, text: &str, location: Option<&str>) -> Result<usize, Error> {
-        self.write().program.add_main(text, location)
+        self.write()?.program.add_main(text, location)
     }
 
-    pub(crate) fn materials(&self, id: usize) -> Vec<String> {
-        self.read().program.materials(id)
+    pub(crate) fn materials(&self, id: usize) -> Result<Vec<String>, Error> {
+        Ok(self.read()?.program.materials(id))
     }
 
     pub(crate) fn lower(
@@ -104,16 +105,16 @@ impl Modules {
         arguments: &[Argument],
         options: &IrOptions,
     ) -> Result<MaterialIr, Error> {
-        to_ir_here(&self.read().program, id, material, arguments, options)
+        to_ir_here(&self.read()?.program, id, material, arguments, options)
     }
 
     /// The module `module` names, loaded on first use; the error it failed with, on every later use.
     fn load(&self, module: &str) -> Result<usize, Error> {
         let source = Source::of(module);
-        if let Some(result) = self.read().sources.get(&source) {
+        if let Some(result) = self.read()?.sources.get(&source) {
             return result.clone();
         }
-        let mut loaded = self.write();
+        let mut loaded = self.write()?;
         if let Some(result) = loaded.sources.get(&source) {
             return result.clone();
         }
@@ -128,13 +129,18 @@ impl Modules {
         result
     }
 
-    fn read(&self) -> RwLockReadGuard<'_, Loaded> {
-        self.loaded.read().unwrap_or_else(PoisonError::into_inner)
+    /// The modules, unless a load panicked while it held them: what it left may be half built.
+    fn read(&self) -> Result<RwLockReadGuard<'_, Loaded>, Error> {
+        self.loaded.read().map_err(|_| panicked())
     }
 
-    fn write(&self) -> RwLockWriteGuard<'_, Loaded> {
-        self.loaded.write().unwrap_or_else(PoisonError::into_inner)
+    fn write(&self) -> Result<RwLockWriteGuard<'_, Loaded>, Error> {
+        self.loaded.write().map_err(|_| panicked())
     }
+}
+
+fn panicked() -> Error {
+    Error::Io("the MDL modules cannot be used: an earlier load panicked".to_string())
 }
 
 impl Drop for Modules {
@@ -152,7 +158,7 @@ mod tests {
 
     /// How many modules, structs and enums the program holds.
     fn size(modules: &Modules) -> (usize, usize, usize) {
-        let loaded = modules.read();
+        let loaded = modules.read().unwrap();
         (loaded.program.modules.len(), loaded.program.structs.len(), loaded.program.enums.len())
     }
 
@@ -175,7 +181,37 @@ mod tests {
                 assert_eq!(modules.material_names(module).unwrap_err(), first);
             }
             assert_eq!(size(&modules), before, "{module}");
-            assert_eq!(modules.read().sources.get(&Source::of(module)), Some(&Err(first)), "{module}");
+            assert_eq!(modules.read().unwrap().sources.get(&Source::of(module)), Some(&Err(first)), "{module}");
+        }
+    }
+
+    #[test]
+    fn a_load_that_panics_leaves_every_later_call_an_error() {
+        let dir = std::env::temp_dir().join("shadewire-mdl-panicked-load");
+        std::fs::create_dir_all(&dir).unwrap();
+        let text = "mdl 1.7;\nexport material m() = material();\n";
+        std::fs::write(dir.join("whole.mdl"), text).unwrap();
+        let file = dir.join("whole.mdl").to_string_lossy().to_string();
+        let modules = Modules::new(Resolver::new(vec![dir])).unwrap();
+        let options = IrOptions::default();
+        // A load that panics halfway: the module is in the program, but not in the sources.
+        let panicked = std::thread::scope(|threads| {
+            threads
+                .spawn(|| {
+                    let mut loaded = modules.loaded.write().unwrap();
+                    loaded.program.add_main(text, Some(&file)).unwrap();
+                    panic!("a load panics halfway");
+                })
+                .join()
+        });
+        assert!(panicked.is_err());
+        for module in [file.as_str(), "::whole"] {
+            for error in [
+                modules.to_ir(module, None, &[], &options).map(|_| ()).unwrap_err(),
+                modules.material_names(module).map(|_| ()).unwrap_err(),
+            ] {
+                assert!(error.to_string().contains("an earlier load panicked"), "{module}: {error}");
+            }
         }
     }
 }
