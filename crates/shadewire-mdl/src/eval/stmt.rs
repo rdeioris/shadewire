@@ -111,6 +111,7 @@ impl<'p, 'a> Eval<'p, 'a> {
                     None => v,
                 };
                 let mask = std::mem::replace(&mut flow.mask, known(false));
+                flow.returns += 1;
                 flow.ret = Some(match flow.ret.take() {
                     None => v,
                     Some(old) => self.select(&mask, v, old, &origin).map_err(|m| fail(self, m))?,
@@ -174,10 +175,21 @@ impl<'p, 'a> Eval<'p, 'a> {
                         self.at(f.module, line, &f.function)
                     )));
                 }
+                let start = flow.mask.clone();
+                let broke_before = flow.loops.last().expect("this loop").broke.clone();
+                let returns_before = flow.returns;
                 self.exec_scoped(f, flow, body)?;
                 let continued =
                     std::mem::replace(&mut flow.loops.last_mut().expect("this loop").continued, known(false));
-                flow.mask = self.or(&flow.mask, &continued, &origin).map_err(|m| self.error(f, line, m))?;
+                flow.mask =
+                    if flow.loops.last().expect("this loop").broke == broke_before && flow.returns == returns_before {
+                        // Every path that entered the iteration fell through or continued: the mask is the one it
+                        // started with. Rebuilt as `(m & !c) | (m & c)` it would be a node, and the update would
+                        // turn a known counter into a run-time one (a loop with a run-time `continue` never ending).
+                        start
+                    } else {
+                        self.or(&flow.mask, &continued, &origin).map_err(|m| self.error(f, line, m))?
+                    };
                 if let Some(u) = update
                     && !flow.dead()
                 {
