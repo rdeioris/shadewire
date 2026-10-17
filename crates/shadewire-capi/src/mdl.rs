@@ -34,6 +34,10 @@ unsafe fn resolver(paths: *const *const c_char, path_count: usize) -> Result<Res
 /// given by `colorspace`: "sRGB" is `::tex::gamma_srgb`, "raw" `::tex::gamma_linear`, NULL, "auto" or any other
 /// `::tex::gamma_default`. `colorspace` is read only with `is_texture`. A USD `Shader` prim's `inputs:*` map onto it:
 /// `float`, `color3f`, `int` (enums too), `bool`, and `asset` (a texture, its `colorSpace` metadata the colorspace).
+///
+/// Versioning: an array of these is passed with its element size, `sizeof(shadewire_mdl_arg)` as the caller compiled
+/// it. A later version may only append fields; the library steps through the array by the caller's size and reads the
+/// fields it knows, so a caller built against an older (smaller) layout is refused rather than misread.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct shadewire_mdl_arg {
@@ -43,20 +47,33 @@ pub struct shadewire_mdl_arg {
     pub colorspace: *const c_char,
 }
 
-/// The `count` arguments at `args` (NULL and 0 for none). Fields are read one by one, `is_texture` as its byte.
+/// The `count` arguments at `args` (NULL and 0 for none), `size` bytes apart. Fields are read one by one,
+/// `is_texture` as its byte. A `size` smaller than this version's `shadewire_mdl_arg`, or not a multiple of its
+/// alignment, is an error; any bytes past the fields this version knows are ignored.
 ///
 /// # Safety
-/// `args` must be NULL or hold `count` readable `shadewire_mdl_arg`s whose pointers are valid as its doc comment says.
-unsafe fn read_args(args: *const shadewire_mdl_arg, count: usize) -> Result<Vec<MdlArgument>, ArgError> {
+/// `args` must be NULL or hold `count` readable elements of `size` bytes, each starting with a `shadewire_mdl_arg`
+/// whose pointers are valid as its doc comment says.
+unsafe fn read_args(args: *const shadewire_mdl_arg, count: usize, size: usize) -> Result<Vec<MdlArgument>, ArgError> {
     if count == 0 {
         return Ok(Vec::new());
+    }
+    let known = std::mem::size_of::<shadewire_mdl_arg>();
+    if size < known {
+        return Err(ArgError(format!(
+            "arg_size is {size}, smaller than sizeof(shadewire_mdl_arg), {known}: built against another header?"
+        )));
+    }
+    let align = std::mem::align_of::<shadewire_mdl_arg>();
+    if !size.is_multiple_of(align) {
+        return Err(ArgError(format!("arg_size is {size}, not a multiple of the alignment, {align}")));
     }
     if args.is_null() {
         return Err(ArgError(format!("args is NULL but the count is {count}")));
     }
     let mut out = Vec::with_capacity(count);
     for i in 0..count {
-        let arg = unsafe { args.add(i) };
+        let arg = unsafe { args.cast::<u8>().add(i * size).cast::<shadewire_mdl_arg>() };
         let name = unsafe { opt_cstr((&raw const (*arg).name).read()) }?
             .ok_or_else(|| ArgError(format!("argument {i}: name is NULL")))?;
         let bad = |message: String| ArgError(format!("argument {name}: {message}"));
@@ -134,10 +151,14 @@ pub unsafe extern "C" fn shadewire_mdl_to_ir(
 /// one that does not convert to its parameter's type, is an error naming the parameter (and both types).
 /// `shadewire_mdl_to_ir` is this call with no arguments.
 ///
+/// `arg_size` is `sizeof(shadewire_mdl_arg)` as the caller compiled it: the library steps through `args` by it and
+/// reads only the fields it knows. With `arg_count` above 0, an `arg_size` smaller than this version's struct (or not a
+/// multiple of its alignment) is SHADEWIRE_ERROR_INVALID_ARGUMENT; with `arg_count` 0 it is not read.
+///
 /// # Safety
-/// As `shadewire_mdl_to_ir`; `args` NULL or holding `arg_count` readable `shadewire_mdl_arg`s, each `name` a valid
-/// NUL-terminated string (NULL is reported), each `value` valid (see `shadewire_value`), each `colorspace` NULL or a
-/// valid NUL-terminated string.
+/// As `shadewire_mdl_to_ir`; `args` NULL or holding `arg_count` readable elements of `arg_size` bytes, each starting
+/// with a `shadewire_mdl_arg` whose `name` is a valid NUL-terminated string (NULL is reported), `value` valid (see
+/// `shadewire_value`), and `colorspace` NULL or a valid NUL-terminated string.
 #[unsafe(no_mangle)]
 #[allow(clippy::too_many_arguments)]
 pub unsafe extern "C" fn shadewire_mdl_to_ir_args(
@@ -150,6 +171,7 @@ pub unsafe extern "C" fn shadewire_mdl_to_ir_args(
     path_count: usize,
     args: *const shadewire_mdl_arg,
     arg_count: usize,
+    arg_size: usize,
     out: *mut *mut shadewire_ir,
     error: *mut *mut shadewire_error,
 ) -> shadewire_status {
@@ -165,7 +187,7 @@ pub unsafe extern "C" fn shadewire_mdl_to_ir_args(
                 let material = opt_cstr(material)?;
                 let options = read_ir_options(options)?;
                 let resolver = resolver(paths, path_count)?;
-                let args = read_args(args, arg_count)?;
+                let args = read_args(args, arg_count, arg_size)?;
                 let ir = shadewire_mdl::to_ir_with_args(text, location, material, &args, &options, &resolver)?;
                 *out = Box::into_raw(Box::new(shadewire_ir::new(ir)));
                 Ok(())
@@ -322,6 +344,7 @@ mod tests {
     #[test]
     fn mdl_args_are_read_and_checked() {
         use crate::builder::{SHADEWIRE_VALUE_FLOATS, SHADEWIRE_VALUE_STRING};
+        const SIZE: usize = std::mem::size_of::<shadewire_mdl_arg>();
         let name = CString::new("tex").unwrap();
         let path = CString::new("oak.png").unwrap();
         let raw = CString::new("raw").unwrap();
@@ -339,17 +362,35 @@ mod tests {
             is_texture: true,
             colorspace: raw.as_ptr(),
         };
-        let read = unsafe { read_args(&texture, 1) }.unwrap();
+        let read = unsafe { read_args(&texture, 1, SIZE) }.unwrap();
         let expected = MdlArgValue::Texture { path: "oak.png".into(), colorspace: Some("raw".into()) };
-        assert_eq!(read, [MdlArgument { name: "tex".into(), value: expected }]);
-        assert_eq!(unsafe { read_args(std::ptr::null(), 0) }.unwrap(), []);
-        assert!(unsafe { read_args(std::ptr::null(), 1) }.is_err());
+        assert_eq!(read, [MdlArgument { name: "tex".into(), value: expected.clone() }]);
+        assert_eq!(unsafe { read_args(std::ptr::null(), 0, 0) }.unwrap(), [], "arg_size is not read without arguments");
+        assert!(unsafe { read_args(std::ptr::null(), 1, SIZE) }.is_err());
+
+        // A caller of a later, larger layout: the library steps by its size and reads the fields it knows.
+        #[repr(C)]
+        #[derive(Clone, Copy)]
+        struct Later {
+            arg: shadewire_mdl_arg,
+            appended: u64,
+        }
+        let later = [Later { arg: texture, appended: u64::MAX }; 2];
+        let read = unsafe { read_args(later.as_ptr().cast(), 2, std::mem::size_of::<Later>()) }.unwrap();
+        assert_eq!(read.len(), 2);
+        assert!(read.iter().all(|a| a.name == "tex" && a.value == expected), "{read:?}");
+
+        // An older, smaller layout, or a stride off the alignment, is refused.
+        for size in [0, SIZE - std::mem::align_of::<shadewire_mdl_arg>(), SIZE + 1] {
+            let err = unsafe { read_args(&texture, 1, size) }.unwrap_err();
+            assert!(err.0.contains("arg_size"), "{size}: {}", err.0);
+        }
         let unnamed = shadewire_mdl_arg { name: std::ptr::null(), ..texture };
-        assert!(unsafe { read_args(&unnamed, 1) }.is_err());
+        assert!(unsafe { read_args(&unnamed, 1, SIZE) }.is_err());
         let floats = shadewire_mdl_arg { value: value(SHADEWIRE_VALUE_FLOATS, &[1.0]), ..texture };
-        assert!(unsafe { read_args(&floats, 1) }.is_err(), "a texture of floats");
+        assert!(unsafe { read_args(&floats, 1, SIZE) }.is_err(), "a texture of floats");
         let nan = shadewire_mdl_arg { value: value(SHADEWIRE_VALUE_FLOATS, &[f32::NAN]), is_texture: false, ..texture };
-        let err = unsafe { read_args(&nan, 1) }.unwrap_err();
+        let err = unsafe { read_args(&nan, 1, SIZE) }.unwrap_err();
         assert!(err.0.contains("tex") && err.0.contains("finite"), "{}", err.0);
     }
 

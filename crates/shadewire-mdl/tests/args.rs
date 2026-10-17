@@ -153,7 +153,7 @@ fn an_int_selects_an_enum_value_by_its_value() {
     assert_eq!(opacity(7), Held::Const(Value::Float(0.25)));
     for out_of_range in [1, -1, 8] {
         let e = error(&[arg("finish", MdlArgValue::Int(out_of_range))]);
-        assert!(e.contains("finish") && e.contains(&out_of_range.to_string()), "{e}");
+        assert!(e.contains("finish:") && e.contains(&out_of_range.to_string()), "{e}");
     }
 }
 
@@ -177,7 +177,10 @@ fn a_type_mismatch_names_the_parameter_and_both_types() {
         ("finish", MdlArgValue::String("finish_gloss".into()), "string", "finish_mode"),
     ] {
         let e = error(&[arg(name, value)]);
-        assert!(e.contains(name) && e.contains(given) && e.contains(declared), "{name}, {given}, {declared}: {e}");
+        assert!(
+            e.contains(&format!("{name}:")) && e.contains(given) && e.contains(declared),
+            "{name}, {given}, {declared}: {e}"
+        );
     }
 }
 
@@ -210,4 +213,15 @@ fn double_parameters_take_floats() {
     let args = [arg("w", floats(&[0.25])), arg("t", floats(&[0.4, 0.8, 1.0]))];
     let ir = to_ir_with_args(text, None, None, &args, &options, &Resolver::default()).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(field(&optimize(&ir.dag), "c0_color"), Held::Const(Value::Color3([0.1, 0.2, 0.25])));
+}
+
+#[test]
+fn an_empty_texture_path_is_an_invalid_texture() {
+    for uniforms in [false, true] {
+        let d = dag(&[arg("base_texture", texture("", Some("sRGB")))], uniforms);
+        assert_eq!(samples(&d), 0, "{}", d.dump());
+        assert!(d.textures.is_empty(), "{:?}", d.textures);
+        let expected = if uniforms { Held::Uniform("base_color".into()) } else { Held::Const(Value::Color3([0.5; 3])) };
+        assert_eq!(field(&d, "c1_color"), expected);
+    }
 }

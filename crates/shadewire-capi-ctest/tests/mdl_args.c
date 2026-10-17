@@ -32,13 +32,20 @@ static shadewire_mdl_arg no_arg(const char *name) {
     return arg;
 }
 
-/* Lowers `module` with `args`, writing the IR or the error. */
-static shadewire_status lower(const shadewire_mdl_arg *args, size_t count, shadewire_ir **ir, shadewire_error **err) {
+/* Lowers `module` with `args`, elements `size` bytes apart, writing the IR or the error. */
+static shadewire_status lower_sized(const shadewire_mdl_arg *args, size_t count, size_t size, shadewire_ir **ir,
+                                    shadewire_error **err) {
     shadewire_ir_options options;
     shadewire_ir_options_default(&options);
     options.models = models;
     options.model_count = 2;
-    return shadewire_mdl_to_ir_args(module, sizeof module - 1, NULL, NULL, &options, NULL, 0, args, count, ir, err);
+    return shadewire_mdl_to_ir_args(module, sizeof module - 1, NULL, NULL, &options, NULL, 0, args, count, size, ir,
+                                    err);
+}
+
+/* Lowers `module` with `args`, writing the IR or the error. */
+static shadewire_status lower(const shadewire_mdl_arg *args, size_t count, shadewire_ir **ir, shadewire_error **err) {
+    return lower_sized(args, count, sizeof(shadewire_mdl_arg), ir, err);
 }
 
 int shadewire_ctest_mdl_args_texture_branch(char *report, size_t report_len) {
@@ -128,9 +135,22 @@ int shadewire_ctest_mdl_args_refused(char *report, size_t report_len) {
     shadewire_error_free(err);
     err = NULL;
 
-    if (shadewire_mdl_to_ir_args(module, sizeof module - 1, NULL, NULL, NULL, NULL, 0, NULL, 2, &ir, &err) !=
-        SHADEWIRE_ERROR) {
+    if (shadewire_mdl_to_ir_args(module, sizeof module - 1, NULL, NULL, NULL, NULL, 0, NULL, 2,
+                                 sizeof(shadewire_mdl_arg), &ir, &err) != SHADEWIRE_ERROR) {
         step = fail(report, report_len, 4, "a NULL argument list with a count was accepted", NULL);
+        goto done;
+    }
+    shadewire_error_free(err);
+    err = NULL;
+
+    /* A caller built against an older, smaller layout. */
+    arg = no_arg("tint");
+    arg.value.kind = SHADEWIRE_VALUE_FLOATS;
+    arg.value.floats = &one;
+    arg.value.count = 1;
+    if (lower_sized(&arg, 1, sizeof(shadewire_mdl_arg) - sizeof(void *), &ir, &err) != SHADEWIRE_ERROR ||
+        shadewire_error_get_kind(err) != SHADEWIRE_ERROR_INVALID_ARGUMENT) {
+        step = fail(report, report_len, 5, "an arg_size smaller than the struct was accepted", err);
     }
 
 done:

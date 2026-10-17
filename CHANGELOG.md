@@ -6,7 +6,7 @@
   texture with a colorspace) in place of a material's parameter defaults, converted to each parameter's declared type
   by MDL's rules; an unknown name or a mismatched type is an error naming the parameter. `Modules::to_ir_with_args`
   does the same on loaded modules. C: `shadewire_mdl_to_ir_args` and `shadewire_mdl_arg` (a `shadewire_value`,
-  `is_texture`, `colorspace`).
+  `is_texture`, `colorspace`), passed with `sizeof(shadewire_mdl_arg)` so the struct can grow.
 
 ## 0.3.0 (2026-10-17)
 

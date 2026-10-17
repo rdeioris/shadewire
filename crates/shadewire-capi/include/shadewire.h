@@ -241,6 +241,10 @@ typedef struct shadewire_compile_options {
 // given by `colorspace`: "sRGB" is `::tex::gamma_srgb`, "raw" `::tex::gamma_linear`, NULL, "auto" or any other
 // `::tex::gamma_default`. `colorspace` is read only with `is_texture`. A USD `Shader` prim's `inputs:*` map onto it:
 // `float`, `color3f`, `int` (enums too), `bool`, and `asset` (a texture, its `colorSpace` metadata the colorspace).
+//
+// Versioning: an array of these is passed with its element size, `sizeof(shadewire_mdl_arg)` as the caller compiled
+// it. A later version may only append fields; the library steps through the array by the caller's size and reads the
+// fields it knows, so a caller built against an older (smaller) layout is refused rather than misread.
 typedef struct shadewire_mdl_arg {
   const char *name;
   struct shadewire_value value;
@@ -795,10 +799,14 @@ shadewire_status shadewire_mdl_to_ir(const char *text,
 // one that does not convert to its parameter's type, is an error naming the parameter (and both types).
 // `shadewire_mdl_to_ir` is this call with no arguments.
 //
+// `arg_size` is `sizeof(shadewire_mdl_arg)` as the caller compiled it: the library steps through `args` by it and
+// reads only the fields it knows. With `arg_count` above 0, an `arg_size` smaller than this version's struct (or not a
+// multiple of its alignment) is SHADEWIRE_ERROR_INVALID_ARGUMENT; with `arg_count` 0 it is not read.
+//
 // # Safety
-// As `shadewire_mdl_to_ir`; `args` NULL or holding `arg_count` readable `shadewire_mdl_arg`s, each `name` a valid
-// NUL-terminated string (NULL is reported), each `value` valid (see `shadewire_value`), each `colorspace` NULL or a
-// valid NUL-terminated string.
+// As `shadewire_mdl_to_ir`; `args` NULL or holding `arg_count` readable elements of `arg_size` bytes, each starting
+// with a `shadewire_mdl_arg` whose `name` is a valid NUL-terminated string (NULL is reported), `value` valid (see
+// `shadewire_value`), and `colorspace` NULL or a valid NUL-terminated string.
 shadewire_status shadewire_mdl_to_ir_args(const char *text,
                                           size_t len,
                                           const char *location,
@@ -808,6 +816,7 @@ shadewire_status shadewire_mdl_to_ir_args(const char *text,
                                           size_t path_count,
                                           const struct shadewire_mdl_arg *args,
                                           size_t arg_count,
+                                          size_t arg_size,
                                           struct shadewire_ir **out,
                                           struct shadewire_error **error);
 
