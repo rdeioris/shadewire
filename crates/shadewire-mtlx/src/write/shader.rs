@@ -29,7 +29,8 @@ pub struct ShaderNode {
 }
 
 /// The shader-level nodes of `dag`: the closure tree's nodes in order then the `surface` node, or the model's
-/// node alone. The shader is always last.
+/// node alone. The shader is always last. The empty closure is no node: an input reading it is left unconnected,
+/// which is what MaterialX makes of an unconnected closure input.
 pub fn shader_nodes(dag: &Dag, index: &Index) -> Result<Vec<ShaderNode>, Error> {
     let Some(closure) = &dag.surface.closure else {
         let nd = nodedef(index, &dag.surface.model, PortType::SurfaceShader)?;
@@ -37,20 +38,20 @@ pub fn shader_nodes(dag: &Dag, index: &Index) -> Result<Vec<ShaderNode>, Error> 
         let inputs = value_inputs(dag, index, nd, &pairs);
         return Ok(vec![ShaderNode { category: dag.surface.model.clone(), ty: "surfaceshader".into(), inputs }]);
     };
+    let mut positions = Vec::with_capacity(closure.nodes.len());
     let mut nodes = Vec::new();
     for id in 0..closure.nodes.len() {
-        nodes.push(closure_node(dag, index, closure, id)?);
+        if matches!(closure.nodes[id], ClosureNode::Empty { .. }) {
+            positions.push(None);
+            continue;
+        }
+        positions.push(Some(nodes.len()));
+        nodes.push(closure_node(dag, index, closure, &positions, id)?);
     }
     let surface = nodedef(index, "surface", PortType::SurfaceShader)?;
     let mut inputs = Vec::new();
     for (input, root) in [("bsdf", closure.bsdf), ("edf", closure.edf)] {
-        if let Some(root) = root {
-            inputs.push((
-                input.to_string(),
-                closure_type_name(closure, root).to_string(),
-                Read::Closure(root as usize),
-            ));
-        }
+        inputs.extend(root.and_then(|root| closure_input(closure, &positions, input, root)));
     }
     // The surface node's own values are the fields named after its value inputs (`thin_walled`), and the opacity.
     let own: Vec<(&str, &str)> = surface
@@ -74,47 +75,56 @@ pub fn shader_reads(dag: &Dag, index: &Index) -> Vec<NodeId> {
     reads.filter_map(|(_, _, read)| if let Read::Field { node, .. } = read { Some(node) } else { None }).collect()
 }
 
+/// Input `name` reading closure node `id` (at shader-level node `positions[id]`); none for the empty closure.
+fn closure_input(
+    closure: &ClosureGraph,
+    positions: &[Option<usize>],
+    name: &str,
+    id: u32,
+) -> Option<(String, String, Read)> {
+    let position = positions[id as usize]?;
+    Some((name.to_string(), closure_name(closure.ty(id)).to_string(), Read::Closure(position)))
+}
+
 /// One closure node: a lobe with its value inputs, settings and closure inputs; an operator with its closures and
 /// its weight, always written (its type picks the operator's nodedef).
-fn closure_node(dag: &Dag, index: &Index, closure: &ClosureGraph, id: usize) -> Result<ShaderNode, Error> {
-    let closure_input = |name: &str, id: u32| {
-        (name.to_string(), closure_type_name(closure, id).to_string(), Read::Closure(id as usize))
-    };
-    let ty = closure_type_name(closure, id as u32);
+fn closure_node(
+    dag: &Dag,
+    index: &Index,
+    closure: &ClosureGraph,
+    positions: &[Option<usize>],
+    id: usize,
+) -> Result<ShaderNode, Error> {
+    let input = |name: &str, id: u32| closure_input(closure, positions, name, id);
+    let ty = closure_name(closure.ty(id as u32));
     let (category, inputs) = match &closure.nodes[id] {
         ClosureNode::Lobe { kind, ty, inputs, settings, closures } => {
             let nd = nodedef(index, kind, PortType::Closure(closure_name(*ty).to_string()))?;
-            let mut all: Vec<_> = closures.iter().map(|(name, id)| closure_input(name, *id)).collect();
+            let mut all: Vec<_> = closures.iter().filter_map(|(name, id)| input(name, *id)).collect();
             let by_field: Vec<(&str, &str)> = inputs.iter().map(|(i, f)| (i.as_str(), f.as_str())).collect();
             all.extend(value_inputs(dag, index, nd, &by_field));
             all.extend(settings.iter().map(|(name, text)| (name.clone(), "string".into(), Read::Text(text.clone()))));
             (kind.as_str(), all)
         }
-        ClosureNode::Layer { top, base } => ("layer", vec![closure_input("top", *top), closure_input("base", *base)]),
+        ClosureNode::Layer { top, base } => {
+            ("layer", [input("top", *top), input("base", *base)].into_iter().flatten().collect())
+        }
         ClosureNode::Mix { fg, bg, mix } => {
-            let mut all = vec![closure_input("fg", *fg), closure_input("bg", *bg)];
+            let mut all: Vec<_> = [input("fg", *fg), input("bg", *bg)].into_iter().flatten().collect();
             all.extend(field_input(dag, None, "mix", mix));
             ("mix", all)
         }
-        ClosureNode::Add { in1, in2 } => ("add", vec![closure_input("in1", *in1), closure_input("in2", *in2)]),
+        ClosureNode::Add { in1, in2 } => {
+            ("add", [input("in1", *in1), input("in2", *in2)].into_iter().flatten().collect())
+        }
         ClosureNode::Multiply { in1, in2 } => {
-            let mut all = vec![closure_input("in1", *in1)];
+            let mut all: Vec<_> = input("in1", *in1).into_iter().collect();
             all.extend(field_input(dag, None, "in2", in2));
             ("multiply", all)
         }
+        ClosureNode::Empty { .. } => unreachable!("the empty closure is no shader-level node"),
     };
     Ok(ShaderNode { category: category.to_string(), ty: ty.to_string(), inputs })
-}
-
-/// The type of closure node `id`: a lobe's own, an operator's first child's.
-fn closure_type_name(closure: &ClosureGraph, id: u32) -> &'static str {
-    match &closure.nodes[id as usize] {
-        ClosureNode::Lobe { ty, .. } => closure_name(*ty),
-        ClosureNode::Layer { top: first, .. }
-        | ClosureNode::Mix { fg: first, .. }
-        | ClosureNode::Add { in1: first, .. }
-        | ClosureNode::Multiply { in1: first, .. } => closure_type_name(closure, *first),
-    }
 }
 
 fn closure_name(ty: ClosureType) -> &'static str {

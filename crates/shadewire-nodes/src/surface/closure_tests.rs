@@ -1,5 +1,5 @@
 use shadewire::optimize::optimize;
-use shadewire::{ClosureNode, ClosureType, Dag, Error};
+use shadewire::{ClosureNode, ClosureType, Dag, Error, NodeKind, Op};
 
 use super::models::KNOWN_MODELS;
 use crate::document::Document;
@@ -163,7 +163,7 @@ fn an_edf_alone_makes_an_emitter_without_a_bsdf() {
 }
 
 #[test]
-fn a_mix_with_one_side_unconnected_scales_the_other() {
+fn a_mix_with_one_side_unconnected_mixes_the_empty_closure_in() {
     let doc = inline(
         "1.39",
         r#"<oren_nayar_diffuse_bsdf name="d" type="BSDF" />
@@ -178,7 +178,28 @@ fn a_mix_with_one_side_unconnected_scales_the_other() {
     );
     let dag = compile(&doc, None, &["surface"]).unwrap();
     let dump = dag.surface.closure.as_ref().unwrap().dump();
-    assert!(dump.contains("c1 = multiply(c0, c1_in2)\nbsdf = c1"), "{dump}");
+    assert!(dump.contains("c1 = empty_bsdf\nc2 = mix(fg=c0, bg=c1, mix=c2_mix)\nbsdf = c2"), "{dump}");
+}
+
+#[test]
+fn a_mix_with_its_fg_unconnected_mixes_the_empty_closure_in_on_that_side() {
+    let doc = inline(
+        "1.39",
+        r#"<oren_nayar_diffuse_bsdf name="d" type="BSDF" />
+           <mix name="m" type="BSDF">
+             <input name="bg" type="BSDF" nodename="d" />
+             <input name="mix" type="float" value="0.25" />
+           </mix>
+           <surface name="s" type="surfaceshader"><input name="bsdf" type="BSDF" nodename="m" /></surface>
+           <surfacematerial name="M" type="material">
+             <input name="surfaceshader" type="surfaceshader" nodename="s" />
+           </surfacematerial>"#,
+    );
+    let dag = compile(&doc, None, &["surface"]).unwrap();
+    let dump = dag.surface.closure.as_ref().unwrap().dump();
+    assert!(dump.contains("c1 = empty_bsdf\nc2 = mix(fg=c1, bg=c0, mix=c2_mix)\nbsdf = c2"), "{dump}");
+    let subtracts = dag.nodes.iter().filter(|n| matches!(n.kind, NodeKind::Op { op: Op::Subtract, .. })).count();
+    assert_eq!(subtracts, 0, "no `1 - mix` node");
 }
 
 #[test]

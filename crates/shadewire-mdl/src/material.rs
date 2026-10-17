@@ -358,6 +358,9 @@ enum Tree {
         base: Box<Tree>,
         weight: Num,
     },
+    /// Nothing scattered, everything let through: only a side of a `Mix` is one, lowered as the mix's input left
+    /// unconnected.
+    Empty,
 }
 
 /// What lowering a distribution function needs around it: the normal its layers set, the material's ior.
@@ -408,7 +411,7 @@ impl<'p, 'a> Eval<'p, 'a> {
                 let a = self.bsdf_tree(then, around)?;
                 let b = self.bsdf_tree(otherwise, around)?;
                 let w = self.emit(Op::Convert, &[Num::Node(*cond)], Type::Float, o)?;
-                return mix_trees(a, b, w, self);
+                return Ok(mix_trees(a, b, w));
             }
             Df::Call { name, args, line } => (name.as_str(), args.as_slice(), *line),
         };
@@ -728,8 +731,16 @@ impl<'p, 'a> Eval<'p, 'a> {
                     _ => Tree::WeightedLayer { top: Box::new(top), base: Box::new(base), weight: w },
                 })
             }
-            // A multiply limits its weight itself.
-            (Some(top), None) => Some(weighted(top, w)),
+            // Over nothing: the top for the weight, nothing (letting everything through) for the rest.
+            (Some(top), None) => {
+                let (zero, one) = (Num::Known(Value::Float(0.0)), Num::Known(Value::Float(1.0)));
+                let w = self.emit(Op::Clamp, &[w, zero, one], Type::Float, "df::weighted_layer")?;
+                match w.known() {
+                    Some(Value::Float(1.0)) => Some(top),
+                    Some(Value::Float(0.0)) => None,
+                    _ => Some(Tree::Mix { fg: Box::new(top), bg: Box::new(Tree::Empty), weight: w }),
+                }
+            }
             (None, base) => base,
         })
     }
@@ -808,7 +819,7 @@ impl<'p, 'a> Eval<'p, 'a> {
                 let a = self.edf_tree(then)?;
                 let b = self.edf_tree(otherwise)?;
                 let w = self.emit(Op::Convert, &[Num::Node(*cond)], Type::Float, "df")?;
-                return mix_trees(a, b, w, self);
+                return Ok(mix_trees(a, b, w));
             }
             Df::Call { name, args, line } => (name.as_str(), args.as_slice(), *line),
         };
@@ -893,9 +904,10 @@ fn lobe_geometry(inputs: &mut Vec<(String, Arg)>, tangent: Option<Num>, normal: 
     }
 }
 
-/// Components whose weights are known and sum to one as nested mixes, `mix(c1, mix(c2, …, w2 / (1 − w1)), w1)`:
-/// exact, where a sum of weighted components lets through what each lobe lets through rather than the weighted
-/// whole. `None` when a weight is not known or the weights do not sum to one.
+/// Components whose weights are known and sum to at most one as nested mixes, `mix(c1, mix(c2, …, w2 / (1 − w1)),
+/// w1)`, the empty closure the last component for what they leave: exact, where a sum of weighted components lets
+/// through what each lobe lets through rather than the weighted whole. `None` when a weight is not known or the
+/// weights sum past one.
 fn nested_mix(components: &[(Num, Tree)]) -> Option<Tree> {
     let mut known = Vec::new();
     for (w, t) in components {
@@ -906,10 +918,13 @@ fn nested_mix(components: &[(Num, Tree)]) -> Option<Tree> {
         }
     }
     let total: f32 = known.iter().map(|(w, _)| w).sum();
-    let (last_weight, last) = known.pop()?;
-    if (total - 1.0).abs() > 1e-5 {
+    if total > 1.0 + 1e-5 {
         return None;
     }
+    if total < 1.0 - 1e-5 {
+        known.push((1.0 - total, &Tree::Empty));
+    }
+    let (last_weight, last) = known.pop()?;
     let (mut rest, mut nested) = (last_weight, last.clone());
     for (w, t) in known.into_iter().rev() {
         rest += w;
@@ -930,6 +945,7 @@ fn transmits(t: &Tree) -> bool {
         Tree::Layer(a, b) | Tree::Add(a, b) => transmits(a) || transmits(b),
         Tree::Mix { fg: a, bg: b, .. } | Tree::WeightedLayer { top: a, base: b, .. } => transmits(a) || transmits(b),
         Tree::Multiply(a, _) => transmits(a),
+        Tree::Empty => false,
     }
 }
 
@@ -949,17 +965,16 @@ fn layered(top: Option<Tree>, base: Option<Tree>) -> Option<Tree> {
     }
 }
 
-/// `mix(fg = a, bg = b, mix = w)`, a missing side scattering nothing.
-fn mix_trees(a: Option<Tree>, b: Option<Tree>, w: Num, ev: &mut Eval) -> Result<Option<Tree>, Error> {
-    Ok(match (a, b) {
-        (Some(a), Some(b)) => Some(Tree::Mix { fg: Box::new(a), bg: Box::new(b), weight: w }),
-        (Some(a), None) => Some(Tree::Multiply(Box::new(a), w)),
-        (None, Some(b)) => {
-            let rest = ev.emit(Op::Subtract, &[Num::Known(Value::Float(1.0)), w], Type::Float, "df")?;
-            Some(Tree::Multiply(Box::new(b), rest))
-        }
+/// `mix(fg = a, bg = b, mix = w)`, a missing side the empty closure.
+fn mix_trees(a: Option<Tree>, b: Option<Tree>, w: Num) -> Option<Tree> {
+    match (a, b) {
         (None, None) => None,
-    })
+        (a, b) => Some(Tree::Mix {
+            fg: Box::new(a.unwrap_or(Tree::Empty)),
+            bg: Box::new(b.unwrap_or(Tree::Empty)),
+            weight: w,
+        }),
+    }
 }
 
 /// `t` with a thin film on its dielectric, conductor and Schlick lobes.
@@ -1045,14 +1060,13 @@ impl Nodes {
                 self.push("layer", closure, Vec::new(), vec![("top".into(), top), ("base".into(), base)])
             }
             Tree::Mix { fg, bg, weight } => {
-                let fg = self.emit(ev, *fg, closure, ior)?;
-                let bg = self.emit(ev, *bg, closure, ior)?;
-                self.push(
-                    "mix",
-                    closure,
-                    vec![("mix".into(), num_arg(&weight))],
-                    vec![("fg".into(), fg), ("bg".into(), bg)],
-                )
+                let mut links = Vec::new();
+                for (input, side) in [("fg", *fg), ("bg", *bg)] {
+                    if !matches!(side, Tree::Empty) {
+                        links.push((input.into(), self.emit(ev, side, closure, ior)?));
+                    }
+                }
+                self.push("mix", closure, vec![("mix".into(), num_arg(&weight))], links)
             }
             Tree::Add(a, b) => {
                 let a = self.emit(ev, *a, closure, ior)?;
@@ -1075,6 +1089,7 @@ impl Nodes {
                     vec![("fg".into(), layer), ("bg".into(), base)],
                 )
             }
+            Tree::Empty => unreachable!("the empty closure is only a side of a mix"),
         })
     }
 }

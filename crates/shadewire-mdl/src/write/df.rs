@@ -1,6 +1,8 @@
 //! The closure graph as `::df` calls: one `bsdf` or `edf` binding per node in the material's `let`, after
 //! MaterialX's own MDL (`pbrlib_1_6.mdl`). A layer passes its base into the lobes above that take one, so pbrlib's
-//! `layer` of a dielectric over a diffuse is one `fresnel_layer`.
+//! `layer` of a dielectric over a diffuse is one `fresnel_layer`. The empty closure is `bsdf()` (`edf()`), and a mix
+//! leaves an empty side out of its components: what its weight leaves is not scattered, and a layer above gives it
+//! to the base.
 
 use std::collections::HashMap;
 
@@ -96,6 +98,9 @@ impl<'a> Closures<'a> {
         {
             return name.clone();
         }
+        if self.is_empty(id) {
+            return "bsdf()".to_string();
+        }
         let expr = match &self.graph.nodes[id as usize] {
             ClosureNode::Lobe { kind, inputs, settings, .. } => self.lobe(kind, inputs, settings, base),
             ClosureNode::Layer { top, base: under } => {
@@ -113,10 +118,17 @@ impl<'a> Closures<'a> {
                     format!("df::weighted_layer(weight: {}, layer: {top}, base: {under})", Self::read(mix))
                 }
                 _ => {
-                    let (fg, bg, w) = (self.bsdf(*fg, None), self.bsdf(*bg, None), Self::read(mix));
-                    format!(
-                        "df::normalized_mix(df::bsdf_component[](df::bsdf_component({w}, {fg}), df::bsdf_component(1.0 - {w}, {bg})))"
-                    )
+                    let w = Self::read(mix);
+                    let mut components = Vec::new();
+                    for (side, weight) in [(*fg, w.clone()), (*bg, format!("1.0 - {w}"))] {
+                        if !self.is_empty(side) {
+                            components.push(format!("df::bsdf_component({weight}, {})", self.bsdf(side, None)));
+                        }
+                    }
+                    match components.is_empty() {
+                        true => "bsdf()".to_string(),
+                        false => format!("df::normalized_mix(df::bsdf_component[]({}))", components.join(", ")),
+                    }
                 }
             },
             ClosureNode::Add { in1, in2 } => {
@@ -129,12 +141,17 @@ impl<'a> Closures<'a> {
                 let a = self.bsdf(*in1, None);
                 format!("df::tint(color({}), {a})", Self::read(in2))
             }
+            ClosureNode::Empty { .. } => unreachable!("written as `bsdf()`"),
         };
         let name = self.bind("bsdf", expr);
         if base.is_none() {
             self.bound.insert(id, name.clone());
         }
         name
+    }
+
+    fn is_empty(&self, id: ClosureId) -> bool {
+        matches!(self.graph.nodes[id as usize], ClosureNode::Empty { .. })
     }
 
     /// Whether node `id` is a lobe that takes the base of a layer.
@@ -245,6 +262,9 @@ impl<'a> Closures<'a> {
         if let Some(name) = self.bound.get(&id) {
             return name.clone();
         }
+        if self.is_empty(id) {
+            return "edf()".to_string();
+        }
         let expr = match &self.graph.nodes[id as usize] {
             ClosureNode::Lobe { kind, inputs, closures, .. } => match kind.as_str() {
                 "uniform_edf" => format!("df::tint({}, df::diffuse_edf())", Self::color(inputs, "color", "color(1.0)")),
@@ -261,10 +281,17 @@ impl<'a> Closures<'a> {
                 }
             },
             ClosureNode::Mix { fg, bg, mix } => {
-                let (fg, bg, w) = (self.edf(*fg), self.edf(*bg), Self::read(mix));
-                format!(
-                    "df::normalized_mix(df::edf_component[](df::edf_component({w}, {fg}), df::edf_component(1.0 - {w}, {bg})))"
-                )
+                let w = Self::read(mix);
+                let mut components = Vec::new();
+                for (side, weight) in [(*fg, w.clone()), (*bg, format!("1.0 - {w}"))] {
+                    if !self.is_empty(side) {
+                        components.push(format!("df::edf_component({weight}, {})", self.edf(side)));
+                    }
+                }
+                match components.is_empty() {
+                    true => "edf()".to_string(),
+                    false => format!("df::normalized_mix(df::edf_component[]({}))", components.join(", ")),
+                }
             }
             ClosureNode::Add { in1, in2 } => {
                 let (a, b) = (self.edf(*in1), self.edf(*in2));
@@ -277,6 +304,7 @@ impl<'a> Closures<'a> {
                 format!("df::tint(color({}), {a})", Self::read(in2))
             }
             ClosureNode::Layer { top, .. } => self.edf(*top),
+            ClosureNode::Empty { .. } => unreachable!("written as `edf()`"),
         };
         let name = self.bind("edf", expr);
         self.bound.insert(id, name.clone());

@@ -15,3 +15,21 @@ export material known_over_diffuse() = material(surface: material_surface(scatte
     weight: 1.2,
     layer: df::fresnel_factor(ior: color(0.2), extinction_coefficient: color(3.0), base: df::microfacet_ggx_smith_bsdf(roughness_u: 0.1)),
     base: df::diffuse_reflection_bsdf(tint: color(0.5)))));
+export material partial_of(float w = 0.3) = material(surface: material_surface(scattering: df::unbounded_mix(df::bsdf_component[](
+    df::bsdf_component(w, df::diffuse_reflection_bsdf(tint: color(0.5))),
+    df::bsdf_component(w, df::diffuse_transmission_bsdf())))));
+export material coat_or_not(uniform bool coated = true) = material(surface: material_surface(scattering: df::weighted_layer(
+    weight: 1.0,
+    layer: coated ? df::fresnel_factor(ior: color(0.2), extinction_coefficient: color(3.0), base: df::microfacet_ggx_smith_bsdf(roughness_u: 0.1)) : bsdf(),
+    base: df::diffuse_reflection_bsdf(tint: color(0.5)))));
+export material half_coat() = material(surface: material_surface(scattering: df::weighted_layer(
+    weight: 1.0,
+    layer: df::normalized_mix(df::bsdf_component[](
+        df::bsdf_component(0.5, df::fresnel_factor(ior: color(0.2), extinction_coefficient: color(3.0), base: df::microfacet_ggx_smith_bsdf(roughness_u: 0.1))))),
+    base: df::diffuse_reflection_bsdf(tint: color(0.5)))));
+export material over_nothing(float w = 0.5) = material(surface: material_surface(scattering: df::weighted_layer(
+    weight: 1.0,
+    layer: df::weighted_layer(
+        weight: w,
+        layer: df::fresnel_factor(ior: color(0.2), extinction_coefficient: color(3.0), base: df::microfacet_ggx_smith_bsdf(roughness_u: 0.1))),
+    base: df::diffuse_reflection_bsdf(tint: color(0.5)))));

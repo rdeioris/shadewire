@@ -284,6 +284,7 @@ fn bsdf_body(walk: &Walk, graph: &ClosureGraph, context: Context) -> Vec<Stmt> {
             ClosureNode::Multiply { in1, in2 } => {
                 (Expr::call("shadewire_multiply_bsdf", vec![c(*in1), walk.color_field(in2)], bsdf()), None)
             }
+            ClosureNode::Empty { .. } => (none(), None),
         };
         body.extend(let_(id, value, comment));
     }
@@ -347,6 +348,7 @@ fn emission_body(walk: &Walk, graph: &ClosureGraph) -> Vec<Stmt> {
             ClosureNode::Multiply { in1, in2 } => {
                 (Expr::binary(BinaryOp::Mul, c(*in1), walk.color_field(in2), v3.clone()), None)
             }
+            ClosureNode::Empty { .. } => (zero(), None),
         };
         body.extend(let_(id, value, comment));
     }
@@ -497,6 +499,7 @@ fn ambient_body(walk: &Walk, graph: &ClosureGraph) -> Vec<Stmt> {
                     None,
                 )
             }
+            ClosureNode::Empty { .. } => (none(), zero(v3()), zero(v2()), None),
         };
         body.extend(let_(id, albedo, comment));
         for (prefix, value) in [("d", diffuse), ("r", rough)] {

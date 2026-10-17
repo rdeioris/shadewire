@@ -151,6 +151,15 @@ fn an_empty_tree_scatters_and_emits_nothing() {
 }
 
 #[test]
+fn an_empty_side_of_a_mix_scatters_and_emits_nothing() {
+    let (text, _) = wgsl(&fixtures::mix_with_empty());
+    assert!(text.contains("let c1: ShadewireBsdf = shadewire_bsdf_none();"), "{text}");
+    assert!(text.contains("let c2: ShadewireBsdf = shadewire_mix_bsdf(c0, c1, surface.c2_mix);"), "{text}");
+    assert!(text.contains("let c6: vec3<f32> = vec3<f32>(0.0);"), "{text}");
+    assert!(text.contains("let d1: vec3<f32> = vec3<f32>(0.0);"), "{text}");
+}
+
+#[test]
 fn no_closure_tree_no_closure_code() {
     let mut dag = Dag::new("gltf_pbr");
     fixtures::surface_field(&mut dag, "base_color", Type::Color3);

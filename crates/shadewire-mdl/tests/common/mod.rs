@@ -100,6 +100,7 @@ pub fn bsdf_scatter(dag: &Dag, probe: &mut Probe, lobe: &LobeScatter) -> Scatter
                 let w = as3(&fields[in2]);
                 (each(&|i| r[i] * w[i].clamp(0.0, 1.0)), t)
             }
+            ClosureNode::Empty { .. } => ([0.0; 3], [1.0; 3]),
         }
     }
     eval(graph, root, &fields, lobe)
@@ -163,6 +164,7 @@ pub fn flat_lobes(dag: &Dag, probe: &mut Probe) -> Vec<FlatLobe> {
             ClosureNode::Multiply { in1, in2 } => {
                 walk(graph, *in1, times(weight, as3(&fields[in2])), fields, out, as3, times);
             }
+            ClosureNode::Empty { .. } => {}
         }
     }
     let mut out = Vec::new();

@@ -145,14 +145,58 @@ fn a_mix_of_weights_summing_to_one_nests_mixes() {
     assert!(near(throughput, 0.0), "{throughput:?}");
 }
 
-/// Weights summing to less than one stay a sum; one with a transmitting lobe warns.
+/// Known weights summing to less than one: nested mixes, the empty closure taking what they leave. Exact, so a
+/// transmitting lobe among them does not warn.
+#[test]
+fn a_partial_mix_of_known_weights_nests_mixes_over_the_empty_closure() {
+    let ir = weighted("partial", None);
+    let graph = ir.dag.surface.closure.as_ref().unwrap();
+    assert!(matches!(graph.nodes[graph.bsdf.unwrap() as usize], ClosureNode::Mix { .. }), "{}", graph.dump());
+    assert!(graph.dump().contains("empty_bsdf"), "{}", graph.dump());
+    assert!(ir.warnings.is_empty(), "{:?}", ir.warnings);
+    assert!(weighted("split", None).warnings.is_empty());
+}
+
+/// Weights not known stay a sum; one with a transmitting lobe warns.
 #[test]
 fn a_partial_mix_of_transmissive_lobes_warns() {
-    let ir = weighted("partial", None);
+    let ir = weighted("partial_of", None);
     let graph = ir.dag.surface.closure.as_ref().unwrap();
     assert!(matches!(graph.nodes[graph.bsdf.unwrap() as usize], ClosureNode::Add { .. }), "{}", graph.dump());
     assert!(ir.warnings.iter().any(|w| w.ends_with("a mix of transmissive lobes approximated")), "{:?}", ir.warnings);
-    assert!(weighted("split", None).warnings.is_empty());
+}
+
+/// Material `material` of fixture `weighted` with the bool argument `coated`.
+fn coated(coated: bool) -> shadewire_mdl::MaterialIr {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let modules = Modules::new(Resolver::new(vec![dir])).unwrap();
+    let args = [Argument { name: "coated".into(), value: ArgValue::Value(Value::Boolean(coated)) }];
+    modules.to_ir("::weighted", Some("coat_or_not"), &args, &IrOptions::with_models(&LOBE_MODELS)).unwrap()
+}
+
+/// `coated ? coat : bsdf()` over a diffuse: without the coat, the diffuse base shows through the empty top.
+#[test]
+fn a_layer_top_that_may_be_nothing_lets_the_base_through() {
+    let (response, _) = scatter(&coated(true).dag);
+    assert!(near(response, 0.9), "{response:?}");
+    let (response, _) = scatter(&coated(false).dag);
+    assert!(near(response, 0.5), "{response:?}");
+}
+
+/// A layer top weighted 0.5 over nothing (a one-component mix, a weighted layer without a base) reflects half the
+/// conductor and lets half the light through to the diffuse under it.
+#[test]
+fn a_layer_top_weighted_over_nothing_lets_the_rest_through() {
+    for material in ["half_coat", "over_nothing"] {
+        let ir = weighted(material, None);
+        let (response, throughput) = scatter(&ir.dag);
+        assert!(
+            near(response, 0.5 * 0.9 + 0.5 * 0.5),
+            "{material}: {response:?}\n{}",
+            ir.dag.surface.closure.as_ref().unwrap().dump()
+        );
+        assert!(near(throughput, 0.0), "{material}: {throughput:?}");
+    }
 }
 
 /// A layer's weight is limited to [0, 1], as MDL's `hard_range` has it: 1.2 is the layered top, -0.3 the base alone.

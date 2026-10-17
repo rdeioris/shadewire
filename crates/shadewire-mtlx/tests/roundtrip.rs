@@ -88,6 +88,41 @@ fn closure_trees_and_uniforms_survive_a_round_trip() {
     }
 }
 
+/// The empty closure is an unconnected closure input: written as none, read back as the same tree.
+#[test]
+fn a_mix_with_an_unconnected_side_survives_a_round_trip() {
+    let text = r#"<materialx version="1.39">
+      <conductor_bsdf name="c" type="BSDF" />
+      <oren_nayar_diffuse_bsdf name="d" type="BSDF" />
+      <mix name="m" type="BSDF">
+        <input name="fg" type="BSDF" nodename="c" />
+        <input name="mix" type="float" value="0.25" />
+      </mix>
+      <layer name="l" type="BSDF">
+        <input name="top" type="BSDF" nodename="m" />
+        <input name="base" type="BSDF" nodename="d" />
+      </layer>
+      <uniform_edf name="u" type="EDF" />
+      <mix name="e" type="EDF">
+        <input name="bg" type="EDF" nodename="u" />
+        <input name="mix" type="float" value="0.5" />
+      </mix>
+      <surface name="s" type="surfaceshader">
+        <input name="bsdf" type="BSDF" nodename="l" />
+        <input name="edf" type="EDF" nodename="e" />
+      </surface>
+      <surfacematerial name="M" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s" /></surfacematerial>
+    </materialx>"#;
+    let options = IrOptions::with_models(&["surface"]);
+    for inline in [false, true] {
+        let (a, written, b) = roundtrip(text, &options, &WriteOptions { inline, ..WriteOptions::default() });
+        let dump = a.surface.closure.as_ref().unwrap().dump();
+        assert!(dump.contains("empty_bsdf") && dump.contains("empty_edf"), "{dump}");
+        assert!(!written.contains("empty"), "{written}");
+        assert_same_material(&a, &b, &written);
+    }
+}
+
 #[test]
 fn ui_hints_on_a_shader_value_survive_a_round_trip() {
     let text = r#"<materialx version="1.39">

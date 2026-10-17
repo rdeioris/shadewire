@@ -190,6 +190,27 @@ fn every_lobe_is_a_df() {
     assert_mdlc(&out.code, "every_lobe");
 }
 
+/// A mix with an empty side is one weighted component: MDL leaves the rest unscattered, and a layer above passes it to
+/// the base.
+#[test]
+fn an_empty_side_of_a_mix_is_left_out_of_it() {
+    let dag = shadewire::shader::fixtures::mix_with_empty();
+    let source = shadewire::SourceInfo { source: "test".into(), mtlx_version: "1.39".into() };
+    let out = compile(&dag, &source, &MdlOptions { name: "mix_with_empty".into(), optimize: false }).unwrap();
+    assert!(
+        out.code.contains("bsdf c2 = df::normalized_mix(df::bsdf_component[](df::bsdf_component(s.c2_mix, c1)));"),
+        "{}",
+        out.code
+    );
+    assert!(
+        out.code.contains("df::normalized_mix(df::edf_component[](df::edf_component(1.0 - s.c7_mix, c"),
+        "{}",
+        out.code
+    );
+    assert!(!out.code.contains("= bsdf();") && !out.code.contains("= edf();"), "{}", out.code);
+    assert_mdlc(&out.code, "mix_with_empty");
+}
+
 const LAYERED: &str = r#"<?xml version="1.0"?>
 <materialx version="1.39">
   <dielectric_bsdf name="coat" type="BSDF"><input name="ior" type="float" value="1.4" /></dielectric_bsdf>

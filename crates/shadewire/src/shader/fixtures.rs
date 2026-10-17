@@ -279,6 +279,35 @@ pub fn empty_closure() -> Dag {
     dag
 }
 
+/// A tree whose mixes have an empty side: `layer(mix(conductor, empty, m), diffuse)` scatters, `mix(empty, uniform,
+/// m)` emits. Node `c1` is the empty BSDF, `c6` the empty EDF.
+pub fn mix_with_empty() -> Dag {
+    let mut dag = Dag::new("surface");
+    let mut g = ClosureGraph::default();
+    let lobe = |dag: &mut Dag, g: &mut ClosureGraph, kind: &str, ty: ClosureType, input: &str| {
+        let field = surface_field(dag, &format!("c{}_{input}", g.nodes.len()), C);
+        g.add(ClosureNode::Lobe {
+            kind: kind.into(),
+            ty,
+            inputs: BTreeMap::from([(input.to_string(), field)]),
+            settings: BTreeMap::new(),
+            closures: BTreeMap::new(),
+        })
+    };
+    let conductor = lobe(&mut dag, &mut g, "conductor_bsdf", ClosureType::Bsdf, "ior");
+    let empty = g.empty(ClosureType::Bsdf);
+    let mix = surface_field(&mut dag, "c2_mix", F);
+    let top = g.add(ClosureNode::Mix { fg: conductor, bg: empty, mix });
+    let diffuse = lobe(&mut dag, &mut g, "oren_nayar_diffuse_bsdf", ClosureType::Bsdf, "color");
+    g.bsdf = Some(g.add(ClosureNode::Layer { top, base: diffuse }));
+    let uniform = lobe(&mut dag, &mut g, "uniform_edf", ClosureType::Edf, "color");
+    let empty = g.empty(ClosureType::Edf);
+    let mix = surface_field(&mut dag, "c7_mix", F);
+    g.edf = Some(g.add(ClosureNode::Mix { fg: empty, bg: uniform, mix }));
+    dag.surface.closure = Some(g);
+    dag
+}
+
 /// Every fixture with a name, for back ends that compile them all.
 pub fn all() -> Vec<(&'static str, Dag)> {
     vec![
@@ -287,6 +316,7 @@ pub fn all() -> Vec<(&'static str, Dag)> {
         ("library_ops", library_ops()),
         ("every_lobe", every_lobe()),
         ("empty_closure", empty_closure()),
+        ("mix_with_empty", mix_with_empty()),
     ]
 }
 

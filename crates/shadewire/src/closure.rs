@@ -1,5 +1,5 @@
 //! The closure tree of a `surface` node: lobes (MaterialX BSDF and EDF leaf nodes) combined by `layer`,
-//! `mix`, `add` and `multiply`.
+//! `mix`, `add` and `multiply`, and the empty closure a `mix` with one side scattering nothing reads.
 //!
 //! The tree's shape is fixed per material; every value it reads (a lobe input, a mix weight, the opacity)
 //! is a surface field, computed by the DAG like any other model's field. A back end may evaluate the tree
@@ -21,6 +21,17 @@ pub enum ClosureType {
     Bsdf,
     Edf,
     Vdf,
+}
+
+impl ClosureType {
+    /// `bsdf`, `edf` or `vdf`.
+    pub fn name(self) -> &'static str {
+        match self {
+            ClosureType::Bsdf => "bsdf",
+            ClosureType::Edf => "edf",
+            ClosureType::Vdf => "vdf",
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -59,6 +70,13 @@ pub enum ClosureNode {
         in1: ClosureId,
         in2: String,
     },
+    /// Scatters (or emits) nothing and lets everything through to a closure layered under it: MaterialX's
+    /// unconnected closure input, MDL's `bsdf()`. Only a side of a `mix` holds one; anywhere else a closure that
+    /// scatters nothing is left out.
+    Empty {
+        #[serde(rename = "type")]
+        ty: ClosureType,
+    },
 }
 
 impl ClosureNode {
@@ -70,6 +88,7 @@ impl ClosureNode {
             ClosureNode::Mix { fg, bg, .. } => vec![*fg, *bg],
             ClosureNode::Add { in1, in2 } => vec![*in1, *in2],
             ClosureNode::Multiply { in1, .. } => vec![*in1],
+            ClosureNode::Empty { .. } => Vec::new(),
         }
     }
 
@@ -79,7 +98,7 @@ impl ClosureNode {
             ClosureNode::Lobe { inputs, .. } => inputs.values().map(String::as_str).collect(),
             ClosureNode::Mix { mix, .. } => vec![mix.as_str()],
             ClosureNode::Multiply { in2, .. } => vec![in2.as_str()],
-            ClosureNode::Layer { .. } | ClosureNode::Add { .. } => Vec::new(),
+            ClosureNode::Layer { .. } | ClosureNode::Add { .. } | ClosureNode::Empty { .. } => Vec::new(),
         }
     }
 }
@@ -106,6 +125,26 @@ impl ClosureGraph {
         (self.nodes.len() - 1) as ClosureId
     }
 
+    /// The empty closure of type `ty`: added once, then shared.
+    pub fn empty(&mut self, ty: ClosureType) -> ClosureId {
+        let found = self.nodes.iter().position(|n| matches!(n, ClosureNode::Empty { ty: t } if *t == ty));
+        match found {
+            Some(id) => id as ClosureId,
+            None => self.add(ClosureNode::Empty { ty }),
+        }
+    }
+
+    /// The type of node `id`: a lobe's or an empty closure's own, an operator's first child's.
+    pub fn ty(&self, id: ClosureId) -> ClosureType {
+        match &self.nodes[id as usize] {
+            ClosureNode::Lobe { ty, .. } | ClosureNode::Empty { ty } => *ty,
+            ClosureNode::Layer { top: first, .. }
+            | ClosureNode::Mix { fg: first, .. }
+            | ClosureNode::Add { in1: first, .. }
+            | ClosureNode::Multiply { in1: first, .. } => self.ty(*first),
+        }
+    }
+
     /// One line per node, then the roots: the closure part of `Dag::dump`.
     pub fn dump(&self) -> String {
         let mut out = String::new();
@@ -121,6 +160,7 @@ impl ClosureGraph {
                 ClosureNode::Mix { fg, bg, mix } => format!("mix(fg=c{fg}, bg=c{bg}, mix={mix})"),
                 ClosureNode::Add { in1, in2 } => format!("add(c{in1}, c{in2})"),
                 ClosureNode::Multiply { in1, in2 } => format!("multiply(c{in1}, {in2})"),
+                ClosureNode::Empty { ty } => format!("empty_{}", ty.name()),
             };
             out.push_str(&format!("c{index} = {body}\n"));
         }
@@ -175,5 +215,22 @@ mod tests {
             json,
             r#"[{"op":"lobe","kind":"oren_nayar_diffuse_bsdf","type":"bsdf","inputs":{"color":"c0_color"},"settings":{}},{"op":"multiply","in1":0,"in2":"m1_in2"}]"#
         );
+    }
+
+    #[test]
+    fn an_empty_side_of_a_mix_is_one_node_of_its_type() {
+        let mut g = ClosureGraph::default();
+        let a = g.add(lobe("conductor_bsdf", "c0_color"));
+        let empty = g.empty(ClosureType::Bsdf);
+        assert_eq!(g.empty(ClosureType::Bsdf), empty);
+        assert_ne!(g.empty(ClosureType::Edf), empty);
+        let mix = g.add(ClosureNode::Mix { fg: a, bg: empty, mix: "c3_mix".into() });
+        g.bsdf = Some(mix);
+        assert_eq!(g.ty(mix), ClosureType::Bsdf);
+        assert_eq!(g.ty(2), ClosureType::Edf);
+        let dump = g.dump();
+        assert!(dump.contains("c1 = empty_bsdf\nc2 = empty_edf\nc3 = mix(fg=c0, bg=c1, mix=c3_mix)\n"), "{dump}");
+        let json = serde_json::to_string(&g.nodes[1]).unwrap();
+        assert_eq!(json, r#"{"op":"empty","type":"bsdf"}"#);
     }
 }

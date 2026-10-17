@@ -6,10 +6,11 @@ c0 = dielectric_bsdf(ior=c0_ior, normal=c0_normal, retroreflective=c0_retrorefle
 c1 = oren_nayar_diffuse_bsdf(color=c1_color, energy_compensation=c1_energy_compensation, normal=c1_normal, roughness=c1_roughness, weight=c1_weight)
 c2 = layer(top=c0, base=c1)
 c3 = uniform_edf(color=c3_color)
-c4 = multiply(c3, c4_in2)
-c5 = multiply(c4, c5_in2)
+c4 = empty_edf
+c5 = mix(fg=c3, bg=c4, mix=c5_mix)
+c6 = multiply(c5, c6_in2)
 bsdf = c2
-edf = c5
+edf = c6
 opacity = opacity
 --- fields
 opacity = [1.0]
@@ -29,6 +30,6 @@ c1_normal = context normal_world
 c1_roughness = [0.0]
 c1_weight = [1.0]
 c3_color = [1.0, 1.0, 1.0]
-c4_in2 = computed
-c5_in2 = [0.31830987, 0.31830987, 0.31830987]
+c5_mix = computed
+c6_in2 = [0.31830987, 0.31830987, 0.31830987]
 --- warnings

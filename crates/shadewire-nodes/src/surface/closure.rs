@@ -4,10 +4,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use shadewire::{
-    ClosureGraph, ClosureId, ClosureNode, ClosureType, Error, Location, Node as IrNode, NodeId, NodeKind, Op,
-    SurfaceField, Type, Value,
-};
+use shadewire::{ClosureGraph, ClosureId, ClosureNode, ClosureType, Error, Location, NodeId, SurfaceField, Type};
 
 use super::find::SurfaceSource;
 use super::models::fields;
@@ -96,8 +93,8 @@ impl<'a> Elaborator<'a> {
                 let scope = &mix_input.scope;
                 let weight = self.surface_input_value(scope, mix_input.node, mix_input.nodedef, "mix", scope.user)?;
                 let origin = scope.origin(&mix_input.node.name);
-                let bsdf = self.mix_closures(b, fg.bsdf, bg.bsdf, weight, &origin);
-                let edf = self.mix_closures(b, fg.edf, bg.edf, weight, &origin);
+                let bsdf = self.mix_closures(b, fg.bsdf, bg.bsdf, weight);
+                let edf = self.mix_closures(b, fg.edf, bg.edf, weight);
                 let mut values = Vec::new();
                 for ((name, ty, f), (_, _, g)) in fg.values.into_iter().zip(bg.values) {
                     let node = self.mix_field(f, g, weight, ty, format!("{origin}.{name}"));
@@ -113,37 +110,22 @@ impl<'a> Elaborator<'a> {
         }
     }
 
-    /// `mix(bg, fg, weight)` of two optional closures; a missing side scatters nothing.
+    /// `mix(bg, fg, weight)` of two optional closures; a missing side is the empty closure.
     fn mix_closures(
         &mut self,
         b: &mut Builder<'a>,
         fg: Option<ClosureId>,
         bg: Option<ClosureId>,
         weight: NodeId,
-        origin: &str,
     ) -> Option<ClosureId> {
-        match (fg, bg) {
-            (Some(fg), Some(bg)) => {
-                let mix = b.field("mix", Type::Float, weight);
-                Some(b.graph.add(ClosureNode::Mix { fg, bg, mix }))
-            }
-            (Some(fg), None) => {
-                let in2 = b.field("in2", Type::Float, weight);
-                Some(b.graph.add(ClosureNode::Multiply { in1: fg, in2 }))
-            }
-            (None, Some(bg)) => {
-                let one = self.dag.add(IrNode {
-                    kind: NodeKind::Const(Value::Float(1.0)),
-                    ty: Type::Float,
-                    origin: origin.to_string(),
-                });
-                let kind = NodeKind::Op { op: Op::Subtract, args: vec![one, weight] };
-                let rest = self.dag.add(IrNode { kind, ty: Type::Float, origin: origin.to_string() });
-                let in2 = b.field("in2", Type::Float, rest);
-                Some(b.graph.add(ClosureNode::Multiply { in1: bg, in2 }))
-            }
-            (None, None) => None,
-        }
+        let (fg, bg) = match (fg, bg) {
+            (Some(fg), Some(bg)) => (fg, bg),
+            (Some(fg), None) => (fg, b.graph.empty(b.graph.ty(fg))),
+            (None, Some(bg)) => (b.graph.empty(b.graph.ty(bg)), bg),
+            (None, None) => return None,
+        };
+        let mix = b.field("mix", Type::Float, weight);
+        Some(b.graph.add(ClosureNode::Mix { fg, bg, mix }))
     }
 
     fn closure_error(&self, scope: &Scope<'a>, node: &Node, reason: String) -> Error {
@@ -292,7 +274,7 @@ impl<'a> Elaborator<'a> {
                 let fg = self.closure_input(b, scope, node, "fg", d)?;
                 let bg = self.closure_input(b, scope, node, "bg", d)?;
                 let weight = self.surface_input_value(scope, node, nd, "mix", scope.user)?;
-                Ok(self.mix_closures(b, fg, bg, weight, &scope.origin(&node.name)))
+                Ok(self.mix_closures(b, fg, bg, weight))
             }
             "multiply" => {
                 let nd = self.closure_nodedef(scope, node)?;

@@ -1,12 +1,13 @@
 //! Closure pruning: after constant folding, a lobe whose `weight` is the constant 0 (or whose constant black
-//! `color` scales its whole response), a `multiply` by 0 and the
-//! side of a `mix` its constant weight leaves out scatter nothing, so they leave the tree, and the fields only
-//! they read leave the surface. Uniform weights stay: the tree's shape must not depend on uniform values.
-//! Kept nodes are renumbered and their fields renamed to match (`c<id>_<input>`).
+//! `color` scales its whole response), a `multiply` by 0, the empty closure and the side of a `mix` its constant
+//! weight leaves out scatter nothing, so they leave the tree, and the fields only they read leave the surface. A
+//! `mix` whose other weight is not constant keeps the empty closure on the side that left. Uniform weights stay:
+//! the tree's shape must not depend on uniform values. Kept nodes are renumbered and their fields renamed to match
+//! (`c<id>_<input>`).
 
 use std::collections::BTreeMap;
 
-use crate::{ClosureGraph, ClosureId, ClosureNode, Dag, Node, NodeId, NodeKind, Op, SurfaceField, Type, Value};
+use crate::{ClosureGraph, ClosureId, ClosureNode, Dag, NodeId, NodeKind, SurfaceField, Type, Value};
 
 /// The constant value of field `name`, when its node is a constant.
 fn constant<'a>(dag: &'a Dag, name: &str) -> Option<&'a Value> {
@@ -42,8 +43,6 @@ struct Pruner<'a> {
     out: ClosureGraph,
     /// Fields of kept nodes: (new name, old field node).
     fields: Vec<(String, Type, NodeId)>,
-    /// Nodes added to the DAG for `1 - weight`.
-    added: Vec<Node>,
 }
 
 impl Pruner<'_> {
@@ -59,19 +58,7 @@ impl Pruner<'_> {
         new
     }
 
-    fn new_field(&mut self, input: &str, ty: Type, node: NodeId) -> String {
-        let new = format!("c{}_{input}", self.out.nodes.len());
-        self.fields.push((new.clone(), ty, node));
-        new
-    }
-
-    fn add_node(&mut self, kind: NodeKind, ty: Type) -> NodeId {
-        let id = NodeId((self.old.nodes.len() + self.added.len()) as u32);
-        self.added.push(Node { kind, ty, origin: String::new() });
-        id
-    }
-
-    fn prune(&mut self, map: &[Option<ClosureId>], node: &ClosureNode) -> Option<ClosureId> {
+    fn prune(&mut self, old: &ClosureGraph, map: &[Option<ClosureId>], node: &ClosureNode) -> Option<ClosureId> {
         let get = |c: &ClosureId| map[*c as usize];
         match node {
             ClosureNode::Lobe { kind, ty, inputs, settings, closures } => {
@@ -123,25 +110,16 @@ impl Pruner<'_> {
                 if is_all(weight, 1.0) {
                     return get(fg);
                 }
-                match (get(fg), get(bg)) {
-                    (Some(fg), Some(bg)) => {
-                        let mix = self.keep_field(mix);
-                        Some(self.out.add(ClosureNode::Mix { fg, bg, mix }))
-                    }
-                    (Some(fg), None) => {
-                        let in2 = self.keep_field(mix);
-                        Some(self.out.add(ClosureNode::Multiply { in1: fg, in2 }))
-                    }
-                    (None, Some(bg)) => {
-                        let w = self.field_of(mix).node;
-                        let one = self.add_node(NodeKind::Const(Value::Float(1.0)), Type::Float);
-                        let rest = self.add_node(NodeKind::Op { op: Op::Subtract, args: vec![one, w] }, Type::Float);
-                        let in2 = self.new_field("in2", Type::Float, rest);
-                        Some(self.out.add(ClosureNode::Multiply { in1: bg, in2 }))
-                    }
-                    (None, None) => None,
-                }
+                let (fg, bg) = match (get(fg), get(bg)) {
+                    (None, None) => return None,
+                    (Some(fg), Some(bg)) => (fg, bg),
+                    (Some(fg), None) => (fg, self.out.empty(old.ty(*bg))),
+                    (None, Some(bg)) => (self.out.empty(old.ty(*fg)), bg),
+                };
+                let mix = self.keep_field(mix);
+                Some(self.out.add(ClosureNode::Mix { fg, bg, mix }))
             }
+            ClosureNode::Empty { .. } => None,
         }
     }
 }
@@ -151,22 +129,19 @@ pub fn run(dag: &Dag) -> Dag {
     let Some(closure) = &dag.surface.closure else {
         return dag.clone();
     };
-    let mut pruner = Pruner { old: dag, out: ClosureGraph::default(), fields: Vec::new(), added: Vec::new() };
+    let mut pruner = Pruner { old: dag, out: ClosureGraph::default(), fields: Vec::new() };
     let mut map: Vec<Option<ClosureId>> = Vec::with_capacity(closure.nodes.len());
     for node in &closure.nodes {
-        let kept = pruner.prune(&map, node);
+        let kept = pruner.prune(closure, &map, node);
         map.push(kept);
     }
     pruner.out.bsdf = closure.bsdf.and_then(|c| map[c as usize]);
     pruner.out.edf = closure.edf.and_then(|c| map[c as usize]);
     pruner.out.opacity = closure.opacity.clone();
 
-    let Pruner { out, fields, added, .. } = pruner;
+    let Pruner { out, fields, .. } = pruner;
     let (out, fields) = compact(out, fields);
     let mut new = dag.clone();
-    for node in added {
-        new.add(node);
-    }
     let referenced: Vec<String> = closure.nodes.iter().flat_map(|n| n.fields()).map(str::to_string).collect();
     let mut surface_fields: Vec<SurfaceField> =
         dag.surface.fields.iter().filter(|f| !referenced.contains(&f.name)).cloned().collect();
@@ -216,6 +191,7 @@ fn compact(graph: ClosureGraph, fields: Vec<(String, Type, NodeId)>) -> (Closure
             ClosureNode::Add { in1, in2 } => ClosureNode::Add { in1: child(in1), in2: child(in2) },
             ClosureNode::Mix { fg, bg, mix } => ClosureNode::Mix { fg: child(fg), bg: child(bg), mix: rename(mix) },
             ClosureNode::Multiply { in1, in2 } => ClosureNode::Multiply { in1: child(in1), in2: rename(in2) },
+            ClosureNode::Empty { ty } => ClosureNode::Empty { ty: *ty },
         };
         map[index] = Some(out.add(node));
     }
@@ -320,14 +296,39 @@ mod tests {
     }
 
     #[test]
-    fn a_mix_missing_its_fg_scales_the_bg_by_one_minus_the_weight() {
+    fn a_mix_missing_its_fg_mixes_the_empty_closure_in() {
         let mut dag = coated(Value::Float(0.0), None);
         let g = dag.surface.closure.as_mut().unwrap();
         g.nodes[1] = lobe("conductor_bsdf", "c0_weight");
+        let nodes = dag.nodes.len();
         let out = run(&dag);
         let dump = out.surface.closure.as_ref().unwrap().dump();
-        assert!(dump.contains("c1 = multiply(c0, c1_in2)\nbsdf = c1"), "{dump}");
-        let field = out.surface.fields.iter().find(|f| f.name == "c1_in2").unwrap();
-        assert!(matches!(out.node(field.node).kind, NodeKind::Op { op: Op::Subtract, .. }));
+        assert_eq!(
+            dump,
+            "c0 = oren_nayar_diffuse_bsdf(weight=c0_weight)\nc1 = empty_bsdf\nc2 = mix(fg=c1, bg=c0, mix=c2_mix)\n\
+             bsdf = c2\nedf = none\nopacity = opacity\n"
+        );
+        assert_eq!(out.nodes.len(), nodes, "no `1 - weight` node");
+    }
+
+    #[test]
+    fn a_mix_missing_its_bg_keeps_the_fg_weighted() {
+        let mut dag = coated(Value::Float(0.0), None);
+        let g = dag.surface.closure.as_mut().unwrap();
+        g.nodes[2] = lobe("oren_nayar_diffuse_bsdf", "c0_weight");
+        let out = run(&dag);
+        let dump = out.surface.closure.as_ref().unwrap().dump();
+        assert!(dump.contains("c1 = empty_bsdf\nc2 = mix(fg=c0, bg=c1, mix=c2_mix)\nbsdf = c2"), "{dump}");
+    }
+
+    #[test]
+    fn an_empty_closure_prunes_like_a_lobe_that_scatters_nothing() {
+        let mut dag = coated(Value::Float(1.0), None);
+        let g = dag.surface.closure.as_mut().unwrap();
+        g.nodes[1] = ClosureNode::Empty { ty: ClosureType::Bsdf };
+        g.nodes[2] = ClosureNode::Empty { ty: ClosureType::Bsdf };
+        let out = run(&dag);
+        let dump = out.surface.closure.as_ref().unwrap().dump();
+        assert_eq!(dump, "c0 = dielectric_bsdf(weight=c0_weight)\nbsdf = c0\nedf = none\nopacity = opacity\n");
     }
 }

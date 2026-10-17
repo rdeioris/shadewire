@@ -207,6 +207,7 @@ fn weights(dag: &Dag) -> Vec<(String, f32)> {
             ClosureNode::Add { in1, in2 } => stack.extend([(*in1, w), (*in2, w)]),
             ClosureNode::Multiply { in1, in2 } => stack.push((*in1, w * field(dag, in2).floats()[0])),
             ClosureNode::Layer { .. } => panic!("no layer here:\n{}", closure.dump()),
+            ClosureNode::Empty { .. } => {}
         }
     }
     found.sort_by(|a, b| a.0.cmp(&b.0));
