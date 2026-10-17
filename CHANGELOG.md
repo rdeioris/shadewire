@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Integer bitwise ops.** `Op::BitwiseAnd`, `BitwiseOr`, `BitwiseXor`, `ShiftLeft`, `ShiftRight` (arithmetic) and
+  `ShiftRightUnsigned`, on two's-complement integers with shift amounts taken modulo 32 (IR names `bitwise_and` ..
+  `shift_right_unsigned`; MaterialX `shadewire_*` nodedefs in `shadewire_ir.mtlx`). The MDL front end lowers run-time
+  `&`, `|`, `^`, `<<`, `>>` and `>>>` to them, where it rejected them before; a constant shift or low mask is no longer
+  rewritten as float arithmetic, which rounded past 2^24. A `Multiply` of integers now wraps in i32, and MDL's integer
+  `*` lowers to it rather than to a floored float product, so hashes such as `(i ^ seed) * 1075385539` keep their
+  low bits. The MaterialX writer still writes an integer multiply as a float one.
 - **Distilling closure trees to `open_pbr_surface`.** `IrOptions::distill`, with `open_pbr_surface` accepted, turns a
   material that would open into a closure tree (every MDL material, a pbrlib `surface`, a named model the host does
   not accept) into an `open_pbr_surface` whose fields are IR expressions over the tree's lobes and mix, layer and
