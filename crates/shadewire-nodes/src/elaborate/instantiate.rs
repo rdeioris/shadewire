@@ -9,7 +9,6 @@ use super::{Binding, Elaborator, Scope, TextValue};
 use crate::document::{Input, Node, PortType, empty_document};
 use crate::library::standard;
 use crate::options::IrOptions;
-use crate::surface::CLOSURE_MODEL;
 use crate::synthetic::{Synthetic, input};
 
 /// What a front end binds a node input to.
@@ -35,8 +34,7 @@ impl<'a> Elaborator<'a> {
     pub fn standalone(synthetic: &'a Synthetic, options: &'a IrOptions) -> Elaborator<'a> {
         let mut elaborator = Elaborator::new(empty_document(), standard(), options, "");
         elaborator.synthetic = Some(synthetic);
-        elaborator.accepted_models = options.models.clone();
-        elaborator.accepts_closures = options.models.iter().any(|m| m == CLOSURE_MODEL);
+        elaborator.accept(options);
         elaborator
     }
 

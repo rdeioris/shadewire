@@ -123,8 +123,9 @@ typedef struct shadewire_strings shadewire_strings;
 // colorspace and whether authored values are uniforms, as `shadewire_mtlx_options` without the resolver. Set
 // `struct_size`, or use `shadewire_ir_options_default`.
 //
-// `models`, `model_count`, `working_colorspace` and `values_as_uniforms` read as in `shadewire_mtlx_options`;
-// `reserved` fills the tail padding and must be zero. New fields are only appended at the end.
+// `models`, `model_count`, `working_colorspace`, `values_as_uniforms` and `distill` read as in
+// `shadewire_mtlx_options`; `reserved` and `reserved2` fill padding and must be zero. New fields are only appended
+// at the end.
 typedef struct shadewire_ir_options {
   uint32_t struct_size;
   const char *const *models;
@@ -132,6 +133,8 @@ typedef struct shadewire_ir_options {
   const char *working_colorspace;
   bool values_as_uniforms;
   uint8_t reserved[7];
+  bool distill;
+  uint8_t reserved2[7];
 } shadewire_ir_options;
 
 // Which field of a `shadewire_value` holds the value. Passed in from C, so a plain `u32`.
@@ -187,7 +190,11 @@ typedef void (*shadewire_resolve_fn)(void *user_data,
 //
 // `resolve` reads `xi:include`s: NULL reads the file system relative to the including document's location (a
 // path), non-NULL is the host's resolver (see `shadewire_resolve_fn`), called with `resolve_user_data`. A document
-// with includes needs a location either way. New fields are only appended at the end.
+// with includes needs a location either way.
+//
+// `distill` (true for any non-zero byte; false for a caller whose `struct_size` ends before it) distills a material
+// that would open into a closure tree to `open_pbr_surface` when `models` accepts it (`IrOptions::distill`).
+// `reserved2` fills the tail padding and must be zero. New fields are only appended at the end.
 typedef struct shadewire_mtlx_options {
   uint32_t struct_size;
   const char *const *models;
@@ -197,6 +204,8 @@ typedef struct shadewire_mtlx_options {
   uint8_t reserved[7];
   shadewire_resolve_fn resolve;
   void *resolve_user_data;
+  bool distill;
+  uint8_t reserved2[7];
 } shadewire_mtlx_options;
 
 // Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
@@ -774,7 +783,8 @@ void shadewire_ir_free(struct shadewire_ir *ir);
 // searched for relative imports. `material` selects an exported material by name (NULL for the module's only one:
 // SHADEWIRE_ERROR_MATERIAL when it has several). `paths` holds `path_count` directories of the MDL search path, where
 // `import` finds modules (NULL and 0 for none; the standard modules and `::base` are built in). An MDL material is a
-// closure tree, so `options` must accept the `surface` model: the defaults (`options` NULL) refuse it. The IR is not
+// closure tree, so `options` must accept the `surface` model, or accept `open_pbr_surface` with `distill` set (the
+// tree then comes out distilled to it): the defaults (`options` NULL) refuse it. The IR is not
 // optimized; the front end's warnings are read with `shadewire_ir_warnings`. `*out` is written only on success.
 //
 // # Safety

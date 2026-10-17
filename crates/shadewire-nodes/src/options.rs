@@ -14,6 +14,10 @@ pub struct IrOptions {
     pub values_as_uniforms: bool,
     /// For untrusted documents: the most IR nodes lowering may create before it fails with `Error::Limit`.
     pub max_nodes: Option<usize>,
+    /// Distill closure trees to `open_pbr_surface` when the host accepts it: a material that would open into a
+    /// closure tree (an MDL material, a pbrlib `surface`, a named model the host does not accept) comes out as an
+    /// `open_pbr_surface` whose fields are computed from the tree's lobes and weights (see `surface::distill`).
+    pub distill: bool,
 }
 
 impl Default for IrOptions {
@@ -30,6 +34,7 @@ impl IrOptions {
             working_colorspace: "lin_rec709".to_string(),
             values_as_uniforms: true,
             max_nodes: None,
+            distill: false,
         }
     }
 }
@@ -45,6 +50,7 @@ mod tests {
         assert_eq!(o.working_colorspace, "lin_rec709");
         assert!(o.values_as_uniforms);
         assert_eq!(o.max_nodes, None);
+        assert!(!o.distill);
     }
 
     #[test]

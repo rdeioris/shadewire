@@ -53,6 +53,7 @@ use crate::index::Index;
 use crate::library::Library;
 use crate::options::IrOptions;
 use crate::surface::CLOSURE_MODEL;
+use crate::surface::distill::DISTILL_MODEL;
 use crate::surface::find::{SurfaceSource, pick_material};
 use crate::synthetic::Synthetic;
 
@@ -100,6 +101,8 @@ pub struct Elaborator<'a> {
     /// The host accepts the `surface` model: `surface` nodes compile to closure trees, and named models
     /// outside `accepted_models` open through their implementation graphs.
     pub accepts_closures: bool,
+    /// `IrOptions::distill` with `open_pbr_surface` accepted: a closure tree comes out distilled to it.
+    pub distills: bool,
     /// The nodes a front end made up (`Elaborator::standalone`); `None` when built from a document.
     pub synthetic: Option<&'a Synthetic>,
 }
@@ -125,8 +128,17 @@ impl<'a> Elaborator<'a> {
             surface_field_memo: HashMap::new(),
             accepted_models: Vec::new(),
             accepts_closures: false,
+            distills: false,
             synthetic: None,
         }
+    }
+
+    /// The models `options` accept: closure trees when `surface` is among them, or when they are distilled to an
+    /// accepted `open_pbr_surface`.
+    pub fn accept(&mut self, options: &IrOptions) {
+        self.accepted_models = options.models.clone();
+        self.distills = options.distill && options.models.iter().any(|m| m == DISTILL_MODEL);
+        self.accepts_closures = self.distills || options.models.iter().any(|m| m == CLOSURE_MODEL);
     }
 
     /// A location in `scope`: its library file, or the elaborated document's; the element's `source_path` when a
@@ -198,8 +210,7 @@ pub fn elaborate(doc: &Document, lib: &Library, options: &IrOptions, material: O
 
 fn elaborate_here(doc: &Document, lib: &Library, options: &IrOptions, material: Option<&str>) -> Result<Dag, Error> {
     let mut elaborator = Elaborator::new(doc, lib, options, "");
-    elaborator.accepted_models = options.models.clone();
-    elaborator.accepts_closures = options.models.iter().any(|m| m == CLOSURE_MODEL);
+    elaborator.accept(options);
     let material = pick_material(doc, material)?;
     let top = elaborator.top_scope(&doc.nodes);
     let source = elaborator.find_surface(&top, material)?;

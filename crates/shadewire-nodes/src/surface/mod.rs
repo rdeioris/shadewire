@@ -1,6 +1,7 @@
 //! The surface: which material, which shading model, and the fields it gets.
 
 pub mod closure;
+pub mod distill;
 pub mod find;
 pub mod finish;
 pub mod mix;
@@ -10,6 +11,8 @@ pub mod models;
 mod closure_tests;
 #[cfg(test)]
 mod diamond_tests;
+#[cfg(test)]
+mod distill_tests;
 #[cfg(test)]
 mod finish_tests;
 #[cfg(test)]

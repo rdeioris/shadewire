@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use shadewire::{Dag, Error, Location};
 
+use super::distill::{DISTILL_MODEL, distill};
 use super::{CLOSURE_MODEL, SurfaceSource};
 use crate::document::{Node, PortType};
 use crate::elaborate::{Arg, Elaborator, Scope};
@@ -102,14 +103,20 @@ impl<'a> Elaborator<'a> {
     /// The dag finished with `source` as its surface: the fields of its model, or its closure tree for the
     /// `surface` model; `NoTranslation` when the options do not accept its model.
     pub(crate) fn finish_source(mut self, source: SurfaceSource<'a>) -> Result<Dag, Error> {
-        let model = source.model().to_string();
-        if !self.accepted_models.contains(&model) {
+        let mut model = source.model().to_string();
+        let distilled = model == CLOSURE_MODEL && self.distills;
+        if !self.accepted_models.contains(&model) && !distilled {
             return Err(Error::NoTranslation { from: model, to: self.accepted_models.clone() });
         }
         if model == CLOSURE_MODEL {
             let (fields, closure) = self.closure_surface(&source)?;
             self.dag.surface.fields = fields;
             self.dag.surface.closure = Some(closure);
+            if distilled {
+                self.dag.surface.model = model;
+                distill(&mut self.dag)?;
+                model = DISTILL_MODEL.to_string();
+            }
         } else {
             self.dag.surface.fields = self.surface_fields(&source)?;
         }

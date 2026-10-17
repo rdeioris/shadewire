@@ -103,7 +103,8 @@ unsafe fn read_args(args: *const shadewire_mdl_arg, count: usize, size: usize) -
 /// searched for relative imports. `material` selects an exported material by name (NULL for the module's only one:
 /// SHADEWIRE_ERROR_MATERIAL when it has several). `paths` holds `path_count` directories of the MDL search path, where
 /// `import` finds modules (NULL and 0 for none; the standard modules and `::base` are built in). An MDL material is a
-/// closure tree, so `options` must accept the `surface` model: the defaults (`options` NULL) refuse it. The IR is not
+/// closure tree, so `options` must accept the `surface` model, or accept `open_pbr_surface` with `distill` set (the
+/// tree then comes out distilled to it): the defaults (`options` NULL) refuse it. The IR is not
 /// optimized; the front end's warnings are read with `shadewire_ir_warnings`. `*out` is written only on success.
 ///
 /// # Safety
