@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **C: a reusable MDL modules handle.** `shadewire_mdl_modules` wraps `shadewire_mdl::Modules`: made once with a
+  search path (`shadewire_mdl_modules_new` with `shadewire_mdl_modules_options`, versioned by `struct_size`), it
+  lowers any number of materials (`shadewire_mdl_modules_to_ir`, a `.mdl` path or a module name, typed
+  `shadewire_mdl_arg`s with `arg_size`) and lists them (`_material_names`), parsing each module and its imports once.
+  A stage's materials then share the parsed `::base`, `::OmniPBR` and the rest instead of re-reading them on every
+  call (Omniverse materials: about 195 ms per call down to about 7 ms). The handle may be used from several threads at
+  once; free it with `shadewire_mdl_modules_free`.
 - **Distilling closure trees to `open_pbr_surface`.** `IrOptions::distill`, with `open_pbr_surface` accepted, turns a
   material that would open into a closure tree (every MDL material, a pbrlib `surface`, a named model the host does
   not accept) into an `open_pbr_surface` whose fields are IR expressions over the tree's lobes and mix, layer and

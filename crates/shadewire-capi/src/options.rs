@@ -6,6 +6,7 @@
 
 use std::ffi::{c_char, c_void};
 use std::mem::MaybeUninit;
+use std::path::PathBuf;
 
 use shadewire_mtlx::Resolver;
 use shadewire_nodes::IrOptions;
@@ -84,6 +85,28 @@ pub struct shadewire_compile_options {
     pub flip_v: bool,
     pub optimize: bool,
     pub implicit_derivatives: bool,
+}
+
+/// Options of a `shadewire_mdl_modules` handle. Set `struct_size` to `sizeof` the struct, or use
+/// `shadewire_mdl_modules_options_default`.
+///
+/// `paths` holds `path_count` directories of the MDL search path, where `import` finds modules (NULL and 0 for none;
+/// the standard modules and `::base` are built in), as `shadewire_mdl_to_ir`'s `paths`. New fields are only appended
+/// at the end.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct shadewire_mdl_modules_options {
+    pub struct_size: u32,
+    pub paths: *const *const c_char,
+    pub path_count: usize,
+}
+
+fn mdl_modules_defaults() -> shadewire_mdl_modules_options {
+    shadewire_mdl_modules_options {
+        struct_size: std::mem::size_of::<shadewire_mdl_modules_options>() as u32,
+        paths: std::ptr::null(),
+        path_count: 0,
+    }
 }
 
 fn compile_defaults() -> shadewire_compile_options {
@@ -229,6 +252,22 @@ unsafe fn read_common(
     Ok(())
 }
 
+/// Reads the options of a `shadewire_mdl_modules` handle, as its search path; NULL gives the defaults (no paths).
+///
+/// # Safety
+/// `ptr` must be NULL or point to `struct_size` readable bytes (at least 4); `paths` must be NULL or hold
+/// `path_count` valid NUL-terminated strings (NULL entries are reported).
+pub(crate) unsafe fn read_mdl_modules(ptr: *const shadewire_mdl_modules_options) -> Result<Vec<PathBuf>, ArgError> {
+    if ptr.is_null() {
+        return Ok(Vec::new());
+    }
+    let raw = unsafe { overlay(ptr, mdl_modules_defaults()) }?;
+    let raw = raw.as_ptr();
+    let paths = unsafe { (&raw const (*raw).paths).read() };
+    let count = unsafe { (&raw const (*raw).path_count).read() };
+    Ok(unsafe { string_list(paths, count, "path") }?.into_iter().map(PathBuf::from).collect())
+}
+
 /// Reads compile options; NULL gives the defaults.
 ///
 /// # Safety
@@ -281,6 +320,17 @@ pub unsafe extern "C" fn shadewire_ir_options_default(out: *mut shadewire_ir_opt
 pub unsafe extern "C" fn shadewire_compile_options_default(out: *mut shadewire_compile_options) {
     if !out.is_null() {
         unsafe { out.write(compile_defaults()) };
+    }
+}
+
+/// Writes the default options of a `shadewire_mdl_modules` handle to `out` (no-op when NULL).
+///
+/// # Safety
+/// `out` must be NULL or valid for writing a `shadewire_mdl_modules_options`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn shadewire_mdl_modules_options_default(out: *mut shadewire_mdl_modules_options) {
+    if !out.is_null() {
+        unsafe { out.write(mdl_modules_defaults()) };
     }
 }
 
@@ -559,5 +609,32 @@ mod tests {
         let mut m = mtlx_default_struct();
         m.struct_size = 1000;
         assert!(unsafe { read_mtlx(&m) }.is_ok());
+    }
+
+    #[test]
+    fn mdl_modules_options_read_the_search_path() {
+        let mut o = MaybeUninit::<shadewire_mdl_modules_options>::uninit();
+        unsafe { shadewire_mdl_modules_options_default(o.as_mut_ptr()) };
+        let mut o = unsafe { o.assume_init() };
+        assert_eq!(o.struct_size as usize, size_of::<shadewire_mdl_modules_options>());
+        assert!(unsafe { read_mdl_modules(&o) }.unwrap().is_empty());
+        assert!(unsafe { read_mdl_modules(std::ptr::null()) }.unwrap().is_empty());
+        let a = CString::new("core").unwrap();
+        let b = CString::new("core/Base").unwrap();
+        let list = [a.as_ptr(), b.as_ptr()];
+        o.paths = list.as_ptr();
+        o.path_count = 2;
+        let read = unsafe { read_mdl_modules(&o) }.unwrap();
+        assert_eq!(read, [PathBuf::from("core"), PathBuf::from("core/Base")]);
+        o.struct_size = offset_of!(shadewire_mdl_modules_options, path_count) as u32;
+        assert!(unsafe { read_mdl_modules(&o) }.unwrap().is_empty(), "beyond struct_size: no paths");
+        o.struct_size = size_of::<shadewire_mdl_modules_options>() as u32;
+        let with_null = [a.as_ptr(), std::ptr::null()];
+        o.paths = with_null.as_ptr();
+        assert!(unsafe { read_mdl_modules(&o) }.is_err(), "a NULL path");
+        o.paths = std::ptr::null();
+        assert!(unsafe { read_mdl_modules(&o) }.is_err(), "a NULL list with a count");
+        o.struct_size = 3;
+        assert!(unsafe { read_mdl_modules(&o) }.is_err());
     }
 }

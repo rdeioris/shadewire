@@ -54,7 +54,11 @@ pub struct shadewire_mdl_arg {
 /// # Safety
 /// `args` must be NULL or hold `count` readable elements of `size` bytes, each starting with a `shadewire_mdl_arg`
 /// whose pointers are valid as its doc comment says.
-unsafe fn read_args(args: *const shadewire_mdl_arg, count: usize, size: usize) -> Result<Vec<MdlArgument>, ArgError> {
+pub(crate) unsafe fn read_args(
+    args: *const shadewire_mdl_arg,
+    count: usize,
+    size: usize,
+) -> Result<Vec<MdlArgument>, ArgError> {
     if count == 0 {
         return Ok(Vec::new());
     }

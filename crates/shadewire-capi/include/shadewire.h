@@ -103,6 +103,17 @@ typedef struct shadewire_error shadewire_error;
 // `shadewire_compile`. Free it with `shadewire_ir_free`.
 typedef struct shadewire_ir shadewire_ir;
 
+// MDL modules on one search path, each parsed once with its imports, so the core library (`::base`, `::OmniPBR`,
+// ...) a stage's materials share is read once for all of them. Made by `shadewire_mdl_modules_new`, freed with
+// `shadewire_mdl_modules_free`.
+//
+// A module is read from disk on its first use and kept: later edits to its file are not seen (make a new handle to
+// read them). A module that failed to load fails again, with the same error, on every later use.
+//
+// Threads: any number of threads may call `shadewire_mdl_modules_to_ir` and `_material_names` on one handle at once
+// (loading a module not yet seen takes a lock; lowering runs side by side). Free it once, after every call is done.
+typedef struct shadewire_mdl_modules shadewire_mdl_modules;
+
 // A node of a builder (in the document or in a nodegraph), owned by it: valid until `shadewire_builder_free`, never
 // freed by the caller. Pass it only with its own builder, as for `shadewire_nodegraph`.
 typedef struct shadewire_node shadewire_node;
@@ -260,6 +271,18 @@ typedef struct shadewire_mdl_arg {
   bool is_texture;
   const char *colorspace;
 } shadewire_mdl_arg;
+
+// Options of a `shadewire_mdl_modules` handle. Set `struct_size` to `sizeof` the struct, or use
+// `shadewire_mdl_modules_options_default`.
+//
+// `paths` holds `path_count` directories of the MDL search path, where `import` finds modules (NULL and 0 for none;
+// the standard modules and `::base` are built in), as `shadewire_mdl_to_ir`'s `paths`. New fields are only appended
+// at the end.
+typedef struct shadewire_mdl_modules_options {
+  uint32_t struct_size;
+  const char *const *paths;
+  size_t path_count;
+} shadewire_mdl_modules_options;
 
 // `floats` holds `count` floats: 1 for a float, 3 for a color3, and so on for every float-based type.
 #define SHADEWIRE_VALUE_FLOATS 0
@@ -844,6 +867,51 @@ shadewire_status shadewire_mdl_material_names(const char *text,
                                               struct shadewire_strings **out,
                                               struct shadewire_error **error);
 
+// A new, empty set of MDL modules searching `options`' path (NULL for none; see `shadewire_mdl_modules_options`),
+// written to `out`. `*out` is written only on success.
+//
+// # Safety
+// `options` NULL or valid (see `shadewire_mdl_modules_options`); `out` valid for writing a pointer; `error` NULL or
+// valid for writing a pointer.
+shadewire_status shadewire_mdl_modules_new(const struct shadewire_mdl_modules_options *options,
+                                           struct shadewire_mdl_modules **out,
+                                           struct shadewire_error **error);
+
+// As `shadewire_mdl_to_ir_args`, the module read through `modules`: `module` (NUL-terminated UTF-8, not NULL) is a
+// module name (`::OmniPBR`) found on the handle's search path, or the path of a `.mdl` file, which is then its
+// location as `shadewire_mdl_to_ir`'s `location` is. It and its imports are parsed on first use and shared by every
+// later call. `material`, `options`, `args`, `arg_count` and `arg_size` read as in `shadewire_mdl_to_ir_args`.
+// `*out` is written only on success.
+//
+// # Safety
+// `modules` a live handle (NULL is reported); `module` NULL (reported) or a valid NUL-terminated string; the rest as
+// `shadewire_mdl_to_ir_args`.
+shadewire_status shadewire_mdl_modules_to_ir(const struct shadewire_mdl_modules *modules,
+                                             const char *module,
+                                             const char *material,
+                                             const struct shadewire_ir_options *options,
+                                             const struct shadewire_mdl_arg *args,
+                                             size_t arg_count,
+                                             size_t arg_size,
+                                             struct shadewire_ir **out,
+                                             struct shadewire_error **error);
+
+// The names of the exported materials of `module` (as `shadewire_mdl_modules_to_ir` names it), in module order,
+// written to `out`. `*out` is written only on success.
+//
+// # Safety
+// As `shadewire_mdl_modules_to_ir`; `out` valid for writing a pointer.
+shadewire_status shadewire_mdl_modules_material_names(const struct shadewire_mdl_modules *modules,
+                                                      const char *module,
+                                                      struct shadewire_strings **out,
+                                                      struct shadewire_error **error);
+
+// Frees `modules`; NULL is allowed.
+//
+// # Safety
+// `modules` must be NULL or a handle from this library not yet freed, with no call on it still running.
+void shadewire_mdl_modules_free(struct shadewire_mdl_modules *modules);
+
 // The names of a MaterialX document's materials (its includes' too), in document order, written to `out`. `text`,
 // `len` and `location` as `shadewire_mtlx_to_ir`; of `options` (NULL for the defaults) only the resolver is read.
 // `*out` is written only on success.
@@ -892,6 +960,12 @@ void shadewire_ir_options_default(struct shadewire_ir_options *out);
 // # Safety
 // `out` must be NULL or valid for writing a `shadewire_compile_options`.
 void shadewire_compile_options_default(struct shadewire_compile_options *out);
+
+// Writes the default options of a `shadewire_mdl_modules` handle to `out` (no-op when NULL).
+//
+// # Safety
+// `out` must be NULL or valid for writing a `shadewire_mdl_modules_options`.
+void shadewire_mdl_modules_options_default(struct shadewire_mdl_modules_options *out);
 
 // The included document: `location` (NUL-terminated UTF-8; the base its own includes resolve against and the name
 // in messages) and `len` bytes of UTF-8 `text`, both copied before this returns. Replaces an earlier answer; a NULL

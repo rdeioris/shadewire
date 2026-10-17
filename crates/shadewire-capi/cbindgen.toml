@@ -14,4 +14,4 @@ rename_variants = "None"
 prefix_with_name = false
 
 [export]
-include = ["shadewire_status", "shadewire_error_kind", "shadewire_mtlx_options", "shadewire_ir_options", "shadewire_compile_options", "shadewire_target"]
+include = ["shadewire_status", "shadewire_error_kind", "shadewire_mtlx_options", "shadewire_ir_options", "shadewire_mdl_modules_options", "shadewire_compile_options", "shadewire_target"]
