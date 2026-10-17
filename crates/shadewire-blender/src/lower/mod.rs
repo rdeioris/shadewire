@@ -413,5 +413,5 @@ fn lower_here(doc: &Document, material: &Material, options: &IrOptions) -> Resul
     let (dag, lowered) = surface::finish(l, shading, output, linked)?;
     warnings.extend(lowered);
     let source = SourceInfo { source: "blender".to_string(), mtlx_version: doc.producer.clone() };
-    Ok(MaterialIr { dag, source, warnings })
+    Ok(MaterialIr::new(dag, source, warnings))
 }

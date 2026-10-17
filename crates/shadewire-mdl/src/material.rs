@@ -130,7 +130,7 @@ pub(crate) fn to_ir_here(
     let dag = e.finish_closure(nodes, &surface)?;
     let version = format!("MDL {}.{}", program.modules[main].version().0, program.modules[main].version().1);
     let source = SourceInfo { source: "mdl".to_string(), mtlx_version: version };
-    Ok(MaterialIr { dag, source, warnings })
+    Ok(MaterialIr::new(dag, source, warnings))
 }
 
 /// `anno::hard_range` and `anno::soft_range` as limits, `anno::in_group` as a folder.

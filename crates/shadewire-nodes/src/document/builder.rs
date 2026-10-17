@@ -336,7 +336,7 @@ impl DocumentBuilder {
         let dag = elaborate(&self.doc, standard(), options, material)?;
         let (major, minor) = self.doc.version;
         let source = SourceInfo { source: "mtlx".to_string(), mtlx_version: format!("{major}.{minor}") };
-        Ok(MaterialIr { dag, source, warnings: Vec::new() })
+        Ok(MaterialIr::new(dag, source, Vec::new()))
     }
 
     /// Adds a node to the document or to a nodegraph. Every insertion, typed or read from XML, goes through here

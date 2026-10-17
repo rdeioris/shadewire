@@ -754,3 +754,87 @@ fn a_document_surface_node_and_an_unaccepted_model_distill() {
     // standard_surface's metal is an artistic-ior conductor: its normal-incidence reflectivity is the base color.
     near(&dag, "base_color", &[0.9, 0.5, 0.1]);
 }
+
+#[test]
+fn a_half_and_half_mix_of_diffuse_and_conductor_is_half_metal() {
+    let (n, k) = (0.2f32, 3.0f32);
+    let dag = distilled(
+        vec![
+            bsdf("d", "oren_nayar_diffuse_bsdf", vec![("color", c(0.0, 0.0, 1.0))]),
+            bsdf("m", "conductor_bsdf", vec![("ior", c(n, n, n)), ("extinction", c(k, k, k))]),
+            mix("x", Some("m"), Some("d"), f(0.5)),
+        ],
+        "x",
+    );
+    let f0 = ((n - 1.0).powi(2) + k * k) / ((n + 1.0).powi(2) + k * k);
+    near(&dag, "base_metalness", &[0.5]);
+    near(&dag, "base_color", &[0.5 * f0, 0.5 * f0, 0.5 + 0.5 * f0]);
+    near(&dag, "base_weight", &[1.0]);
+}
+
+/// A metal at half the surface next to a dielectric specular over a diffuse.
+fn half_metal(color82: Option<Arg>) -> Dag {
+    let gold = c(0.9, 0.6, 0.2);
+    let mut metal = vec![("color0", gold.clone()), ("color90", gold.clone())];
+    metal.push(("color82", color82.unwrap_or(gold)));
+    distilled(
+        vec![
+            bsdf("m", "generalized_schlick_bsdf", metal),
+            bsdf("spec", "dielectric_bsdf", vec![("ior", f(1.5)), ("scatter_mode", text("R"))]),
+            bsdf("d", "oren_nayar_diffuse_bsdf", vec![("color", c(0.5, 0.5, 0.5))]),
+            layer("l", "spec", "d"),
+            mix("x", Some("m"), Some("l"), f(0.5)),
+        ],
+        "x",
+    )
+}
+
+#[test]
+fn a_metal_whose_edge_is_its_face_leaves_the_dielectric_specular_white() {
+    let dag = half_metal(None);
+    near(&dag, "base_metalness", &[0.5]);
+    near(&dag, "base_color", &[0.7, 0.55, 0.35]);
+    near(&dag, "specular_color", &[1.0, 1.0, 1.0]);
+}
+
+#[test]
+fn a_metal_edge_tint_weighs_by_the_metal_share_of_the_specular() {
+    let dag = half_metal(Some(c(0.5, 0.5, 0.5)));
+    // The metal's flow 0.5 and the dielectric's coverage 0.5: half the edge tint.
+    near(&dag, "specular_color", &[0.75, 0.75, 0.75]);
+}
+
+#[test]
+fn a_lobe_carrying_dispersion_is_noted() {
+    use std::collections::BTreeMap;
+
+    use shadewire::{ClosureGraph, ClosureNode, ClosureType, Node, NodeKind, SurfaceField};
+
+    let mut dag = Dag::new("surface");
+    let field = |dag: &mut Dag, name: &str, v: Value| {
+        let ty = v.ty();
+        let node = dag.add(Node { kind: NodeKind::Const(v), ty, origin: name.to_string() });
+        dag.surface.fields.push(SurfaceField { name: name.to_string(), ty, node });
+    };
+    field(&mut dag, "c0_ior", Value::Float(1.5));
+    field(&mut dag, "c0_dispersion", Value::Float(0.5));
+    let mut graph = ClosureGraph::default();
+    let inputs = BTreeMap::from([
+        ("ior".to_string(), "c0_ior".to_string()),
+        ("dispersion".to_string(), "c0_dispersion".to_string()),
+    ]);
+    let settings = BTreeMap::from([("scatter_mode".to_string(), "RT".to_string())]);
+    let glass = graph.add(ClosureNode::Lobe {
+        kind: "dielectric_bsdf".into(),
+        ty: ClosureType::Bsdf,
+        inputs,
+        settings,
+        closures: BTreeMap::new(),
+    });
+    graph.bsdf = Some(glass);
+    dag.surface.closure = Some(graph);
+    crate::surface::distill::distill(&mut dag).unwrap();
+    assert_eq!(dag.surface.model, "open_pbr_surface");
+    assert!(dag.approximations.iter().any(|a| a.contains("dispersion")), "{:?}", dag.approximations);
+    near(&dag, "transmission_weight", &[1.0]);
+}

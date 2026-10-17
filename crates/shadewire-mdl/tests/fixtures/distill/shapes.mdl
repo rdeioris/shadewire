@@ -1,0 +1,29 @@
+mdl 1.7;
+import ::df::*;
+import ::tex::*;
+import ::math::*;
+import ::state::*;
+
+// A clear coat (ior 1.6, weight 0.7, roughness 0.1) over a specular (ior 1.5, roughness 0.3) over a diffuse.
+export material coated() = material(
+    surface: material_surface(
+        scattering: df::fresnel_layer(
+            ior: 1.6,
+            weight: 0.7,
+            layer: df::microfacet_ggx_smith_bsdf(roughness_u: 0.01),
+            base: df::fresnel_layer(
+                ior: 1.5,
+                layer: df::microfacet_ggx_smith_bsdf(roughness_u: 0.09),
+                base: df::diffuse_reflection_bsdf(tint: color(0.3, 0.4, 0.5))))));
+
+// A normal read from an image.
+export material normal_mapped(uniform texture_2d normals = texture_2d("normals.png")) = material(
+    surface: material_surface(scattering: df::diffuse_reflection_bsdf(tint: color(0.5))),
+    geometry: material_geometry(normal: math::normalize(
+        tex::lookup_float3(normals, float2(state::texture_coordinate(0).x, state::texture_coordinate(0).y)) * 2.0
+        - float3(1.0))));
+
+// A cutout.
+export material cutout(float o = 0.25) = material(
+    surface: material_surface(scattering: df::diffuse_reflection_bsdf()),
+    geometry: material_geometry(cutout_opacity: o));

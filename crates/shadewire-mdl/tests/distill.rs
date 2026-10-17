@@ -171,3 +171,70 @@ fn without_distill_an_mdl_material_still_needs_the_surface_model() {
     let options = IrOptions::with_models(&["open_pbr_surface"]);
     assert!(to_ir(&text, Some(&location), None, &options, &Resolver::default()).is_err());
 }
+
+fn shapes(material: &str) -> shadewire_nodes::MaterialIr {
+    let path = fixtures_dir().join("distill/shapes.mdl");
+    let location = path.to_string_lossy().to_string();
+    let text = std::fs::read_to_string(&path).unwrap();
+    to_ir(&text, Some(&location), Some(material), &distilling(), &Resolver::default())
+        .unwrap_or_else(|e| panic!("{material}: {e}"))
+}
+
+#[track_caller]
+fn near_at(dag: &Dag, name: &str, want: &[f32]) {
+    let values = &evaluate(dag)[0];
+    let got = values.iter().find(|(n, _)| n == name).unwrap().1.floats();
+    assert!(got.iter().zip(want).all(|(g, w)| (g - w).abs() < 1e-4), "{name}: {got:?}, expected {want:?}");
+}
+
+#[test]
+fn an_mdl_fresnel_layer_over_a_specular_base_is_the_coat() {
+    let ir = shapes("coated");
+    near_at(&ir.dag, "coat_weight", &[0.7]);
+    near_at(&ir.dag, "coat_roughness", &[0.1]);
+    near_at(&ir.dag, "coat_ior", &[1.6]);
+    near_at(&ir.dag, "specular_ior", &[1.5]);
+    near_at(&ir.dag, "specular_roughness", &[0.3]);
+    near_at(&ir.dag, "base_color", &[0.3, 0.4, 0.5]);
+}
+
+#[test]
+fn an_image_driven_normal_reaches_geometry_normal() {
+    let ir = shapes("normal_mapped");
+    let dag = &ir.dag;
+    let field = dag.surface.fields.iter().find(|f| f.name == "geometry_normal").unwrap();
+    let mut stack = vec![field.node];
+    let mut seen = std::collections::HashSet::new();
+    let mut sampled = false;
+    while let Some(id) = stack.pop() {
+        if !seen.insert(id) {
+            continue;
+        }
+        sampled |= matches!(dag.node(id).kind, shadewire::NodeKind::Sample { .. });
+        stack.extend(dag.args(id));
+    }
+    assert!(sampled, "geometry_normal does not read the normal map");
+}
+
+#[test]
+fn an_mdl_cutout_opacity_reaches_geometry_opacity() {
+    near_at(&shapes("cutout").dag, "geometry_opacity", &[0.25]);
+}
+
+#[test]
+fn distill_notes_are_material_ir_warnings() {
+    let text = r#"<materialx version="1.39">
+      <chiang_hair_bsdf name="h" type="BSDF"/>
+      <oren_nayar_diffuse_bsdf name="d" type="BSDF"/>
+      <add name="a" type="BSDF"><input name="in1" type="BSDF" nodename="h"/><input name="in2" type="BSDF" nodename="d"/></add>
+      <surface name="s" type="surfaceshader"><input name="bsdf" type="BSDF" nodename="a"/></surface>
+      <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s"/></surfacematerial>
+    </materialx>"#;
+    let ir = shadewire_mtlx::to_ir(text, None, None, &distilling(), &Default::default()).unwrap();
+    assert!(
+        ir.warnings.iter().any(|w| w.starts_with("distill: ") && w.contains("chiang_hair_bsdf")),
+        "{:?}",
+        ir.warnings
+    );
+    assert!(ir.dag.approximations.iter().any(|a| a.contains("chiang_hair_bsdf")));
+}

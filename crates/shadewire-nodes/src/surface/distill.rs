@@ -36,13 +36,14 @@
 //! | `dielectric_bsdf` reflecting (`R`, `RT`) | specular, or coat | `specular_weight`, `specular_color`, `specular_ior`, `specular_roughness`, `specular_roughness_anisotropy`; as a coat `coat_weight`, `coat_color`, `coat_ior`, `coat_roughness`, `coat_roughness_anisotropy` |
 //! | `dielectric_bsdf` transmitting (`T`, `RT`) | transmission | `transmission_weight`, `transmission_color`; its ior and roughness join the specular's |
 //! | `conductor_bsdf` | metal | `base_metalness`; `base_color` its normal-incidence reflectivity `((n−1)² + k²) / ((n+1)² + k²)` times its weight; `specular_roughness` |
-//! | `generalized_schlick_bsdf` | metal; specular or coat when it is a Fresnel ramp in a layer's top | metal: `base_color` from `color0`, `specular_color` from `color82`; specular: `specular_ior` from the reflectance `color0 / color90`, `specular_color` from `color90` |
+//! | `generalized_schlick_bsdf` | metal; specular or coat when it is a Fresnel ramp in a layer's top | metal: `base_color` from `color0`, `specular_color` from `color82` unless it is `color0` (weighted by the metal's flow); specular: `specular_ior` from the reflectance `color0 / color90`, `specular_color` from `color90` |
 //! | `sheen_bsdf` | fuzz | `fuzz_weight`, `fuzz_color`, `fuzz_roughness` |
 //! | `thinfilm_thickness` > 0 on a specular or metal lobe | thin film | `thin_film_weight` (the share of those lobes with a film), `thin_film_thickness` (µm), `thin_film_ior` |
 //! | `uniform_edf`; `conical_edf`, `measured_edf` with a warning | emission | `emission_luminance` (the radiance's brightest channel), `emission_color` (the radiance over it) |
 //! | `generalized_schlick_edf` | its base's, tinted by `color0` | |
 //! | the surface's `opacity` and `thin_walled`; the lobes' `normal` and `tangent` | geometry | `geometry_opacity`, `geometry_thin_walled`, `geometry_normal`, `geometry_tangent` (the first lobe's, a warning when lobes differ); a coat's `geometry_coat_normal`, `geometry_coat_tangent` |
 //! | anything else (`chiang_hair_bsdf`, VDFs, unknown lobes) | none | dropped, with a warning naming it |
+//! | a lobe input named `*dispersion*` (none in the vendored pbrlib) | none | dropped, with a warning naming dispersion |
 //!
 //! A parameter is the coverage-weighted average of its family's lobes: exact when the family has one lobe, or when
 //! every lobe reads the same value. Where a family's total weight is zero the average reads the nodedef's default
@@ -107,6 +108,9 @@ pub const DISTILL_MODEL: &str = "open_pbr_surface";
 const NODEDEF: &str = "ND_open_pbr_surface_surfaceshader";
 const EPSILON: f32 = 1e-6;
 const ORIGIN: &str = "distill";
+
+/// How every distiller note in `dag.approximations` (and `MaterialIr.warnings`) begins.
+pub const NOTE_PREFIX: &str = "distill: ";
 
 /// Replaces the closure tree of a `surface`-model dag by the `open_pbr_surface` fields it distills to (see the
 /// module docs), adding what it drops or approximates to `dag.approximations`. A dag of any other model is left as
@@ -559,7 +563,7 @@ impl Distiller<'_, '_> {
     }
 
     fn note(&mut self, text: String) {
-        let text = format!("distill: {text}");
+        let text = format!("{NOTE_PREFIX}{text}");
         if !self.notes.contains(&text) {
             self.notes.push(text);
         }
@@ -904,7 +908,9 @@ impl Distiller<'_, '_> {
         f.metal.push(flow.s);
         let reflectivity = self.mul(wt, f0);
         self.colored(&mut f.base_color, flow, None, reflectivity);
-        if let Some(edge) = edge {
+        // An edge tint that is the face color (MDL's tinted glossy lobe) is no edge tint: leaving it out keeps the
+        // dielectric's specular color its own. Another is weighted by the metal's flow alone.
+        if let Some(edge) = edge.filter(|e| !self.same(*e, f0)) {
             self.colored(&mut f.specular_color, flow, None, edge);
         }
         let roughness = self.input_or(id, "roughness", Value::Vector2([0.05, 0.05]));
@@ -914,8 +920,13 @@ impl Distiller<'_, '_> {
     }
 
     fn lobe(&mut self, id: ClosureId, role: Role, flow: Flow, f: &mut Families) {
-        let ClosureNode::Lobe { kind, ty, settings, .. } = self.graph.nodes[id as usize].clone() else { return };
+        let ClosureNode::Lobe { kind, ty, settings, inputs, .. } = self.graph.nodes[id as usize].clone() else {
+            return;
+        };
         let white = Value::Color3([1.0; 3]);
+        if let Some(name) = inputs.keys().find(|n| n.contains("dispersion")) {
+            self.note(format!("{kind}: {name} has no open_pbr_surface field on the lobe, dispersion dropped"));
+        }
         match class(&kind) {
             Class::Diffuse => {
                 let wt = self.weight(id);

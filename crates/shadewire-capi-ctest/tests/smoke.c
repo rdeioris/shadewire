@@ -165,13 +165,28 @@ static int mdl_distill(char *report, size_t report_len) {
     static const char module[] = "mdl 1.7;\nimport ::df::*;\n"
                                  "export material m() = material(surface: material_surface(scattering: "
                                  "df::diffuse_reflection_bsdf(tint: color(0.5))));\n";
+    static const char hair_doc[] =
+        "<materialx version=\"1.39\">"
+        "<chiang_hair_bsdf name=\"h\" type=\"BSDF\"/>"
+        "<oren_nayar_diffuse_bsdf name=\"d\" type=\"BSDF\"/>"
+        "<add name=\"a\" type=\"BSDF\"><input name=\"in1\" type=\"BSDF\" nodename=\"h\"/>"
+        "<input name=\"in2\" type=\"BSDF\" nodename=\"d\"/></add>"
+        "<surface name=\"s\" type=\"surfaceshader\"><input name=\"bsdf\" type=\"BSDF\" nodename=\"a\"/></surface>"
+        "<surfacematerial name=\"m\" type=\"material\">"
+        "<input name=\"surfaceshader\" type=\"surfaceshader\" nodename=\"s\"/></surfacematerial>"
+        "</materialx>";
     static const char *const models[] = {"open_pbr_surface"};
     shadewire_ir_options options;
+    shadewire_mtlx_options mtlx;
     shadewire_ir *ir = NULL;
+    shadewire_ir *hair = NULL;
+    shadewire_strings *warnings = NULL;
     shadewire_compiled *compiled = NULL;
     shadewire_error *err = NULL;
     shadewire_target target;
     const char *code;
+    size_t i;
+    int found = 0;
     int step = 0;
 
     shadewire_ir_options_default(&options);
@@ -198,9 +213,32 @@ static int mdl_distill(char *report, size_t report_len) {
     code = shadewire_compiled_code(compiled, NULL);
     if (code == NULL || strstr(code, "OpenPbrSurface") == NULL || strstr(code, "shadewire_eval_bsdf") != NULL) {
         step = fail(report, report_len, 43, "the distilled WGSL is not an open_pbr_surface", NULL);
+        goto done;
+    }
+    /* MDL reaches the distiller with no lobe it drops (its front end drops hair first): a MaterialX hair lobe, whose
+       note must reach shadewire_ir_warnings. */
+    shadewire_mtlx_options_default(&mtlx);
+    mtlx.models = models;
+    mtlx.model_count = 1;
+    mtlx.distill = true;
+    if (shadewire_mtlx_to_ir(hair_doc, sizeof hair_doc - 1, NULL, NULL, &mtlx, &hair, &err) != SHADEWIRE_OK ||
+        shadewire_ir_warnings(hair, &warnings, &err) != SHADEWIRE_OK) {
+        step = fail(report, report_len, 44, "distilling a MaterialX hair lobe failed", err);
+        goto done;
+    }
+    for (i = 0; i < shadewire_strings_count(warnings); i++) {
+        const char *w = shadewire_strings_get(warnings, i);
+        if (w != NULL && strstr(w, "distill: ") != NULL && strstr(w, "chiang_hair_bsdf") != NULL) {
+            found = 1;
+        }
+    }
+    if (!found) {
+        step = fail(report, report_len, 45, "the distiller's note is not among shadewire_ir_warnings", NULL);
     }
 
 done:
+    shadewire_strings_free(warnings);
+    shadewire_ir_free(hair);
     shadewire_compiled_free(compiled);
     shadewire_ir_free(ir);
     shadewire_error_free(err);
