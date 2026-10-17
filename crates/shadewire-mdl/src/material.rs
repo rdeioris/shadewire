@@ -10,9 +10,9 @@ use shadewire_nodes::{Arg, Elaborator, IrOptions, MaterialIr, ShaderNode, Synthe
 
 use crate::ast::{Annotation, Body, DeclKind, Expr, ExprKind, Param};
 use crate::eval::{Eval, Flow, Frame};
-use crate::modules::{ArgValue, Argument, Modules};
+use crate::modules::{ArgValue, Arguments, MdlArgValue, MdlArgument, Modules};
 use crate::program::{Entity, Program, Resolver};
-use crate::types::{TextureShape, Ty};
+use crate::types::{Scalar, TextureShape, Ty};
 use crate::value::{Df, Gamma, Num, Texture, V, Val};
 
 /// The exported materials of the module in `text`.
@@ -35,7 +35,28 @@ pub fn to_ir(
     on_reader_stack(|| {
         let modules = Modules::new(resolver.clone())?;
         let main = modules.add_main(text, location)?;
-        modules.lower(main, material, &[], options)
+        modules.lower(main, material, Arguments::Typed(&[]), options)
+    })
+}
+
+/// As [`to_ir`], `arguments` in place of the material's parameter defaults before it is evaluated, so what they
+/// decide folds (`tex::texture_isvalid` of a texture argument, a comparison of an enum). Each converts to its
+/// parameter's declared type by MDL's rules (see [`MdlArgValue`]); an argument naming no parameter, or one that does
+/// not convert, is an error naming the parameter. With `values_as_uniforms`, an argument of a type a uniform holds
+/// (float, vector, color, bool) is the default of its parameter's uniform; ints, enums, strings and textures stay
+/// constants, as defaults do.
+pub fn to_ir_with_args(
+    text: &str,
+    location: Option<&str>,
+    material: Option<&str>,
+    arguments: &[MdlArgument],
+    options: &IrOptions,
+    resolver: &Resolver,
+) -> Result<MaterialIr, Error> {
+    on_reader_stack(|| {
+        let modules = Modules::new(resolver.clone())?;
+        let main = modules.add_main(text, location)?;
+        modules.lower(main, material, Arguments::Typed(arguments), options)
     })
 }
 
@@ -66,7 +87,7 @@ pub(crate) fn to_ir_here(
     program: &Program,
     main: usize,
     material: Option<&str>,
-    arguments: &[Argument],
+    arguments: Arguments,
     options: &IrOptions,
 ) -> Result<MaterialIr, Error> {
     let names = program.materials(main);
@@ -109,7 +130,7 @@ pub(crate) fn to_ir_here(
     let dag = e.finish_closure(nodes, &surface)?;
     let version = format!("MDL {}.{}", program.modules[main].version().0, program.modules[main].version().1);
     let source = SourceInfo { source: "mdl".to_string(), mtlx_version: version };
-    Ok(MaterialIr { dag, source, warnings })
+    Ok(MaterialIr::new(dag, source, warnings))
 }
 
 /// `anno::hard_range` and `anno::soft_range` as limits, `anno::in_group` as a folder.
@@ -209,19 +230,31 @@ fn resolve_variant(ev: &mut Eval, mut module: usize, mut decl: usize) -> Result<
 
 /// The material's parameters: each argument, else the default a variant gave it, else its default evaluated, and a value of an IR type known now made a
 /// uniform (or kept a constant, per the options) named after its parameter. Integers stay constants: MDL uses them
-/// for counts and modes, which loops and switches need known. An argument naming no parameter is a warning.
+/// for counts and modes, which loops and switches need known. A lenient argument naming no parameter is a warning, a
+/// typed one an error.
 fn parameters(
     ev: &mut Eval,
     module: usize,
     decl: usize,
-    arguments: &[Argument],
+    arguments: Arguments,
     defaults: &[(String, Val)],
 ) -> Result<Vec<Option<Val>>, Error> {
     let func = ev.program.function(module, decl).clone();
     let params = func.params.as_deref().unwrap_or_default();
-    for a in arguments {
-        if !params.iter().any(|p| p.name == a.name) {
-            ev.warn(format!("no parameter {}", a.name));
+    let names: Vec<&str> = match arguments {
+        Arguments::Lenient(a) => a.iter().map(|a| a.name.as_str()).collect(),
+        Arguments::Typed(a) => a.iter().map(|a| a.name.as_str()).collect(),
+    };
+    for name in names {
+        if params.iter().any(|p| p.name == name) {
+            continue;
+        }
+        match arguments {
+            Arguments::Lenient(_) => ev.warn(format!("no parameter {name}")),
+            Arguments::Typed(_) => {
+                let at = ev.at(module, func.line, &func.name);
+                return Err(ev.bad(at, format!("{} has no parameter {name}", func.name)));
+            }
         }
     }
     let mut frame = Frame::new(module, &func.name);
@@ -229,8 +262,20 @@ fn parameters(
     let mut out = Vec::new();
     for p in params {
         let ty = ev.resolve_type(&mut frame, &p.ty, p.line)?;
-        let v = match arguments.iter().find(|a| a.name == p.name) {
-            Some(a) => argument_val(ev, module, &func.name, p, ty.as_ref(), &a.value)?,
+        let given = match arguments {
+            Arguments::Lenient(a) => a
+                .iter()
+                .find(|a| a.name == p.name)
+                .map(|a| argument_val(ev, module, &func.name, p, ty.as_ref(), &a.value))
+                .transpose()?,
+            Arguments::Typed(a) => a
+                .iter()
+                .find(|a| a.name == p.name)
+                .map(|a| typed_val(ev, module, &func.name, p, ty.as_ref(), &a.value))
+                .transpose()?,
+        };
+        let v = match given {
+            Some(v) => v,
             None => {
                 let v = match defaults.iter().find(|(n, _)| *n == p.name) {
                     Some((_, v)) => v.clone(),
@@ -313,6 +358,77 @@ fn argument_val(
     let Some(ty) = ty else { return Ok(v) };
     let origin = format!("{}:{}", ev.program.modules[module].name, p.line);
     ev.convert_val(v, ty, false, &origin).map_err(|m| bad(ev, m))
+}
+
+/// Parameter `p` (of declared type `ty`) of `function` given the typed `value`, converted by MDL's rules: floats as a
+/// float, vector or color of their count, an int as an int, the enum value of that integer or a float, a bool, a
+/// string, a texture as `texture_2d(path, gamma)`. Anything else is an error naming the parameter and both types.
+fn typed_val(
+    ev: &mut Eval,
+    module: usize,
+    function: &str,
+    p: &Param,
+    ty: Option<&Ty>,
+    value: &MdlArgValue,
+) -> Result<Val, Error> {
+    let bad = |ev: &Eval, message: String| ev.bad(ev.at(module, p.line, function), format!("{}: {message}", p.name));
+    let given = match value {
+        MdlArgValue::Float(f) if f.len() == 1 => "an argument of type float".to_string(),
+        MdlArgValue::Float(f) if (2..=4).contains(&f.len()) => format!("an argument of type float{}", f.len()),
+        MdlArgValue::Float(f) => format!("an argument of {} floats", f.len()),
+        MdlArgValue::Int(_) => "an argument of type int".to_string(),
+        MdlArgValue::Bool(_) => "an argument of type bool".to_string(),
+        MdlArgValue::String(_) => "an argument of type string".to_string(),
+        MdlArgValue::Texture { .. } => "an argument of type texture_2d".to_string(),
+    };
+    // A parameter whose type is known only from its default (`auto`) takes the argument's own type.
+    let declared = match ty {
+        Some(t) => t.clone(),
+        None => match value {
+            MdlArgValue::Float(f) if (1..=4).contains(&f.len()) => Ty::float_vector(f.len() as u8),
+            MdlArgValue::Float(_) => return Err(bad(ev, given)),
+            MdlArgValue::Int(_) => Ty::INT,
+            MdlArgValue::Bool(_) => Ty::BOOL,
+            MdlArgValue::String(_) => Ty::String,
+            MdlArgValue::Texture { .. } => Ty::Texture(TextureShape::Tex2d),
+        },
+    };
+    let floating = |s: &Scalar| s.is_floating();
+    let v = match (value, &declared) {
+        (MdlArgValue::Float(f), Ty::Scalar(s)) if f.len() == 1 && floating(s) => Val::float(f[0]),
+        (MdlArgValue::Float(f), Ty::Vector(s, n)) if f.len() == usize::from(*n) && floating(s) => {
+            let value = match f.as_slice() {
+                [x, y] => Value::Vector2([*x, *y]),
+                [x, y, z] => Value::Vector3([*x, *y, *z]),
+                [x, y, z, w] => Value::Vector4([*x, *y, *z, *w]),
+                _ => unreachable!("a vector has two to four components"),
+            };
+            Val::known(Ty::float_vector(*n), value)
+        }
+        (MdlArgValue::Float(f), Ty::Color) if f.len() == 3 => Val::known(Ty::Color, Value::Color3([f[0], f[1], f[2]])),
+        (MdlArgValue::Int(i), Ty::Scalar(Scalar::Int)) => Val::int(*i),
+        (MdlArgValue::Int(i), Ty::Scalar(s)) if floating(s) => Val::float(*i as f32),
+        (MdlArgValue::Int(i), Ty::Enum(id)) => {
+            let def = &ev.program.enums[*id];
+            match def.values.iter().find(|(_, v)| v == i) {
+                Some((_, v)) => Val::new(Ty::Enum(*id), V::Enum(*v)),
+                None => return Err(bad(ev, format!("{} has no value {i}", def.name))),
+            }
+        }
+        (MdlArgValue::Bool(b), Ty::Scalar(Scalar::Bool)) => Val::bool(*b),
+        (MdlArgValue::String(s), Ty::String) => Val::string(s),
+        (MdlArgValue::Texture { path, colorspace }, Ty::Texture(TextureShape::Tex2d)) => {
+            let texture = ArgValue::Texture { file: path.clone(), colorspace: colorspace.clone() };
+            return argument_val(ev, module, function, p, Some(&declared), &texture);
+        }
+        _ => {
+            let declared = ev.type_name(&declared);
+            return Err(bad(ev, format!("{given} for a parameter of type {declared}")));
+        }
+    };
+    // The value as the parameter's type holds it (a `double` is a `float` widened).
+    let origin = format!("{}:{}", ev.program.modules[module].name, p.line);
+    ev.convert_val(v, &declared, false, &origin).map_err(|m| bad(ev, m))
 }
 
 /// A value as the evaluator holds it; `None` for a matrix, which it holds by column.

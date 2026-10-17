@@ -29,6 +29,14 @@ their conversions, as the MDL SDK's compiler does, including the lenient convers
 
 - `to_ir(text, location, material, &IrOptions, &Resolver)` lowers `material` (the module's only exported one when
   `None`); `material_names(text, location, &Resolver)` lists the exported materials.
+- `to_ir_with_args(text, location, material, &[MdlArgument], &IrOptions, &Resolver)` lowers it with typed arguments
+  in place of parameter defaults, before evaluation, so what they decide folds (a texture argument makes
+  `tex::texture_isvalid` true). `MdlArgValue::Float` of 1 to 4 floats is a `float`, `float2` to `float4` or (3) a
+  `color`; `Int` an `int`, the enum value with that integer, or a `float`; `Bool` a `bool`; `String` a `string`;
+  `Texture { path, colorspace }` a `texture_2d` (`sRGB`, `raw`, else `gamma_default`). A name that is no parameter, or
+  a value that does not convert, is an error naming the parameter and both types. With `values_as_uniforms`, a float,
+  vector, color or bool argument is its uniform's default. `Modules::to_ir_with_args` is the same on loaded modules.
+  C: `shadewire_mdl_to_ir_args` with `shadewire_mdl_arg`.
 - An MDL material is a closure tree: the `::df` tree maps onto MaterialX's pbrlib lobes, so `IrOptions` must
   accept `surface` (`LOBE_MODELS`); otherwise `to_ir` is `Error::NoTranslation`, as for any other front end.
 - A pbrlib `multiply` scales a closure's response but keeps its throughput, which would block what lies under a

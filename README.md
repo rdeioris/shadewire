@@ -25,6 +25,15 @@ A host takes a material in one of two ways:
   MaterialX's reference implementation does: `shadewire_eval_bsdf`, `shadewire_eval_albedo`, `shadewire_eval_emission`
   (and `shadewire_eval_ambient` for a host lighting the environment its own way). The material then looks the same in
   every renderer that calls them.
+- **Distilled.** A host that lights a fixed model but gets closure trees (every MDL material, such as NVIDIA
+  Omniverse's `OmniPBR`, `OmniGlass` and `OmniSurface`) sets `IrOptions::distill` and accepts `open_pbr_surface`:
+  a material that would open into lobes comes out as an `open_pbr_surface` whose fields are computed from the
+  lobes' inputs and the mix and layer weights, as the MDL SDK's distiller collapses layered BSDFs into one PBR
+  parameter set. Diffuse, dielectric, conductor, Schlick, sheen, subsurface, thin film and emission lobes map onto
+  their fields (a dielectric over a reflecting base is the coat); a material that is one of the canonical shapes
+  (a diffuse, a dielectric over a diffuse, open_pbr_surface's own tree) comes back exactly, and whatever has no
+  field (hair, a volume under a transmission) is listed in `approximations`. The weighting and the mapping are in
+  `shadewire_nodes::surface::distill`.
 
 The code calls host functions for geometry and time (`shadewire_host_normal_world()`,
 `shadewire_host_texcoord_0()`, ...) that the renderer defines next to its lights and entry point; nothing in
@@ -123,6 +132,7 @@ shadewire list scene.mtlx                # the document's material names
 shadewire mtlx material.mtlx [--material NAME] [--model M]... [--lobes] [--inline] [--optimize] [--constants] [-o FILE]
 shadewire compile material.json --lang wgsl   # a Blender material graph
 shadewire compile material.mdl --lobes --mdl-path ./mdl --lang wgsl   # an MDL module
+shadewire ir OmniPBR.mdl --mdl-path ./core/Base --mdl-path ./core/mdl --model open_pbr_surface --distill   # distilled
 shadewire compile material.mtlx --lang mdl -o material.mdl   # a self-contained MDL 1.7 module
 ```
 
@@ -133,6 +143,7 @@ shadewire compile material.mtlx --lang mdl -o material.mdl   # a self-contained 
 - `--material NAME` picks the material when the document has several.
 - `--model MODEL` (repeatable) names the surface models the host accepts: an accepted model comes out as its struct, filled by `shadewire_eval_surface()`, for the host to light. By default `open_pbr_surface`, `standard_surface`, `gltf_pbr` and `surface_unlit`. A material of another model is an error, not a translation, unless `surface` is accepted: then it opens into its closure tree.
 - `--lobes` accepts only `surface` and `surface_unlit`, so every material opens into its closure tree and the shader brings MaterialX's reference lobes to light it (`shadewire_eval_bsdf` and the rest), on every back end. It cannot be combined with `--model`; `ir` takes it too.
+- `--distill` distills a material that would open into its closure tree (an MDL material, a pbrlib `surface`, a named model the host does not accept) to `open_pbr_surface`, when that model is accepted (it is by default): MDL materials then compile for hosts that light open_pbr_surface. What the distiller drops or approximates is in the reflection's `approximations` (`approx` lines of `ir`). It cannot be combined with `--lobes`.
 - `--lang gdshader` writes a complete Godot 4 `shader_type spatial;` file. Godot binds by name: uniforms keep their authored names, made valid identifiers clear of reserved and generated ones (`GdshaderOutput::uniform_names`); textures are `shadewire_t<index>`, bound raw since the shader converts colorspaces. By default named models (`open_pbr_surface`, `standard_surface`, `gltf_pbr`, `UsdPreviewSurface`, `disney_principled`, `surface_unlit`) are mapped onto Godot's outputs and lit by Godot's BRDF, and a pbrlib `surface` is lit by MaterialX's reference lobes in a generated `light()`; with `--lobes` every material is lit that way (ambient light and reflections then see the closure's albedo as diffuse). What Godot cannot represent is listed in the reflection's `approximations`. Scalar uniforms get `hint_range` from the soft limits, else the hard ones (each end separately); uniforms with a `uifolder` go in `group_uniforms` named after it (`/` becomes `.`, one subgroup level), the rest and the textures in `material`. `--transparency auto|opaque|scissor|hash|blend` (default `auto`: opaque for a constant opacity of 1, scissor for a constant glTF MASK or USD threshold, blend otherwise) and `--emission-scale` (default 1) apply to it only: with another `--lang` they are an error.
 - `--lang mdl` writes a self-contained MDL 1.7 module (it imports only the standard modules) exporting the material under its name: patterns as MDL functions, the closure tree as `::df` calls, uniforms as annotated parameters, textures as `texture_2d` parameters. It opens every material into its closure tree by default; a named `--model` is an error. What MDL 1.7 cannot say is in the reflection's `approximations`.
 - `--lang wgsl|glsl|glsl-es|hlsl|msl|gdshader|mdl` picks the back end; `--glsl-version N` the GLSL version (default 420, 300 for `glsl-es`).
@@ -198,6 +209,9 @@ The C API follows the Python module name for name:
 The target is `SHADEWIRE_TARGET_WGSL`, `_GLSL` (`#version` 330, 400 to 460; 0 for 420), `_GLSL_ES` (300 to 320; 0 for 300),
 `_HLSL`, `_MSL` or `_MDL` (an MDL 1.7 module; closure trees and `surface_unlit` only). `shadewire_compile_options` holds the back ends' keyword arguments (`group`, `first_binding`,
 `reserve_uniform_binding`, `flip_v`, `optimize`, `implicit_derivatives`); `shadewire_*_options_default` fills them.
+`shadewire_mtlx_options` and `shadewire_ir_options` end with `distill` (`IrOptions::distill`): set it, with
+`open_pbr_surface` among the models, to get MDL materials and other closure trees distilled to open_pbr_surface; a
+caller built before it (a smaller `struct_size`) reads false.
 `crates/shadewire-capi-ctest` builds the same calls as a C99 (C11 on MSVC) test.
 
 ### Includes and dependencies from C

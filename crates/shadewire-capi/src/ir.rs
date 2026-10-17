@@ -217,8 +217,9 @@ pub unsafe extern "C" fn shadewire_ir_json(ir: *const shadewire_ir, len: *mut us
     }
 }
 
-/// What the front end dropped or approximated, one line each, as a `shadewire_strings` written to `out` (empty for a
-/// MaterialX document today). `*out` is written only on success.
+/// What the front end dropped or approximated, one line each, as a `shadewire_strings` written to `out`, then what
+/// distilling dropped or approximated (`distill: ` lines; empty for an undistilled MaterialX document). `*out` is
+/// written only on success.
 ///
 /// # Safety
 /// `ir` must be a live handle (NULL is an error); `out` valid for writing a pointer; `error` NULL or valid for writing

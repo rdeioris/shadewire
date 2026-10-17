@@ -123,8 +123,9 @@ typedef struct shadewire_strings shadewire_strings;
 // colorspace and whether authored values are uniforms, as `shadewire_mtlx_options` without the resolver. Set
 // `struct_size`, or use `shadewire_ir_options_default`.
 //
-// `models`, `model_count`, `working_colorspace` and `values_as_uniforms` read as in `shadewire_mtlx_options`;
-// `reserved` fills the tail padding and must be zero. New fields are only appended at the end.
+// `models`, `model_count`, `working_colorspace`, `values_as_uniforms` and `distill` read as in
+// `shadewire_mtlx_options`; `reserved` and `reserved2` fill padding and must be zero. New fields are only appended
+// at the end.
 typedef struct shadewire_ir_options {
   uint32_t struct_size;
   const char *const *models;
@@ -132,6 +133,8 @@ typedef struct shadewire_ir_options {
   const char *working_colorspace;
   bool values_as_uniforms;
   uint8_t reserved[7];
+  bool distill;
+  uint8_t reserved2[7];
 } shadewire_ir_options;
 
 // Which field of a `shadewire_value` holds the value. Passed in from C, so a plain `u32`.
@@ -187,7 +190,11 @@ typedef void (*shadewire_resolve_fn)(void *user_data,
 //
 // `resolve` reads `xi:include`s: NULL reads the file system relative to the including document's location (a
 // path), non-NULL is the host's resolver (see `shadewire_resolve_fn`), called with `resolve_user_data`. A document
-// with includes needs a location either way. New fields are only appended at the end.
+// with includes needs a location either way.
+//
+// `distill` (true for any non-zero byte; false for a caller whose `struct_size` ends before it) distills a material
+// that would open into a closure tree to `open_pbr_surface` when `models` accepts it (`IrOptions::distill`).
+// `reserved2` fills the tail padding and must be zero. New fields are only appended at the end.
 typedef struct shadewire_mtlx_options {
   uint32_t struct_size;
   const char *const *models;
@@ -197,6 +204,8 @@ typedef struct shadewire_mtlx_options {
   uint8_t reserved[7];
   shadewire_resolve_fn resolve;
   void *resolve_user_data;
+  bool distill;
+  uint8_t reserved2[7];
 } shadewire_mtlx_options;
 
 // Which language `shadewire_target.kind` selects. Passed in from C, so a plain `u32`.
@@ -232,6 +241,25 @@ typedef struct shadewire_compile_options {
   bool optimize;
   bool implicit_derivatives;
 } shadewire_compile_options;
+
+// An argument of an MDL material, in place of its parameter `name`'s default (NUL-terminated UTF-8). `value` converts
+// to the parameter's declared type by MDL's rules: SHADEWIRE_VALUE_FLOATS of count 1 to a `float`, of count 2 to 4 to
+// a `float2` to `float4`, of count 3 to a `color`; SHADEWIRE_VALUE_INTEGER to an `int`, to the enum value with that
+// integer, or to a `float`; SHADEWIRE_VALUE_BOOLEAN to a `bool`; SHADEWIRE_VALUE_STRING to a `string`. With
+// `is_texture`, the SHADEWIRE_VALUE_STRING is a texture's path and the argument a `texture_2d(path, gamma)`, its gamma
+// given by `colorspace`: "sRGB" is `::tex::gamma_srgb`, "raw" `::tex::gamma_linear`, NULL, "auto" or any other
+// `::tex::gamma_default`. `colorspace` is read only with `is_texture`. A USD `Shader` prim's `inputs:*` map onto it:
+// `float`, `color3f`, `int` (enums too), `bool`, and `asset` (a texture, its `colorSpace` metadata the colorspace).
+//
+// Versioning: an array of these is passed with its element size, `sizeof(shadewire_mdl_arg)` as the caller compiled
+// it. A later version may only append fields; the library steps through the array by the caller's size and reads the
+// fields it knows, so a caller built against an older (smaller) layout is refused rather than misread.
+typedef struct shadewire_mdl_arg {
+  const char *name;
+  struct shadewire_value value;
+  bool is_texture;
+  const char *colorspace;
+} shadewire_mdl_arg;
 
 // `floats` holds `count` floats: 1 for a float, 3 for a color3, and so on for every float-based type.
 #define SHADEWIRE_VALUE_FLOATS 0
@@ -734,8 +762,9 @@ const char *shadewire_ir_dump(const struct shadewire_ir *ir,
 const char *shadewire_ir_json(const struct shadewire_ir *ir,
                               size_t *len);
 
-// What the front end dropped or approximated, one line each, as a `shadewire_strings` written to `out` (empty for a
-// MaterialX document today). `*out` is written only on success.
+// What the front end dropped or approximated, one line each, as a `shadewire_strings` written to `out`, then what
+// distilling dropped or approximated (`distill: ` lines; empty for an undistilled MaterialX document). `*out` is
+// written only on success.
 //
 // # Safety
 // `ir` must be a live handle (NULL is an error); `out` valid for writing a pointer; `error` NULL or valid for writing
@@ -755,7 +784,8 @@ void shadewire_ir_free(struct shadewire_ir *ir);
 // searched for relative imports. `material` selects an exported material by name (NULL for the module's only one:
 // SHADEWIRE_ERROR_MATERIAL when it has several). `paths` holds `path_count` directories of the MDL search path, where
 // `import` finds modules (NULL and 0 for none; the standard modules and `::base` are built in). An MDL material is a
-// closure tree, so `options` must accept the `surface` model: the defaults (`options` NULL) refuse it. The IR is not
+// closure tree, so `options` must accept the `surface` model, or accept `open_pbr_surface` with `distill` set (the
+// tree then comes out distilled to it): the defaults (`options` NULL) refuse it. The IR is not
 // optimized; the front end's warnings are read with `shadewire_ir_warnings`. `*out` is written only on success.
 //
 // # Safety
@@ -772,6 +802,34 @@ shadewire_status shadewire_mdl_to_ir(const char *text,
                                      size_t path_count,
                                      struct shadewire_ir **out,
                                      struct shadewire_error **error);
+
+// As `shadewire_mdl_to_ir`, the `arg_count` arguments at `args` (NULL and 0 for none; see `shadewire_mdl_arg`) in
+// place of the material's parameter defaults before it is evaluated, so what they decide folds: a texture argument
+// makes `tex::texture_isvalid` true. With `values_as_uniforms`, a float, vector, color or bool argument is the default
+// of its parameter's uniform; ints, enums, strings and textures stay constants. An argument naming no parameter, or
+// one that does not convert to its parameter's type, is an error naming the parameter (and both types).
+// `shadewire_mdl_to_ir` is this call with no arguments.
+//
+// `arg_size` is `sizeof(shadewire_mdl_arg)` as the caller compiled it: the library steps through `args` by it and
+// reads only the fields it knows. With `arg_count` above 0, an `arg_size` smaller than this version's struct (or not a
+// multiple of its alignment) is SHADEWIRE_ERROR_INVALID_ARGUMENT; with `arg_count` 0 it is not read.
+//
+// # Safety
+// As `shadewire_mdl_to_ir`; `args` NULL or holding `arg_count` readable elements of `arg_size` bytes, each starting
+// with a `shadewire_mdl_arg` whose `name` is a valid NUL-terminated string (NULL is reported), `value` valid (see
+// `shadewire_value`), and `colorspace` NULL or a valid NUL-terminated string.
+shadewire_status shadewire_mdl_to_ir_args(const char *text,
+                                          size_t len,
+                                          const char *location,
+                                          const char *material,
+                                          const struct shadewire_ir_options *options,
+                                          const char *const *paths,
+                                          size_t path_count,
+                                          const struct shadewire_mdl_arg *args,
+                                          size_t arg_count,
+                                          size_t arg_size,
+                                          struct shadewire_ir **out,
+                                          struct shadewire_error **error);
 
 // The names of an MDL module's exported materials, in module order, written to `out`. `text`, `len`, `location`,
 // `paths` and `path_count` as `shadewire_mdl_to_ir`. `*out` is written only on success.

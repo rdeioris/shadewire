@@ -160,6 +160,91 @@ done:
     return step;
 }
 
+/* An MDL module distilled to open_pbr_surface: its WGSL holds the model's struct, no lobes. */
+static int mdl_distill(char *report, size_t report_len) {
+    static const char module[] = "mdl 1.7;\nimport ::df::*;\n"
+                                 "export material m() = material(surface: material_surface(scattering: "
+                                 "df::diffuse_reflection_bsdf(tint: color(0.5))));\n";
+    static const char hair_doc[] =
+        "<materialx version=\"1.39\">"
+        "<chiang_hair_bsdf name=\"h\" type=\"BSDF\"/>"
+        "<oren_nayar_diffuse_bsdf name=\"d\" type=\"BSDF\"/>"
+        "<add name=\"a\" type=\"BSDF\"><input name=\"in1\" type=\"BSDF\" nodename=\"h\"/>"
+        "<input name=\"in2\" type=\"BSDF\" nodename=\"d\"/></add>"
+        "<surface name=\"s\" type=\"surfaceshader\"><input name=\"bsdf\" type=\"BSDF\" nodename=\"a\"/></surface>"
+        "<surfacematerial name=\"m\" type=\"material\">"
+        "<input name=\"surfaceshader\" type=\"surfaceshader\" nodename=\"s\"/></surfacematerial>"
+        "</materialx>";
+    static const char *const models[] = {"open_pbr_surface"};
+    shadewire_ir_options options;
+    shadewire_mtlx_options mtlx;
+    shadewire_ir *ir = NULL;
+    shadewire_ir *hair = NULL;
+    shadewire_strings *warnings = NULL;
+    shadewire_compiled *compiled = NULL;
+    shadewire_error *err = NULL;
+    shadewire_target target;
+    const char *code;
+    size_t i;
+    int found = 0;
+    int step = 0;
+
+    shadewire_ir_options_default(&options);
+    options.models = models;
+    options.model_count = 1;
+    if (options.distill) {
+        step = fail(report, report_len, 40, "distill is on by default", NULL);
+        goto done;
+    }
+    if (shadewire_mdl_to_ir(module, sizeof module - 1, NULL, NULL, &options, NULL, 0, &ir, &err) != SHADEWIRE_ERROR) {
+        step = fail(report, report_len, 41, "an MDL material lowered to open_pbr_surface without distill", NULL);
+        goto done;
+    }
+    shadewire_error_free(err);
+    err = NULL;
+    options.distill = true;
+    target.kind = SHADEWIRE_TARGET_WGSL;
+    target.version = 0;
+    if (shadewire_mdl_to_ir(module, sizeof module - 1, NULL, NULL, &options, NULL, 0, &ir, &err) != SHADEWIRE_OK ||
+        shadewire_compile(ir, target, NULL, &compiled, &err) != SHADEWIRE_OK) {
+        step = fail(report, report_len, 42, "distilling MDL failed", err);
+        goto done;
+    }
+    code = shadewire_compiled_code(compiled, NULL);
+    if (code == NULL || strstr(code, "OpenPbrSurface") == NULL || strstr(code, "shadewire_eval_bsdf") != NULL) {
+        step = fail(report, report_len, 43, "the distilled WGSL is not an open_pbr_surface", NULL);
+        goto done;
+    }
+    /* MDL reaches the distiller with no lobe it drops (its front end drops hair first): a MaterialX hair lobe, whose
+       note must reach shadewire_ir_warnings. */
+    shadewire_mtlx_options_default(&mtlx);
+    mtlx.models = models;
+    mtlx.model_count = 1;
+    mtlx.distill = true;
+    if (shadewire_mtlx_to_ir(hair_doc, sizeof hair_doc - 1, NULL, NULL, &mtlx, &hair, &err) != SHADEWIRE_OK ||
+        shadewire_ir_warnings(hair, &warnings, &err) != SHADEWIRE_OK) {
+        step = fail(report, report_len, 44, "distilling a MaterialX hair lobe failed", err);
+        goto done;
+    }
+    for (i = 0; i < shadewire_strings_count(warnings); i++) {
+        const char *w = shadewire_strings_get(warnings, i);
+        if (w != NULL && strstr(w, "distill: ") != NULL && strstr(w, "chiang_hair_bsdf") != NULL) {
+            found = 1;
+        }
+    }
+    if (!found) {
+        step = fail(report, report_len, 45, "the distiller's note is not among shadewire_ir_warnings", NULL);
+    }
+
+done:
+    shadewire_strings_free(warnings);
+    shadewire_ir_free(hair);
+    shadewire_compiled_free(compiled);
+    shadewire_ir_free(ir);
+    shadewire_error_free(err);
+    return step;
+}
+
 static int parse_error(char *report, size_t report_len) {
     static const char truncated[] = "<materialx";
     shadewire_ir *ir = NULL;
@@ -338,6 +423,9 @@ int shadewire_smoke(const char *mtlx_path, char *report, size_t report_len) {
     }
     if (step == 0) {
         step = mdl_round_trip(report, report_len);
+    }
+    if (step == 0) {
+        step = mdl_distill(report, report_len);
     }
     if (step == 0 && shadewire_version() != header_version()) {
         step = fail(report, report_len, 9, "the header version macros differ from shadewire_version()", NULL);

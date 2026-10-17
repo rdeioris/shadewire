@@ -58,6 +58,10 @@ pub struct MtlxArgs {
     /// Open every material into its closure tree (accept only `surface` and `surface_unlit`)
     #[arg(long, conflicts_with = "models")]
     pub lobes: bool,
+    /// Distill a material that would open into a closure tree (an MDL material, a pbrlib `surface`, a model not
+    /// accepted) to `open_pbr_surface`, when that model is accepted
+    #[arg(long, conflicts_with = "lobes")]
+    pub distill: bool,
     /// Write every library node expanded to leaf ops instead of as one node
     #[arg(long)]
     pub inline: bool,
@@ -127,6 +131,10 @@ pub struct IrArgs {
     /// Open every material into its closure tree (accept only `surface` and `surface_unlit`)
     #[arg(long, conflicts_with = "models")]
     pub lobes: bool,
+    /// Distill a material that would open into a closure tree (an MDL material, a pbrlib `surface`, a model not
+    /// accepted) to `open_pbr_surface`, when that model is accepted
+    #[arg(long, conflicts_with = "lobes")]
+    pub distill: bool,
     /// Print the IR as elaborated, before the optimizer
     #[arg(long)]
     pub no_optimize: bool,
@@ -160,6 +168,10 @@ pub struct CompileArgs {
     /// MaterialX's reference lobes to light it; gdshader calls them from a light() function
     #[arg(long, conflicts_with = "models")]
     pub lobes: bool,
+    /// Distill a material that would open into a closure tree (an MDL material, a pbrlib `surface`, a model not
+    /// accepted) to `open_pbr_surface`, when that model is accepted
+    #[arg(long, conflicts_with = "lobes")]
+    pub distill: bool,
     #[arg(long, value_enum, default_value = "wgsl")]
     pub lang: Lang,
     /// The GLSL version: default 420 for `glsl`, 300 for `glsl-es`

@@ -252,6 +252,20 @@ fn mdl_modules_list_and_compile_with_lobes() {
 }
 
 #[test]
+fn distill_turns_an_mdl_material_into_open_pbr_surface() {
+    let out = run(&["ir", MDL_MIXES, "--material", "normalized", "--model", "open_pbr_surface", "--distill"]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let ir = String::from_utf8_lossy(&out.stdout);
+    assert!(ir.starts_with("model open_pbr_surface"), "{ir}");
+    assert!(!ir.contains("bsdf ="), "{ir}");
+    let out = run(&["compile", MDL_MIXES, "--material", "normalized", "--distill", "--lang", "wgsl"]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(String::from_utf8_lossy(&out.stdout).contains("fn shadewire_eval_surface() -> OpenPbrSurface"));
+    let out = run(&["ir", MDL_MIXES, "--material", "normalized", "--lobes", "--distill"]);
+    assert!(!out.status.success());
+}
+
+#[test]
 fn lang_mdl_writes_a_module() {
     let mdl = scratch("porcelain.mdl");
     let out = run(&["compile", PORCELAIN, "--lang", "mdl", "-o", mdl.to_str().unwrap()]);

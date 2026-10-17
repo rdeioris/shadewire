@@ -17,8 +17,8 @@ pub mod intrinsics;
 pub mod material;
 pub mod modules;
 
-pub use material::{material_names, to_ir};
-pub use modules::{ArgValue, Argument, Modules};
+pub use material::{material_names, to_ir, to_ir_with_args};
+pub use modules::{ArgValue, Argument, MdlArgValue, MdlArgument, Modules};
 /// The options and result types of [`to_ir`], re-exported so an MDL user needs one crate.
 pub use shadewire_nodes::{IrOptions, MaterialIr};
 pub mod write;

@@ -158,7 +158,7 @@ unsafe fn required<'a>(ptr: *const c_char, what: &str) -> Result<&'a str, ArgErr
 /// # Safety
 /// `ptr` must be NULL or point to a readable `shadewire_value` whose pointers are valid as its doc comment says and
 /// outlive `'a`.
-unsafe fn read_value<'a>(ptr: *const shadewire_value) -> Result<InputValue<'a>, ArgError> {
+pub(crate) unsafe fn read_value<'a>(ptr: *const shadewire_value) -> Result<InputValue<'a>, ArgError> {
     if ptr.is_null() {
         return Err(ArgError("value is NULL".to_string()));
     }

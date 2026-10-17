@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **Distilling closure trees to `open_pbr_surface`.** `IrOptions::distill`, with `open_pbr_surface` accepted, turns a
+  material that would open into a closure tree (every MDL material, a pbrlib `surface`, a named model the host does
+  not accept) into an `open_pbr_surface` whose fields are IR expressions over the tree's lobes and mix, layer and
+  multiply weights (`shadewire_nodes::surface::distill`), after the MDL SDK distiller's `ue4` and
+  `transmissive_pbr` targets: hosts that light a fixed model, such as Unreal base materials, take Omniverse's
+  `OmniPBR`, `OmniGlass` and `OmniSurface`. Canonical shapes (a diffuse, a dielectric over a diffuse,
+  open_pbr_surface's own tree) distill exactly; lobes without a field are dropped with an `approximations` entry
+  naming them. CLI: `--distill`. C: `bool distill` appended to `shadewire_mtlx_options` and `shadewire_ir_options`
+  (callers with the older `struct_size` read false).
+- **MDL: typed arguments.** `shadewire_mdl::to_ir_with_args` takes `MdlArgument`s (floats, int, bool, string,
+  texture with a colorspace) in place of a material's parameter defaults, converted to each parameter's declared type
+  by MDL's rules; an unknown name or a mismatched type is an error naming the parameter. `Modules::to_ir_with_args`
+  does the same on loaded modules. C: `shadewire_mdl_to_ir_args` and `shadewire_mdl_arg` (a `shadewire_value`,
+  `is_texture`, `colorspace`), passed with `sizeof(shadewire_mdl_arg)` so the struct can grow.
+
 ## 0.3.0 (2026-10-17)
 
 Since 0.2.0.

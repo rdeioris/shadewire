@@ -24,7 +24,11 @@ use crate::strings::{ArgError, opt_cstr, string_list};
 ///
 /// `resolve` reads `xi:include`s: NULL reads the file system relative to the including document's location (a
 /// path), non-NULL is the host's resolver (see `shadewire_resolve_fn`), called with `resolve_user_data`. A document
-/// with includes needs a location either way. New fields are only appended at the end.
+/// with includes needs a location either way.
+///
+/// `distill` (true for any non-zero byte; false for a caller whose `struct_size` ends before it) distills a material
+/// that would open into a closure tree to `open_pbr_surface` when `models` accepts it (`IrOptions::distill`).
+/// `reserved2` fills the tail padding and must be zero. New fields are only appended at the end.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct shadewire_mtlx_options {
@@ -36,14 +40,17 @@ pub struct shadewire_mtlx_options {
     pub reserved: [u8; 7],
     pub resolve: shadewire_resolve_fn,
     pub resolve_user_data: *mut c_void,
+    pub distill: bool,
+    pub reserved2: [u8; 7],
 }
 
 /// Options of a front end without includes (`shadewire_blender_to_ir`): the models the host accepts, the working
 /// colorspace and whether authored values are uniforms, as `shadewire_mtlx_options` without the resolver. Set
 /// `struct_size`, or use `shadewire_ir_options_default`.
 ///
-/// `models`, `model_count`, `working_colorspace` and `values_as_uniforms` read as in `shadewire_mtlx_options`;
-/// `reserved` fills the tail padding and must be zero. New fields are only appended at the end.
+/// `models`, `model_count`, `working_colorspace`, `values_as_uniforms` and `distill` read as in
+/// `shadewire_mtlx_options`; `reserved` and `reserved2` fill padding and must be zero. New fields are only appended
+/// at the end.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct shadewire_ir_options {
@@ -53,6 +60,8 @@ pub struct shadewire_ir_options {
     pub working_colorspace: *const c_char,
     pub values_as_uniforms: bool,
     pub reserved: [u8; 7],
+    pub distill: bool,
+    pub reserved2: [u8; 7],
 }
 
 /// Options for compilation (the keyword arguments of Python's `compile`). Set `struct_size` to `sizeof` the struct,
@@ -100,6 +109,8 @@ fn mtlx_defaults() -> shadewire_mtlx_options {
         reserved: [0; 7],
         resolve: None,
         resolve_user_data: std::ptr::null_mut(),
+        distill: IrOptions::default().distill,
+        reserved2: [0; 7],
     }
 }
 
@@ -111,6 +122,8 @@ fn ir_defaults() -> shadewire_ir_options {
         working_colorspace: std::ptr::null(),
         values_as_uniforms: IrOptions::default().values_as_uniforms,
         reserved: [0; 7],
+        distill: IrOptions::default().distill,
+        reserved2: [0; 7],
     }
 }
 
@@ -159,6 +172,7 @@ pub(crate) unsafe fn read_mtlx(ptr: *const shadewire_mtlx_options) -> Result<(Ir
             &mut options,
         )
     }?;
+    options.distill = unsafe { flag(&raw const (*raw).distill) };
     let resolve = unsafe { (&raw const (*raw).resolve).read() };
     let resolver = resolver(resolve, unsafe { (&raw const (*raw).resolve_user_data).read() });
     Ok((options, resolver))
@@ -185,6 +199,7 @@ pub(crate) unsafe fn read_ir_options(ptr: *const shadewire_ir_options) -> Result
             &mut options,
         )
     }?;
+    options.distill = unsafe { flag(&raw const (*raw).distill) };
     Ok(options)
 }
 
@@ -307,10 +322,11 @@ mod tests {
         let compile_end = offset_of!(shadewire_compile_options, implicit_derivatives) + 1;
         assert_eq!(size_of::<shadewire_compile_options>(), compile_end);
         assert_eq!(offset_of!(shadewire_mtlx_options, reserved) + 7, offset_of!(shadewire_mtlx_options, resolve));
-        let mtlx_end = offset_of!(shadewire_mtlx_options, resolve_user_data) + size_of::<*mut c_void>();
-        assert_eq!(size_of::<shadewire_mtlx_options>(), mtlx_end);
+        let user_data_end = offset_of!(shadewire_mtlx_options, resolve_user_data) + size_of::<*mut c_void>();
+        assert_eq!(offset_of!(shadewire_mtlx_options, distill), user_data_end);
+        assert_eq!(size_of::<shadewire_mtlx_options>(), offset_of!(shadewire_mtlx_options, reserved2) + 7);
         #[cfg(target_pointer_width = "64")]
-        assert_eq!((size_of::<shadewire_compile_options>(), size_of::<shadewire_mtlx_options>()), (16, 56));
+        assert_eq!((size_of::<shadewire_compile_options>(), size_of::<shadewire_mtlx_options>()), (16, 64));
     }
 
     #[test]
@@ -318,7 +334,8 @@ mod tests {
         let mut m = MaybeUninit::<shadewire_mtlx_options>::uninit();
         unsafe { m.as_mut_ptr().cast::<u8>().write_bytes(0xAA, size_of::<shadewire_mtlx_options>()) };
         unsafe { shadewire_mtlx_options_default(m.as_mut_ptr()) };
-        assert_eq!(unsafe { m.assume_init() }.reserved, [0; 7]);
+        let m = unsafe { m.assume_init() };
+        assert_eq!((m.reserved, m.reserved2), ([0; 7], [0; 7]));
     }
 
     /// Stores byte `value` in the bool at `offset`; the struct stays behind `MaybeUninit`, so no invalid `bool` exists.
@@ -487,9 +504,11 @@ mod tests {
             (d.models.clone(), d.working_colorspace, d.values_as_uniforms)
         );
         assert_eq!(unsafe { read_ir_options(std::ptr::null()) }.unwrap().models, d.models);
-        assert_eq!(size_of::<shadewire_ir_options>(), offset_of!(shadewire_ir_options, reserved) + 7);
+        assert_eq!(offset_of!(shadewire_ir_options, distill), offset_of!(shadewire_ir_options, reserved) + 7);
+        assert_eq!(size_of::<shadewire_ir_options>(), offset_of!(shadewire_ir_options, reserved2) + 7);
         #[cfg(target_pointer_width = "64")]
-        assert_eq!(size_of::<shadewire_ir_options>(), 40);
+        assert_eq!(size_of::<shadewire_ir_options>(), 48);
+        assert!(!read.distill && !o.distill);
         unsafe { shadewire_ir_options_default(std::ptr::null_mut()) };
     }
 
@@ -513,6 +532,22 @@ mod tests {
         assert!(unsafe { read_ir_options(&o) }.unwrap_err().0.contains("models is NULL"));
         o.struct_size = 3;
         assert!(unsafe { read_ir_options(&o) }.is_err());
+    }
+
+    #[test]
+    fn distill_is_read_and_an_old_caller_without_it_reads_false() {
+        let mut m = mtlx_default_struct();
+        m.distill = true;
+        assert!(unsafe { read_mtlx(&m) }.unwrap().0.distill);
+        m.struct_size = offset_of!(shadewire_mtlx_options, distill) as u32;
+        assert!(!unsafe { read_mtlx(&m) }.unwrap().0.distill, "beyond struct_size: false");
+        let mut o = ir_default_struct();
+        let mut raw = MaybeUninit::new(o);
+        set_bool_byte(&mut raw, offset_of!(shadewire_ir_options, distill), 2);
+        assert!(unsafe { read_ir_options(raw.as_ptr()) }.unwrap().distill);
+        o.distill = true;
+        o.struct_size = offset_of!(shadewire_ir_options, distill) as u32;
+        assert!(!unsafe { read_ir_options(&o) }.unwrap().distill, "beyond struct_size: false");
     }
 
     #[test]

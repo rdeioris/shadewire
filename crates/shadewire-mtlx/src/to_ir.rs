@@ -28,7 +28,7 @@ pub fn to_ir(
     let document = upgrade(document)?;
     let dag = elaborate(&document, standard(), options, material)?;
     let source = SourceInfo { source: "mtlx".to_string(), mtlx_version: format!("{major}.{minor}") };
-    Ok(MaterialIr { dag, source, warnings: Vec::new() })
+    Ok(MaterialIr::new(dag, source, Vec::new()))
 }
 
 /// The names of the document's materials (`surfacematerial` nodes), in document order.

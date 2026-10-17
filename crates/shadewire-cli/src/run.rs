@@ -69,8 +69,9 @@ fn names(file: &Path, format: Option<Format>, mdl_paths: &[PathBuf]) -> Result<V
 }
 
 /// The front end's options. The models: `--model`'s, or with `--lobes` only the closure tree (and unlit), or else
-/// `default` when given, else the front end's own.
-fn ir_options(models: &[String], lobes: bool, default: Option<&[&str]>, constants: bool) -> IrOptions {
+/// `default` when given, else the front end's own; `--distill` distills closure trees to an accepted
+/// `open_pbr_surface`.
+fn ir_options(models: &[String], lobes: bool, default: Option<&[&str]>, constants: bool, distill: bool) -> IrOptions {
     let mut options = IrOptions::default();
     let fixed = if lobes { Some(&LOBE_MODELS[..]) } else { default };
     if !models.is_empty() {
@@ -79,6 +80,7 @@ fn ir_options(models: &[String], lobes: bool, default: Option<&[&str]>, constant
         options.models = fixed.iter().map(|m| m.to_string()).collect();
     }
     options.values_as_uniforms = !constants;
+    options.distill = distill;
     options
 }
 
@@ -91,7 +93,7 @@ fn compile_options(args: &CompileArgs) -> CompileOptions {
 }
 
 fn ir_command(args: &IrArgs) -> Result<(), Error> {
-    let lower = ir_options(&args.models, args.lobes, None, args.constants);
+    let lower = ir_options(&args.models, args.lobes, None, args.constants, args.distill);
     let ir = read_ir(&args.file, args.format, &args.mdl_paths, args.material.as_deref(), &lower)?;
     let dag = if args.no_optimize { ir.dag } else { optimize(&ir.dag) };
     if args.json {
@@ -111,7 +113,7 @@ fn list_command(args: &ListArgs) -> Result<(), Error> {
 }
 
 fn mtlx_command(args: &MtlxArgs) -> Result<(), Error> {
-    let lower = ir_options(&args.models, args.lobes, None, args.constants);
+    let lower = ir_options(&args.models, args.lobes, None, args.constants, args.distill);
     let ir = read_ir(&args.file, args.format, &args.mdl_paths, args.material.as_deref(), &lower)?;
     let dag = if args.optimize { optimize(&ir.dag) } else { ir.dag };
     // `read_ir` without `--material` succeeded, so the document has exactly one material.
@@ -179,7 +181,7 @@ fn compile_command(args: &CompileArgs) -> Result<(), Error> {
         Lang::Mdl => Some(&LOBE_MODELS[..]),
         _ => None,
     };
-    let lower = ir_options(&args.models, args.lobes, default, args.constants);
+    let lower = ir_options(&args.models, args.lobes, default, args.constants, args.distill);
     let ir = read_ir(&args.file, args.format, &args.mdl_paths, args.material.as_deref(), &lower)?;
     let compiled = compile(&ir, args)?;
     if let Some(path) = &args.reflection {
