@@ -4,7 +4,7 @@
 [package]
 name = "shadewire-godot"
 description = "Shadewire for Godot 4: load MaterialX (.mtlx) documents as ShaderMaterials, at runtime and on import"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.94"
 license = "MIT"

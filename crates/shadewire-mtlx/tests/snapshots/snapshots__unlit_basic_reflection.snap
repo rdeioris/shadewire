@@ -1,9 +1,9 @@
 ---
-source: crates/shadewire/tests/snapshots.rs
+source: crates/shadewire-mtlx/tests/snapshots.rs
 expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
 ---
 {
-  "shadewire": "0.2.0",
+  "shadewire": "0.3.0",
   "source": "mtlx",
   "mtlx_version": "1.39",
   "model": "surface_unlit",

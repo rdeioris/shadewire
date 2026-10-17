@@ -218,7 +218,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "serde",
  "thiserror",
@@ -226,14 +226,14 @@ dependencies = [
 
 [[package]]
 name = "shadewire-gdshader"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "shadewire",
 ]
 
 [[package]]
 name = "shadewire-godot"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "godot",
  "serde",
@@ -246,7 +246,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-mtlx"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "shadewire",
  "shadewire-nodes",
@@ -254,7 +254,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-nodes"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "include_dir",
  "quick-xml",
