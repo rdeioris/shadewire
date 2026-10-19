@@ -5,6 +5,8 @@ pub fn eval(op: &Op, args: &[Value], ty: Type) -> Value {
     match op {
         Op::Add => componentwise(args, ty, |a| a[0] + a[1]),
         Op::Subtract => componentwise(args, ty, |a| a[0] - a[1]),
+        // Integers multiply in two's complement, wrapping; everything else in f32.
+        Op::Multiply if ty == Type::Integer => Value::Integer(int(&args[0]).wrapping_mul(int(&args[1]))),
         Op::Multiply => componentwise(args, ty, |a| a[0] * a[1]),
         Op::Divide => componentwise(args, ty, |a| a[0] / a[1]),
         Op::Modulo => componentwise(args, ty, |a| a[0] - a[1] * (a[0] / a[1]).floor()),
@@ -29,6 +31,14 @@ pub fn eval(op: &Op, args: &[Value], ty: Type) -> Value {
         Op::Smoothstep => componentwise(args, ty, |a| smoothstep(a[1], a[2], a[0])),
         Op::Remap => componentwise(args, ty, |a| a[3] + (a[0] - a[1]) * (a[4] - a[3]) / (a[2] - a[1])),
         other => panic!("{other:?} is not a math op"),
+    }
+}
+
+/// An integer argument as i32; a float one truncated (saturating), like `Value::from_floats`.
+fn int(v: &Value) -> i32 {
+    match v {
+        Value::Integer(i) => *i,
+        other => other.as_f32() as i32,
     }
 }
 
@@ -74,6 +84,12 @@ mod tests {
     fn scalar_broadcasts_over_color() {
         let r = eval(&Op::Multiply, &[Value::Color3([1.0, 2.0, 3.0]), Value::Float(2.0)], Type::Color3);
         assert_eq!(r, Value::Color3([2.0, 4.0, 6.0]));
+    }
+
+    #[test]
+    fn integer_multiply_wraps() {
+        let r = eval(&Op::Multiply, &[Value::Integer(3), Value::Integer(1_075_385_539)], Type::Integer);
+        assert_eq!(r, Value::Integer(3i32.wrapping_mul(1_075_385_539)));
     }
 
     #[test]
