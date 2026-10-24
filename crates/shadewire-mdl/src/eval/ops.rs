@@ -854,9 +854,10 @@ impl<'p, 'a> Eval<'p, 'a> {
         }
     }
 
-    /// A texture path as the host should read it: as written for the main module.
+    /// A texture path as the host should read it: as written for the main module, a strict relative path without its
+    /// `./` (it names the module's folder, as an IR path names its document's).
     pub fn resolve_resource(&self, file: &str) -> String {
-        file.to_string()
+        file.strip_prefix("./").unwrap_or(file).to_string()
     }
 
     /// An array of `elem` from `args`; `size` when written (`T[n](...)`), else as many as given.

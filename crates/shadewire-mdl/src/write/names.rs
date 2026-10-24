@@ -172,8 +172,9 @@ pub fn mdl_ident(name: &str) -> String {
     out
 }
 
-/// A file path as MDL names a resource: `/` separators, and no drive letter (MDL paths cannot hold `:`; an
-/// absolute path is then read against the search path). The second value says the drive was dropped.
+/// A file path as MDL names a resource: `/` separators, no drive letter (MDL paths cannot hold `:`; an absolute
+/// path is then read against the search path), and `./` in front of a relative path (MDL 1.6 has no weak relative
+/// paths). The second value says the drive was dropped.
 pub fn mdl_resource(path: &str) -> (String, bool) {
     let path = path.replace('\\', "/");
     let bytes = path.as_bytes();
@@ -181,6 +182,10 @@ pub fn mdl_resource(path: &str) -> (String, bool) {
         let rest = &path[2..];
         let rest = if rest.starts_with('/') { rest.to_string() } else { format!("/{rest}") };
         return (rest, true);
+    }
+    // MDL 1.6 dropped weak relative paths: a relative path names the module's folder with `./`.
+    if !path.starts_with('/') && !path.starts_with("./") && !path.starts_with("../") && !path.is_empty() {
+        return (format!("./{path}"), false);
     }
     (path, false)
 }
