@@ -1,0 +1,7 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: "ir.warnings.join(\"\\n\")"
+---
+Custom "MaterialExpressionCustom_0": Custom HLSL replaced by 0
+QualitySwitch "MaterialExpressionQualitySwitch_0": Default taken, Low dropped
+Fresnel "MaterialExpressionFresnel_0": the pixel normal is read as the vertex normal

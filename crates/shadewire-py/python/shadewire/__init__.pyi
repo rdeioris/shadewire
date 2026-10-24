@@ -6,6 +6,7 @@ from . import hlsl as hlsl
 from . import mdl as mdl
 from . import msl as msl
 from . import mtlx as mtlx
+from . import unreal as unreal
 from . import wgsl as wgsl
 
 IR_FORMAT_VERSION: int

@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **Unreal Engine materials.** `shadewire-unreal` reads the `shadewire-unreal-graph` JSON an Unreal editor plugin
+  (`unreal/Shadewire`, built against UE 5.8) dumps from materials and material instances: legacy shading models
+  become `open_pbr_surface` (Unlit `surface_unlit`), parameters uniforms, instance chains apply their overrides,
+  material functions inline, reroutes, masks and static and engine switches are followed as Unreal follows them.
+  The plugin exports MaterialX and MDL from the Content Browser and from a commandlet, through the C library.
+- **CLI:** Unreal graphs wherever a Blender graph is read (`--format unreal`); a `.json` input is told apart by its
+  `format`. **Python:** `shadewire.unreal` (`to_ir`, `material_names`). **C:** `shadewire_unreal_to_ir`,
+  `shadewire_unreal_material_names`.
+- **MDL:** a relative texture path is written as a strict relative path (`./textures/a.png`; MDL 1.6 dropped weak
+  relative paths) and read back without the `./`.
+
 ## 0.3.0 (2026-10-19)
 
 Since 0.2.0.

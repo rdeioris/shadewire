@@ -1,0 +1,34 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_M_Translucent">
+    <convert name="M_Translucent_BaseColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.9, 0.9, 1" />
+    </convert>
+    <constant name="M_Translucent_Roughness" type="float">
+      <input name="value" type="float" value="0.5" />
+    </constant>
+    <constant name="MaterialExpressionConstant_1" type="float">
+      <input name="value" type="float" value="1.33" />
+    </constant>
+    <constant name="MaterialExpressionConstant_0" type="float">
+      <input name="value" type="float" value="0.35" />
+    </constant>
+    <output name="base_color" type="color3" nodename="M_Translucent_BaseColor" />
+    <output name="specular_roughness" type="float" nodename="M_Translucent_Roughness" />
+    <output name="specular_ior" type="float" nodename="MaterialExpressionConstant_1" />
+    <output name="geometry_opacity" type="float" nodename="MaterialExpressionConstant_0" />
+  </nodegraph>
+  <open_pbr_surface name="M_Translucent_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_M_Translucent" output="base_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG_M_Translucent" output="specular_roughness" />
+    <input name="specular_ior" type="float" nodegraph="NG_M_Translucent" output="specular_ior" />
+    <input name="geometry_opacity" type="float" nodegraph="NG_M_Translucent" output="geometry_opacity" />
+  </open_pbr_surface>
+  <surfacematerial name="M_Translucent" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="M_Translucent_shader" />
+  </surfacematerial>
+</materialx>

@@ -1,0 +1,19 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.3.0",
+	"FriendlyName": "Shadewire",
+	"Description": "Exports Unreal materials as MaterialX documents and MDL modules through Shadewire.",
+	"Category": "Rendering",
+	"CreatedBy": "Blitter Studio",
+	"CreatedByURL": "https://github.com/rdeioris/shadewire",
+	"CanContainContent": false,
+	"IsBetaVersion": true,
+	"Modules": [
+		{
+			"Name": "ShadewireEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}

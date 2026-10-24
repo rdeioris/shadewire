@@ -624,6 +624,30 @@ fn a_blender_graph_lowers_lists_its_materials_and_reports_its_warnings() {
     unsafe { shadewire_ir_free(ir) };
 }
 
+const UNREAL_FIXTURE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../unreal/fixtures/graphs/M_Geometry.json");
+
+#[test]
+fn an_unreal_graph_lowers_lists_its_materials_and_reports_its_warnings() {
+    let text = std::fs::read_to_string(UNREAL_FIXTURE).unwrap();
+    let (mut ir, mut error) = (null_mut(), null_mut());
+    let status =
+        unsafe { shadewire_unreal_to_ir(text.as_ptr().cast(), text.len(), null(), null(), &mut ir, &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+    assert_eq!(unsafe { CStr::from_ptr(shadewire_ir_model(ir)) }.to_str().unwrap(), "open_pbr_surface");
+    assert_eq!(unsafe { CStr::from_ptr(shadewire_ir_source(ir)) }.to_str().unwrap(), "unreal");
+    let mut warnings = null_mut();
+    assert_eq!(unsafe { shadewire_ir_warnings(ir, &mut warnings, null_mut()) }, shadewire_status::SHADEWIRE_OK);
+    assert!(unsafe { CStr::from_ptr(shadewire_strings_get(warnings, 0)) }.to_str().unwrap().contains("Custom"));
+    unsafe { shadewire_strings_free(warnings) };
+    unsafe { shadewire_ir_free(ir) };
+
+    let mut names = null_mut();
+    let status = unsafe { shadewire_unreal_material_names(text.as_ptr().cast(), text.len(), &mut names, &mut error) };
+    assert_eq!(status, shadewire_status::SHADEWIRE_OK);
+    assert_eq!(unsafe { CStr::from_ptr(shadewire_strings_get(names, 0)) }.to_str().unwrap(), "M_Geometry");
+    unsafe { shadewire_strings_free(names) };
+}
+
 #[test]
 fn ir_options_pick_the_models() {
     let text = std::fs::read_to_string(BLENDER_LOBES).unwrap();

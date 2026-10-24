@@ -1,0 +1,573 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": false,
+  "materials": [
+    {
+      "path": "/Game/Fixtures/M_Function.M_Function",
+      "name": "M_Function",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_DefaultLit",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_DefaultLit"]
+      },
+      "pins": [
+        {
+          "pin": "BaseColor",
+          "from": ["MaterialExpressionMaterialFunctionCall_0", 0],
+          "mask": null
+        },
+        {
+          "pin": "Roughness",
+          "from": ["MaterialExpressionMaterialFunctionCall_1", 1],
+          "mask": null
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionMaterialFunctionCall_0",
+          "class": "MaterialExpressionMaterialFunctionCall",
+          "properties": {
+            "MaterialFunction": "/Game/Fixtures/MF_Tint.MF_Tint",
+            "FunctionInputs": [
+              {},
+              {}
+            ],
+            "FunctionOutputs": [
+              {
+                "Output": {
+                  "OutputName": "Result",
+                  "Mask": 0,
+                  "MaskR": 0,
+                  "MaskG": 0,
+                  "MaskB": 0,
+                  "MaskA": 0
+                }
+              },
+              {
+                "Output": {
+                  "OutputName": "Gray",
+                  "Mask": 0,
+                  "MaskR": 0,
+                  "MaskG": 0,
+                  "MaskB": 0,
+                  "MaskA": 0
+                }
+              }
+            ]
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Color (V3)",
+              "from": ["MaterialExpressionConstant3Vector_0", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "Scale (S)",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "Result",
+              "mask": null
+            },
+            {
+              "name": "Gray",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_0",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.9, 0.6, 0.3, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionMaterialFunctionCall_1",
+          "class": "MaterialExpressionMaterialFunctionCall",
+          "properties": {
+            "MaterialFunction": "/Engine/Functions/Engine_MaterialFunctions02/Utility/BreakOutFloat3Components.BreakOutFloat3Components",
+            "FunctionInputs": [
+              {}
+            ],
+            "FunctionOutputs": [
+              {
+                "Output": {
+                  "OutputName": "R",
+                  "Mask": 0,
+                  "MaskR": 0,
+                  "MaskG": 0,
+                  "MaskB": 0,
+                  "MaskA": 0
+                }
+              },
+              {
+                "Output": {
+                  "OutputName": "G",
+                  "Mask": 0,
+                  "MaskR": 0,
+                  "MaskG": 0,
+                  "MaskB": 0,
+                  "MaskA": 0
+                }
+              },
+              {
+                "Output": {
+                  "OutputName": "B",
+                  "Mask": 0,
+                  "MaskR": 0,
+                  "MaskG": 0,
+                  "MaskB": 0,
+                  "MaskA": 0
+                }
+              }
+            ]
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Float3 (V3)",
+              "from": ["MaterialExpressionConstant3Vector_1", 0],
+              "mask": [1, 1, 1, 0]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "R",
+              "mask": null
+            },
+            {
+              "name": "G",
+              "mask": null
+            },
+            {
+              "name": "B",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_1",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.3, 0.6, 0.9, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [
+    {
+      "path": "/Game/Fixtures/MF_Tint.MF_Tint",
+      "name": "MF_Tint",
+      "class": "MaterialFunction",
+      "expressions": [
+        {
+          "name": "MaterialExpressionFunctionInput_0",
+          "class": "MaterialExpressionFunctionInput",
+          "properties": {
+            "InputName": "Color",
+            "Description": "",
+            "InputType": "FunctionInput_Vector3",
+            "PreviewValue": [0, 0, 0, 1],
+            "bUsePreviewValueAsDefault": false,
+            "SortPriority": 0,
+            "BlendInputRelevance": "General"
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Preview",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFunctionInput_1",
+          "class": "MaterialExpressionFunctionInput",
+          "properties": {
+            "InputName": "Scale",
+            "Description": "",
+            "InputType": "FunctionInput_Scalar",
+            "PreviewValue": [0, 0, 0, 1],
+            "bUsePreviewValueAsDefault": true,
+            "SortPriority": 1,
+            "BlendInputRelevance": "General"
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Preview",
+              "from": ["MaterialExpressionConstant_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_0",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.5
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionMultiply_0",
+          "class": "MaterialExpressionMultiply",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 1
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionFunctionInput_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionFunctionInput_1", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFunctionOutput_0",
+          "class": "MaterialExpressionFunctionOutput",
+          "properties": {
+            "OutputName": "Result",
+            "Description": "",
+            "SortPriority": 0,
+            "bLastPreviewed": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "",
+              "from": ["MaterialExpressionMultiply_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionDesaturation_0",
+          "class": "MaterialExpressionDesaturation",
+          "properties": {
+            "LuminanceFactors": [0.212639, 0.71516865, 0.07219232, 1]
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionMultiply_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "Fraction",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFunctionOutput_1",
+          "class": "MaterialExpressionFunctionOutput",
+          "properties": {
+            "OutputName": "Gray",
+            "Description": "",
+            "SortPriority": 1,
+            "bLastPreviewed": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "",
+              "from": ["MaterialExpressionDesaturation_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "/Engine/Functions/Engine_MaterialFunctions02/Utility/BreakOutFloat3Components.BreakOutFloat3Components",
+      "name": "BreakOutFloat3Components",
+      "class": "MaterialFunction",
+      "expressions": [
+        {
+          "name": "MaterialExpressionFunctionOutput_0",
+          "class": "MaterialExpressionFunctionOutput",
+          "properties": {
+            "OutputName": "R",
+            "Description": "",
+            "SortPriority": 0,
+            "bLastPreviewed": true
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "",
+              "from": ["MaterialExpressionComponentMask_42", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFunctionInput_11",
+          "class": "MaterialExpressionFunctionInput",
+          "properties": {
+            "InputName": "Float3",
+            "Description": "",
+            "InputType": "FunctionInput_Vector3",
+            "PreviewValue": [0, 0, 0, 1],
+            "bUsePreviewValueAsDefault": true,
+            "SortPriority": 0,
+            "BlendInputRelevance": "General"
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Preview",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionComponentMask_42",
+          "class": "MaterialExpressionComponentMask",
+          "properties": {
+            "R": true,
+            "G": false,
+            "B": false,
+            "A": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionFunctionInput_11", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionComponentMask_43",
+          "class": "MaterialExpressionComponentMask",
+          "properties": {
+            "R": false,
+            "G": true,
+            "B": false,
+            "A": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionFunctionInput_11", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionComponentMask_44",
+          "class": "MaterialExpressionComponentMask",
+          "properties": {
+            "R": false,
+            "G": false,
+            "B": true,
+            "A": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionFunctionInput_11", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFunctionOutput_2",
+          "class": "MaterialExpressionFunctionOutput",
+          "properties": {
+            "OutputName": "G",
+            "Description": "",
+            "SortPriority": 1,
+            "bLastPreviewed": true
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "",
+              "from": ["MaterialExpressionComponentMask_43", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFunctionOutput_4",
+          "class": "MaterialExpressionFunctionOutput",
+          "properties": {
+            "OutputName": "B",
+            "Description": "",
+            "SortPriority": 2,
+            "bLastPreviewed": true
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "",
+              "from": ["MaterialExpressionComponentMask_44", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "textures": []
+}

@@ -1,0 +1,267 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": false,
+  "materials": [
+    {
+      "path": "/Game/Fixtures/M_Attributes.M_Attributes",
+      "name": "M_Attributes",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_DefaultLit",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": true,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_DefaultLit"]
+      },
+      "pins": [
+        {
+          "pin": "MaterialAttributes",
+          "from": ["MaterialExpressionMakeMaterialAttributes_0", 0],
+          "mask": null
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionMakeMaterialAttributes_0",
+          "class": "MaterialExpressionMakeMaterialAttributes",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "BaseColor",
+              "from": ["MaterialExpressionConstant3Vector_0", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "Metallic",
+              "from": ["MaterialExpressionConstant_1", 0],
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "Specular",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 3,
+              "name": "Roughness",
+              "from": ["MaterialExpressionConstant_0", 0],
+              "mask": null
+            },
+            {
+              "index": 4,
+              "name": "Anisotropy",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 5,
+              "name": "EmissiveColor",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 6,
+              "name": "Opacity",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 7,
+              "name": "OpacityMask",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 8,
+              "name": "Normal",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 9,
+              "name": "Tangent",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 10,
+              "name": "WorldPositionOffset",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 11,
+              "name": "SubsurfaceColor",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 12,
+              "name": "ClearCoat",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 13,
+              "name": "ClearCoatRoughness",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 14,
+              "name": "AmbientOcclusion",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 15,
+              "name": "Refraction",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 16,
+              "name": "CustomizedUVs_0",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 17,
+              "name": "CustomizedUVs_1",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 18,
+              "name": "CustomizedUVs_2",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 19,
+              "name": "CustomizedUVs_3",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 20,
+              "name": "CustomizedUVs_4",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 21,
+              "name": "CustomizedUVs_5",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 22,
+              "name": "CustomizedUVs_6",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 23,
+              "name": "CustomizedUVs_7",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 24,
+              "name": "PixelDepthOffset",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 25,
+              "name": "ShadingModel",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 26,
+              "name": "Displacement",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_0",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.1, 0.3, 0.8, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_0",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.6
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_1",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 1
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [],
+  "textures": []
+}

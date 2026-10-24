@@ -7,6 +7,8 @@
 //!   `shadewire_strings`);
 //! - `shadewire.blender.to_ir`, `.material_names`: `shadewire_blender_to_ir` (with `shadewire_ir_options`),
 //!   `shadewire_blender_material_names`;
+//! - `shadewire.unreal.to_ir`, `.material_names`: `shadewire_unreal_to_ir` (with `shadewire_ir_options`),
+//!   `shadewire_unreal_material_names`;
 //! - `shadewire_nodes::DocumentBuilder` (a MaterialX document built in memory): `shadewire_builder` with its
 //!   `shadewire_nodegraph` and `shadewire_node` handles, typed `shadewire_value`s and `shadewire_source`s, and
 //!   `shadewire_builder_to_ir`;
@@ -62,6 +64,7 @@ mod status;
 mod strings;
 mod target;
 mod threads;
+mod unreal;
 mod version;
 
 pub use blender::{shadewire_blender_material_names, shadewire_blender_to_ir};
@@ -114,6 +117,7 @@ pub use target::{
     SHADEWIRE_TARGET_GLSL, SHADEWIRE_TARGET_GLSL_ES, SHADEWIRE_TARGET_HLSL, SHADEWIRE_TARGET_MDL, SHADEWIRE_TARGET_MSL,
     SHADEWIRE_TARGET_WGSL, shadewire_target, shadewire_target_kind,
 };
+pub use unreal::{shadewire_unreal_material_names, shadewire_unreal_to_ir};
 pub use version::{
     SHADEWIRE_VERSION_MAJOR, SHADEWIRE_VERSION_MINOR, SHADEWIRE_VERSION_PATCH, shadewire_version,
     shadewire_version_string,

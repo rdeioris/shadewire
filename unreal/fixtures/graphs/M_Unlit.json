@@ -1,0 +1,148 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": false,
+  "materials": [
+    {
+      "path": "/Game/Fixtures/M_Unlit.M_Unlit",
+      "name": "M_Unlit",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_Unlit",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_Unlit"]
+      },
+      "pins": [
+        {
+          "pin": "EmissiveColor",
+          "from": ["MaterialExpressionMultiply_0", 0],
+          "mask": null
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionVectorParameter_0",
+          "class": "MaterialExpressionVectorParameter",
+          "properties": {
+            "DefaultValue": [4, 2, 0.5, 1],
+            "bUseCustomPrimitiveData": false,
+            "PrimitiveDataIndex": 0,
+            "ChannelNames": {
+              "R": "",
+              "G": "",
+              "B": "",
+              "A": ""
+            },
+            "ParameterName": "Glow",
+            "Group": "",
+            "SortPriority": 32
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "RGB",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "R",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "G",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "B",
+              "mask": [0, 0, 1, 0]
+            },
+            {
+              "name": "A",
+              "mask": [0, 0, 0, 1]
+            },
+            {
+              "name": "RGBA",
+              "mask": [1, 1, 1, 1]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionTime_0",
+          "class": "MaterialExpressionTime",
+          "properties": {
+            "bIgnorePause": false,
+            "bOverride_Period": false,
+            "Period": 0
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionSine_0",
+          "class": "MaterialExpressionSine",
+          "properties": {
+            "Period": 2
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionTime_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionMultiply_0",
+          "class": "MaterialExpressionMultiply",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 1
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionVectorParameter_0", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionSine_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [],
+  "textures": []
+}

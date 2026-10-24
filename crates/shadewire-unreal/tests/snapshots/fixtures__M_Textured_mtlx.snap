@@ -1,0 +1,253 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_M_Textured">
+    <texcoord name="MaterialExpressionTextureCoordinate_0" type="vector2">
+      <input name="index" type="integer" value="0" />
+    </texcoord>
+    <multiply name="MaterialExpressionTextureCoordinate_0_2" type="vector2">
+      <input name="in1" type="vector2" nodename="MaterialExpressionTextureCoordinate_0" />
+      <input name="in2" type="vector2" value="1, -1" />
+    </multiply>
+    <add name="MaterialExpressionTextureCoordinate_0_2_2" type="vector2">
+      <input name="in1" type="vector2" nodename="MaterialExpressionTextureCoordinate_0_2" />
+      <input name="in2" type="vector2" value="0, 1" />
+    </add>
+    <multiply name="MaterialExpressionTextureCoordinate_0_3" type="vector2">
+      <input name="in1" type="vector2" nodename="MaterialExpressionTextureCoordinate_0_2_2" />
+      <input name="in2" type="vector2" value="2, 3" />
+    </multiply>
+    <time name="MaterialExpressionPanner_0" type="float" />
+    <convert name="MaterialExpressionPanner_0_2" type="vector2" nodedef="ND_convert_float_vector2">
+      <input name="in" type="float" nodename="MaterialExpressionPanner_0" />
+    </convert>
+    <multiply name="MaterialExpressionPanner_0_2_2" type="vector2">
+      <input name="in1" type="vector2" value="0.1, 0" />
+      <input name="in2" type="vector2" nodename="MaterialExpressionPanner_0_2" />
+    </multiply>
+    <add name="MaterialExpressionPanner_0_3" type="vector2">
+      <input name="in1" type="vector2" nodename="MaterialExpressionTextureCoordinate_0_3" />
+      <input name="in2" type="vector2" nodename="MaterialExpressionPanner_0_2_2" />
+    </add>
+    <multiply name="MaterialExpressionTextureSample_0" type="vector2">
+      <input name="in1" type="vector2" nodename="MaterialExpressionPanner_0_3" />
+      <input name="in2" type="vector2" value="1, -1" />
+    </multiply>
+    <add name="MaterialExpressionTextureSample_0_2" type="vector2">
+      <input name="in1" type="vector2" nodename="MaterialExpressionTextureSample_0" />
+      <input name="in2" type="vector2" value="0, 1" />
+    </add>
+    <image name="MaterialExpressionTextureSample_0_3" type="color4">
+      <input name="file" type="filename" value="textures/T_Checker.png" colorspace="srgb_texture" />
+      <input name="texcoord" type="vector2" nodename="MaterialExpressionTextureSample_0_2" />
+      <input name="default" type="color4" value="0, 0, 0, 0" />
+    </image>
+    <convert name="MaterialExpressionTextureSample_0_4" type="vector4" nodedef="ND_convert_color4_vector4">
+      <input name="in" type="color4" nodename="MaterialExpressionTextureSample_0_3" />
+    </convert>
+    <convert name="MaterialExpressionTextureSample_0_5" type="vector3" nodedef="ND_convert_vector4_vector3">
+      <input name="in" type="vector4" nodename="MaterialExpressionTextureSample_0_4" />
+    </convert>
+    <convert name="M_Textured_BaseColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionTextureSample_0_5" />
+    </convert>
+    <texcoord name="MaterialExpressionTextureSampleParameter2D_0" type="vector2">
+      <input name="index" type="integer" value="0" />
+    </texcoord>
+    <image name="MaterialExpressionTextureSampleParameter2D_0_2" type="color4">
+      <input name="file" type="filename" value="textures/T_Masks.png" />
+      <input name="texcoord" type="vector2" nodename="MaterialExpressionTextureSampleParameter2D_0" />
+      <input name="default" type="color4" value="0, 0, 0, 0" />
+    </image>
+    <convert name="MaterialExpressionTextureSampleParameter2D_0_2_2" type="vector4" nodedef="ND_convert_color4_vector4">
+      <input name="in" type="color4" nodename="MaterialExpressionTextureSampleParameter2D_0_2" />
+    </convert>
+    <extract name="MaterialExpressionTextureSampleParameter2D_0_3" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionTextureSampleParameter2D_0_2_2" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="MaterialExpressionTextureSampleParameter2D_0_4" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionTextureSampleParameter2D_0_2_2" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <multiply name="MaterialExpressionTextureSample_1" type="vector2">
+      <input name="in1" type="vector2" nodename="MaterialExpressionTextureCoordinate_0_3" />
+      <input name="in2" type="vector2" value="1, -1" />
+    </multiply>
+    <add name="MaterialExpressionTextureSample_1_2" type="vector2">
+      <input name="in1" type="vector2" nodename="MaterialExpressionTextureSample_1" />
+      <input name="in2" type="vector2" value="0, 1" />
+    </add>
+    <image name="MaterialExpressionTextureSample_1_3" type="color4">
+      <input name="file" type="filename" value="textures/T_Normal.png" />
+      <input name="texcoord" type="vector2" nodename="MaterialExpressionTextureSample_1_2" />
+      <input name="default" type="color4" value="0, 0, 0, 0" />
+    </image>
+    <convert name="MaterialExpressionTextureSample_1_4" type="vector4" nodedef="ND_convert_color4_vector4">
+      <input name="in" type="color4" nodename="MaterialExpressionTextureSample_1_3" />
+    </convert>
+    <extract name="MaterialExpressionTextureSample_1_5" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionTextureSample_1_4" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="MaterialExpressionTextureSample_1_6" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionTextureSample_1_4" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="MaterialExpressionTextureSample_1_7" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionTextureSample_1_4" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <combine3 name="MaterialExpressionTextureSample_1_8" type="vector3">
+      <input name="in1" type="float" nodename="MaterialExpressionTextureSample_1_5" />
+      <input name="in2" type="float" nodename="MaterialExpressionTextureSample_1_6" />
+      <input name="in3" type="float" nodename="MaterialExpressionTextureSample_1_7" />
+    </combine3>
+    <multiply name="MaterialExpressionTextureSample_1_9" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionTextureSample_1_8" />
+      <input name="in2" type="vector3" value="2, 2, 2" />
+    </multiply>
+    <add name="MaterialExpressionTextureSample_1_10" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionTextureSample_1_9" />
+      <input name="in2" type="vector3" value="-1, -1, -1" />
+    </add>
+    <extract name="MaterialExpressionTextureSample_1_11" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionTextureSample_1_10" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="MaterialExpressionTextureSample_1_12" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionTextureSample_1_10" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <combine2 name="MaterialExpressionTextureSample_1_13" type="vector2">
+      <input name="in1" type="float" nodename="MaterialExpressionTextureSample_1_11" />
+      <input name="in2" type="float" nodename="MaterialExpressionTextureSample_1_12" />
+    </combine2>
+    <dotproduct name="MaterialExpressionTextureSample_1_14" type="float">
+      <input name="in1" type="vector2" nodename="MaterialExpressionTextureSample_1_13" />
+      <input name="in2" type="vector2" nodename="MaterialExpressionTextureSample_1_13" />
+    </dotproduct>
+    <subtract name="MaterialExpressionTextureSample_1_15" type="float">
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" nodename="MaterialExpressionTextureSample_1_14" />
+    </subtract>
+    <max name="MaterialExpressionTextureSample_1_16" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionTextureSample_1_15" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionTextureSample_1_17" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionTextureSample_1_16" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <sqrt name="MaterialExpressionTextureSample_1_18" type="float">
+      <input name="in" type="float" nodename="MaterialExpressionTextureSample_1_17" />
+    </sqrt>
+    <extract name="MaterialExpressionTextureSample_1_19" type="float">
+      <input name="in" type="vector2" nodename="MaterialExpressionTextureSample_1_13" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="MaterialExpressionTextureSample_1_20" type="float">
+      <input name="in" type="vector2" nodename="MaterialExpressionTextureSample_1_13" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <combine3 name="MaterialExpressionTextureSample_1_21" type="vector3">
+      <input name="in1" type="float" nodename="MaterialExpressionTextureSample_1_19" />
+      <input name="in2" type="float" nodename="MaterialExpressionTextureSample_1_20" />
+      <input name="in3" type="float" nodename="MaterialExpressionTextureSample_1_18" />
+    </combine3>
+    <extract name="MaterialExpressionTextureSample_1_22" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionTextureSample_1_21" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="MaterialExpressionTextureSample_1_23" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionTextureSample_1_21" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="MaterialExpressionTextureSample_1_24" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionTextureSample_1_21" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <combine4 name="MaterialExpressionTextureSample_1_25" type="vector4">
+      <input name="in1" type="float" nodename="MaterialExpressionTextureSample_1_22" />
+      <input name="in2" type="float" nodename="MaterialExpressionTextureSample_1_23" />
+      <input name="in3" type="float" nodename="MaterialExpressionTextureSample_1_24" />
+      <input name="in4" type="float" value="1" />
+    </combine4>
+    <convert name="MaterialExpressionTextureSample_1_26" type="vector3" nodedef="ND_convert_vector4_vector3">
+      <input name="in" type="vector4" nodename="MaterialExpressionTextureSample_1_25" />
+    </convert>
+    <tangent name="M_Textured_Normal" type="vector3">
+      <input name="space" type="string" value="world" />
+    </tangent>
+    <bitangent name="M_Textured_Normal_2" type="vector3">
+      <input name="space" type="string" value="world" />
+    </bitangent>
+    <normal name="M_Textured_Normal_3" type="vector3">
+      <input name="space" type="string" value="world" />
+    </normal>
+    <extract name="M_Textured_Normal_4" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionTextureSample_1_26" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="M_Textured_Normal_2_2" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionTextureSample_1_26" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="M_Textured_Normal_3_2" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionTextureSample_1_26" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="M_Textured_Normal_4_2" type="float">
+      <input name="in1" type="float" nodename="M_Textured_Normal_2_2" />
+      <input name="in2" type="float" value="-1" />
+    </multiply>
+    <convert name="M_Textured_Normal_5" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" nodename="M_Textured_Normal_4" />
+    </convert>
+    <multiply name="M_Textured_Normal_6" type="vector3">
+      <input name="in1" type="vector3" nodename="M_Textured_Normal" />
+      <input name="in2" type="vector3" nodename="M_Textured_Normal_5" />
+    </multiply>
+    <convert name="M_Textured_Normal_7" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" nodename="M_Textured_Normal_4_2" />
+    </convert>
+    <multiply name="M_Textured_Normal_8" type="vector3">
+      <input name="in1" type="vector3" nodename="M_Textured_Normal_2" />
+      <input name="in2" type="vector3" nodename="M_Textured_Normal_7" />
+    </multiply>
+    <convert name="M_Textured_Normal_9" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" nodename="M_Textured_Normal_3_2" />
+    </convert>
+    <multiply name="M_Textured_Normal_10" type="vector3">
+      <input name="in1" type="vector3" nodename="M_Textured_Normal_3" />
+      <input name="in2" type="vector3" nodename="M_Textured_Normal_9" />
+    </multiply>
+    <add name="M_Textured_Normal_11" type="vector3">
+      <input name="in1" type="vector3" nodename="M_Textured_Normal_6" />
+      <input name="in2" type="vector3" nodename="M_Textured_Normal_8" />
+    </add>
+    <add name="M_Textured_Normal_12" type="vector3">
+      <input name="in1" type="vector3" nodename="M_Textured_Normal_11" />
+      <input name="in2" type="vector3" nodename="M_Textured_Normal_10" />
+    </add>
+    <normalize name="M_Textured_Normal_13" type="vector3">
+      <input name="in" type="vector3" nodename="M_Textured_Normal_12" />
+    </normalize>
+    <output name="base_color" type="color3" nodename="M_Textured_BaseColor" />
+    <output name="base_metalness" type="float" nodename="MaterialExpressionTextureSampleParameter2D_0_3" />
+    <output name="specular_roughness" type="float" nodename="MaterialExpressionTextureSampleParameter2D_0_4" />
+    <output name="geometry_normal" type="vector3" nodename="M_Textured_Normal_13" />
+  </nodegraph>
+  <open_pbr_surface name="M_Textured_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_M_Textured" output="base_color" />
+    <input name="base_metalness" type="float" nodegraph="NG_M_Textured" output="base_metalness" />
+    <input name="specular_roughness" type="float" nodegraph="NG_M_Textured" output="specular_roughness" />
+    <input name="geometry_normal" type="vector3" nodegraph="NG_M_Textured" output="geometry_normal" />
+  </open_pbr_surface>
+  <surfacematerial name="M_Textured" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="M_Textured_shader" />
+  </surfacematerial>
+</materialx>

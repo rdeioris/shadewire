@@ -1,0 +1,311 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": false,
+  "materials": [
+    {
+      "path": "/Game/Fixtures/MI_ParametersChild.MI_ParametersChild",
+      "name": "MI_ParametersChild",
+      "class": "MaterialInstanceConstant",
+      "parent": "/Game/Fixtures/MI_Parameters.MI_Parameters",
+      "overrides": {
+        "scalar": {
+          "Metallic": 0
+        },
+        "vector": {},
+        "texture": {},
+        "static_switch": {},
+        "base_property_overrides": {
+          "bOverride_OpacityMaskClipValue": false,
+          "bOverride_BlendMode": false,
+          "bOverride_ShadingModel": false,
+          "bOverride_DitheredLODTransition": false,
+          "bOverride_CastDynamicShadowAsMasked": false,
+          "bOverride_TwoSided": false,
+          "bOverride_bIsThinSurface": false,
+          "bOverride_OutputTranslucentVelocity": false,
+          "bOverride_bHasPixelAnimation": false,
+          "bOverride_bEnableTessellation": false,
+          "bOverride_DisplacementScaling": false,
+          "bOverride_bEnableDisplacementFade": false,
+          "bOverride_DisplacementFadeRange": false,
+          "bOverride_MaxWorldPositionOffsetDisplacement": false,
+          "bOverride_CompatibleWithLumenCardSharing": false,
+          "bOverride_UsageFlags": 0,
+          "TwoSided": false,
+          "bIsThinSurface": false,
+          "DitheredLODTransition": false,
+          "bCastDynamicShadowAsMasked": false,
+          "bOutputTranslucentVelocity": false,
+          "bHasPixelAnimation": false,
+          "bEnableTessellation": false,
+          "bEnableDisplacementFade": false,
+          "bCompatibleWithLumenCardSharing": false,
+          "BlendMode": "BLEND_Opaque",
+          "ShadingModel": "MSM_DefaultLit",
+          "OpacityMaskClipValue": 0.3333,
+          "DisplacementScaling": {
+            "Magnitude": 4,
+            "Center": 0.5
+          },
+          "DisplacementFadeRange": {
+            "StartSizePixels": 4,
+            "EndSizePixels": 1
+          },
+          "MaxWorldPositionOffsetDisplacement": 0,
+          "UsageFlags": 4194304
+        }
+      }
+    }
+  ],
+  "parents": [
+    {
+      "path": "/Game/Fixtures/MI_Parameters.MI_Parameters",
+      "name": "MI_Parameters",
+      "class": "MaterialInstanceConstant",
+      "parent": "/Game/Fixtures/M_Parameters.M_Parameters",
+      "overrides": {
+        "scalar": {
+          "Roughness": 0.25
+        },
+        "vector": {
+          "Tint": [0.1, 0.6, 0.2, 1]
+        },
+        "texture": {},
+        "static_switch": {
+          "UseTint": true
+        },
+        "base_property_overrides": {
+          "bOverride_OpacityMaskClipValue": false,
+          "bOverride_BlendMode": false,
+          "bOverride_ShadingModel": false,
+          "bOverride_DitheredLODTransition": false,
+          "bOverride_CastDynamicShadowAsMasked": false,
+          "bOverride_TwoSided": false,
+          "bOverride_bIsThinSurface": false,
+          "bOverride_OutputTranslucentVelocity": false,
+          "bOverride_bHasPixelAnimation": false,
+          "bOverride_bEnableTessellation": false,
+          "bOverride_DisplacementScaling": false,
+          "bOverride_bEnableDisplacementFade": false,
+          "bOverride_DisplacementFadeRange": false,
+          "bOverride_MaxWorldPositionOffsetDisplacement": false,
+          "bOverride_CompatibleWithLumenCardSharing": false,
+          "bOverride_UsageFlags": 0,
+          "TwoSided": false,
+          "bIsThinSurface": false,
+          "DitheredLODTransition": false,
+          "bCastDynamicShadowAsMasked": false,
+          "bOutputTranslucentVelocity": false,
+          "bHasPixelAnimation": false,
+          "bEnableTessellation": false,
+          "bEnableDisplacementFade": false,
+          "bCompatibleWithLumenCardSharing": false,
+          "BlendMode": "BLEND_Opaque",
+          "ShadingModel": "MSM_DefaultLit",
+          "OpacityMaskClipValue": 0.3333,
+          "DisplacementScaling": {
+            "Magnitude": 4,
+            "Center": 0.5
+          },
+          "DisplacementFadeRange": {
+            "StartSizePixels": 4,
+            "EndSizePixels": 1
+          },
+          "MaxWorldPositionOffsetDisplacement": 0,
+          "UsageFlags": 4194304
+        }
+      }
+    },
+    {
+      "path": "/Game/Fixtures/M_Parameters.M_Parameters",
+      "name": "M_Parameters",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_DefaultLit",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_DefaultLit"]
+      },
+      "pins": [
+        {
+          "pin": "BaseColor",
+          "from": ["MaterialExpressionStaticSwitchParameter_0", 0],
+          "mask": null
+        },
+        {
+          "pin": "Metallic",
+          "from": ["MaterialExpressionScalarParameter_1", 0],
+          "mask": null
+        },
+        {
+          "pin": "Roughness",
+          "from": ["MaterialExpressionScalarParameter_0", 0],
+          "mask": null
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionVectorParameter_0",
+          "class": "MaterialExpressionVectorParameter",
+          "properties": {
+            "DefaultValue": [0.5, 0.5, 0.5, 1],
+            "bUseCustomPrimitiveData": false,
+            "PrimitiveDataIndex": 0,
+            "ChannelNames": {
+              "R": "",
+              "G": "",
+              "B": "",
+              "A": ""
+            },
+            "ParameterName": "Tint",
+            "Group": "",
+            "SortPriority": 32
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "RGB",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "R",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "G",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "B",
+              "mask": [0, 0, 1, 0]
+            },
+            {
+              "name": "A",
+              "mask": [0, 0, 0, 1]
+            },
+            {
+              "name": "RGBA",
+              "mask": [1, 1, 1, 1]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionScalarParameter_0",
+          "class": "MaterialExpressionScalarParameter",
+          "properties": {
+            "DefaultValue": 0.5,
+            "ControlType": "Numeric",
+            "SliderMin": 0,
+            "SliderMax": 0,
+            "Enumeration": "",
+            "EnumerationIndex": 0,
+            "bUseCustomPrimitiveData": false,
+            "PrimitiveDataIndex": 0,
+            "ParameterName": "Roughness",
+            "Group": "",
+            "SortPriority": 32
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionScalarParameter_1",
+          "class": "MaterialExpressionScalarParameter",
+          "properties": {
+            "DefaultValue": 1,
+            "ControlType": "Numeric",
+            "SliderMin": 0,
+            "SliderMax": 0,
+            "Enumeration": "",
+            "EnumerationIndex": 0,
+            "bUseCustomPrimitiveData": false,
+            "PrimitiveDataIndex": 0,
+            "ParameterName": "Metallic",
+            "Group": "",
+            "SortPriority": 32
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionStaticSwitchParameter_0",
+          "class": "MaterialExpressionStaticSwitchParameter",
+          "properties": {
+            "DefaultValue": false,
+            "DynamicBranch": false,
+            "ParameterName": "UseTint",
+            "Group": "",
+            "SortPriority": 32
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "True",
+              "from": ["MaterialExpressionVectorParameter_0", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "False",
+              "from": ["MaterialExpressionConstant3Vector_0", 0],
+              "mask": [1, 1, 1, 0]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_0",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [1, 1, 1, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "textures": []
+}

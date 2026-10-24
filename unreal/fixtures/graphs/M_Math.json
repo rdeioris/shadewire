@@ -1,0 +1,726 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": false,
+  "materials": [
+    {
+      "path": "/Game/Fixtures/M_Math.M_Math",
+      "name": "M_Math",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_DefaultLit",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_DefaultLit"]
+      },
+      "pins": [
+        {
+          "pin": "BaseColor",
+          "from": ["MaterialExpressionClamp_0", 0],
+          "mask": null
+        },
+        {
+          "pin": "Metallic",
+          "from": ["MaterialExpressionAdd_1", 0],
+          "mask": null
+        },
+        {
+          "pin": "Roughness",
+          "from": ["MaterialExpressionMax_0", 0],
+          "mask": null
+        },
+        {
+          "pin": "Normal",
+          "from": ["MaterialExpressionNormalize_0", 0],
+          "mask": null
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionConstant3Vector_0",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.2, 0.4, 0.6, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_0",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.5
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionAdd_0",
+          "class": "MaterialExpressionAdd",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 1
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionConstant3Vector_0", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionConstant_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionMultiply_0",
+          "class": "MaterialExpressionMultiply",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 2
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionAdd_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionSubtract_0",
+          "class": "MaterialExpressionSubtract",
+          "properties": {
+            "ConstA": 1,
+            "ConstB": 0.25
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionMultiply_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionDivide_0",
+          "class": "MaterialExpressionDivide",
+          "properties": {
+            "ConstA": 1,
+            "ConstB": 3
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionSubtract_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionOneMinus_0",
+          "class": "MaterialExpressionOneMinus",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionDivide_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionPower_0",
+          "class": "MaterialExpressionPower",
+          "properties": {
+            "ConstExponent": 2.2
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Base",
+              "from": ["MaterialExpressionOneMinus_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "Exponent",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionLinearInterpolate_0",
+          "class": "MaterialExpressionLinearInterpolate",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 1,
+            "ConstAlpha": 0.3
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionPower_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionConstant3Vector_1", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 2,
+              "name": "Alpha",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_1",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [1, 0, 0, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionClamp_0",
+          "class": "MaterialExpressionClamp",
+          "properties": {
+            "ClampMode": "CMODE_Clamp",
+            "MinDefault": 0.1,
+            "MaxDefault": 0.9
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionLinearInterpolate_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "Min",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "Max",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionSine_0",
+          "class": "MaterialExpressionSine",
+          "properties": {
+            "Period": 4
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionConstant_1", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_1",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 1.5
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionAbs_0",
+          "class": "MaterialExpressionAbs",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionSine_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFrac_0",
+          "class": "MaterialExpressionFrac",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionAbs_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionComponentMask_0",
+          "class": "MaterialExpressionComponentMask",
+          "properties": {
+            "R": false,
+            "G": true,
+            "B": false,
+            "A": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionConstant3Vector_0", 0],
+              "mask": [1, 1, 1, 0]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionAppendVector_0",
+          "class": "MaterialExpressionAppendVector",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionFrac_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionComponentMask_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionDotProduct_0",
+          "class": "MaterialExpressionDotProduct",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionAppendVector_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionConstant2Vector_0", 0],
+              "mask": [1, 1, 0, 0]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant2Vector_0",
+          "class": "MaterialExpressionConstant2Vector",
+          "properties": {
+            "R": 0.5,
+            "G": 0.5
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionSaturate_0",
+          "class": "MaterialExpressionSaturate",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionDotProduct_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionMax_0",
+          "class": "MaterialExpressionMax",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 0.05
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionSaturate_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFloor_0",
+          "class": "MaterialExpressionFloor",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionConstant_2", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_2",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 1.7
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionMin_0",
+          "class": "MaterialExpressionMin",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 1
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionFloor_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionConstant_3", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_3",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionAdd_1",
+          "class": "MaterialExpressionAdd",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 1
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionMin_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionConstant_4", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_4",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionNormalize_0",
+          "class": "MaterialExpressionNormalize",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "VectorInput",
+              "from": ["MaterialExpressionConstant3Vector_2", 0],
+              "mask": [1, 1, 1, 0]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_2",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.1, 0, 1, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [],
+  "textures": []
+}

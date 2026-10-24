@@ -1,0 +1,345 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": false,
+  "materials": [
+    {
+      "path": "/Game/Fixtures/M_Textured.M_Textured",
+      "name": "M_Textured",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_DefaultLit",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_DefaultLit"]
+      },
+      "pins": [
+        {
+          "pin": "BaseColor",
+          "from": ["MaterialExpressionTextureSample_0", 0],
+          "mask": [1, 1, 1, 0]
+        },
+        {
+          "pin": "Metallic",
+          "from": ["MaterialExpressionTextureSampleParameter2D_0", 2],
+          "mask": [0, 1, 0, 0]
+        },
+        {
+          "pin": "Roughness",
+          "from": ["MaterialExpressionTextureSampleParameter2D_0", 1],
+          "mask": [1, 0, 0, 0]
+        },
+        {
+          "pin": "Normal",
+          "from": ["MaterialExpressionTextureSample_1", 0],
+          "mask": [1, 1, 1, 0]
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionTextureCoordinate_0",
+          "class": "MaterialExpressionTextureCoordinate",
+          "properties": {
+            "CoordinateIndex": 0,
+            "UTiling": 2,
+            "VTiling": 3,
+            "UnMirrorU": false,
+            "UnMirrorV": false
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionPanner_0",
+          "class": "MaterialExpressionPanner",
+          "properties": {
+            "SpeedX": 0.1,
+            "SpeedY": 0,
+            "ConstCoordinate": 0,
+            "bFractionalPart": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Coordinate",
+              "from": ["MaterialExpressionTextureCoordinate_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "Time",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "Speed",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionTextureSample_0",
+          "class": "MaterialExpressionTextureSample",
+          "properties": {
+            "MipValueMode": "TMVM_None",
+            "SamplerSource": "SSM_FromTextureAsset",
+            "GatherMode": "TGM_None",
+            "AutomaticViewMipBias": true,
+            "ChannelNames": {
+              "R": "",
+              "G": "",
+              "B": "",
+              "A": ""
+            },
+            "ConstCoordinate": 0,
+            "ConstMipValue": -1,
+            "Texture": "/Game/Fixtures/Textures/T_Checker.T_Checker",
+            "SamplerType": "SAMPLERTYPE_Color",
+            "IsDefaultMeshpaintTexture": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Coordinates",
+              "from": ["MaterialExpressionPanner_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "TextureObject",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "Apply View MipBias",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "RGB",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "R",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "G",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "B",
+              "mask": [0, 0, 1, 0]
+            },
+            {
+              "name": "A",
+              "mask": [0, 0, 0, 1]
+            },
+            {
+              "name": "RGBA",
+              "mask": [1, 1, 1, 1]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionTextureSample_1",
+          "class": "MaterialExpressionTextureSample",
+          "properties": {
+            "MipValueMode": "TMVM_None",
+            "SamplerSource": "SSM_FromTextureAsset",
+            "GatherMode": "TGM_None",
+            "AutomaticViewMipBias": true,
+            "ChannelNames": {
+              "R": "",
+              "G": "",
+              "B": "",
+              "A": ""
+            },
+            "ConstCoordinate": 0,
+            "ConstMipValue": -1,
+            "Texture": "/Game/Fixtures/Textures/T_Normal.T_Normal",
+            "SamplerType": "SAMPLERTYPE_Normal",
+            "IsDefaultMeshpaintTexture": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Coordinates",
+              "from": ["MaterialExpressionTextureCoordinate_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "TextureObject",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "Apply View MipBias",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "RGB",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "R",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "G",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "B",
+              "mask": [0, 0, 1, 0]
+            },
+            {
+              "name": "A",
+              "mask": [0, 0, 0, 1]
+            },
+            {
+              "name": "RGBA",
+              "mask": [1, 1, 1, 1]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionTextureSampleParameter2D_0",
+          "class": "MaterialExpressionTextureSampleParameter2D",
+          "properties": {
+            "ParameterName": "Masks",
+            "Group": "",
+            "SortPriority": 32,
+            "MipValueMode": "TMVM_None",
+            "SamplerSource": "SSM_FromTextureAsset",
+            "GatherMode": "TGM_None",
+            "AutomaticViewMipBias": true,
+            "ChannelNames": {
+              "R": "",
+              "G": "",
+              "B": "",
+              "A": ""
+            },
+            "ConstCoordinate": 0,
+            "ConstMipValue": -1,
+            "Texture": "/Game/Fixtures/Textures/T_Masks.T_Masks",
+            "SamplerType": "SAMPLERTYPE_Masks",
+            "IsDefaultMeshpaintTexture": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Coordinates",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "Apply View MipBias",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "RGB",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "R",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "G",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "B",
+              "mask": [0, 0, 1, 0]
+            },
+            {
+              "name": "A",
+              "mask": [0, 0, 0, 1]
+            },
+            {
+              "name": "RGBA",
+              "mask": [1, 1, 1, 1]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [],
+  "textures": [
+    {
+      "path": "/Game/Fixtures/Textures/T_Checker.T_Checker",
+      "name": "T_Checker",
+      "class": "Texture2D",
+      "file": "textures/T_Checker.png",
+      "srgb": true,
+      "compression": "TC_Default",
+      "filter": "TF_Default",
+      "flip_green": false,
+      "address_x": "TA_Wrap",
+      "address_y": "TA_Wrap",
+      "size": [8, 8]
+    },
+    {
+      "path": "/Game/Fixtures/Textures/T_Normal.T_Normal",
+      "name": "T_Normal",
+      "class": "Texture2D",
+      "file": "textures/T_Normal.png",
+      "srgb": false,
+      "compression": "TC_Normalmap",
+      "filter": "TF_Default",
+      "flip_green": false,
+      "address_x": "TA_Wrap",
+      "address_y": "TA_Wrap",
+      "size": [8, 8]
+    },
+    {
+      "path": "/Game/Fixtures/Textures/T_Masks.T_Masks",
+      "name": "T_Masks",
+      "class": "Texture2D",
+      "file": "textures/T_Masks.png",
+      "srgb": false,
+      "compression": "TC_Masks",
+      "filter": "TF_Default",
+      "flip_green": false,
+      "address_x": "TA_Wrap",
+      "address_y": "TA_Wrap",
+      "size": [8, 8]
+    }
+  ]
+}

@@ -3889,6 +3889,7 @@ dependencies = [
  "shadewire-msl",
  "shadewire-mtlx",
  "shadewire-nodes",
+ "shadewire-unreal",
  "shadewire-wgsl",
 ]
 
@@ -3915,6 +3916,7 @@ dependencies = [
  "shadewire-msl",
  "shadewire-mtlx",
  "shadewire-nodes",
+ "shadewire-unreal",
  "shadewire-wgsl",
 ]
 
@@ -3999,6 +4001,21 @@ dependencies = [
  "shadewire-hlsl",
  "shadewire-mdl",
  "shadewire-msl",
+ "shadewire-mtlx",
+ "shadewire-nodes",
+ "shadewire-unreal",
+ "shadewire-wgsl",
+]
+
+[[package]]
+name = "shadewire-unreal"
+version = "0.3.0"
+dependencies = [
+ "insta",
+ "serde",
+ "serde_json",
+ "shadewire",
+ "shadewire-mdl",
  "shadewire-mtlx",
  "shadewire-nodes",
  "shadewire-wgsl",

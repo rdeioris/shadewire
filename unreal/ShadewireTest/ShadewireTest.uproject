@@ -1,0 +1,12 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.8",
+	"Category": "",
+	"Description": "Materials the Shadewire plugin's tests dump and export.",
+	"Plugins": [
+		{ "Name": "Shadewire", "Enabled": true },
+		{ "Name": "PythonScriptPlugin", "Enabled": true },
+		{ "Name": "EditorScriptingUtilities", "Enabled": true }
+	],
+	"AdditionalPluginDirectories": [ ".." ]
+}

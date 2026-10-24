@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 #[command(
     name = "shadewire",
     version,
-    about = "Compile MaterialX documents, Blender material graphs and MDL modules to shader code"
+    about = "Compile MaterialX documents, Blender and Unreal material graphs and MDL modules to shader code"
 )]
 pub struct Args {
     #[command(subcommand)]
@@ -15,7 +15,7 @@ pub struct Args {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Compile a MaterialX document, a Blender graph or an MDL module
+    /// Compile a MaterialX document, a Blender or Unreal graph, or an MDL module
     Compile(CompileArgs),
     /// Print the IR of a material (the DAG the shader is emitted from)
     Ir(IrArgs),
@@ -27,9 +27,9 @@ pub enum Command {
 
 #[derive(Parser, Debug)]
 pub struct ListArgs {
-    /// The .mtlx document, .json Blender graph or .mdl module
+    /// The .mtlx document, .json Blender or Unreal graph, or .mdl module
     pub file: PathBuf,
-    /// The input's format; default: by extension (`.json` is a Blender graph, `.mdl` an MDL module, anything else
+    /// The input's format; default: by extension (`.json` a Blender or Unreal graph by its `format`, `.mdl` an MDL module, anything else
     /// MaterialX)
     #[arg(long, value_enum)]
     pub format: Option<Format>,
@@ -40,9 +40,9 @@ pub struct ListArgs {
 
 #[derive(Parser, Debug)]
 pub struct MtlxArgs {
-    /// The .mtlx document, .json Blender graph or .mdl module
+    /// The .mtlx document, .json Blender or Unreal graph, or .mdl module
     pub file: PathBuf,
-    /// The input's format; default: by extension (`.json` is a Blender graph, `.mdl` an MDL module, anything else
+    /// The input's format; default: by extension (`.json` a Blender or Unreal graph by its `format`, `.mdl` an MDL module, anything else
     /// MaterialX)
     #[arg(long, value_enum)]
     pub format: Option<Format>,
@@ -83,6 +83,8 @@ pub enum Format {
     Mtlx,
     /// A Blender material graph (the Blender extension's File > Export > Material Graph)
     Blender,
+    /// An Unreal material graph (the Unreal plugin's Save Graph, or its commandlet's `-format=json`)
+    Unreal,
     /// An NVIDIA MDL module
     Mdl,
 }
@@ -113,9 +115,9 @@ pub enum Transparency {
 
 #[derive(Parser, Debug)]
 pub struct IrArgs {
-    /// The .mtlx document, .json Blender graph or .mdl module
+    /// The .mtlx document, .json Blender or Unreal graph, or .mdl module
     pub file: PathBuf,
-    /// The input's format; default: by extension (`.json` is a Blender graph, `.mdl` an MDL module, anything else
+    /// The input's format; default: by extension (`.json` a Blender or Unreal graph by its `format`, `.mdl` an MDL module, anything else
     /// MaterialX)
     #[arg(long, value_enum)]
     pub format: Option<Format>,
@@ -148,9 +150,9 @@ pub struct IrArgs {
 
 #[derive(Parser, Debug)]
 pub struct CompileArgs {
-    /// The .mtlx document, .json Blender graph or .mdl module
+    /// The .mtlx document, .json Blender or Unreal graph, or .mdl module
     pub file: PathBuf,
-    /// The input's format; default: by extension (`.json` is a Blender graph, `.mdl` an MDL module, anything else
+    /// The input's format; default: by extension (`.json` a Blender or Unreal graph by its `format`, `.mdl` an MDL module, anything else
     /// MaterialX)
     #[arg(long, value_enum)]
     pub format: Option<Format>,

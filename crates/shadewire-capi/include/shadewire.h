@@ -914,6 +914,32 @@ void shadewire_resolution_set(struct shadewire_resolution *out,
 void shadewire_resolution_fail(struct shadewire_resolution *out,
                                const char *message);
 
+// Lowers an Unreal material graph document `text` (`len` bytes of UTF-8, not NUL-terminated; the JSON the Unreal
+// plugin writes) to the IR and writes the handle to `out`. `material` selects a material by name or object path
+// (NULL for the document's only one: SHADEWIRE_ERROR_MATERIAL when it has several); `options` may
+// be NULL for the defaults. The IR is not optimized. The front end's warnings are read with `shadewire_ir_warnings`.
+// `*out` is written only on success.
+//
+// # Safety
+// As `shadewire_mtlx_to_ir`, with `options` NULL or valid (see `shadewire_ir_options`).
+shadewire_status shadewire_unreal_to_ir(const char *text,
+                                        size_t len,
+                                        const char *material,
+                                        const struct shadewire_ir_options *options,
+                                        struct shadewire_ir **out,
+                                        struct shadewire_error **error);
+
+// The names of an Unreal graph document's materials, in document order, written to `out`. `text` and `len` as
+// `shadewire_unreal_to_ir`. `*out` is written only on success.
+//
+// # Safety
+// `text` must hold `len` readable bytes (NULL is reported, not dereferenced); `out` must be valid for writing a
+// pointer and `error` NULL or valid for writing a pointer.
+shadewire_status shadewire_unreal_material_names(const char *text,
+                                                 size_t len,
+                                                 struct shadewire_strings **out,
+                                                 struct shadewire_error **error);
+
 // The version as `(major << 16) | (minor << 8) | patch`.
 uint32_t shadewire_version(void);
 

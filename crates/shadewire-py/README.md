@@ -43,6 +43,9 @@ print(compiled.reflection["textures"])           # files, colorspaces, bindings
   for warning in ir.warnings:                      # 'ShaderNodeBevel "Bevel": not lowered, output Normal ...'
       print(warning)
   ```
+- `shadewire.unreal`: `to_ir(text, material=None, models=None, ...)` and `material_names(text)` read an Unreal
+  material graph (the JSON the Unreal plugin's commandlet writes with `-format=json`): a legacy-shading material
+  becomes `open_pbr_surface` (Unlit `surface_unlit`), its parameters uniforms; warnings as for Blender.
 - `shadewire.mdl`: `to_ir(text, material=None, models=None, ..., paths=None, location=None)` and
   `material_names(text, paths=None, location=None)` read an NVIDIA MDL module (`paths` is the MDL search path); an
   MDL material is a closure tree, so `models` must accept `surface`. `compile(ir, name="material")` writes the IR as a

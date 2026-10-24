@@ -1,0 +1,133 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": false,
+  "materials": [
+    {
+      "path": "/Game/Fixtures/M_Subsurface.M_Subsurface",
+      "name": "M_Subsurface",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_Subsurface",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_Subsurface"]
+      },
+      "pins": [
+        {
+          "pin": "Opacity",
+          "from": ["MaterialExpressionConstant_1", 0],
+          "mask": null
+        },
+        {
+          "pin": "BaseColor",
+          "from": ["MaterialExpressionConstant3Vector_0", 0],
+          "mask": [1, 1, 1, 0]
+        },
+        {
+          "pin": "Roughness",
+          "from": ["MaterialExpressionConstant_0", 0],
+          "mask": null
+        },
+        {
+          "pin": "SubsurfaceColor",
+          "from": ["MaterialExpressionConstant3Vector_1", 0],
+          "mask": [1, 1, 1, 0]
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionConstant3Vector_0",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.8, 0.6, 0.5, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_0",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.5
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_1",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.9, 0.2, 0.1, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_1",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.7
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [],
+  "textures": []
+}

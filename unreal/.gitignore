@@ -1,0 +1,13 @@
+# Unreal's build and editor output.
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+# The fixture assets, rebuilt by make_fixtures.py, and the config the editor writes on first launch.
+ShadewireTest/Content/
+ShadewireTest/Config/
+# The C library, staged by stage_library.py.
+Shadewire/Source/ThirdParty/ShadewireLibrary/include/
+Shadewire/Source/ThirdParty/ShadewireLibrary/Win64/
+Shadewire/Source/ThirdParty/ShadewireLibrary/Mac/
+Shadewire/Source/ThirdParty/ShadewireLibrary/Linux/

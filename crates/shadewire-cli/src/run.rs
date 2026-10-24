@@ -21,13 +21,24 @@ fn io(e: std::io::Error, what: &Path) -> Error {
     Error::Io(format!("{}: {e}", what.display()))
 }
 
-/// The format of `file`: `--format`, else by extension.
-fn format_of(file: &Path, given: Option<Format>) -> Format {
+/// The format of `file`: `--format`, else by extension; a `.json` graph by the `format` it names.
+fn format_of(file: &Path, given: Option<Format>, text: &str) -> Format {
     given.unwrap_or_else(|| match file.extension().and_then(|e| e.to_str()) {
-        Some(e) if e.eq_ignore_ascii_case("json") => Format::Blender,
+        Some(e) if e.eq_ignore_ascii_case("json") => graph_format(text),
         Some(e) if e.eq_ignore_ascii_case("mdl") => Format::Mdl,
         _ => Format::Mtlx,
     })
+}
+
+/// An Unreal graph when the document says it is one, else a Blender graph (whose reader reports a wrong format).
+fn graph_format(text: &str) -> Format {
+    let format = serde_json::from_str::<serde_json::Value>(text)
+        .ok()
+        .and_then(|doc| doc.get("format").and_then(|f| f.as_str()).map(str::to_string));
+    match format.as_deref() {
+        Some(shadewire_unreal::document::FORMAT) => Format::Unreal,
+        _ => Format::Blender,
+    }
 }
 
 /// One material of `file` as IR, through the front end of its format; the front end's warnings go to stderr.
@@ -40,9 +51,10 @@ fn read_ir(
 ) -> Result<MaterialIr, Error> {
     let text = std::fs::read_to_string(file).map_err(|e| io(e, file))?;
     let location = file.display().to_string();
-    let ir = match format_of(file, format) {
+    let ir = match format_of(file, format, &text) {
         Format::Mtlx => to_ir(&text, Some(&location), material, options, &Resolver::default())?,
         Format::Blender => shadewire_blender::to_ir(&text, material, options)?,
+        Format::Unreal => shadewire_unreal::to_ir(&text, material, options)?,
         Format::Mdl => {
             let resolver = shadewire_mdl::Resolver::new(mdl_paths.to_vec());
             shadewire_mdl::to_ir(&text, Some(&location), material, options, &resolver)?
@@ -58,9 +70,10 @@ fn read_ir(
 fn names(file: &Path, format: Option<Format>, mdl_paths: &[PathBuf]) -> Result<Vec<String>, Error> {
     let text = std::fs::read_to_string(file).map_err(|e| io(e, file))?;
     let location = file.display().to_string();
-    match format_of(file, format) {
+    match format_of(file, format, &text) {
         Format::Mtlx => material_names(&text, Some(&location), &Resolver::default()),
         Format::Blender => shadewire_blender::material_names(&text),
+        Format::Unreal => shadewire_unreal::material_names(&text),
         Format::Mdl => {
             let resolver = shadewire_mdl::Resolver::new(mdl_paths.to_vec());
             shadewire_mdl::material_names(&text, Some(&location), &resolver)

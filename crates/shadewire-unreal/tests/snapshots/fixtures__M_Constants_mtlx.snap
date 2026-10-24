@@ -1,0 +1,40 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_M_Constants">
+    <convert name="M_Constants_BaseColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.8, 0.2, 0.1" />
+    </convert>
+    <multiply name="M_Constants_Specular" type="float">
+      <input name="in1" type="float" value="0.7" />
+      <input name="in2" type="float" value="2" />
+    </multiply>
+    <convert name="M_Constants_EmissiveColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0, 0, 2" />
+    </convert>
+    <constant name="MaterialExpressionConstant_2" type="float">
+      <input name="value" type="float" value="0.4" />
+    </constant>
+    <constant name="M_Constants_EmissiveColor_2" type="float">
+      <input name="value" type="float" value="1" />
+    </constant>
+    <output name="base_color" type="color3" nodename="M_Constants_BaseColor" />
+    <output name="specular_weight" type="float" nodename="M_Constants_Specular" />
+    <output name="specular_roughness" type="float" nodename="MaterialExpressionConstant_2" />
+    <output name="emission_luminance" type="float" nodename="M_Constants_EmissiveColor_2" />
+    <output name="emission_color" type="color3" nodename="M_Constants_EmissiveColor" />
+  </nodegraph>
+  <open_pbr_surface name="M_Constants_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_M_Constants" output="base_color" />
+    <input name="specular_weight" type="float" nodegraph="NG_M_Constants" output="specular_weight" />
+    <input name="specular_roughness" type="float" nodegraph="NG_M_Constants" output="specular_roughness" />
+    <input name="emission_luminance" type="float" nodegraph="NG_M_Constants" output="emission_luminance" />
+    <input name="emission_color" type="color3" nodegraph="NG_M_Constants" output="emission_color" />
+  </open_pbr_surface>
+  <surfacematerial name="M_Constants" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="M_Constants_shader" />
+  </surfacematerial>
+</materialx>

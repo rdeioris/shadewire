@@ -3,6 +3,7 @@
 //! - `shadewire.mtlx` (`shadewire_mtlx`): the MaterialX front end, `to_ir`, `material_names` and
 //!   `list_dependencies`, with includes read by a Python `resolver`, and the writer, `from_ir`;
 //! - `shadewire.blender` (`shadewire_blender`): the Blender material graph front end, `to_ir` and `material_names`;
+//! - `shadewire.unreal` (`shadewire_unreal`): the Unreal material graph front end, `to_ir` and `material_names`;
 //! - `shadewire.Ir` (`shadewire::Dag`, its `SourceInfo` and the front end's warnings): the IR, with `optimize`,
 //!   `dump`, `to_dict` (the document `shadewire::export` writes) and `warnings`;
 //! - `shadewire.wgsl`, `shadewire.glsl`, `shadewire.hlsl`, `shadewire.msl` (`shadewire_wgsl` ...): the back ends,
@@ -217,6 +218,39 @@ fn blender_to_ir(
 #[pyo3(name = "material_names")]
 fn blender_material_names(py: Python<'_>, text: String) -> PyResult<Vec<String>> {
     py.detach(|| shadewire_blender::material_names(&text)).map_err(error)
+}
+
+// ---------------------------------------------------------------------------------------------------- unreal
+
+/// An Unreal material graph (the `shadewire-unreal-graph` JSON the Unreal plugin writes) to the IR (not
+/// optimized). `material` picks one by name or path (None: the document's only one); `models`, `working_colorspace`
+/// and `values_as_uniforms` as `shadewire.mtlx.to_ir`'s. What was dropped or approximated is in `Ir.warnings`.
+#[pyfunction]
+#[pyo3(name = "to_ir", signature = (text, material=None, models=None, working_colorspace=None, values_as_uniforms=true))]
+fn unreal_to_ir(
+    py: Python<'_>,
+    text: String,
+    material: Option<String>,
+    models: Option<Vec<String>>,
+    working_colorspace: Option<String>,
+    values_as_uniforms: bool,
+) -> PyResult<PyIr> {
+    let mut options = IrOptions { values_as_uniforms, ..IrOptions::default() };
+    if let Some(models) = models {
+        options.models = models;
+    }
+    if let Some(colorspace) = working_colorspace {
+        options.working_colorspace = colorspace;
+    }
+    let ir = py.detach(|| shadewire_unreal::to_ir(&text, material.as_deref(), &options)).map_err(error)?;
+    Ok(PyIr { dag: ir.dag, source: ir.source, warnings: ir.warnings })
+}
+
+/// The names of an Unreal graph document's materials, in document order.
+#[pyfunction]
+#[pyo3(name = "material_names")]
+fn unreal_material_names(py: Python<'_>, text: String) -> PyResult<Vec<String>> {
+    py.detach(|| shadewire_unreal::material_names(&text)).map_err(error)
 }
 
 // ---------------------------------------------------------------------------------------------------- mdl
@@ -483,6 +517,10 @@ fn shadewire_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let blender = submodule(m, "blender")?;
     blender.add_function(wrap_pyfunction!(blender_to_ir, &blender)?)?;
     blender.add_function(wrap_pyfunction!(blender_material_names, &blender)?)?;
+
+    let unreal = submodule(m, "unreal")?;
+    unreal.add_function(wrap_pyfunction!(unreal_to_ir, &unreal)?)?;
+    unreal.add_function(wrap_pyfunction!(unreal_material_names, &unreal)?)?;
 
     let mdl = submodule(m, "mdl")?;
     mdl.add_function(wrap_pyfunction!(mdl_to_ir, &mdl)?)?;

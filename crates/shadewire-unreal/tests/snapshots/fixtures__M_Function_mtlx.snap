@@ -1,0 +1,32 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_M_Function">
+    <convert name="MaterialExpressionMultiply_0" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" value="0.5" />
+    </convert>
+    <multiply name="MaterialExpressionMultiply_0_2" type="vector3">
+      <input name="in1" type="vector3" value="0.9, 0.6, 0.3" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionMultiply_0" />
+    </multiply>
+    <convert name="M_Function_BaseColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionMultiply_0_2" />
+    </convert>
+    <extract name="MaterialExpressionComponentMask_43" type="float">
+      <input name="in" type="vector3" value="0.3, 0.6, 0.9" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <output name="base_color" type="color3" nodename="M_Function_BaseColor" />
+    <output name="specular_roughness" type="float" nodename="MaterialExpressionComponentMask_43" />
+  </nodegraph>
+  <open_pbr_surface name="M_Function_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_M_Function" output="base_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG_M_Function" output="specular_roughness" />
+  </open_pbr_surface>
+  <surfacematerial name="M_Function" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="M_Function_shader" />
+  </surfacematerial>
+</materialx>

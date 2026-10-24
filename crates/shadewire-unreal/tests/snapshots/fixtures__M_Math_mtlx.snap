@@ -1,0 +1,202 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_M_Math">
+    <constant name="MaterialExpressionConstant3Vector_0" type="vector3">
+      <input name="value" type="vector3" value="0.2, 0.4, 0.6" />
+    </constant>
+    <convert name="MaterialExpressionAdd_0" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" value="0.5" />
+    </convert>
+    <add name="MaterialExpressionAdd_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionConstant3Vector_0" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionAdd_0" />
+    </add>
+    <convert name="MaterialExpressionMultiply_0" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" value="2" />
+    </convert>
+    <multiply name="MaterialExpressionMultiply_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionAdd_0_2" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionMultiply_0" />
+    </multiply>
+    <convert name="MaterialExpressionSubtract_0" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" value="0.25" />
+    </convert>
+    <subtract name="MaterialExpressionSubtract_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionMultiply_0_2" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionSubtract_0" />
+    </subtract>
+    <convert name="MaterialExpressionDivide_0" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" value="3" />
+    </convert>
+    <divide name="MaterialExpressionDivide_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionSubtract_0_2" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionDivide_0" />
+    </divide>
+    <convert name="MaterialExpressionOneMinus_0" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" value="1" />
+    </convert>
+    <subtract name="MaterialExpressionOneMinus_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionOneMinus_0" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionDivide_0_2" />
+    </subtract>
+    <convert name="MaterialExpressionPower_0" type="vector3" nodedef="ND_convert_float_vector3" />
+    <max name="MaterialExpressionPower_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionOneMinus_0_2" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionPower_0" />
+    </max>
+    <convert name="MaterialExpressionPower_0_3" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" value="2.2" />
+    </convert>
+    <power name="MaterialExpressionPower_0_4" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionPower_0_2" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionPower_0_3" />
+    </power>
+    <mix name="MaterialExpressionLinearInterpolate_0" type="vector3">
+      <input name="fg" type="vector3" value="1, 0, 0" />
+      <input name="bg" type="vector3" nodename="MaterialExpressionPower_0_4" />
+      <input name="mix" type="float" value="0.3" />
+    </mix>
+    <convert name="MaterialExpressionClamp_0" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" value="0.1" />
+    </convert>
+    <max name="MaterialExpressionClamp_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionLinearInterpolate_0" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionClamp_0" />
+    </max>
+    <convert name="MaterialExpressionClamp_0_3" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" value="0.9" />
+    </convert>
+    <min name="MaterialExpressionClamp_0_4" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionClamp_0_2" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionClamp_0_3" />
+    </min>
+    <convert name="M_Math_BaseColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionClamp_0_4" />
+    </convert>
+    <floor name="MaterialExpressionFloor_0" type="float">
+      <input name="in" type="float" value="1.7" />
+    </floor>
+    <min name="MaterialExpressionMin_0" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionFloor_0" />
+      <input name="in2" type="float" value="0" />
+    </min>
+    <add name="MaterialExpressionAdd_1" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionMin_0" />
+      <input name="in2" type="float" value="0" />
+    </add>
+    <multiply name="MaterialExpressionSine_0" type="float">
+      <input name="in1" type="float" value="1.5" />
+      <input name="in2" type="float" value="1.5707964" />
+    </multiply>
+    <sin name="MaterialExpressionSine_0_2" type="float">
+      <input name="in" type="float" nodename="MaterialExpressionSine_0" />
+    </sin>
+    <absval name="MaterialExpressionAbs_0" type="float">
+      <input name="in" type="float" nodename="MaterialExpressionSine_0_2" />
+    </absval>
+    <fract name="MaterialExpressionFrac_0" type="float">
+      <input name="in" type="float" nodename="MaterialExpressionAbs_0" />
+    </fract>
+    <extract name="MaterialExpressionComponentMask_0" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionConstant3Vector_0" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <combine2 name="MaterialExpressionAppendVector_0" type="vector2">
+      <input name="in1" type="float" nodename="MaterialExpressionFrac_0" />
+      <input name="in2" type="float" nodename="MaterialExpressionComponentMask_0" />
+    </combine2>
+    <dotproduct name="MaterialExpressionDotProduct_0" type="float">
+      <input name="in1" type="vector2" nodename="MaterialExpressionAppendVector_0" />
+      <input name="in2" type="vector2" value="0.5, 0.5" />
+    </dotproduct>
+    <max name="MaterialExpressionSaturate_0" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionDotProduct_0" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionSaturate_0_2" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSaturate_0" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <max name="MaterialExpressionMax_0" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSaturate_0_2" />
+      <input name="in2" type="float" value="0.05" />
+    </max>
+    <normalize name="MaterialExpressionNormalize_0" type="vector3">
+      <input name="in" type="vector3" value="0.1, 0, 1" />
+    </normalize>
+    <tangent name="M_Math_Normal" type="vector3">
+      <input name="space" type="string" value="world" />
+    </tangent>
+    <bitangent name="M_Math_Normal_2" type="vector3">
+      <input name="space" type="string" value="world" />
+    </bitangent>
+    <normal name="M_Math_Normal_3" type="vector3">
+      <input name="space" type="string" value="world" />
+    </normal>
+    <extract name="M_Math_Normal_4" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionNormalize_0" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="M_Math_Normal_2_2" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionNormalize_0" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="M_Math_Normal_3_2" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionNormalize_0" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="M_Math_Normal_4_2" type="float">
+      <input name="in1" type="float" nodename="M_Math_Normal_2_2" />
+      <input name="in2" type="float" value="-1" />
+    </multiply>
+    <convert name="M_Math_Normal_5" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" nodename="M_Math_Normal_4" />
+    </convert>
+    <multiply name="M_Math_Normal_6" type="vector3">
+      <input name="in1" type="vector3" nodename="M_Math_Normal" />
+      <input name="in2" type="vector3" nodename="M_Math_Normal_5" />
+    </multiply>
+    <convert name="M_Math_Normal_7" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" nodename="M_Math_Normal_4_2" />
+    </convert>
+    <multiply name="M_Math_Normal_8" type="vector3">
+      <input name="in1" type="vector3" nodename="M_Math_Normal_2" />
+      <input name="in2" type="vector3" nodename="M_Math_Normal_7" />
+    </multiply>
+    <convert name="M_Math_Normal_9" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" nodename="M_Math_Normal_3_2" />
+    </convert>
+    <multiply name="M_Math_Normal_10" type="vector3">
+      <input name="in1" type="vector3" nodename="M_Math_Normal_3" />
+      <input name="in2" type="vector3" nodename="M_Math_Normal_9" />
+    </multiply>
+    <add name="M_Math_Normal_11" type="vector3">
+      <input name="in1" type="vector3" nodename="M_Math_Normal_6" />
+      <input name="in2" type="vector3" nodename="M_Math_Normal_8" />
+    </add>
+    <add name="M_Math_Normal_12" type="vector3">
+      <input name="in1" type="vector3" nodename="M_Math_Normal_11" />
+      <input name="in2" type="vector3" nodename="M_Math_Normal_10" />
+    </add>
+    <normalize name="M_Math_Normal_13" type="vector3">
+      <input name="in" type="vector3" nodename="M_Math_Normal_12" />
+    </normalize>
+    <output name="base_color" type="color3" nodename="M_Math_BaseColor" />
+    <output name="base_metalness" type="float" nodename="MaterialExpressionAdd_1" />
+    <output name="specular_roughness" type="float" nodename="MaterialExpressionMax_0" />
+    <output name="geometry_normal" type="vector3" nodename="M_Math_Normal_13" />
+  </nodegraph>
+  <open_pbr_surface name="M_Math_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_M_Math" output="base_color" />
+    <input name="base_metalness" type="float" nodegraph="NG_M_Math" output="base_metalness" />
+    <input name="specular_roughness" type="float" nodegraph="NG_M_Math" output="specular_roughness" />
+    <input name="geometry_normal" type="vector3" nodegraph="NG_M_Math" output="geometry_normal" />
+  </open_pbr_surface>
+  <surfacematerial name="M_Math" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="M_Math_shader" />
+  </surfacematerial>
+</materialx>

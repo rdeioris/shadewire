@@ -1,0 +1,31 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_M_Parameters">
+    <input name="Metallic" type="float" value="1" />
+    <input name="Roughness" type="float" value="0.5" />
+    <convert name="M_Parameters_BaseColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="1, 1, 1" />
+    </convert>
+    <dot name="Metallic_dot" type="float">
+      <input name="in" type="float" interfacename="Metallic" />
+    </dot>
+    <dot name="Roughness_dot" type="float">
+      <input name="in" type="float" interfacename="Roughness" />
+    </dot>
+    <output name="base_color" type="color3" nodename="M_Parameters_BaseColor" />
+    <output name="base_metalness" type="float" nodename="Metallic_dot" />
+    <output name="specular_roughness" type="float" nodename="Roughness_dot" />
+  </nodegraph>
+  <open_pbr_surface name="M_Parameters_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_M_Parameters" output="base_color" />
+    <input name="base_metalness" type="float" nodegraph="NG_M_Parameters" output="base_metalness" />
+    <input name="specular_roughness" type="float" nodegraph="NG_M_Parameters" output="specular_roughness" />
+  </open_pbr_surface>
+  <surfacematerial name="M_Parameters" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="M_Parameters_shader" />
+  </surfacematerial>
+</materialx>

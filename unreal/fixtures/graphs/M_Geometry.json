@@ -1,0 +1,514 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": false,
+  "materials": [
+    {
+      "path": "/Game/Fixtures/M_Geometry.M_Geometry",
+      "name": "M_Geometry",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_DefaultLit",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_DefaultLit"]
+      },
+      "pins": [
+        {
+          "pin": "BaseColor",
+          "from": ["MaterialExpressionLinearInterpolate_0", 0],
+          "mask": null
+        },
+        {
+          "pin": "Metallic",
+          "from": ["MaterialExpressionMultiply_1", 0],
+          "mask": null
+        },
+        {
+          "pin": "Roughness",
+          "from": ["MaterialExpressionQualitySwitch_0", 0],
+          "mask": null
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionWorldPosition_0",
+          "class": "MaterialExpressionWorldPosition",
+          "properties": {
+            "WorldPositionShaderOffset": "WPT_Default"
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "XYZ",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "XY",
+              "mask": [1, 1, 0, 0]
+            },
+            {
+              "name": "Z",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionMultiply_0",
+          "class": "MaterialExpressionMultiply",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 0.01
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionWorldPosition_0", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFrac_0",
+          "class": "MaterialExpressionFrac",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionMultiply_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionReroute_0",
+          "class": "MaterialExpressionReroute",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionFrac_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionVertexColor_0",
+          "class": "MaterialExpressionVertexColor",
+          "properties": {
+            "ExternalCodeIdentifiers": [
+              "VertexColor"
+            ]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 0, 1]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionLinearInterpolate_0",
+          "class": "MaterialExpressionLinearInterpolate",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 1,
+            "ConstAlpha": 0.5
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionReroute_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionVertexColor_0", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 2,
+              "name": "Alpha",
+              "from": ["MaterialExpressionVertexColor_0", 4],
+              "mask": [0, 0, 0, 1]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFresnel_0",
+          "class": "MaterialExpressionFresnel",
+          "properties": {
+            "Exponent": 3,
+            "BaseReflectFraction": 0.1
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "ExponentIn",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "BaseReflectFractionIn",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "Normal",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionIf_0",
+          "class": "MaterialExpressionIf",
+          "properties": {
+            "EqualsThreshold": 1e-05,
+            "ConstB": 0
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionFresnel_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionConstant_0", 0],
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "AGreaterThanB",
+              "from": ["MaterialExpressionConstant_1", 0],
+              "mask": null
+            },
+            {
+              "index": 3,
+              "name": "AEqualsB",
+              "from": ["MaterialExpressionConstant_2", 0],
+              "mask": null
+            },
+            {
+              "index": 4,
+              "name": "ALessThanB",
+              "from": ["MaterialExpressionConstant_3", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_0",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.5
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_1",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.9
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_2",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.4
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_3",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.2
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionQualitySwitch_0",
+          "class": "MaterialExpressionQualitySwitch",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Default",
+              "from": ["MaterialExpressionIf_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "Low",
+              "from": ["MaterialExpressionConstant_4", 0],
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "High",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 3,
+              "name": "Medium",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 4,
+              "name": "Epic",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_4",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.5
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionVertexNormalWS_0",
+          "class": "MaterialExpressionVertexNormalWS",
+          "properties": {
+            "ExternalCodeIdentifiers": [
+              "VertexNormal"
+            ]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionCameraVectorWS_0",
+          "class": "MaterialExpressionCameraVectorWS",
+          "properties": {
+            "ExternalCodeIdentifiers": [
+              "CameraVector"
+            ]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionDotProduct_0",
+          "class": "MaterialExpressionDotProduct",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionVertexNormalWS_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionCameraVectorWS_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionCustom_0",
+          "class": "MaterialExpressionCustom",
+          "properties": {
+            "Code": "return 0.25;",
+            "OutputType": "CMOT_Float3",
+            "Description": "Custom",
+            "Inputs": [
+              {
+                "InputName": ""
+              }
+            ],
+            "AdditionalOutputs": [],
+            "AdditionalDefines": [],
+            "IncludeFilePaths": [],
+            "ContainsClipInstruction": "CMCI_Search",
+            "ShowCode": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionMultiply_1",
+          "class": "MaterialExpressionMultiply",
+          "properties": {
+            "ConstA": 0,
+            "ConstB": 1
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "A",
+              "from": ["MaterialExpressionDotProduct_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "B",
+              "from": ["MaterialExpressionCustom_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [],
+  "textures": []
+}

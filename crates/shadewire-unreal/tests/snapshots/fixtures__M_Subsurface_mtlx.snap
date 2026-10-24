@@ -1,0 +1,39 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_M_Subsurface">
+    <convert name="M_Subsurface_BaseColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.8, 0.6, 0.5" />
+    </convert>
+    <convert name="M_Subsurface_SubsurfaceColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.9, 0.2, 0.1" />
+    </convert>
+    <constant name="MaterialExpressionConstant_0" type="float">
+      <input name="value" type="float" value="0.5" />
+    </constant>
+    <constant name="MaterialExpressionConstant_1" type="float">
+      <input name="value" type="float" value="0.7" />
+    </constant>
+    <constant name="M_Subsurface_SubsurfaceColor_2" type="float">
+      <input name="value" type="float" value="0.01" />
+    </constant>
+    <output name="base_color" type="color3" nodename="M_Subsurface_BaseColor" />
+    <output name="specular_roughness" type="float" nodename="MaterialExpressionConstant_0" />
+    <output name="subsurface_weight" type="float" nodename="MaterialExpressionConstant_1" />
+    <output name="subsurface_color" type="color3" nodename="M_Subsurface_SubsurfaceColor" />
+    <output name="subsurface_radius" type="float" nodename="M_Subsurface_SubsurfaceColor_2" />
+  </nodegraph>
+  <open_pbr_surface name="M_Subsurface_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_M_Subsurface" output="base_color" />
+    <input name="specular_roughness" type="float" nodegraph="NG_M_Subsurface" output="specular_roughness" />
+    <input name="subsurface_weight" type="float" nodegraph="NG_M_Subsurface" output="subsurface_weight" />
+    <input name="subsurface_color" type="color3" nodegraph="NG_M_Subsurface" output="subsurface_color" />
+    <input name="subsurface_radius" type="float" nodegraph="NG_M_Subsurface" output="subsurface_radius" />
+  </open_pbr_surface>
+  <surfacematerial name="M_Subsurface" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="M_Subsurface_shader" />
+  </surfacematerial>
+</materialx>

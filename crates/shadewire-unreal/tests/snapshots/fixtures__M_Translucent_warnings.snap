@@ -1,0 +1,5 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: "ir.warnings.join(\"\\n\")"
+---
+Material "M_Translucent": Refraction read as the specular IOR

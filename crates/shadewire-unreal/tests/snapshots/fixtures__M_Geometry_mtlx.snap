@@ -1,0 +1,166 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_M_Geometry">
+    <position name="MaterialExpressionWorldPosition_0" type="vector3">
+      <input name="space" type="string" value="world" />
+    </position>
+    <multiply name="MaterialExpressionWorldPosition_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionWorldPosition_0" />
+      <input name="in2" type="vector3" value="100, -100, 100" />
+    </multiply>
+    <convert name="MaterialExpressionMultiply_0" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" value="0.01" />
+    </convert>
+    <multiply name="MaterialExpressionMultiply_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionWorldPosition_0_2" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionMultiply_0" />
+    </multiply>
+    <fract name="MaterialExpressionFrac_0" type="vector3">
+      <input name="in" type="vector3" nodename="MaterialExpressionMultiply_0_2" />
+    </fract>
+    <geomcolor name="MaterialExpressionVertexColor_0" type="color4">
+      <input name="index" type="integer" value="0" />
+    </geomcolor>
+    <convert name="MaterialExpressionVertexColor_0_2" type="vector4" nodedef="ND_convert_color4_vector4">
+      <input name="in" type="color4" nodename="MaterialExpressionVertexColor_0" />
+    </convert>
+    <convert name="MaterialExpressionVertexColor_0_3" type="vector3" nodedef="ND_convert_vector4_vector3">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_2" />
+    </convert>
+    <geomcolor name="MaterialExpressionVertexColor_0_4" type="color4">
+      <input name="index" type="integer" value="0" />
+    </geomcolor>
+    <convert name="MaterialExpressionVertexColor_0_5" type="vector4" nodedef="ND_convert_color4_vector4">
+      <input name="in" type="color4" nodename="MaterialExpressionVertexColor_0_4" />
+    </convert>
+    <extract name="MaterialExpressionVertexColor_0_6" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_5" />
+      <input name="index" type="integer" value="3" />
+    </extract>
+    <mix name="MaterialExpressionLinearInterpolate_0" type="vector3">
+      <input name="fg" type="vector3" nodename="MaterialExpressionVertexColor_0_3" />
+      <input name="bg" type="vector3" nodename="MaterialExpressionFrac_0" />
+      <input name="mix" type="float" nodename="MaterialExpressionVertexColor_0_6" />
+    </mix>
+    <convert name="M_Geometry_BaseColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionLinearInterpolate_0" />
+    </convert>
+    <normal name="MaterialExpressionVertexNormalWS_0" type="vector3">
+      <input name="space" type="string" value="world" />
+    </normal>
+    <multiply name="MaterialExpressionVertexNormalWS_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionVertexNormalWS_0" />
+      <input name="in2" type="vector3" value="1, -1, 1" />
+    </multiply>
+    <viewdirection name="MaterialExpressionCameraVectorWS_0" type="vector3">
+      <input name="space" type="string" value="world" />
+    </viewdirection>
+    <multiply name="MaterialExpressionCameraVectorWS_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionCameraVectorWS_0" />
+      <input name="in2" type="vector3" value="-1, 1, -1" />
+    </multiply>
+    <dotproduct name="MaterialExpressionDotProduct_0" type="float">
+      <input name="in1" type="vector3" nodename="MaterialExpressionVertexNormalWS_0_2" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionCameraVectorWS_0_2" />
+    </dotproduct>
+    <convert name="MaterialExpressionMultiply_1" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" nodename="MaterialExpressionDotProduct_0" />
+    </convert>
+    <multiply name="MaterialExpressionMultiply_1_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionMultiply_1" />
+      <input name="in2" type="vector3" value="0, 0, 0" />
+    </multiply>
+    <extract name="M_Geometry_Metallic" type="float">
+      <input name="in" type="vector3" nodename="MaterialExpressionMultiply_1_2" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <normal name="MaterialExpressionFresnel_0" type="vector3">
+      <input name="space" type="string" value="world" />
+    </normal>
+    <multiply name="MaterialExpressionFresnel_0_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionFresnel_0" />
+      <input name="in2" type="vector3" value="1, -1, 1" />
+    </multiply>
+    <viewdirection name="MaterialExpressionFresnel_0_3" type="vector3">
+      <input name="space" type="string" value="world" />
+    </viewdirection>
+    <multiply name="MaterialExpressionFresnel_0_2_2" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionFresnel_0_3" />
+      <input name="in2" type="vector3" value="-1, 1, -1" />
+    </multiply>
+    <constant name="MaterialExpressionFresnel_0_4" type="float">
+      <input name="value" type="float" value="0.1" />
+    </constant>
+    <dotproduct name="MaterialExpressionFresnel_0_3_2" type="float">
+      <input name="in1" type="vector3" nodename="MaterialExpressionFresnel_0_2" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionFresnel_0_2_2" />
+    </dotproduct>
+    <constant name="MaterialExpressionFresnel_0_5" type="float">
+      <input name="value" type="float" value="1" />
+    </constant>
+    <max name="MaterialExpressionFresnel_0_4_2" type="float">
+      <input name="in1" type="float" value="0" />
+      <input name="in2" type="float" nodename="MaterialExpressionFresnel_0_3_2" />
+    </max>
+    <subtract name="MaterialExpressionFresnel_0_5_2" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionFresnel_0_5" />
+      <input name="in2" type="float" nodename="MaterialExpressionFresnel_0_4_2" />
+    </subtract>
+    <absval name="MaterialExpressionFresnel_0_6" type="float">
+      <input name="in" type="float" nodename="MaterialExpressionFresnel_0_5_2" />
+    </absval>
+    <power name="MaterialExpressionFresnel_0_7" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionFresnel_0_6" />
+      <input name="in2" type="float" value="3" />
+    </power>
+    <subtract name="MaterialExpressionFresnel_0_8" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionFresnel_0_5" />
+      <input name="in2" type="float" nodename="MaterialExpressionFresnel_0_4" />
+    </subtract>
+    <multiply name="MaterialExpressionFresnel_0_9" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionFresnel_0_7" />
+      <input name="in2" type="float" nodename="MaterialExpressionFresnel_0_8" />
+    </multiply>
+    <add name="MaterialExpressionFresnel_0_10" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionFresnel_0_9" />
+      <input name="in2" type="float" nodename="MaterialExpressionFresnel_0_4" />
+    </add>
+    <constant name="MaterialExpressionConstant_0" type="float">
+      <input name="value" type="float" value="0.5" />
+    </constant>
+    <ifgreatereq name="MaterialExpressionIf_0" type="float">
+      <input name="value1" type="float" nodename="MaterialExpressionFresnel_0_10" />
+      <input name="value2" type="float" nodename="MaterialExpressionConstant_0" />
+      <input name="in1" type="float" value="0.9" />
+      <input name="in2" type="float" value="0.2" />
+    </ifgreatereq>
+    <subtract name="MaterialExpressionIf_0_2" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionFresnel_0_10" />
+      <input name="in2" type="float" nodename="MaterialExpressionConstant_0" />
+    </subtract>
+    <absval name="MaterialExpressionIf_0_3" type="float">
+      <input name="in" type="float" nodename="MaterialExpressionIf_0_2" />
+    </absval>
+    <ifgreater name="MaterialExpressionIf_0_4" type="float">
+      <input name="value1" type="float" nodename="MaterialExpressionIf_0_3" />
+      <input name="value2" type="float" value="0.00001" />
+      <input name="in1" type="float" nodename="MaterialExpressionIf_0" />
+      <input name="in2" type="float" value="0.4" />
+    </ifgreater>
+    <output name="base_color" type="color3" nodename="M_Geometry_BaseColor" />
+    <output name="base_metalness" type="float" nodename="M_Geometry_Metallic" />
+    <output name="specular_roughness" type="float" nodename="MaterialExpressionIf_0_4" />
+  </nodegraph>
+  <open_pbr_surface name="M_Geometry_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_M_Geometry" output="base_color" />
+    <input name="base_metalness" type="float" nodegraph="NG_M_Geometry" output="base_metalness" />
+    <input name="specular_roughness" type="float" nodegraph="NG_M_Geometry" output="specular_roughness" />
+  </open_pbr_surface>
+  <surfacematerial name="M_Geometry" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="M_Geometry_shader" />
+  </surfacematerial>
+</materialx>
