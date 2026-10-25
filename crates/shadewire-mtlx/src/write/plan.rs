@@ -112,12 +112,23 @@ fn converted_sample(dag: &Dag, compound: &Compound) -> Option<NodeId> {
     converts.then_some(*input)
 }
 
-/// The nodes of a collapsed compound: every node under its origin except its own inputs.
+/// The nodes of a collapsed compound: every node under its origin except its own inputs. A node with exactly the
+/// compound's origin is inside it only when the compound's outputs read it: a front end may make other values at
+/// the same origin, read elsewhere.
 fn interior(dag: &Dag, compound: &Compound) -> Vec<NodeId> {
     let inputs: HashSet<NodeId> = compound.inputs.iter().map(|(_, id)| *id).collect();
+    let mut read: HashSet<NodeId> = HashSet::new();
+    let mut stack: Vec<NodeId> = compound.outputs.iter().map(|(_, id)| *id).collect();
+    while let Some(id) = stack.pop() {
+        if inputs.contains(&id) || !is_under(&dag.node(id).origin, &compound.origin) || !read.insert(id) {
+            continue;
+        }
+        stack.extend(dag.args(id));
+    }
     (0..dag.nodes.len() as u32)
         .map(NodeId)
         .filter(|id| !inputs.contains(id) && is_under(&dag.node(*id).origin, &compound.origin))
+        .filter(|id| dag.node(*id).origin != compound.origin || read.contains(id))
         .collect()
 }
 
@@ -206,6 +217,28 @@ mod tests {
         let plan = plan(&dag, &Index::new(empty_document(), standard()), false);
         assert_eq!(plan.kept, [0]);
         assert_eq!(plan.aliases, HashMap::from([(second, first)]));
+    }
+
+    #[test]
+    fn a_value_at_a_compound_s_own_origin_that_it_does_not_read_is_outside_it() {
+        // A front end made `one` at the origin the compound was then instantiated at, and reads it elsewhere.
+        let mut dag = Dag::new("surface_unlit");
+        let node = |kind, ty, origin: &str| shadewire::Node { kind, ty, origin: origin.to_string() };
+        let tiny = dag.add(node(NodeKind::Const(Value::Float(0.001)), Type::Float, "u"));
+        let one = dag.add(node(NodeKind::Const(Value::Float(1.0)), Type::Float, "u"));
+        let splat =
+            dag.add(node(NodeKind::Op { op: Op::Combine, args: vec![tiny, tiny, tiny] }, Type::Color3, "u/combine"));
+        let scaled = dag.add(node(NodeKind::Op { op: Op::Multiply, args: vec![splat, one] }, Type::Color3, "u_2"));
+        dag.surface.fields.push(SurfaceField { name: "emission_color".into(), ty: Type::Color3, node: scaled });
+        dag.compounds.push(Compound {
+            nodedef: "ND_convert_float_color3".into(),
+            inputs: vec![("in".into(), tiny)],
+            outputs: vec![("out".into(), splat)],
+            origin: "u".into(),
+        });
+        let plan = plan(&dag, &Index::new(empty_document(), standard()), false);
+        assert_eq!(plan.kept, [0]);
+        assert!(plan.interior.contains(&splat) && !plan.interior.contains(&one), "{plan:?}");
     }
 
     #[test]
