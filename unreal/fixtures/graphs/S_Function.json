@@ -1,0 +1,496 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": true,
+  "materials": [
+    {
+      "path": "/Game/Substrate/S_Function.S_Function",
+      "name": "S_Function",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_DefaultLit",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_DefaultLit"]
+      },
+      "pins": [
+        {
+          "pin": "FrontMaterial",
+          "from": ["MaterialExpressionStaticSwitchParameter_0", 0],
+          "mask": null
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionMaterialFunctionCall_0",
+          "class": "MaterialExpressionMaterialFunctionCall",
+          "properties": {
+            "MaterialFunction": "/Game/Substrate/MF_Slab.MF_Slab",
+            "FunctionInputs": [
+              {}
+            ],
+            "FunctionOutputs": [
+              {
+                "Output": {
+                  "OutputName": "Slab",
+                  "Mask": 0,
+                  "MaskR": 0,
+                  "MaskG": 0,
+                  "MaskB": 0,
+                  "MaskA": 0
+                }
+              }
+            ]
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Tint (V3)",
+              "from": ["MaterialExpressionConstant3Vector_0", 0],
+              "mask": [1, 1, 1, 0]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "Slab",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_0",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.2, 0.7, 0.3, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionStaticSwitchParameter_0",
+          "class": "MaterialExpressionStaticSwitchParameter",
+          "properties": {
+            "DefaultValue": true,
+            "DynamicBranch": false,
+            "ParameterName": "UseFunction",
+            "Group": "",
+            "SortPriority": 32
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "True",
+              "from": ["MaterialExpressionMaterialFunctionCall_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "False",
+              "from": ["MaterialExpressionSubstrateSlabBSDF_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionSubstrateSlabBSDF_0",
+          "class": "MaterialExpressionSubstrateSlabBSDF",
+          "properties": {
+            "SubsurfaceProfile": null,
+            "SpecularProfile": null,
+            "bUseSSSDiffusion": true,
+            "SubSurfaceType": "MSS_Diffusion"
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Diffuse Albedo",
+              "from": ["MaterialExpressionConstant3Vector_1", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "F0",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "F90",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 3,
+              "name": "Roughness",
+              "from": ["MaterialExpressionConstant_0", 0],
+              "mask": null
+            },
+            {
+              "index": 4,
+              "name": "Anisotropy",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 5,
+              "name": "Normal",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 6,
+              "name": "Tangent",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 7,
+              "name": "SSS MFP",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 8,
+              "name": "SSS MFP Scale",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 9,
+              "name": "SSS Phase Anisotropy",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 10,
+              "name": "Emissive Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 11,
+              "name": "Second Roughness",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 12,
+              "name": "Second Roughness Weight",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 13,
+              "name": "Fuzz Roughness",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 14,
+              "name": "Fuzz Amount",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 15,
+              "name": "Fuzz Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 16,
+              "name": "Glint Density",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 17,
+              "name": "Glint UVs",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_1",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [1, 0, 1, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_0",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.5
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [
+    {
+      "path": "/Game/Substrate/MF_Slab.MF_Slab",
+      "name": "MF_Slab",
+      "class": "MaterialFunction",
+      "expressions": [
+        {
+          "name": "MaterialExpressionFunctionInput_0",
+          "class": "MaterialExpressionFunctionInput",
+          "properties": {
+            "InputName": "Tint",
+            "Description": "",
+            "InputType": "FunctionInput_Vector3",
+            "PreviewValue": [0, 0, 0, 1],
+            "bUsePreviewValueAsDefault": false,
+            "SortPriority": 0,
+            "BlendInputRelevance": "General"
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Preview",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionSubstrateSlabBSDF_0",
+          "class": "MaterialExpressionSubstrateSlabBSDF",
+          "properties": {
+            "SubsurfaceProfile": null,
+            "SpecularProfile": null,
+            "bUseSSSDiffusion": true,
+            "SubSurfaceType": "MSS_Diffusion"
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Diffuse Albedo",
+              "from": ["MaterialExpressionFunctionInput_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "F0",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "F90",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 3,
+              "name": "Roughness",
+              "from": ["MaterialExpressionConstant_0", 0],
+              "mask": null
+            },
+            {
+              "index": 4,
+              "name": "Anisotropy",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 5,
+              "name": "Normal",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 6,
+              "name": "Tangent",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 7,
+              "name": "SSS MFP",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 8,
+              "name": "SSS MFP Scale",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 9,
+              "name": "SSS Phase Anisotropy",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 10,
+              "name": "Emissive Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 11,
+              "name": "Second Roughness",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 12,
+              "name": "Second Roughness Weight",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 13,
+              "name": "Fuzz Roughness",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 14,
+              "name": "Fuzz Amount",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 15,
+              "name": "Fuzz Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 16,
+              "name": "Glint Density",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 17,
+              "name": "Glint UVs",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_0",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.45
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionFunctionOutput_0",
+          "class": "MaterialExpressionFunctionOutput",
+          "properties": {
+            "OutputName": "Slab",
+            "Description": "",
+            "SortPriority": 0,
+            "bLastPreviewed": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "",
+              "from": ["MaterialExpressionSubstrateSlabBSDF_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "textures": []
+}

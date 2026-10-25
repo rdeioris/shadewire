@@ -35,7 +35,15 @@ for warning in &ir.warnings {
 - **Surface**: Base Color, Metallic, Specular (`specular_weight` = 2 × Specular), Roughness, Anisotropy, Normal,
   Tangent, Emissive, Opacity (Translucent) and Opacity Mask against the clip value (Masked); Clear Coat, Subsurface,
   Cloth, Two Sided Foliage and Thin Translucent add their OpenPBR fields. Unlinked pins take Unreal's defaults.
+- **Substrate**: the Front Material's tree becomes a closure tree (host must accept `surface`). A Slab is a
+  Schlick specular lobe (F0, F90, roughness, anisotropy) layered over a diffuse lobe of its Diffuse Albedo, or a
+  subsurface lobe when it has an SSS MFP; Second Roughness mixes in a second specular lobe, Fuzz layers a sheen lobe
+  on top, Emissive Color is a uniform EDF. Simple Clear Coat is a dielectric coat over a slab, Unlit an EDF.
+  Horizontal Mixing is `mix`, Vertical Layering `layer` (the top's medium is not read: a top layer is its specular
+  and fuzz), Add `add`, Weight `multiply`, Select a 0-or-1 `mix`. A Substrate Shading Models node on the Front
+  Material reads as the legacy pins (`open_pbr_surface`); below an operator it becomes a slab by Unreal's metalness
+  conversion. Metalness-To-DiffuseAlbedo-F0, Haziness-To-Secondary-Roughness and Transmittance-To-MFP compute what
+  Unreal's shaders compute; glints, specular and subsurface profiles and thin-film interference are dropped with a
+  warning.
 - **Engine-only expressions** (Custom HLSL, scene textures, depths) and anything not mapped yet are a warning and a
   neutral value: `Custom "MaterialExpressionCustom_0": Custom HLSL replaced by 0`.
-
-Substrate materials are not read yet.

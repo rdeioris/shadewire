@@ -1,0 +1,73 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_S_Horizontal">
+    <input name="Blend" type="float" value="0.25" />
+    <roughness_anisotropy name="MaterialExpressionSubstrateSlabBSDF_0" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" value="0.6" />
+    </roughness_anisotropy>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.8, 0.1, 0.1" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_1" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.95, 0.64, 0.54" />
+    </convert>
+    <roughness_anisotropy name="MaterialExpressionSubstrateSlabBSDF_1_2" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" value="0.2" />
+    </roughness_anisotropy>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_1_3" type="color3" nodedef="ND_convert_vector3_color3" />
+    <constant name="MaterialExpressionSubstrateSlabBSDF_0_3" type="color3">
+      <input name="value" type="color3" value="0.04, 0.04, 0.04" />
+    </constant>
+    <dot name="Blend_dot" type="float">
+      <input name="in" type="float" interfacename="Blend" />
+    </dot>
+    <output name="color0" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_1" />
+    <output name="roughness" type="vector2" nodename="MaterialExpressionSubstrateSlabBSDF_1_2" />
+    <output name="color" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_1_3" />
+    <output name="color0_out" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_3" />
+    <output name="roughness_out" type="vector2" nodename="MaterialExpressionSubstrateSlabBSDF_0" />
+    <output name="color_out" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_2" />
+    <output name="mix" type="float" nodename="Blend_dot" />
+  </nodegraph>
+  <generalized_schlick_bsdf name="S_Horizontal_generalized_schlick_bsdf_0" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_S_Horizontal" output="color0" />
+    <input name="roughness" type="vector2" nodegraph="NG_S_Horizontal" output="roughness" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <oren_nayar_diffuse_bsdf name="S_Horizontal_oren_nayar_diffuse_bsdf_1" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_S_Horizontal" output="color" />
+  </oren_nayar_diffuse_bsdf>
+  <layer name="S_Horizontal_layer_2" type="BSDF">
+    <input name="top" type="BSDF" nodename="S_Horizontal_generalized_schlick_bsdf_0" />
+    <input name="base" type="BSDF" nodename="S_Horizontal_oren_nayar_diffuse_bsdf_1" />
+  </layer>
+  <generalized_schlick_bsdf name="S_Horizontal_generalized_schlick_bsdf_3" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_S_Horizontal" output="color0_out" />
+    <input name="roughness" type="vector2" nodegraph="NG_S_Horizontal" output="roughness_out" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <oren_nayar_diffuse_bsdf name="S_Horizontal_oren_nayar_diffuse_bsdf_4" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_S_Horizontal" output="color_out" />
+  </oren_nayar_diffuse_bsdf>
+  <layer name="S_Horizontal_layer_5" type="BSDF">
+    <input name="top" type="BSDF" nodename="S_Horizontal_generalized_schlick_bsdf_3" />
+    <input name="base" type="BSDF" nodename="S_Horizontal_oren_nayar_diffuse_bsdf_4" />
+  </layer>
+  <mix name="S_Horizontal_mix_6" type="BSDF">
+    <input name="fg" type="BSDF" nodename="S_Horizontal_layer_2" />
+    <input name="bg" type="BSDF" nodename="S_Horizontal_layer_5" />
+    <input name="mix" type="float" nodegraph="NG_S_Horizontal" output="mix" />
+  </mix>
+  <surface name="S_Horizontal_shader" type="surfaceshader">
+    <input name="bsdf" type="BSDF" nodename="S_Horizontal_mix_6" />
+  </surface>
+  <surfacematerial name="S_Horizontal" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="S_Horizontal_shader" />
+  </surfacematerial>
+</materialx>

@@ -1,0 +1,29 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_S_ShadingModels">
+    <convert name="S_ShadingModels_BaseColor" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.7, 0.7, 0.75" />
+    </convert>
+    <constant name="MaterialExpressionConstant_0" type="float">
+      <input name="value" type="float" value="1" />
+    </constant>
+    <constant name="MaterialExpressionConstant_1" type="float">
+      <input name="value" type="float" value="0.25" />
+    </constant>
+    <output name="base_color" type="color3" nodename="S_ShadingModels_BaseColor" />
+    <output name="base_metalness" type="float" nodename="MaterialExpressionConstant_0" />
+    <output name="specular_roughness" type="float" nodename="MaterialExpressionConstant_1" />
+  </nodegraph>
+  <open_pbr_surface name="S_ShadingModels_shader" type="surfaceshader">
+    <input name="base_color" type="color3" nodegraph="NG_S_ShadingModels" output="base_color" />
+    <input name="base_metalness" type="float" nodegraph="NG_S_ShadingModels" output="base_metalness" />
+    <input name="specular_roughness" type="float" nodegraph="NG_S_ShadingModels" output="specular_roughness" />
+  </open_pbr_surface>
+  <surfacematerial name="S_ShadingModels" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="S_ShadingModels_shader" />
+  </surfacematerial>
+</materialx>

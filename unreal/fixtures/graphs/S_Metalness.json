@@ -1,0 +1,318 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": true,
+  "materials": [
+    {
+      "path": "/Game/Substrate/S_Metalness.S_Metalness",
+      "name": "S_Metalness",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_SubsurfaceProfile",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_SubsurfaceProfile"]
+      },
+      "pins": [
+        {
+          "pin": "FrontMaterial",
+          "from": ["MaterialExpressionSubstrateSlabBSDF_0", 0],
+          "mask": null
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionSubstrateSlabBSDF_0",
+          "class": "MaterialExpressionSubstrateSlabBSDF",
+          "properties": {
+            "SubsurfaceProfile": null,
+            "SpecularProfile": null,
+            "bUseSSSDiffusion": true,
+            "SubSurfaceType": "MSS_Diffusion"
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Diffuse Albedo",
+              "from": ["MaterialExpressionSubstrateMetalnessToDiffuseAlbedoF0_0", 0],
+              "mask": null
+            },
+            {
+              "index": 1,
+              "name": "F0",
+              "from": ["MaterialExpressionSubstrateMetalnessToDiffuseAlbedoF0_0", 1],
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "F90",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 3,
+              "name": "Roughness",
+              "from": ["MaterialExpressionConstant_0", 0],
+              "mask": null
+            },
+            {
+              "index": 4,
+              "name": "Anisotropy",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 5,
+              "name": "Normal",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 6,
+              "name": "Tangent",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 7,
+              "name": "SSS MFP",
+              "from": ["MaterialExpressionSubstrateTransmittanceToMFP_0", 0],
+              "mask": null
+            },
+            {
+              "index": 8,
+              "name": "SSS MFP Scale",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 9,
+              "name": "SSS Phase Anisotropy",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 10,
+              "name": "Emissive Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 11,
+              "name": "Second Roughness",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 12,
+              "name": "Second Roughness Weight",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 13,
+              "name": "Fuzz Roughness",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 14,
+              "name": "Fuzz Amount",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 15,
+              "name": "Fuzz Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 16,
+              "name": "Glint Density",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 17,
+              "name": "Glint UVs",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_0",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.4
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionSubstrateMetalnessToDiffuseAlbedoF0_0",
+          "class": "MaterialExpressionSubstrateMetalnessToDiffuseAlbedoF0",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "BaseColor",
+              "from": ["MaterialExpressionConstant3Vector_0", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "Metallic",
+              "from": ["MaterialExpressionScalarParameter_0", 0],
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "Specular",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "DiffuseAlbedo",
+              "mask": null
+            },
+            {
+              "name": "F0",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_0",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.9, 0.6, 0.2, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionScalarParameter_0",
+          "class": "MaterialExpressionScalarParameter",
+          "properties": {
+            "DefaultValue": 1,
+            "ControlType": "Numeric",
+            "SliderMin": 0,
+            "SliderMax": 0,
+            "Enumeration": "",
+            "EnumerationIndex": 0,
+            "bUseCustomPrimitiveData": false,
+            "PrimitiveDataIndex": 0,
+            "ParameterName": "Metal",
+            "Group": "",
+            "SortPriority": 32
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionSubstrateTransmittanceToMFP_0",
+          "class": "MaterialExpressionSubstrateTransmittanceToMFP",
+          "properties": {},
+          "inputs": [
+            {
+              "index": 0,
+              "name": "TransmittanceColor",
+              "from": ["MaterialExpressionConstant3Vector_1", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "Thickness",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "MFP",
+              "mask": null
+            },
+            {
+              "name": "Thickness",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_1",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.8, 0.3, 0.2, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [],
+  "textures": []
+}

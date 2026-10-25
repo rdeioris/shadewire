@@ -1,0 +1,54 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_S_ThinFilm">
+    <convert name="MaterialExpressionSubstrateThinFilm_0" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.9, 0.9, 0.9" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateThinFilm_0_2" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" nodename="MaterialExpressionSubstrateThinFilm_0" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionSubstrateThinFilm_0_2" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateThinFilm_0_3" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" value="1, 1, 1" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionSubstrateThinFilm_0_3" />
+    </convert>
+    <roughness_anisotropy name="MaterialExpressionSubstrateSlabBSDF_0_3" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" value="0.2" />
+    </roughness_anisotropy>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_4" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.1, 0.1, 0.1" />
+    </convert>
+    <output name="color0" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0" />
+    <output name="color90" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_2" />
+    <output name="roughness" type="vector2" nodename="MaterialExpressionSubstrateSlabBSDF_0_3" />
+    <output name="color" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_4" />
+  </nodegraph>
+  <generalized_schlick_bsdf name="S_ThinFilm_generalized_schlick_bsdf_0" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_S_ThinFilm" output="color0" />
+    <input name="color90" type="color3" nodegraph="NG_S_ThinFilm" output="color90" />
+    <input name="roughness" type="vector2" nodegraph="NG_S_ThinFilm" output="roughness" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <oren_nayar_diffuse_bsdf name="S_ThinFilm_oren_nayar_diffuse_bsdf_1" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_S_ThinFilm" output="color" />
+  </oren_nayar_diffuse_bsdf>
+  <layer name="S_ThinFilm_layer_2" type="BSDF">
+    <input name="top" type="BSDF" nodename="S_ThinFilm_generalized_schlick_bsdf_0" />
+    <input name="base" type="BSDF" nodename="S_ThinFilm_oren_nayar_diffuse_bsdf_1" />
+  </layer>
+  <surface name="S_ThinFilm_shader" type="surfaceshader">
+    <input name="bsdf" type="BSDF" nodename="S_ThinFilm_layer_2" />
+  </surface>
+  <surfacematerial name="S_ThinFilm" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="S_ThinFilm_shader" />
+  </surfacematerial>
+</materialx>

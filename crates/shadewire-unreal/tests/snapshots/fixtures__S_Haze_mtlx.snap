@@ -1,0 +1,342 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_S_Haze">
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.05, 0.05, 0.05" />
+    </convert>
+    <constant name="MaterialExpressionConstant_0" type="float">
+      <input name="value" type="float" value="0.2" />
+    </constant>
+    <constant name="MaterialExpressionSubstrateSlabBSDF_0_2" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <roughness_anisotropy name="MaterialExpressionSubstrateSlabBSDF_0_2_2" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" nodename="MaterialExpressionConstant_0" />
+    </roughness_anisotropy>
+    <max name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionConstant_0" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_2" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <constant name="MaterialExpressionConstant_1" type="float">
+      <input name="value" type="float" value="0.6" />
+    </constant>
+    <max name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_3" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionConstant_1" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_4" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_3" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_5" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_2" />
+      <input name="in2" type="float" value="2" />
+    </multiply>
+    <max name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_6" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_5" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_7" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_6" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_8" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_2" />
+      <input name="in2" type="float" value="4" />
+    </multiply>
+    <max name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_9" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_8" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_10" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_9" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <mix name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_11" type="float">
+      <input name="fg" type="float" value="3" />
+      <input name="bg" type="float" value="27" />
+      <input name="mix" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_10" />
+    </mix>
+    <mix name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_12" type="float">
+      <input name="fg" type="float" value="0.5" />
+      <input name="bg" type="float" value="0.01" />
+      <input name="mix" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_7" />
+    </mix>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_13" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_2" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_2" />
+    </multiply>
+    <add name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_14" type="float">
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_11" />
+    </add>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_15" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_13" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_14" />
+    </multiply>
+    <sqrt name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_16" type="float">
+      <input name="in" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_15" />
+    </sqrt>
+    <max name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_17" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionConstant_0" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_18" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_17" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <max name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_19" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionConstant_1" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_20" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_19" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <constant name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_21" type="float">
+      <input name="value" type="float" value="1" />
+    </constant>
+    <constant name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_22" type="float">
+      <input name="value" type="float" value="2" />
+    </constant>
+    <constant name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_23" type="float">
+      <input name="value" type="float" value="4" />
+    </constant>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_21_2" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_18" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_22" />
+    </multiply>
+    <max name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_22_2" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_21_2" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_23_2" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_22_2" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_24" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_18" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_23" />
+    </multiply>
+    <max name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_25" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_24" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_26" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_25" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <mix name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_27" type="float">
+      <input name="fg" type="float" value="3" />
+      <input name="bg" type="float" value="27" />
+      <input name="mix" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_26" />
+    </mix>
+    <mix name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_28" type="float">
+      <input name="fg" type="float" value="0.5" />
+      <input name="bg" type="float" value="0.01" />
+      <input name="mix" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_23_2" />
+    </mix>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_29" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_18" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_18" />
+    </multiply>
+    <add name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_30" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_21" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_27" />
+    </add>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_31" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_29" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_30" />
+    </multiply>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_32" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_30" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_30" />
+    </multiply>
+    <divide name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_33" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_21" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_32" />
+    </divide>
+    <subtract name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_34" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_21" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_31" />
+    </subtract>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_35" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_28" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_34" />
+    </multiply>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_36" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_31" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_33" />
+    </multiply>
+    <add name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_37" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_35" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_36" />
+    </add>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_38" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_37" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_22" />
+    </multiply>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_39" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_38" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_38" />
+    </multiply>
+    <subtract name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_40" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_38" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_21" />
+    </subtract>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_41" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_40" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_23" />
+    </multiply>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_42" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_41" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_28" />
+    </multiply>
+    <subtract name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_43" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_39" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_42" />
+    </subtract>
+    <sqrt name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_44" type="float">
+      <input name="in" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_43" />
+    </sqrt>
+    <subtract name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_45" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_38" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_44" />
+    </subtract>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_46" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_40" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_22" />
+    </multiply>
+    <divide name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_47" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_45" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_46" />
+    </divide>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_48" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_47" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_47" />
+    </multiply>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_49" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_31" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_22" />
+    </multiply>
+    <subtract name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_50" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_47" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_48" />
+    </subtract>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_51" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_50" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_49" />
+    </multiply>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_52" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_51" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_20" />
+    </multiply>
+    <subtract name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_53" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_21" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_47" />
+    </subtract>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_54" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_53" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_53" />
+    </multiply>
+    <add name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_55" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_54" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_51" />
+    </add>
+    <add name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_56" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_55" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_48" />
+    </add>
+    <divide name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_57" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_52" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_56" />
+    </divide>
+    <subtract name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_58" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_21" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_33" />
+    </subtract>
+    <multiply name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_59" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_58" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_57" />
+    </multiply>
+    <add name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_60" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_28" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_59" />
+    </add>
+    <divide name="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_61" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_57" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_60" />
+    </divide>
+    <roughness_anisotropy name="MaterialExpressionSubstrateSlabBSDF_0_3" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_16" />
+    </roughness_anisotropy>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_4" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.2, 0.2, 0.25" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_5" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.9, 0.9, 1" />
+    </convert>
+    <constant name="MaterialExpressionConstant_3" type="float">
+      <input name="value" type="float" value="0.7" />
+    </constant>
+    <constant name="MaterialExpressionConstant_2" type="float">
+      <input name="value" type="float" value="0.5" />
+    </constant>
+    <output name="color" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_5" />
+    <output name="roughness" type="float" nodename="MaterialExpressionConstant_3" />
+    <output name="weight" type="float" nodename="MaterialExpressionConstant_2" />
+    <output name="color0" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0" />
+    <output name="roughness_out" type="vector2" nodename="MaterialExpressionSubstrateSlabBSDF_0_3" />
+    <output name="roughness_out_2" type="vector2" nodename="MaterialExpressionSubstrateSlabBSDF_0_2_2" />
+    <output name="mix" type="float" nodename="MaterialExpressionSubstrateHazinessToSecondaryRoughness_0_61" />
+    <output name="color_out" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_4" />
+  </nodegraph>
+  <sheen_bsdf name="S_Haze_sheen_bsdf_0" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_S_Haze" output="color" />
+    <input name="roughness" type="float" nodegraph="NG_S_Haze" output="roughness" />
+    <input name="weight" type="float" nodegraph="NG_S_Haze" output="weight" />
+    <input name="mode" type="string" value="conty_kulla" />
+  </sheen_bsdf>
+  <generalized_schlick_bsdf name="S_Haze_generalized_schlick_bsdf_1" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_S_Haze" output="color0" />
+    <input name="roughness" type="vector2" nodegraph="NG_S_Haze" output="roughness_out" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <generalized_schlick_bsdf name="S_Haze_generalized_schlick_bsdf_2" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_S_Haze" output="color0" />
+    <input name="roughness" type="vector2" nodegraph="NG_S_Haze" output="roughness_out_2" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <mix name="S_Haze_mix_3" type="BSDF">
+    <input name="fg" type="BSDF" nodename="S_Haze_generalized_schlick_bsdf_1" />
+    <input name="bg" type="BSDF" nodename="S_Haze_generalized_schlick_bsdf_2" />
+    <input name="mix" type="float" nodegraph="NG_S_Haze" output="mix" />
+  </mix>
+  <oren_nayar_diffuse_bsdf name="S_Haze_oren_nayar_diffuse_bsdf_4" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_S_Haze" output="color_out" />
+  </oren_nayar_diffuse_bsdf>
+  <layer name="S_Haze_layer_5" type="BSDF">
+    <input name="top" type="BSDF" nodename="S_Haze_mix_3" />
+    <input name="base" type="BSDF" nodename="S_Haze_oren_nayar_diffuse_bsdf_4" />
+  </layer>
+  <layer name="S_Haze_layer_6" type="BSDF">
+    <input name="top" type="BSDF" nodename="S_Haze_sheen_bsdf_0" />
+    <input name="base" type="BSDF" nodename="S_Haze_layer_5" />
+  </layer>
+  <surface name="S_Haze_shader" type="surfaceshader">
+    <input name="bsdf" type="BSDF" nodename="S_Haze_layer_6" />
+  </surface>
+  <surfacematerial name="S_Haze" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="S_Haze_shader" />
+  </surfacematerial>
+</materialx>

@@ -1,0 +1,244 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": true,
+  "materials": [
+    {
+      "path": "/Game/Substrate/S_ShadingModels.S_ShadingModels",
+      "name": "S_ShadingModels",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Opaque",
+        "ShadingModel": "MSM_DefaultLit",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.3333,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_DefaultLit"]
+      },
+      "pins": [
+        {
+          "pin": "FrontMaterial",
+          "from": ["MaterialExpressionSubstrateShadingModels_0", 0],
+          "mask": null
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionSubstrateShadingModels_0",
+          "class": "MaterialExpressionSubstrateShadingModels",
+          "properties": {
+            "ShadingModel": {
+              "Expression": null,
+              "OutputIndex": 0,
+              "InputName": "",
+              "Mask": 0,
+              "MaskR": 0,
+              "MaskG": 0,
+              "MaskB": 0,
+              "MaskA": 0
+            },
+            "ShadingModelOverride": "MSM_DefaultLit",
+            "SubsurfaceProfile": null
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "BaseColor",
+              "from": ["MaterialExpressionConstant3Vector_0", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "Metallic",
+              "from": ["MaterialExpressionConstant_0", 0],
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "Specular",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 3,
+              "name": "Roughness",
+              "from": ["MaterialExpressionConstant_1", 0],
+              "mask": null
+            },
+            {
+              "index": 4,
+              "name": "Anisotropy",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 5,
+              "name": "Emissive Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 6,
+              "name": "Normal",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 7,
+              "name": "Tangent",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 8,
+              "name": "Subsurface Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 9,
+              "name": "Unused",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 10,
+              "name": "Unused",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 11,
+              "name": "Opacity",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 12,
+              "name": "Thin Translucent Transmittance Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 13,
+              "name": "Water Scattering Coefficients",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 14,
+              "name": "Water Absorption Coefficients",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 15,
+              "name": "Water Phase G",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 16,
+              "name": "Color Scale BehindWater",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 17,
+              "name": "Unused",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 18,
+              "name": "Custom Tangent",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 19,
+              "name": "Thin Translucent Surface Coverage",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 20,
+              "name": "Single Shading Model",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_0",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.7, 0.7, 0.75, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_0",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 1
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_1",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.25
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [],
+  "textures": []
+}

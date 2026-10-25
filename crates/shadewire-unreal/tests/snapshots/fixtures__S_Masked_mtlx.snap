@@ -1,0 +1,63 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_S_Masked">
+    <texcoord name="MaterialExpressionTextureCoordinate_0" type="vector2">
+      <input name="index" type="integer" value="0" />
+    </texcoord>
+    <multiply name="MaterialExpressionTextureCoordinate_0_2" type="vector2">
+      <input name="in1" type="vector2" nodename="MaterialExpressionTextureCoordinate_0" />
+      <input name="in2" type="vector2" value="1, -1" />
+    </multiply>
+    <add name="MaterialExpressionTextureCoordinate_0_2_2" type="vector2">
+      <input name="in1" type="vector2" nodename="MaterialExpressionTextureCoordinate_0_2" />
+      <input name="in2" type="vector2" value="0, 1" />
+    </add>
+    <extract name="MaterialExpressionComponentMask_0" type="float">
+      <input name="in" type="vector2" nodename="MaterialExpressionTextureCoordinate_0_2_2" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <ifgreater name="S_Masked_OpacityMask" type="float">
+      <input name="value1" type="float" nodename="MaterialExpressionComponentMask_0" />
+      <input name="value2" type="float" value="0.5" />
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" value="0" />
+    </ifgreater>
+    <roughness_anisotropy name="MaterialExpressionSubstrateSlabBSDF_0" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" value="0.6" />
+    </roughness_anisotropy>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.3, 0.5, 0.2" />
+    </convert>
+    <constant name="MaterialExpressionSubstrateSlabBSDF_0_3" type="color3">
+      <input name="value" type="color3" value="0.04, 0.04, 0.04" />
+    </constant>
+    <output name="color0" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_3" />
+    <output name="roughness" type="vector2" nodename="MaterialExpressionSubstrateSlabBSDF_0" />
+    <output name="color" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_2" />
+    <output name="opacity" type="float" nodename="S_Masked_OpacityMask" />
+  </nodegraph>
+  <generalized_schlick_bsdf name="S_Masked_generalized_schlick_bsdf_0" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_S_Masked" output="color0" />
+    <input name="roughness" type="vector2" nodegraph="NG_S_Masked" output="roughness" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <oren_nayar_diffuse_bsdf name="S_Masked_oren_nayar_diffuse_bsdf_1" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_S_Masked" output="color" />
+  </oren_nayar_diffuse_bsdf>
+  <layer name="S_Masked_layer_2" type="BSDF">
+    <input name="top" type="BSDF" nodename="S_Masked_generalized_schlick_bsdf_0" />
+    <input name="base" type="BSDF" nodename="S_Masked_oren_nayar_diffuse_bsdf_1" />
+  </layer>
+  <surface name="S_Masked_shader" type="surfaceshader">
+    <input name="bsdf" type="BSDF" nodename="S_Masked_layer_2" />
+    <input name="opacity" type="float" nodegraph="NG_S_Masked" output="opacity" />
+  </surface>
+  <surfacematerial name="S_Masked" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="S_Masked_shader" />
+  </surfacematerial>
+</materialx>

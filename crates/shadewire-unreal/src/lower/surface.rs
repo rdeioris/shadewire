@@ -27,6 +27,11 @@ struct Source {
 struct Pins<'m> {
     material: &'m Material,
     sources: HashMap<String, Source>,
+    /// The Substrate tree the Front Material pin reads, unless it is a Substrate Shading Models node (whose inputs
+    /// are then the pins).
+    front: Option<Source>,
+    /// The shading model a Substrate Shading Models node sets.
+    model: Option<String>,
 }
 
 impl Pins<'_> {
@@ -69,7 +74,7 @@ fn bind(fields: &mut Vec<(String, Arg)>, name: &str, id: NodeId) {
     fields.push((name.to_string(), Arg::Node(id)));
 }
 
-fn warn(l: &mut Lowerer, material: &Material, what: impl Into<String>) {
+pub(super) fn warn(l: &mut Lowerer, material: &Material, what: impl Into<String>) {
     let warning = format!("Material \"{}\": {}", material.name, what.into());
     if !l.warnings.contains(&warning) {
         l.warnings.push(warning);
@@ -86,7 +91,11 @@ fn pins<'m>(l: &mut Lowerer, material: &'m Material) -> Pins<'m> {
                 sources.insert(pin.pin.clone(), Source { frame: 0, from: from.clone(), mask: pin.mask });
             }
         }
-        return Pins { material, sources };
+        let mut pins = Pins { material, sources, front: None, model: None };
+        if let Some(front) = pins.sources.remove("FrontMaterial") {
+            front_material(l, &mut pins, front);
+        }
+        return pins;
     }
     let mut from = material.pins.iter().find(|p| p.pin == "MaterialAttributes").and_then(|p| p.from.clone());
     for _ in 0..64 {
@@ -104,7 +113,7 @@ fn pins<'m>(l: &mut Lowerer, material: &'m Material) -> Pins<'m> {
                         sources.insert(pin.to_string(), Source { frame: 0, from: link.clone(), mask: input.mask });
                     }
                 }
-                return Pins { material, sources };
+                return Pins { material, sources, front: None, model: None };
             }
             other => {
                 let what = format!("material attributes from {other} are not read, the surface is Unreal's defaults");
@@ -113,7 +122,34 @@ fn pins<'m>(l: &mut Lowerer, material: &'m Material) -> Pins<'m> {
             }
         }
     }
-    Pins { material, sources }
+    Pins { material, sources, front: None, model: None }
+}
+
+/// The Front Material pin: a Substrate Shading Models node (through reroutes) gives its inputs as the legacy pins
+/// and its model; anything else is a Substrate tree.
+fn front_material(l: &mut Lowerer, pins: &mut Pins, front: Source) {
+    let mut from = Some(front.from.clone());
+    for _ in 0..64 {
+        let Some((name, _)) = from.clone() else { break };
+        let Some(x) = l.expression(0, &name) else { break };
+        match short(&x.class) {
+            "Reroute" | "NamedRerouteDeclaration" => from = x.input_at(0).and_then(|i| i.from.clone()),
+            "SubstrateShadingModels" => {
+                for input in &x.inputs {
+                    let pin = super::substrate::SHADING_MODELS_PINS.get(input.index).copied().flatten();
+                    if let (Some(pin), Some(link)) = (pin, &input.from) {
+                        pins.sources.insert(pin.to_string(), Source { frame: 0, from: link.clone(), mask: input.mask });
+                    }
+                }
+                if !pins.sources.contains_key("ShadingModel") {
+                    pins.model = x.text("ShadingModelOverride").map(str::to_string);
+                }
+                return;
+            }
+            _ => break,
+        }
+    }
+    pins.front = Some(front);
 }
 
 /// A tangent-space vector in Unreal's convention as a direction in Shadewire's world: Unreal's tangent frame has
@@ -135,7 +171,7 @@ fn tangent_to_world(l: &mut Lowerer, v: NodeId, origin: &str) -> Result<NodeId, 
 }
 
 /// A normal or tangent pin as a Shadewire world direction.
-fn direction(l: &mut Lowerer, v: NodeId, tangent_space: bool, origin: &str) -> Result<NodeId, Error> {
+pub(super) fn direction(l: &mut Lowerer, v: NodeId, tangent_space: bool, origin: &str) -> Result<NodeId, Error> {
     if tangent_space {
         tangent_to_world(l, v, origin)
     } else {
@@ -157,10 +193,11 @@ pub fn finish(mut l: Lowerer, base: &Material) -> Result<(Dag, Vec<String>), Err
             warn(&mut l, base, format!("{pin} ignored"));
         }
     }
-    let model = match settings.shading_models.as_slice() {
-        [] => "MSM_DefaultLit".to_string(),
-        [one] => one.clone(),
-        [first, ..] => {
+    let model = match (&p.model, settings.shading_models.as_slice()) {
+        (Some(model), _) => model.clone(),
+        (None, []) => "MSM_DefaultLit".to_string(),
+        (None, [one]) => one.clone(),
+        (None, [first, ..]) => {
             let what = format!("several shading models ({}), {first} used", settings.shading_models.join(", "));
             warn(&mut l, base, what);
             first.clone()
@@ -169,6 +206,9 @@ pub fn finish(mut l: Lowerer, base: &Material) -> Result<(Dag, Vec<String>), Err
     let mut fields: Vec<(String, Arg)> = Vec::new();
 
     let opacity = opacity(&mut l, &p, base, &settings.blend_mode, settings.opacity_mask_clip)?;
+    if let Some(front) = p.front.clone() {
+        return super::substrate::finish(l, base, front.frame, &front.from, opacity);
+    }
     if model == "MSM_Unlit" {
         bind(&mut fields, "emission_color", p.color(&mut l, "EmissiveColor", [0.0; 3])?);
         if let Some(opacity) = opacity {

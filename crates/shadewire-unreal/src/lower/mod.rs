@@ -6,6 +6,7 @@ pub mod fallback;
 pub mod math;
 pub mod params;
 pub mod structure;
+pub mod substrate;
 pub mod surface;
 pub mod texture;
 pub mod vector;
@@ -45,6 +46,8 @@ pub struct Lowerer<'a> {
     in_progress: HashSet<(usize, String, usize)>,
     /// Parameter name to its uniform, so every expression naming a parameter reads one.
     pub uniforms: HashMap<String, NodeId>,
+    /// `(frame, expression, output, on top of a layering)` to the Substrate closure tree it lowered to.
+    trees: HashMap<(usize, String, usize, bool), substrate::Tree>,
     pub warnings: Vec<String>,
 }
 
@@ -79,6 +82,7 @@ impl<'a> Lowerer<'a> {
             memo: HashMap::new(),
             in_progress: HashSet::new(),
             uniforms: HashMap::new(),
+            trees: HashMap::new(),
             warnings: Vec::new(),
         }
     }
@@ -180,6 +184,10 @@ impl<'a> Lowerer<'a> {
             "CameraVectorWS" => texture::camera_vector(self, f, x),
             "VertexColor" => texture::vertex_color(self, f, x),
             "Fresnel" => texture::fresnel(self, f, x),
+            "SubstrateMetalnessToDiffuseAlbedoF0" => substrate::metalness_to_albedo_f0(self, f, x, out),
+            "SubstrateHazinessToSecondaryRoughness" => substrate::haziness(self, f, x, out),
+            "SubstrateTransmittanceToMFP" => substrate::transmittance_to_mfp(self, f, x, out),
+            "SubstrateThinFilm" => substrate::thin_film(self, f, x, out),
             _ => fallback::neutral(self, f, x),
         }
     }

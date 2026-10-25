@@ -7,6 +7,12 @@
   become `open_pbr_surface` (Unlit `surface_unlit`), parameters uniforms, instance chains apply their overrides,
   material functions inline, reroutes, masks and static and engine switches are followed as Unreal follows them.
   The plugin exports MaterialX and MDL from the Content Browser and from a commandlet, through the C library.
+- **Unreal Substrate.** A Substrate material's Front Material becomes a closure tree: slabs as specular over
+  diffuse or subsurface with haze and fuzz, simple clear coat, unlit, and horizontal mixing, vertical layering, add,
+  weight and select as `mix`, `layer`, `add` and `multiply`; Substrate's helper nodes compute what Unreal's shaders
+  do. The plugin's MaterialX export accepts closure trees beside `open_pbr_surface`.
+- **MaterialX writer:** a value a front end made at a compound's own origin is no longer taken for part of the
+  compound (it was left unwritten while something else read it).
 - **CLI:** Unreal graphs wherever a Blender graph is read (`--format unreal`); a `.json` input is told apart by its
   `format`. **Python:** `shadewire.unreal` (`to_ir`, `material_names`). **C:** `shadewire_unreal_to_ir`,
   `shadewire_unreal_material_names`.

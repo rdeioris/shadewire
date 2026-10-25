@@ -1,0 +1,251 @@
+{
+  "format": "shadewire-unreal-graph",
+  "version": 1,
+  "producer": "Unreal Engine 5.8.3",
+  "substrate": true,
+  "materials": [
+    {
+      "path": "/Game/Substrate/S_Masked.S_Masked",
+      "name": "S_Masked",
+      "class": "Material",
+      "parent": null,
+      "settings": {
+        "MaterialDomain": "MD_Surface",
+        "BlendMode": "BLEND_Masked",
+        "ShadingModel": "MSM_DefaultLit",
+        "TwoSided": false,
+        "bTangentSpaceNormal": true,
+        "bUseMaterialAttributes": false,
+        "OpacityMaskClipValue": 0.5,
+        "TranslucencyLightingMode": "TLM_VolumetricNonDirectional",
+        "bIsThinSurface": false,
+        "ShadingModels": ["MSM_DefaultLit"]
+      },
+      "pins": [
+        {
+          "pin": "OpacityMask",
+          "from": ["MaterialExpressionComponentMask_0", 0],
+          "mask": null
+        },
+        {
+          "pin": "FrontMaterial",
+          "from": ["MaterialExpressionSubstrateSlabBSDF_0", 0],
+          "mask": null
+        }
+      ],
+      "expressions": [
+        {
+          "name": "MaterialExpressionSubstrateSlabBSDF_0",
+          "class": "MaterialExpressionSubstrateSlabBSDF",
+          "properties": {
+            "SubsurfaceProfile": null,
+            "SpecularProfile": null,
+            "bUseSSSDiffusion": true,
+            "SubSurfaceType": "MSS_Diffusion"
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Diffuse Albedo",
+              "from": ["MaterialExpressionConstant3Vector_0", 0],
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "index": 1,
+              "name": "F0",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 2,
+              "name": "F90",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 3,
+              "name": "Roughness",
+              "from": ["MaterialExpressionConstant_0", 0],
+              "mask": null
+            },
+            {
+              "index": 4,
+              "name": "Anisotropy",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 5,
+              "name": "Normal",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 6,
+              "name": "Tangent",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 7,
+              "name": "SSS MFP",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 8,
+              "name": "SSS MFP Scale",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 9,
+              "name": "SSS Phase Anisotropy",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 10,
+              "name": "Emissive Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 11,
+              "name": "Second Roughness",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 12,
+              "name": "Second Roughness Weight",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 13,
+              "name": "Fuzz Roughness",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 14,
+              "name": "Fuzz Amount",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 15,
+              "name": "Fuzz Color",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 16,
+              "name": "Glint Density",
+              "from": null,
+              "mask": null
+            },
+            {
+              "index": 17,
+              "name": "Glint UVs",
+              "from": null,
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant3Vector_0",
+          "class": "MaterialExpressionConstant3Vector",
+          "properties": {
+            "Constant": [0.3, 0.5, 0.2, 1]
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": [1, 1, 1, 0]
+            },
+            {
+              "name": "",
+              "mask": [1, 0, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 1, 0, 0]
+            },
+            {
+              "name": "",
+              "mask": [0, 0, 1, 0]
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionConstant_0",
+          "class": "MaterialExpressionConstant",
+          "properties": {
+            "R": 0.6
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionTextureCoordinate_0",
+          "class": "MaterialExpressionTextureCoordinate",
+          "properties": {
+            "CoordinateIndex": 0,
+            "UTiling": 1,
+            "VTiling": 1,
+            "UnMirrorU": false,
+            "UnMirrorV": false
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        },
+        {
+          "name": "MaterialExpressionComponentMask_0",
+          "class": "MaterialExpressionComponentMask",
+          "properties": {
+            "R": false,
+            "G": true,
+            "B": false,
+            "A": false
+          },
+          "inputs": [
+            {
+              "index": 0,
+              "name": "Input",
+              "from": ["MaterialExpressionTextureCoordinate_0", 0],
+              "mask": null
+            }
+          ],
+          "outputs": [
+            {
+              "name": "",
+              "mask": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "parents": [],
+  "functions": [],
+  "textures": []
+}

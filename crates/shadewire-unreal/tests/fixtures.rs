@@ -1,6 +1,6 @@
-//! Every fixture under unreal/fixtures/graphs (dumped by the plugin's commandlet from unreal/ShadewireTest) lowers,
-//! its WGSL validates and its MDL is written; the warnings and the MaterialX are snapshots, and the MaterialX reads
-//! back to the same IR.
+//! Every fixture under unreal/fixtures/graphs (dumped by the plugin's commandlet from unreal/ShadewireTest; `S_*`
+//! with Substrate on) lowers, its WGSL validates and its MDL is written; the warnings and the MaterialX are
+//! snapshots, and the MaterialX reads back to the same IR.
 
 use std::path::{Path, PathBuf};
 
@@ -19,9 +19,16 @@ fn fixtures() -> Vec<(String, String)> {
         .collect()
 }
 
-/// The two model lists a host may bring: the mapped models, and closure trees.
-fn modes() -> [(&'static str, IrOptions); 2] {
-    [("models", IrOptions::default()), ("lobes", IrOptions::with_models(&["surface", "surface_unlit"]))]
+/// What the plugin's MaterialX export accepts: `open_pbr_surface` for legacy materials, closure trees for Substrate.
+fn export() -> IrOptions {
+    IrOptions::with_models(&["open_pbr_surface", "surface", "surface_unlit"])
+}
+
+/// The model lists a host may bring: the export's, closure trees only, and `open_pbr_surface` with closure trees
+/// distilled to it.
+fn modes() -> [(&'static str, IrOptions); 3] {
+    let distill = IrOptions { distill: true, ..IrOptions::default() };
+    [("export", export()), ("lobes", IrOptions::with_models(&["surface", "surface_unlit"])), ("distill", distill)]
 }
 
 fn lower(name: &str, text: &str, mode: &str, options: &IrOptions) -> MaterialIr {
@@ -31,7 +38,7 @@ fn lower(name: &str, text: &str, mode: &str, options: &IrOptions) -> MaterialIr 
 #[test]
 fn every_fixture_lowers_and_its_warnings_and_materialx_are_the_snapshots() {
     for (name, text) in fixtures() {
-        let ir = lower(&name, &text, "models", &IrOptions::default());
+        let ir = lower(&name, &text, "export", &export());
         assert_eq!(ir.source.source, "unreal");
         insta::assert_snapshot!(format!("{name}_warnings"), ir.warnings.join("\n"));
         let write = shadewire_mtlx::WriteOptions { name: name.clone(), ..Default::default() };
@@ -41,7 +48,21 @@ fn every_fixture_lowers_and_its_warnings_and_materialx_are_the_snapshots() {
 }
 
 #[test]
-fn every_fixture_validates_as_wgsl_in_both_modes() {
+fn substrate_fixtures_are_closure_trees_and_legacy_ones_models() {
+    for (name, text) in fixtures() {
+        let ir = lower(&name, &text, "export", &export());
+        let expected = match name.as_str() {
+            "S_ShadingModels" => "open_pbr_surface",
+            n if n.starts_with("S_") => "surface",
+            "M_Unlit" => "surface_unlit",
+            _ => "open_pbr_surface",
+        };
+        assert_eq!(ir.dag.surface.model, expected, "{name}");
+    }
+}
+
+#[test]
+fn every_fixture_validates_as_wgsl_in_every_mode() {
     let options = CompileOptions::default();
     for (name, text) in fixtures() {
         for (mode, lower_options) in modes() {
@@ -67,9 +88,9 @@ fn every_fixture_writes_mdl_as_closure_trees() {
 #[test]
 fn every_fixture_reads_back_from_its_materialx_as_the_same_ir() {
     for (name, text) in fixtures() {
-        let ir = lower(&name, &text, "models", &IrOptions::default());
+        let ir = lower(&name, &text, "export", &export());
         let written = shadewire_mtlx::from_ir(&ir.dag, &Default::default()).unwrap();
-        let back = shadewire_mtlx::to_ir(&written.text, None, None, &IrOptions::default(), &Default::default())
+        let back = shadewire_mtlx::to_ir(&written.text, None, None, &export(), &Default::default())
             .unwrap_or_else(|e| panic!("{name}: {e}\n{}", written.text));
         assert_same_material(&ir.dag, &back.dag, &written.text);
     }

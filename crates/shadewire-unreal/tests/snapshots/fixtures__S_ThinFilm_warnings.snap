@@ -1,0 +1,5 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: "ir.warnings.join(\"\\n\")"
+---
+SubstrateThinFilm "MaterialExpressionSubstrateThinFilm_0": thin-film interference dropped, F0 and F90 pass through

@@ -46,7 +46,16 @@ UnrealEditor-Cmd unreal/ShadewireTest/ShadewireTest.uproject -run=ShadewireExpor
 ## What is exported
 
 Legacy shading models (Default Lit, Unlit, Clear Coat, Subsurface, Cloth, Two Sided Foliage, Thin Translucent) with
-the opaque, masked and translucent blend modes; parameters as editable inputs, instance overrides applied; material
-functions inlined, engine functions included. Custom HLSL and the expressions that only mean something inside
-Unreal's renderer (scene textures, depths) become a warning and a neutral value. Substrate materials are not exported
-yet. See `crates/shadewire-unreal/README.md` for the mapping.
+the opaque, masked and translucent blend modes, and Substrate materials (slabs, simple clear coat, unlit, and the
+mixing, layering, add, weight and select operators) as MaterialX closure trees and MDL `::df` trees; parameters as
+editable inputs, instance overrides applied; material functions inlined, engine functions included. Custom HLSL and
+the expressions that only mean something inside Unreal's renderer (scene textures, depths) become a warning and a
+neutral value. Substrate translucency is not exported (the material is opaque). See
+`crates/shadewire-unreal/README.md` for the mapping.
+
+The Substrate fixtures need Substrate on, which `make_substrate_fixtures.py` and the commandlet get from the command
+line rather than a project setting:
+
+```bash
+UnrealEditor-Cmd unreal/ShadewireTest/ShadewireTest.uproject -run=pythonscript -script=<repo>/unreal/make_substrate_fixtures.py "-ini:Engine:[/Script/Engine.RendererSettings]:r.Substrate=True"
+```

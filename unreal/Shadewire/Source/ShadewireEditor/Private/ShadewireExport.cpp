@@ -149,11 +149,18 @@ FShadewireExportResult ShadewireExport(UMaterialInterface* Material, const FShad
 	const FTCHARToUTF8 Name(*Material->GetName());
 	shadewire_ir_options IrOptions;
 	shadewire_ir_options_default(&IrOptions);
+	// MaterialX keeps a legacy material's model and writes Substrate as its closure tree; MDL takes closure trees only.
+	const char* Models[] = {"open_pbr_surface", "surface", "surface_unlit"};
 	const char* Lobes[] = {"surface", "surface_unlit"};
 	if (Options.Format == EShadewireFormat::Mdl || Options.bLobes)
 	{
 		IrOptions.models = Lobes;
 		IrOptions.model_count = UE_ARRAY_COUNT(Lobes);
+	}
+	else
+	{
+		IrOptions.models = Models;
+		IrOptions.model_count = UE_ARRAY_COUNT(Models);
 	}
 
 	shadewire_ir* Ir = nullptr;

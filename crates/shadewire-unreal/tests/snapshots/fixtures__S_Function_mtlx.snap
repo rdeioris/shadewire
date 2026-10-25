@@ -1,0 +1,40 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_S_Function">
+    <roughness_anisotropy name="MaterialExpressionSubstrateSlabBSDF_0" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" value="0.45" />
+    </roughness_anisotropy>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.2, 0.7, 0.3" />
+    </convert>
+    <constant name="MaterialExpressionSubstrateSlabBSDF_0_3" type="color3">
+      <input name="value" type="color3" value="0.04, 0.04, 0.04" />
+    </constant>
+    <output name="color0" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_3" />
+    <output name="roughness" type="vector2" nodename="MaterialExpressionSubstrateSlabBSDF_0" />
+    <output name="color" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_2" />
+  </nodegraph>
+  <generalized_schlick_bsdf name="S_Function_generalized_schlick_bsdf_0" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_S_Function" output="color0" />
+    <input name="roughness" type="vector2" nodegraph="NG_S_Function" output="roughness" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <oren_nayar_diffuse_bsdf name="S_Function_oren_nayar_diffuse_bsdf_1" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_S_Function" output="color" />
+  </oren_nayar_diffuse_bsdf>
+  <layer name="S_Function_layer_2" type="BSDF">
+    <input name="top" type="BSDF" nodename="S_Function_generalized_schlick_bsdf_0" />
+    <input name="base" type="BSDF" nodename="S_Function_oren_nayar_diffuse_bsdf_1" />
+  </layer>
+  <surface name="S_Function_shader" type="surfaceshader">
+    <input name="bsdf" type="BSDF" nodename="S_Function_layer_2" />
+  </surface>
+  <surfacematerial name="S_Function" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="S_Function_shader" />
+  </surfacematerial>
+</materialx>

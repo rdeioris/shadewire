@@ -1,0 +1,118 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_S_ShadingModelsMixed">
+    <convert name="MaterialExpressionSubstrateShadingModels_0" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.2, 0.4, 0.8" />
+    </convert>
+    <constant name="MaterialExpressionSubstrateShadingModels_0_2" type="float">
+      <input name="value" type="float" value="0" />
+    </constant>
+    <convert name="MaterialExpressionSubstrateShadingModels_0_2_2" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" nodename="MaterialExpressionSubstrateShadingModels_0" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateShadingModels_0_3" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionSubstrateShadingModels_0_2_2" />
+    </convert>
+    <subtract name="MaterialExpressionSubstrateShadingModels_0_4" type="float">
+      <input name="in1" type="float" value="1" />
+      <input name="in2" type="float" nodename="MaterialExpressionSubstrateShadingModels_0_2" />
+    </subtract>
+    <convert name="MaterialExpressionSubstrateShadingModels_0_5" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" nodename="MaterialExpressionSubstrateShadingModels_0_4" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateShadingModels_0_6" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionSubstrateShadingModels_0_5" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateShadingModels_0_7" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" nodename="MaterialExpressionSubstrateShadingModels_0_3" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateShadingModels_0_8" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" nodename="MaterialExpressionSubstrateShadingModels_0_6" />
+    </convert>
+    <multiply name="MaterialExpressionSubstrateShadingModels_0_9" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionSubstrateShadingModels_0_7" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionSubstrateShadingModels_0_8" />
+    </multiply>
+    <convert name="MaterialExpressionSubstrateShadingModels_0_10" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionSubstrateShadingModels_0_9" />
+    </convert>
+    <multiply name="MaterialExpressionSubstrateShadingModels_0_11" type="float">
+      <input name="in1" type="float" value="0.5" />
+      <input name="in2" type="float" value="0.08" />
+    </multiply>
+    <convert name="MaterialExpressionSubstrateShadingModels_0_12" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" nodename="MaterialExpressionSubstrateShadingModels_0_11" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateShadingModels_0_13" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionSubstrateShadingModels_0_12" />
+    </convert>
+    <mix name="MaterialExpressionSubstrateShadingModels_0_14" type="color3">
+      <input name="fg" type="color3" nodename="MaterialExpressionSubstrateShadingModels_0_3" />
+      <input name="bg" type="color3" nodename="MaterialExpressionSubstrateShadingModels_0_13" />
+      <input name="mix" type="float" nodename="MaterialExpressionSubstrateShadingModels_0_2" />
+    </mix>
+    <roughness_anisotropy name="MaterialExpressionSubstrateShadingModels_0_15" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" value="0.5" />
+    </roughness_anisotropy>
+    <roughness_anisotropy name="MaterialExpressionSubstrateSlabBSDF_0" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" value="0.4" />
+    </roughness_anisotropy>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.9, 0.9, 0.2" />
+    </convert>
+    <constant name="MaterialExpressionSubstrateSlabBSDF_0_3" type="color3">
+      <input name="value" type="color3" value="0.04, 0.04, 0.04" />
+    </constant>
+    <constant name="MaterialExpressionConstant_2" type="float">
+      <input name="value" type="float" value="0.5" />
+    </constant>
+    <output name="color0" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_3" />
+    <output name="roughness" type="vector2" nodename="MaterialExpressionSubstrateSlabBSDF_0" />
+    <output name="color" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_2" />
+    <output name="color0_out" type="color3" nodename="MaterialExpressionSubstrateShadingModels_0_14" />
+    <output name="roughness_out" type="vector2" nodename="MaterialExpressionSubstrateShadingModels_0_15" />
+    <output name="color_out" type="color3" nodename="MaterialExpressionSubstrateShadingModels_0_10" />
+    <output name="mix" type="float" nodename="MaterialExpressionConstant_2" />
+  </nodegraph>
+  <generalized_schlick_bsdf name="S_ShadingModelsMixed_generalized_schlick_bsdf_0" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_S_ShadingModelsMixed" output="color0" />
+    <input name="roughness" type="vector2" nodegraph="NG_S_ShadingModelsMixed" output="roughness" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <oren_nayar_diffuse_bsdf name="S_ShadingModelsMixed_oren_nayar_diffuse_bsdf_1" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_S_ShadingModelsMixed" output="color" />
+  </oren_nayar_diffuse_bsdf>
+  <layer name="S_ShadingModelsMixed_layer_2" type="BSDF">
+    <input name="top" type="BSDF" nodename="S_ShadingModelsMixed_generalized_schlick_bsdf_0" />
+    <input name="base" type="BSDF" nodename="S_ShadingModelsMixed_oren_nayar_diffuse_bsdf_1" />
+  </layer>
+  <generalized_schlick_bsdf name="S_ShadingModelsMixed_generalized_schlick_bsdf_3" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_S_ShadingModelsMixed" output="color0_out" />
+    <input name="roughness" type="vector2" nodegraph="NG_S_ShadingModelsMixed" output="roughness_out" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <oren_nayar_diffuse_bsdf name="S_ShadingModelsMixed_oren_nayar_diffuse_bsdf_4" type="BSDF">
+    <input name="color" type="color3" nodegraph="NG_S_ShadingModelsMixed" output="color_out" />
+  </oren_nayar_diffuse_bsdf>
+  <layer name="S_ShadingModelsMixed_layer_5" type="BSDF">
+    <input name="top" type="BSDF" nodename="S_ShadingModelsMixed_generalized_schlick_bsdf_3" />
+    <input name="base" type="BSDF" nodename="S_ShadingModelsMixed_oren_nayar_diffuse_bsdf_4" />
+  </layer>
+  <mix name="S_ShadingModelsMixed_mix_6" type="BSDF">
+    <input name="fg" type="BSDF" nodename="S_ShadingModelsMixed_layer_2" />
+    <input name="bg" type="BSDF" nodename="S_ShadingModelsMixed_layer_5" />
+    <input name="mix" type="float" nodegraph="NG_S_ShadingModelsMixed" output="mix" />
+  </mix>
+  <surface name="S_ShadingModelsMixed_shader" type="surfaceshader">
+    <input name="bsdf" type="BSDF" nodename="S_ShadingModelsMixed_mix_6" />
+  </surface>
+  <surfacematerial name="S_ShadingModelsMixed" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="S_ShadingModelsMixed_shader" />
+  </surfacematerial>
+</materialx>

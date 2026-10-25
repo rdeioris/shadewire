@@ -1,0 +1,67 @@
+---
+source: crates/shadewire-unreal/tests/fixtures.rs
+expression: written.text
+---
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodegraph name="NG_S_SlabSSS">
+    <roughness_anisotropy name="MaterialExpressionSubstrateSlabBSDF_0" type="vector2" nodedef="ND_roughness_anisotropy">
+      <input name="roughness" type="float" value="0.5" />
+    </roughness_anisotropy>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_2" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="0.8, 0.5, 0.4" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_3" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" value="1, 0.4, 0.2" />
+    </convert>
+    <multiply name="MaterialExpressionSubstrateSlabBSDF_0_4" type="float">
+      <input name="in1" type="float" value="0.5" />
+      <input name="in2" type="float" value="0.01" />
+    </multiply>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_5" type="vector3" nodedef="ND_convert_color3_vector3">
+      <input name="in" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_3" />
+    </convert>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_6" type="vector3" nodedef="ND_convert_float_vector3">
+      <input name="in" type="float" nodename="MaterialExpressionSubstrateSlabBSDF_0_4" />
+    </convert>
+    <multiply name="MaterialExpressionSubstrateSlabBSDF_0_7" type="vector3">
+      <input name="in1" type="vector3" nodename="MaterialExpressionSubstrateSlabBSDF_0_5" />
+      <input name="in2" type="vector3" nodename="MaterialExpressionSubstrateSlabBSDF_0_6" />
+    </multiply>
+    <convert name="MaterialExpressionSubstrateSlabBSDF_0_8" type="color3" nodedef="ND_convert_vector3_color3">
+      <input name="in" type="vector3" nodename="MaterialExpressionSubstrateSlabBSDF_0_7" />
+    </convert>
+    <constant name="MaterialExpressionSubstrateSlabBSDF_0_9" type="color3">
+      <input name="value" type="color3" value="0.04, 0.04, 0.04" />
+    </constant>
+    <constant name="MaterialExpressionConstant_2" type="float">
+      <input name="value" type="float" value="0.2" />
+    </constant>
+    <output name="color0" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_9" />
+    <output name="roughness" type="vector2" nodename="MaterialExpressionSubstrateSlabBSDF_0" />
+    <output name="anisotropy" type="float" nodename="MaterialExpressionConstant_2" />
+    <output name="color" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_2" />
+    <output name="radius" type="color3" nodename="MaterialExpressionSubstrateSlabBSDF_0_8" />
+  </nodegraph>
+  <generalized_schlick_bsdf name="S_SlabSSS_generalized_schlick_bsdf_0" type="BSDF">
+    <input name="color0" type="color3" nodegraph="NG_S_SlabSSS" output="color0" />
+    <input name="roughness" type="vector2" nodegraph="NG_S_SlabSSS" output="roughness" />
+    <input name="distribution" type="string" value="ggx" />
+    <input name="scatter_mode" type="string" value="R" />
+  </generalized_schlick_bsdf>
+  <subsurface_bsdf name="S_SlabSSS_subsurface_bsdf_1" type="BSDF">
+    <input name="anisotropy" type="float" nodegraph="NG_S_SlabSSS" output="anisotropy" />
+    <input name="color" type="color3" nodegraph="NG_S_SlabSSS" output="color" />
+    <input name="radius" type="color3" nodegraph="NG_S_SlabSSS" output="radius" />
+  </subsurface_bsdf>
+  <layer name="S_SlabSSS_layer_2" type="BSDF">
+    <input name="top" type="BSDF" nodename="S_SlabSSS_generalized_schlick_bsdf_0" />
+    <input name="base" type="BSDF" nodename="S_SlabSSS_subsurface_bsdf_1" />
+  </layer>
+  <surface name="S_SlabSSS_shader" type="surfaceshader">
+    <input name="bsdf" type="BSDF" nodename="S_SlabSSS_layer_2" />
+  </surface>
+  <surfacematerial name="S_SlabSSS" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="S_SlabSSS_shader" />
+  </surfacematerial>
+</materialx>
