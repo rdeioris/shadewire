@@ -68,17 +68,20 @@ void ShadewireLoadLibrary()
 	{
 		return;
 	}
-	// The build copies the library next to this module, which is the plugin's binaries or, for a plugin a project
-	// lists in AdditionalPluginDirectories, the project's.
-	const FString Module = FModuleManager::Get().GetModuleFilename(TEXT("ShadewireEditor"));
-	if (!Module.IsEmpty())
-	{
-		LibraryHandle = FPlatformProcess::GetDllHandle(*FPaths::Combine(FPaths::GetPath(Module), LibraryFile()));
-	}
-	if (TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("Shadewire")); !LibraryHandle && Plugin)
+	// The build copies the library into the plugin's Binaries/<platform>, packaged or not; beside this module is a
+	// fallback for a library copied there by hand.
+	if (TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("Shadewire")))
 	{
 		const FString Path = FPaths::Combine(Plugin->GetBaseDir(), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory(), LibraryFile());
-		LibraryHandle = FPlatformProcess::GetDllHandle(*Path);
+		if (FPaths::FileExists(Path))
+		{
+			LibraryHandle = FPlatformProcess::GetDllHandle(*Path);
+		}
+	}
+	const FString Module = FModuleManager::Get().GetModuleFilename(TEXT("ShadewireEditor"));
+	if (!LibraryHandle && !Module.IsEmpty())
+	{
+		LibraryHandle = FPlatformProcess::GetDllHandle(*FPaths::Combine(FPaths::GetPath(Module), LibraryFile()));
 	}
 }
 
@@ -127,11 +130,12 @@ FShadewireExportResult ShadewireExport(UMaterialInterface* Material, const FShad
 	DumpOptions.DocumentDir = Options.OutDir;
 	if (Options.bTextures)
 	{
-		DumpOptions.TexturesDir = Options.OutDir / TEXT("textures");
+		DumpOptions.TexturesDir = Options.TexturesDir.IsEmpty() ? Options.OutDir / TEXT("textures") : Options.TexturesDir;
 	}
 	const FShadewireDump Dump = ShadewireDumpGraph({Material}, DumpOptions);
 	Result.Warnings = Dump.Warnings;
-	const FString Path = Options.OutDir / FString::Printf(TEXT("%s.%s"), *Material->GetName(), ShadewireExtension(Options.Format));
+	const FString BaseName = Options.BaseName.IsEmpty() ? Material->GetName() : Options.BaseName;
+	const FString Path = Options.OutDir / FString::Printf(TEXT("%s.%s"), *BaseName, ShadewireExtension(Options.Format));
 
 	if (Options.Format == EShadewireFormat::Graph)
 	{
@@ -191,7 +195,15 @@ FShadewireExportResult ShadewireExport(UMaterialInterface* Material, const FShad
 			}
 			size_t Length = 0;
 			const char* Mtlx = shadewire_document_text(Document, &Length);
-			Result.bOk = Save(FString(FUTF8ToTCHAR(Mtlx, (int32)Length)), Path, Result);
+			const FString MtlxText = FString(FUTF8ToTCHAR(Mtlx, (int32)Length));
+			const FString Marker = TEXT("<surfacematerial name=\"");
+			const int32 At = MtlxText.Find(Marker);
+			if (At != INDEX_NONE)
+			{
+				const int32 Start = At + Marker.Len();
+				Result.DocumentName = MtlxText.Mid(Start, MtlxText.Find(TEXT("\""), ESearchCase::CaseSensitive, ESearchDir::FromStart, Start) - Start);
+			}
+			Result.bOk = Save(MtlxText, Path, Result);
 			shadewire_document_free(Document);
 		}
 	}

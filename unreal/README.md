@@ -18,9 +18,27 @@ UnrealEditor-Cmd MyProject.uproject -run=ShadewireExport -folder=/Game/Materials
 `-materials=/Game/A.A,/Game/B.B` names materials instead of a folder; `-format` is `json`, `mtlx` or `mdl`; `-lobes`
 writes MaterialX as a closure tree instead of `open_pbr_surface`; `-notextures` skips the texture files.
 
+## USD export
+
+With the plugin enabled, Unreal's own USD level export (File > Export All / Export Selected to `.usd`, or a Python
+`AssetExportTask` with `LevelExporterUSDOptions`) writes materials as Shadewire MaterialX when **Bake Materials** is
+on: each material's layer (`Assets/<Material>.usda`) is a `Material` whose prim references
+`<Material>.mtlx` (`</MaterialX/Materials/<Material>>`) beside it, with the textures in the export's texture folder,
+and keeps Unreal's own `unreal` surface output for re-import. Unreal binds those layers to the meshes as it binds its
+baked ones, so skeletal meshes keep their UsdSkel rig and every section gets its MaterialX material. A material the
+library fails on is baked as Unreal would, with a warning. Editor Preferences > Plugins > Shadewire turns this off
+or writes closure trees instead of `open_pbr_surface`.
+
+How: the level export exports each material with an export task that names no exporter, and the engine picks the
+exporter registered for the material's most derived class. The plugin registers exporters for `UMaterial` and
+`UMaterialInstance`, below Unreal's (registered for `UMaterialInterface`). Exporting a single static or skeletal mesh
+asset from the Content Browser bakes its materials with Unreal's exporter directly, so it is not covered; export the
+mesh in a level instead.
+
 ## Building
 
-The plugin loads Shadewire's C library from beside its own module. Build and stage it first, from the repository:
+The plugin loads Shadewire's C library from its own `Binaries/<platform>` folder, where the build copies it (a
+packaged plugin, `RunUAT BuildPlugin`, carries it there too). Build and stage it first, from the repository:
 
 ```bash
 python unreal/stage_library.py

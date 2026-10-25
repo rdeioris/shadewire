@@ -22,7 +22,16 @@ public class ShadewireEditor : ModuleRules
 			"ContentBrowser",
 			"DesktopPlatform",
 			"MessageLog",
+			"DeveloperSettings",
 			"ShadewireLibrary",
+			// USD export: the material exporters the level export picks.
+			"UnrealUSDWrapper",
+			"USDClasses",
+			"USDUtilities",
+			"USDExporter",
+			"MaterialBaking",
+			"RHI",
 		});
+		UnrealBuildTool.Rules.UnrealUSDWrapper.CheckAndSetupUsdSdk(Target, this);
 	}
 }

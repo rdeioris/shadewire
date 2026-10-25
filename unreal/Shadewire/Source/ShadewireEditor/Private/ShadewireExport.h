@@ -18,8 +18,12 @@ enum class EShadewireFormat : uint8
 struct FShadewireExportOptions
 {
 	EShadewireFormat Format = EShadewireFormat::MaterialX;
-	/** The folder the file is written to; textures go to its `textures` folder. */
+	/** The folder the file is written to; textures go to its `textures` folder unless TexturesDir says otherwise. */
 	FString OutDir;
+	/** The file's name without its extension; empty for the material's name. */
+	FString BaseName;
+	/** Where textures are written; empty for OutDir's `textures` folder. */
+	FString TexturesDir;
 	/** Write textures (the document then names them relative to OutDir). */
 	bool bTextures = true;
 	/** MaterialX: open the material into its closure tree instead of `open_pbr_surface`. */
@@ -31,6 +35,8 @@ struct FShadewireExportResult
 	bool bOk = false;
 	/** The file written. */
 	FString Path;
+	/** MaterialX: the document's `surfacematerial` name (the material's name, made a valid MaterialX name). */
+	FString DocumentName;
 	TArray<FString> Warnings;
 	FString Error;
 };

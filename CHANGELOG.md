@@ -11,6 +11,10 @@
   diffuse or subsurface with haze and fuzz, simple clear coat, unlit, and horizontal mixing, vertical layering, add,
   weight and select as `mix`, `layer`, `add` and `multiply`; Substrate's helper nodes compute what Unreal's shaders
   do. The plugin's MaterialX export accepts closure trees beside `open_pbr_surface`.
+- **Unreal USD export with MaterialX.** With the plugin enabled, Unreal's USD level export writes each material it
+  bakes as a Shadewire MaterialX document and a USD layer referencing it, through exporters the engine picks for
+  `UMaterial` and `UMaterialInstance`; meshes keep their binding and skeletal meshes their UsdSkel rig. A packaged
+  plugin now carries the C library in its `Binaries` folder.
 - **MaterialX writer:** a value a front end made at a compound's own origin is no longer taken for part of the
   compound (it was left unwritten while something else read it).
 - **CLI:** Unreal graphs wherever a Blender graph is read (`--format unreal`); a `.json` input is told apart by its
