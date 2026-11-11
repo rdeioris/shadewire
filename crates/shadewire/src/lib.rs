@@ -39,7 +39,7 @@ pub use error::{Error, Location};
 pub use node::{Node, NodeId, NodeKind};
 pub use op::{Op, TransformKind, transform_name};
 pub use ops::{eval_op, input_names, op_for_category};
-pub use reflection::{BindingOptions, ContextEntry, Reflection, SourceInfo, reflect};
+pub use reflection::{BindingOptions, ContextEntry, FieldDepends, Reflection, SourceInfo, reflect};
 pub use space::Space;
 pub use structure_hash::structure_hash;
 pub use surface::{LOBE_MODELS, Surface, SurfaceField, model_struct_name};
