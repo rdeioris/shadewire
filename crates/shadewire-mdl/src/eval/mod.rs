@@ -75,6 +75,8 @@ pub struct Flow {
     /// The type the function returns, which `return` converts to (`None` for `auto`).
     pub ret_ty: Option<Ty>,
     pub loops: Vec<LoopFlow>,
+    /// How many `return`s have run, so a loop can tell an iteration that returned nowhere.
+    pub returns: usize,
 }
 
 /// What `break` and `continue` left in the innermost loop.
@@ -87,7 +89,7 @@ pub struct LoopFlow {
 
 impl Flow {
     pub fn new() -> Flow {
-        Flow { mask: Num::Known(Value::Boolean(true)), ret: None, ret_ty: None, loops: Vec::new() }
+        Flow { mask: Num::Known(Value::Boolean(true)), ret: None, ret_ty: None, loops: Vec::new(), returns: 0 }
     }
 
     pub fn dead(&self) -> bool {

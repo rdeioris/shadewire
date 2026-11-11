@@ -1,5 +1,6 @@
 //! Parity cases: each is its own DAG of `Const` arguments feeding one op (a few chain two).
 
+mod bitwise;
 mod channel;
 mod color;
 mod hextile;
@@ -37,6 +38,7 @@ pub fn all() -> Vec<Case> {
     cases.extend(noise::cases());
     cases.extend(normal::cases());
     cases.extend(hextile::cases());
+    cases.extend(bitwise::cases());
     cases
 }
 

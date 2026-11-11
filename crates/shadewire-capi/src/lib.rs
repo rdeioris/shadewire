@@ -11,7 +11,9 @@
 //!   `shadewire_nodegraph` and `shadewire_node` handles, typed `shadewire_value`s and `shadewire_source`s, and
 //!   `shadewire_builder_to_ir`;
 //! - `shadewire.mdl.to_ir`, `.material_names`: `shadewire_mdl_to_ir` (with `shadewire_ir_options` and the MDL search
-//!   path), `shadewire_mdl_material_names`; `shadewire.mdl.compile`: `shadewire_compile` with `SHADEWIRE_TARGET_MDL`;
+//!   path), `shadewire_mdl_material_names`; `shadewire_mdl::Modules` (modules parsed once, lowered many times):
+//!   `shadewire_mdl_modules` (`_new` with `shadewire_mdl_modules_options`, `_to_ir`, `_material_names`, `_free`);
+//!   `shadewire.mdl.compile`: `shadewire_compile` with `SHADEWIRE_TARGET_MDL`;
 //! - `shadewire.mtlx.from_ir`: `shadewire_ir_to_mtlx` (a `shadewire_document`, with `shadewire_document_text` and
 //!   `_warning_count` / `_warning`);
 //! - `shadewire_mtlx::list_dependencies` and the resolver argument of `to_ir`: `shadewire_mtlx_list_dependencies` (a
@@ -55,6 +57,7 @@ mod error_kind;
 mod guard;
 mod ir;
 mod mdl;
+mod mdl_modules;
 mod names;
 mod options;
 mod resolver;
@@ -100,13 +103,18 @@ pub use ir::{
     shadewire_ir_structure_hash, shadewire_ir_warnings, shadewire_mtlx_to_ir,
 };
 pub use mdl::{shadewire_mdl_material_names, shadewire_mdl_to_ir};
+pub use mdl_modules::{
+    shadewire_mdl_modules, shadewire_mdl_modules_free, shadewire_mdl_modules_material_names, shadewire_mdl_modules_new,
+    shadewire_mdl_modules_to_ir,
+};
 pub use names::{
     shadewire_mtlx_material_names, shadewire_strings, shadewire_strings_count, shadewire_strings_free,
     shadewire_strings_get,
 };
 pub use options::{
     shadewire_compile_options, shadewire_compile_options_default, shadewire_ir_options, shadewire_ir_options_default,
-    shadewire_mtlx_options, shadewire_mtlx_options_default,
+    shadewire_mdl_modules_options, shadewire_mdl_modules_options_default, shadewire_mtlx_options,
+    shadewire_mtlx_options_default,
 };
 pub use resolver::{shadewire_resolution, shadewire_resolution_fail, shadewire_resolution_set, shadewire_resolve_fn};
 pub use status::shadewire_status;

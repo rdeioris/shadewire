@@ -5,13 +5,19 @@ use shadewire_nodes::Index;
 use shadewire_nodes::document::{NodeDef, PortType};
 
 /// The categories Shadewire defines itself; no standard-library nodedef exists for them.
-pub const SHADEWIRE_CATEGORIES: [&str; 6] = [
+pub const SHADEWIRE_CATEGORIES: [&str; 12] = [
     "shadewire_dpdx",
     "shadewire_dpdy",
     "shadewire_hextile_coord",
     "shadewire_hextile_grad",
     "shadewire_hextile_weights",
     "shadewire_image_grad",
+    "shadewire_bitwise_and",
+    "shadewire_bitwise_or",
+    "shadewire_bitwise_xor",
+    "shadewire_shift_left",
+    "shadewire_shift_right",
+    "shadewire_shift_right_unsigned",
 ];
 
 /// Whether `name` is one of Shadewire's own categories rather than a standard-library one.
@@ -111,6 +117,12 @@ pub fn category_for(op: &Op, arg_count: usize) -> Category {
         Op::HextileWeights => plain("shadewire_hextile_weights"),
         Op::Dpdx => plain("shadewire_dpdx"),
         Op::Dpdy => plain("shadewire_dpdy"),
+        Op::BitwiseAnd => plain("shadewire_bitwise_and"),
+        Op::BitwiseOr => plain("shadewire_bitwise_or"),
+        Op::BitwiseXor => plain("shadewire_bitwise_xor"),
+        Op::ShiftLeft => plain("shadewire_shift_left"),
+        Op::ShiftRight => plain("shadewire_shift_right"),
+        Op::ShiftRightUnsigned => plain("shadewire_shift_right_unsigned"),
     }
 }
 

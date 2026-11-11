@@ -77,7 +77,28 @@ pub fn op(op: &Op, args: &[Expr], ty: &Ty) -> Expr {
             cast(builtin(b, vec![a[0].clone()]), ty)
         }
         Op::HextileCoord(_) | Op::HextileGrad(_) | Op::HextileWeights => hextile(op, args, ty),
+        Op::BitwiseAnd | Op::BitwiseOr | Op::BitwiseXor | Op::ShiftLeft | Op::ShiftRight | Op::ShiftRightUnsigned => {
+            bitwise(op, args, ty)
+        }
     }
+}
+
+/// i32 operators. A shift amount is masked to 0..31 here: WGSL rejects larger constant amounts and GLSL leaves
+/// them undefined, while the interpreter wraps them.
+fn bitwise(op: &Op, args: &[Expr], ty: &Ty) -> Expr {
+    let a = cast(args[0].clone(), &Ty::I32);
+    let b = cast(args[1].clone(), &Ty::I32);
+    let amount = || bin(BinaryOp::BitAnd, cast(b.clone(), &Ty::U32), Expr::u32(31));
+    let expr = match op {
+        Op::BitwiseAnd => bin(BinaryOp::BitAnd, a, b.clone()),
+        Op::BitwiseOr => bin(BinaryOp::BitOr, a, b.clone()),
+        Op::BitwiseXor => bin(BinaryOp::BitXor, a, b.clone()),
+        Op::ShiftLeft => bin(BinaryOp::Shl, a, amount()),
+        Op::ShiftRight => bin(BinaryOp::Shr, a, amount()),
+        Op::ShiftRightUnsigned => bin(BinaryOp::Shr, a.bitcast(Ty::U32), amount()).bitcast(Ty::I32),
+        other => panic!("{other:?} is not a bitwise op"),
+    };
+    cast(expr, ty)
 }
 
 fn lit(x: f32) -> Expr {
@@ -85,6 +106,10 @@ fn lit(x: f32) -> Expr {
 }
 
 fn math(op: &Op, args: &[Expr], ty: &Ty) -> Expr {
+    // An integer multiply wraps in i32, like the interpreter; f32 would round the low bits away.
+    if *op == Op::Multiply && *ty == Ty::I32 {
+        return mul(cast(args[0].clone(), &Ty::I32), cast(args[1].clone(), &Ty::I32));
+    }
     let a = wide(args, ty);
     let a0 = || a[0].clone();
     let a1 = || a[1].clone();

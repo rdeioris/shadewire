@@ -7,23 +7,25 @@
   space transforms its value reaches in the compiled graph, each list sorted (`shadewire::FieldDepends`). All lists
   empty means constant. A host can tell, say, that only roughness samples a texture, or that emission is animated,
   without reading the whole material's `context`. It is in the reflection JSON, so C and Python get it unchanged.
+- **C: a reusable MDL modules handle.** `shadewire_mdl_modules` wraps `shadewire_mdl::Modules`: made once with a
+  search path (`shadewire_mdl_modules_new` with `shadewire_mdl_modules_options`, versioned by `struct_size`), it
+  lowers any number of materials (`shadewire_mdl_modules_to_ir`, a `.mdl` path or a module name, typed
+  `shadewire_mdl_arg`s with `arg_size`) and lists them (`_material_names`), parsing each module and its imports once.
+  A stage's materials then share the parsed `::base`, `::OmniPBR` and the rest instead of re-reading them on every
+  call (Omniverse materials: about 195 ms per call down to about 7 ms). The handle may be used from several threads at
+  once; free it with `shadewire_mdl_modules_free`.
+- **Integer bitwise ops.** `Op::BitwiseAnd`, `BitwiseOr`, `BitwiseXor`, `ShiftLeft`, `ShiftRight` (arithmetic) and
+  `ShiftRightUnsigned`, on two's-complement integers with shift amounts taken modulo 32 (IR names `bitwise_and` ..
+  `shift_right_unsigned`; MaterialX `shadewire_*` nodedefs in `shadewire_ir.mtlx`). The MDL front end lowers run-time
+  `&`, `|`, `^`, `<<`, `>>` and `>>>` to them, where it rejected them before; a constant shift or low mask is no longer
+  rewritten as float arithmetic, which rounded past 2^24. A `Multiply` of integers now wraps in i32, and MDL's integer
+  `*` lowers to it rather than to a floored float product, so hashes such as `(i ^ seed) * 1075385539` keep their
+  low bits. The MaterialX writer still writes an integer multiply as a float one.
+- **MDL: a module under nested search path roots answers to each name.** A file under two roots, one inside the
+  other (Kit's `core` and `core/Base`), is reachable as `::Base::OmniPBR` and `::OmniPBR` whichever name loaded it
+  first, so materials sharing a `Modules` no longer depend on load order.
 
-- **Distilling closure trees to `open_pbr_surface`.** `IrOptions::distill`, with `open_pbr_surface` accepted, turns a
-  material that would open into a closure tree (every MDL material, a pbrlib `surface`, a named model the host does
-  not accept) into an `open_pbr_surface` whose fields are IR expressions over the tree's lobes and mix, layer and
-  multiply weights (`shadewire_nodes::surface::distill`), after the MDL SDK distiller's `ue4` and
-  `transmissive_pbr` targets: hosts that light a fixed model, such as Unreal base materials, take Omniverse's
-  `OmniPBR`, `OmniGlass` and `OmniSurface`. Canonical shapes (a diffuse, a dielectric over a diffuse,
-  open_pbr_surface's own tree) distill exactly; lobes without a field are dropped with an `approximations` entry
-  naming them. CLI: `--distill`. C: `bool distill` appended to `shadewire_mtlx_options` and `shadewire_ir_options`
-  (callers with the older `struct_size` read false).
-- **MDL: typed arguments.** `shadewire_mdl::to_ir_with_args` takes `MdlArgument`s (floats, int, bool, string,
-  texture with a colorspace) in place of a material's parameter defaults, converted to each parameter's declared type
-  by MDL's rules; an unknown name or a mismatched type is an error naming the parameter. `Modules::to_ir_with_args`
-  does the same on loaded modules. C: `shadewire_mdl_to_ir_args` and `shadewire_mdl_arg` (a `shadewire_value`,
-  `is_texture`, `colorspace`), passed with `sizeof(shadewire_mdl_arg)` so the struct can grow.
-
-## 0.3.0 (2026-10-17)
+## 0.3.0 (2026-10-19)
 
 Since 0.2.0.
 
@@ -46,6 +48,20 @@ Since 0.2.0.
 - **Python:** `shadewire.mdl` (`to_ir`, `material_names`, `compile`).
 - **Graph builder:** build a MaterialX document in memory from Rust (`DocumentBuilder`) or C (`shadewire_builder_*`),
   with typed values and host source paths in messages (`shadewire_error_source_path` returns one).
+- **Distilling closure trees to `open_pbr_surface`.** `IrOptions::distill`, with `open_pbr_surface` accepted, turns a
+  material that would open into a closure tree (every MDL material, a pbrlib `surface`, a named model the host does
+  not accept) into an `open_pbr_surface` whose fields are IR expressions over the tree's lobes and mix, layer and
+  multiply weights (`shadewire_nodes::surface::distill`), after the MDL SDK distiller's `ue4` and
+  `transmissive_pbr` targets: hosts that light a fixed model, such as Unreal base materials, take Omniverse's
+  `OmniPBR`, `OmniGlass` and `OmniSurface`. Canonical shapes (a diffuse, a dielectric over a diffuse,
+  open_pbr_surface's own tree) distill exactly; lobes without a field are dropped with an `approximations` entry
+  naming them. CLI: `--distill`. C: `bool distill` appended to `shadewire_mtlx_options` and `shadewire_ir_options`
+  (callers with the older `struct_size` read false).
+- **MDL: typed arguments.** `shadewire_mdl::to_ir_with_args` takes `MdlArgument`s (floats, int, bool, string,
+  texture with a colorspace) in place of a material's parameter defaults, converted to each parameter's declared type
+  by MDL's rules; an unknown name or a mismatched type is an error naming the parameter. `Modules::to_ir_with_args`
+  does the same on loaded modules. C: `shadewire_mdl_to_ir_args` and `shadewire_mdl_arg` (a `shadewire_value`,
+  `is_texture`, `colorspace`), passed with `sizeof(shadewire_mdl_arg)` so the struct can grow.
 - **C:** `shadewire_mdl_to_ir`, `shadewire_mdl_material_names` and the `SHADEWIRE_TARGET_MDL` target.
 
 ### Breaking changes

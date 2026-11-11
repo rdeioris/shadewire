@@ -15,7 +15,13 @@ pub fn input_names(op: &Op) -> &'static [&'static str] {
         | Op::DotProduct
         | Op::CrossProduct
         | Op::And
-        | Op::Or => &["in1", "in2"],
+        | Op::Or
+        | Op::BitwiseAnd
+        | Op::BitwiseOr
+        | Op::BitwiseXor
+        | Op::ShiftLeft
+        | Op::ShiftRight
+        | Op::ShiftRightUnsigned => &["in1", "in2"],
         Op::Invert | Op::Rotate2d => &["in", "amount"],
         Op::Absval
         | Op::Sign
@@ -139,6 +145,12 @@ pub fn op_for_category(category: &str, output: Type, input_count: usize) -> Opti
         "shadewire_hextile_coord" => Some(Op::HextileCoord(0)),
         "shadewire_hextile_grad" => Some(Op::HextileGrad(0)),
         "shadewire_hextile_weights" => Some(Op::HextileWeights),
+        "shadewire_bitwise_and" => Some(Op::BitwiseAnd),
+        "shadewire_bitwise_or" => Some(Op::BitwiseOr),
+        "shadewire_bitwise_xor" => Some(Op::BitwiseXor),
+        "shadewire_shift_left" => Some(Op::ShiftLeft),
+        "shadewire_shift_right" => Some(Op::ShiftRight),
+        "shadewire_shift_right_unsigned" => Some(Op::ShiftRightUnsigned),
         _ => None,
     }
 }
