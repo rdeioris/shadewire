@@ -13,175 +13,488 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "alpha"
+      "uniform": "alpha",
+      "depends": {
+        "uniforms": [
+          "alpha"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "alpha_cutoff": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "alpha_cutoff"
+      "uniform": "alpha_cutoff",
+      "depends": {
+        "uniforms": [
+          "alpha_cutoff"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "alpha_mode": {
       "type": "integer",
       "kind": "uniform",
       "value": null,
-      "uniform": "alpha_mode"
+      "uniform": "alpha_mode",
+      "depends": {
+        "uniforms": [
+          "alpha_mode"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "anisotropy_rotation": {
       "type": "float",
       "kind": "constant",
       "value": 0.0,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "anisotropy_strength": {
       "type": "float",
       "kind": "constant",
       "value": 0.0,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "attenuation_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "attenuation_color"
+      "uniform": "attenuation_color",
+      "depends": {
+        "uniforms": [
+          "attenuation_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "attenuation_distance": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "attenuation_distance"
+      "uniform": "attenuation_distance",
+      "depends": {
+        "uniforms": [
+          "attenuation_distance"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "base_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "base_color"
+      "uniform": "base_color",
+      "depends": {
+        "uniforms": [
+          "base_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "clearcoat": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "clearcoat"
+      "uniform": "clearcoat",
+      "depends": {
+        "uniforms": [
+          "clearcoat"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "clearcoat_normal": {
       "type": "vector3",
       "kind": "varying",
       "value": null,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [
+          "normal_world"
+        ],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "clearcoat_roughness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "clearcoat_roughness"
+      "uniform": "clearcoat_roughness",
+      "depends": {
+        "uniforms": [
+          "clearcoat_roughness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "dispersion": {
       "type": "float",
       "kind": "constant",
       "value": 0.0,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "emissive": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "emissive"
+      "uniform": "emissive",
+      "depends": {
+        "uniforms": [
+          "emissive"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "emissive_strength": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "emissive_strength"
+      "uniform": "emissive_strength",
+      "depends": {
+        "uniforms": [
+          "emissive_strength"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "ior": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "ior"
+      "uniform": "ior",
+      "depends": {
+        "uniforms": [
+          "ior"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "iridescence": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "iridescence"
+      "uniform": "iridescence",
+      "depends": {
+        "uniforms": [
+          "iridescence"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "iridescence_ior": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "iridescence_ior"
+      "uniform": "iridescence_ior",
+      "depends": {
+        "uniforms": [
+          "iridescence_ior"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "iridescence_thickness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "iridescence_thickness"
+      "uniform": "iridescence_thickness",
+      "depends": {
+        "uniforms": [
+          "iridescence_thickness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "metallic": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "metallic"
+      "uniform": "metallic",
+      "depends": {
+        "uniforms": [
+          "metallic"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "normal": {
       "type": "vector3",
       "kind": "varying",
       "value": null,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [
+          "normal_world"
+        ],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "occlusion": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "occlusion"
+      "uniform": "occlusion",
+      "depends": {
+        "uniforms": [
+          "occlusion"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "roughness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "roughness"
+      "uniform": "roughness",
+      "depends": {
+        "uniforms": [
+          "roughness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "sheen_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "sheen_color"
+      "uniform": "sheen_color",
+      "depends": {
+        "uniforms": [
+          "sheen_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "sheen_roughness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "sheen_roughness"
+      "uniform": "sheen_roughness",
+      "depends": {
+        "uniforms": [
+          "sheen_roughness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "specular": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "specular"
+      "uniform": "specular",
+      "depends": {
+        "uniforms": [
+          "specular"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "specular_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "specular_color"
+      "uniform": "specular_color",
+      "depends": {
+        "uniforms": [
+          "specular_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "tangent": {
       "type": "vector3",
       "kind": "varying",
       "value": null,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [
+          "tangent_world"
+        ],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "thickness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "thickness"
+      "uniform": "thickness",
+      "depends": {
+        "uniforms": [
+          "thickness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "transmission": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "transmission"
+      "uniform": "transmission",
+      "depends": {
+        "uniforms": [
+          "transmission"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     }
   },
   "uniforms": [

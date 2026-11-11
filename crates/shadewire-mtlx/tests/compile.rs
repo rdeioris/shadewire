@@ -256,3 +256,35 @@ fn object_space_normalmap_upgrades_to_a_decode() {
     let json = serde_json::to_string(&shadewire::export::export(&out.dag)).unwrap();
     assert!(!json.contains("null"), "{json}");
 }
+
+/// Each field's `depends` lists what its optimised graph reads: a texture on roughness stays off
+/// base_color, an animated emission lists time, a positional base colour lists the position.
+#[test]
+fn field_depends_follow_the_optimised_graph() {
+    let text = r#"<materialx version="1.39">
+        <image name="rough" type="float"><input name="file" type="filename" value="rough.png"/></image>
+        <time name="t" type="float"/>
+        <sin name="pulse" type="float"><input name="in" type="float" nodename="t"/></sin>
+        <position name="p" type="vector3" />
+        <convert name="pc" type="color3"><input name="in" type="vector3" nodename="p"/></convert>
+        <open_pbr_surface name="s" type="surfaceshader">
+          <input name="base_color" type="color3" nodename="pc"/>
+          <input name="base_weight" type="float" value="0.8"/>
+          <input name="specular_roughness" type="float" nodename="rough"/>
+          <input name="emission_luminance" type="float" nodename="pulse"/>
+          <input name="emission_color" type="color3" value="1, 0.5, 0"/>
+        </open_pbr_surface>
+        <surfacematerial name="m" type="material"><input name="surfaceshader" type="surfaceshader" nodename="s"/></surfacematerial>
+    </materialx>"#;
+    let lower = IrOptions { values_as_uniforms: false, ..IrOptions::default() };
+    let r = compile_mtlx(text, None, None, &lower, &CompileOptions::default()).unwrap().reflection;
+    let base = &r.params["base_color"].depends;
+    assert_eq!(base.varyings, vec!["position_object".to_string()], "{base:?}");
+    assert!(base.textures.is_empty() && base.globals.is_empty());
+    assert!(r.params["base_weight"].depends.is_constant());
+    assert!(r.params["emission_color"].depends.is_constant());
+    assert_eq!(r.params["emission_luminance"].depends.globals, vec!["time".to_string()]);
+    let rough = &r.params["specular_roughness"].depends;
+    assert_eq!(rough.textures, vec![r.textures[0].index]);
+    assert_eq!(rough.varyings, vec!["texcoord_0".to_string()]);
+}

@@ -1,4 +1,5 @@
 mod context;
+mod depends;
 pub mod live;
 mod params;
 mod textures;
@@ -11,6 +12,7 @@ use serde::Serialize;
 use crate::{ClosureGraph, Dag, Error, NodeKind, Type, UiHints, Value, structure_hash};
 
 pub use context::{ContextEntry, ContextReflection, GeomPropReflection};
+pub use depends::FieldDepends;
 pub use params::ParamReflection;
 pub use textures::TextureReflection;
 

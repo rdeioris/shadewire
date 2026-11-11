@@ -13,25 +13,65 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
       "type": "float",
       "kind": "varying",
       "value": null,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [
+          "texcoord_0"
+        ],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "emission_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "emission_color"
+      "uniform": "emission_color",
+      "depends": {
+        "uniforms": [
+          "emission_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "opacity": {
       "type": "float",
       "kind": "constant",
       "value": 1.0,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "transmission": {
       "type": "float",
       "kind": "constant",
       "value": 0.0,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "transmission_color": {
       "type": "color3",
@@ -41,7 +81,16 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
         1.0,
         1.0
       ],
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     }
   },
   "uniforms": [

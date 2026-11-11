@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Per-field dependencies in reflection.** Each entry of `params` has `depends`: the uniforms (by name), textures
+  (by `textures[].index`), varyings, derived reads (`view_direction_*`), globals (`time`, `frame`), geomprops and
+  space transforms its value reaches in the compiled graph, each list sorted (`shadewire::FieldDepends`). All lists
+  empty means constant. A host can tell, say, that only roughness samples a texture, or that emission is animated,
+  without reading the whole material's `context`. It is in the reflection JSON, so C and Python get it unchanged.
+
 - **Distilling closure trees to `open_pbr_surface`.** `IrOptions::distill`, with `open_pbr_surface` accepted, turns a
   material that would open into a closure tree (every MDL material, a pbrlib `surface`, a named model the host does
   not accept) into an `open_pbr_surface` whose fields are IR expressions over the tree's lobes and mix, layer and
