@@ -3,6 +3,7 @@
 //! evaluating it.
 
 pub mod closure;
+pub mod derivative;
 pub mod nodes;
 pub mod ops;
 pub mod values;
@@ -22,11 +23,14 @@ pub struct MaterialOptions {
     /// Sample with implicit derivatives and differentiate (`dpdx`), which only a fragment stage may. Off, plain
     /// samples read mip level 0 and derivatives are zero, so the code also runs in a compute stage.
     pub implicit_derivatives: bool,
+    /// Carry derivatives through the graph from the host's (`derivative`), sample with explicit gradients and
+    /// answer `dpdx` with them. Overrides `implicit_derivatives`.
+    pub host_derivatives: bool,
 }
 
 impl Default for MaterialOptions {
     fn default() -> Self {
-        MaterialOptions { flip_v: true, implicit_derivatives: true }
+        MaterialOptions { flip_v: true, implicit_derivatives: true, host_derivatives: false }
     }
 }
 
@@ -90,6 +94,12 @@ pub fn host_functions(reflection: &Reflection) -> Vec<Function> {
     for g in &context.geomprops {
         out.push(read(g.function.clone(), g.ty));
     }
+    // The derivatives of the reads, with host derivatives (`derivative`).
+    for entry in &context.derivatives {
+        for axis in ["_dx", "_dy"] {
+            out.push(read(format!("{HOST_PREFIX}{}{axis}", entry.name), entry.ty));
+        }
+    }
     for t in &context.transforms {
         out.push(Function {
             name: format!("{HOST_PREFIX}{t}"),
@@ -123,6 +133,65 @@ pub fn material(dag: &Dag, reflection: &Reflection, options: &MaterialOptions) -
     items.extend(closure::closure_items(dag));
     items.extend(closure::ambient_items(dag));
     Module { items }
+}
+
+/// `fn {name}() -> vec4<f32>` computing one node's derivative along x (`derivative`) from constants, widened to
+/// vec4 with 0 fill, when the constants `seeds` have the derivatives given and every other constant none: for the
+/// GPU derivative test, against finite differences of the interpreter.
+///
+/// # Panics
+/// On uniforms, context reads and samples.
+pub fn derivative_probe(dag: &Dag, target: NodeId, seeds: &[(NodeId, crate::Value)], name: &str) -> Function {
+    use derivative::{Axis, derivative, differentiable};
+    let mut needed = vec![false; dag.nodes.len()];
+    let mut stack = vec![target];
+    while let Some(id) = stack.pop() {
+        if !needed[id.index()] {
+            needed[id.index()] = true;
+            stack.extend(dag.args(id));
+        }
+    }
+    // Every needed op of a differentiable type and every seed carries a derivative.
+    let carried: Vec<bool> = dag
+        .nodes
+        .iter()
+        .enumerate()
+        .map(|(i, n)| {
+            needed[i]
+                && differentiable(n.ty)
+                && (matches!(n.kind, NodeKind::Op { .. }) || seeds.iter().any(|(s, _)| s.index() == i))
+        })
+        .collect();
+    let mut body = Vec::new();
+    for (i, n) in dag.nodes.iter().enumerate().filter(|(i, _)| needed[*i]) {
+        if !matches!(n.kind, NodeKind::Const(_) | NodeKind::Op { .. }) {
+            panic!("derivative probe {name}: node {i} reads host data ({:?})", n.kind);
+        }
+        let id = NodeId(i as u32);
+        let ty = Ty::of(n.ty);
+        body.push(Stmt::Let { name: format!("n{i}"), ty: ty.clone(), value: Some(pure(dag, id)), mutable: false });
+        if carried[i] {
+            let value = match seeds.iter().find(|(s, _)| *s == id) {
+                Some((_, d)) => cast(values::literal(d), &ty),
+                None => derivative(dag, None, &carried, id, Axis::X),
+            };
+            body.push(Stmt::Let { name: format!("n{i}_dx"), ty, value: Some(value), mutable: false });
+        }
+    }
+    let value = if carried[target.index()] {
+        Expr::name(format!("n{}_dx", target.0), Ty::of(dag.node(target).ty))
+    } else {
+        Expr::f32(0.0)
+    };
+    let zero = || Expr::f32(0.0);
+    let widened = match value.ty.width() {
+        Some(1) => Expr::construct(Ty::vec(4), vec![cast(value, &Ty::F32), zero(), zero(), zero()]),
+        Some(2) => Expr::construct(Ty::vec(4), vec![value, zero(), zero()]),
+        Some(3) => Expr::construct(Ty::vec(4), vec![value, zero()]),
+        _ => value,
+    };
+    body.push(Stmt::Return(Some(widened)));
+    Function { name: name.into(), params: Vec::new(), ret: Ty::vec(4), body }
 }
 
 /// `fn {name}() -> vec4<f32>` computing one node from constants, widened to vec4 with 0 fill: for the GPU parity

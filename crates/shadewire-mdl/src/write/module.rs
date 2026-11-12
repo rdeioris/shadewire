@@ -35,7 +35,7 @@ pub fn build(dag: &Dag, reflection: &mut Reflection) -> (Module, Vec<Param>) {
     let mut library_dag = dag.clone();
     // The closure tree is ::df calls, not the lobe library.
     library_dag.surface.closure = None;
-    let options = MaterialOptions { flip_v: false, implicit_derivatives: false };
+    let options = MaterialOptions { flip_v: false, implicit_derivatives: false, host_derivatives: false };
     let mut items = vec![Item::Struct(model_struct(dag))];
     items.extend(shadewire::shader::library::items_for(&library_dag));
     let mut notes = Vec::new();

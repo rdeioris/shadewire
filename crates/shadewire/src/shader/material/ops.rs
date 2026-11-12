@@ -208,10 +208,10 @@ fn logic(op: &Op, args: &[Expr], ty: &Ty) -> Expr {
     let boolean = match op {
         Op::Greater => greater(BinaryOp::Gt),
         Op::GreaterEq => greater(BinaryOp::Ge),
-        Op::Equal => equal(&args[0], &args[1]),
+        Op::Equal => equal_expr(&args[0], &args[1]),
         Op::IfGreater => return pick(greater(BinaryOp::Gt)),
         Op::IfGreaterEq => return pick(greater(BinaryOp::Ge)),
-        Op::IfEqual => return pick(equal(&args[0], &args[1])),
+        Op::IfEqual => return pick(equal_expr(&args[0], &args[1])),
         Op::Switch => return switch(args, ty),
         Op::And => bin(BinaryOp::And, truth(&args[0]), truth(&args[1])),
         Op::Or => bin(BinaryOp::Or, truth(&args[0]), truth(&args[1])),
@@ -222,7 +222,7 @@ fn logic(op: &Op, args: &[Expr], ty: &Ty) -> Expr {
 }
 
 /// `floats() == floats()`: scalars as f32, vectors componentwise, different widths never equal.
-fn equal(a: &Expr, b: &Expr) -> Expr {
+pub fn equal_expr(a: &Expr, b: &Expr) -> Expr {
     if a.ty.is_scalar() && b.ty.is_scalar() {
         bin(BinaryOp::Eq, first_f32(a), first_f32(b))
     } else if a.ty.width() == b.ty.width() {

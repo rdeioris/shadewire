@@ -24,9 +24,15 @@ pub fn lower(dag: &Dag, source: &SourceInfo, options: &CompileOptions) -> Result
         first_binding: options.first_binding,
         reserve_uniform_binding: options.reserve_uniform_binding,
     };
-    let reflection = reflect(&dag, &bindings, source)?;
-    let material_options =
-        MaterialOptions { flip_v: options.flip_v, implicit_derivatives: options.implicit_derivatives };
+    let mut reflection = reflect(&dag, &bindings, source)?;
+    let material_options = MaterialOptions {
+        flip_v: options.flip_v,
+        implicit_derivatives: options.implicit_derivatives,
+        host_derivatives: options.host_derivatives,
+    };
+    if options.host_derivatives {
+        super::material::derivative::reflect(&dag, &mut reflection);
+    }
     Ok((material(&dag, &reflection, &material_options), reflection, dag))
 }
 

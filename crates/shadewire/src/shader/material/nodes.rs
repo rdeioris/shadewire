@@ -1,6 +1,7 @@
 //! One `let n{i}: T = ...;` per live node: constants and ops, uniform reads, host reads and texture samples.
 
 use super::MaterialOptions;
+use super::derivative::{Axis, cone, derivative, dnode};
 use super::ops::op;
 use super::values::*;
 use crate::reflection::TextureReflection;
@@ -25,6 +26,7 @@ pub fn sampler_name(index: usize) -> String {
 /// them.
 pub fn node_lets(dag: &Dag, reflection: &Reflection, options: &MaterialOptions) -> Vec<Stmt> {
     let live = live_nodes(dag);
+    let carried = if options.host_derivatives { cone(dag, &live) } else { vec![false; dag.nodes.len()] };
     let members = UniformNames::new(reflection);
     let mut uniform_index = 0;
     let mut lines = Vec::new();
@@ -54,16 +56,36 @@ pub fn node_lets(dag: &Dag, reflection: &Reflection, options: &MaterialOptions) 
                 let t = reflection.textures.iter().find(|t| t.index == *texture).expect("live texture is reflected");
                 let work = work_type(&ty);
                 let fallback = cast(literal(default), &work);
+                let uv_id = *uv;
                 let uv = node(*uv, Ty::of(dag.node(*uv).ty));
-                let grad = grad.map(|[dx, dy]| (node(dx, Ty::of(dag.node(dx).ty)), node(dy, Ty::of(dag.node(dy).ty))));
+                let mut grad =
+                    grad.map(|[dx, dy]| (node(dx, Ty::of(dag.node(dx).ty)), node(dy, Ty::of(dag.node(dy).ty))));
+                if grad.is_none() && options.host_derivatives {
+                    grad = Some((dnode(dag, &carried, uv_id, Axis::X), dnode(dag, &carried, uv_id, Axis::Y)));
+                }
                 cast(sample(t, uv, &work, fallback, grad, options), &ty)
+            }
+            NodeKind::Op { op: o @ (Op::Dpdx | Op::Dpdy), args } if options.host_derivatives => {
+                let axis = if *o == Op::Dpdx { Axis::X } else { Axis::Y };
+                cast(dnode(dag, &carried, args[0], axis), &work_type(&ty))
             }
             NodeKind::Op { op: Op::Dpdx | Op::Dpdy, .. } if !options.implicit_derivatives => {
                 literal(&Value::zero(n.ty))
             }
             NodeKind::Const(_) | NodeKind::Op { .. } => pure(dag, id),
         };
-        lines.push(Stmt::Let { name: format!("n{i}"), ty, value: Some(value), mutable: false });
+        lines.push(Stmt::Let { name: format!("n{i}"), ty: ty.clone(), value: Some(value), mutable: false });
+        if carried[i] {
+            for axis in [Axis::X, Axis::Y] {
+                let value = derivative(dag, Some(reflection), &carried, id, axis);
+                lines.push(Stmt::Let {
+                    name: format!("n{i}{}", axis.suffix()),
+                    ty: ty.clone(),
+                    value: Some(value),
+                    mutable: false,
+                });
+            }
+        }
     }
     lines
 }

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Host derivatives.** `CompileOptions::host_derivatives` (and `MaterialOptions::host_derivatives`): the code
+  carries the screen-space derivatives of every node a texture coordinate depends on through the graph by the chain
+  rule, from the host's derivatives of the context reads (`shadewire_host_<read>_dx` / `_dy`, listed in the new
+  `context.derivatives`), samples with `textureSampleGrad` and answers `dpdx` / `dpdy` with the carried values. For
+  hosts whose pixels need not share a triangle with their 2 × 2 quad, as a visibility buffer's full-screen shading,
+  where the hardware's derivatives cross triangles and read the wrong mip at outlines and UV seams. Each op has a
+  rule beside its code (`shader::material::derivative`); noise, colour-space changes, normal maps, hex tiling and the
+  piecewise-constant ops carry zero, as does a texture's colour used as another's coordinates. A point transform's
+  derivative moves by the matching vector transform, which reflection then lists too. Off by default; the C API is
+  unchanged. Tested against finite differences of the interpreter on the GPU (`gpu_derivatives`, opt-in like the
+  parity test).
 - **Per-field dependencies in reflection.** Each entry of `params` has `depends`: the uniforms (by name), textures
   (by `textures[].index`), varyings, derived reads (`view_direction_*`), globals (`time`, `frame`), geomprops and
   space transforms its value reaches in the compiled graph, each list sorted (`shadewire::FieldDepends`). All lists

@@ -286,6 +286,7 @@ pub(crate) unsafe fn read_compile(ptr: *const shadewire_compile_options) -> Resu
             flip_v: flag(&raw const (*raw).flip_v),
             optimize: flag(&raw const (*raw).optimize),
             implicit_derivatives: flag(&raw const (*raw).implicit_derivatives),
+            host_derivatives: false,
         })
     }
 }
