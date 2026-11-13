@@ -262,6 +262,12 @@ def test_stress_round_trip(graph):
           f"curve levels: {tuple(levels.black_level)} {tuple(levels.white_level)}")
 
 
+def same_minor(a, b):
+    """Whether two producer lines (`Blender 5.2.1 LTS`) name the same major.minor version."""
+    minor = lambda producer: ".".join(producer.split()[1].split(".")[:2])  # noqa: E731
+    return minor(a) == minor(b)
+
+
 def fixtures_module():
     spec = importlib.util.spec_from_file_location("make_fixtures", os.path.join(here, "make_fixtures.py"))
     make = importlib.util.module_from_spec(spec)
@@ -494,7 +500,9 @@ def test_operators():
 
 
 def test_fixtures_are_current(graph):
-    """Regenerating the fixtures in this Blender changes nothing but the producer line."""
+    """Regenerating the fixtures in the Blender that made them changes nothing but the producer line. Another
+    Blender version dumps its own nodes' sockets (5.3 adds two to the Principled BSDF and three to Glass), so there
+    only the round trip is checked."""
     make = fixtures_module()
     folder = os.path.join(here, "fixtures", "graphs")
     for name, build in make.FIXTURES.items():
@@ -504,8 +512,11 @@ def test_fixtures_are_current(graph):
         check(os.path.isfile(path), f"fixture {name}.json missing: run make_fixtures.py")
         if os.path.isfile(path):
             on_disk = json.load(open(path, encoding="utf-8"))
-            on_disk["producer"] = doc["producer"]
-            check(on_disk == doc, f"fixture {name}.json is stale: run make_fixtures.py")
+            if same_minor(on_disk["producer"], doc["producer"]):
+                on_disk["producer"] = doc["producer"]
+                check(on_disk == doc, f"fixture {name}.json is stale: run make_fixtures.py")
+            elif name == next(iter(make.FIXTURES)):
+                print(f"fixtures made by {on_disk['producer']}, not {doc['producer']}: not compared")
         clear_data()  # a loaded material keeps its name only when the built one is gone
         materials, warnings = graph.load(doc)
         check(warnings == [], f"{name}: load warnings {warnings}")

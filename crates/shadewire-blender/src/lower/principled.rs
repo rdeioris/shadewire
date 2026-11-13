@@ -9,7 +9,7 @@ use super::surface::Shading;
 use crate::graph::FlatNode;
 
 /// OpenPBR fields read straight from one socket each: `(field, socket, type)`.
-const DIRECT: [(&str, &str, Type); 23] = [
+const DIRECT: [(&str, &str, Type); 25] = [
     ("base_metalness", "Metallic", Type::Float),
     ("specular_roughness", "Roughness", Type::Float),
     ("specular_ior", "IOR", Type::Float),
@@ -23,6 +23,9 @@ const DIRECT: [(&str, &str, Type); 23] = [
     ("specular_color", "Specular Tint", Type::Color3),
     ("specular_roughness_anisotropy", "Anisotropic", Type::Float),
     ("transmission_weight", "Transmission Weight", Type::Float),
+    // Blender 5.3 and later; a graph from an earlier Blender has no such sockets and leaves the defaults.
+    ("transmission_dispersion_scale", "Transmission Dispersion Scale", Type::Float),
+    ("transmission_dispersion_abbe_number", "Transmission Dispersion Abbe Number", Type::Float),
     ("coat_weight", "Coat Weight", Type::Float),
     ("coat_roughness", "Coat Roughness", Type::Float),
     ("coat_ior", "Coat IOR", Type::Float),

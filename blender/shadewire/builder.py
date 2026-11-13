@@ -94,6 +94,7 @@ class Builder:
         self.depth = {}
         self.column_rows = {}
         self.black = None
+        self.integers = integer_math(self.tree)
 
     # ------------------------------------------------------------------ nodes and layout
 
@@ -344,6 +345,11 @@ class Builder:
         return image
 
     def op_node(self, node, width):
+        if self.integers and node["type"] == "integer" and node["op"] in INTEGER_OPS:
+            args = [self.values[a][0] for a in node.get("args", [])]
+            result = INTEGER_OPS[node["op"]](self, node, args)
+            if result is not None:
+                return [result]
         handler = OPS.get(node["op"])
         if handler is None:
             self.warn(f"op {node['op']} is not supported; it reads as zero")
@@ -424,6 +430,83 @@ class Builder:
             return self.mul(self.math("SIGN", a), self.math("POWER", self.math("ABSOLUTE", a), b))
 
         return self.each(width, safe, *args)
+
+    # ------------------------------------------------------------------ integers (Blender 5.3+)
+    #
+    # Integer Math in shader trees (Blender 5.3): 32-bit two's complement, a multiply wrapping, a float linked in
+    # truncated toward zero, as the IR's integers are. Integer-typed ops build on it and stay exact past a float's
+    # 24 bits; masks and shifts by constants get exact forms. Constants fold in Python with the same wrapping.
+
+    def imath(self, op, *args):
+        """An Integer Math node over `args` (sockets or numbers); folded when every one is a number."""
+        if all(isinstance(a, (int, float)) for a in args):
+            return float(INTEGER_FOLDS[op](*[wrap32(int(a)) for a in args]))
+        links = [(i, a) for i, a in enumerate(args) if not isinstance(a, (int, float))]
+        n = self.node("FunctionNodeIntegerMath", links, operation=op)
+        for i, a in enumerate(args):
+            if isinstance(a, (int, float)):
+                n.inputs[i].default_value = wrap32(int(a))
+        return n.outputs[0]
+
+    def int_clamp(self, node, args):
+        return self.imath("MINIMUM", self.imath("MAXIMUM", args[0], args[1]), args[2])
+
+    def int_convert(self, node, args):
+        """A float (or bool) to an integer: truncation toward zero, which a link into an integer socket does."""
+        return self.imath("ADD", args[0], 0)
+
+    @staticmethod
+    def constant_int(x):
+        return int(x) if isinstance(x, float) and x == int(x) else None
+
+    def low_bits(self, x, k):
+        """`x & (2^k - 1)`, `0 <= k <= 32`, exactly: a floored modulo by `2^k` (two's complement's answer for a
+        negative `x` too); `2^31` is no 32-bit constant, so 31 bits are 30 bits and the bit above them."""
+        if k >= 32:
+            return x
+        if k <= 30:
+            return self.imath("FLOORED_MODULO", x, 1 << k)
+        bit30 = self.imath("FLOORED_MODULO", self.imath("DIVIDE_FLOOR", x, 1 << 30), 2)
+        return self.imath("MULTIPLY_ADD", bit30, 1 << 30, self.imath("FLOORED_MODULO", x, 1 << 30))
+
+    def int_bitwise_and(self, node, args):
+        for x, mask in ((args[0], args[1]), (args[1], args[0])):
+            m = self.constant_int(mask)
+            if m is not None and m >= -1 and ((m + 1) & m) == 0:
+                return self.low_bits(x, 32 if m == -1 else m.bit_length())
+        return None
+
+    def shift_amount(self, args, name):
+        k = self.constant_int(args[1])
+        if k is None:
+            self.warn(f"op {name} is supported only by a constant; it reads as zero")
+        return None if k is None else k % 32
+
+    def int_shift_left(self, node, args):
+        k = self.shift_amount(args, "shift_left")
+        if k is None:
+            return 0.0
+        # 2^31 is no 32-bit constant; -2^31 is the same multiplier modulo 2^32.
+        return args[0] if k == 0 else self.imath("MULTIPLY", args[0], (1 << k) if k <= 30 else -(1 << 31))
+
+    def int_shift_right(self, node, args):
+        k = self.shift_amount(args, "shift_right")
+        if k is None:
+            return 0.0
+        if k == 0:
+            return args[0]
+        if k <= 30:
+            return self.imath("DIVIDE_FLOOR", args[0], 1 << k)
+        return self.imath("DIVIDE_FLOOR", self.imath("DIVIDE_FLOOR", args[0], 1 << 30), 2)
+
+    def int_shift_right_unsigned(self, node, args):
+        """`x >>> k`: the arithmetic shift's low `32 - k` bits."""
+        k = self.shift_amount(args, "shift_right_unsigned")
+        if k is None:
+            return 0.0
+        if k == 0:
+            return args[0]
+        return self.low_bits(self.int_shift_right(node, args), 32 - k)
 
     # Integer bit ops, in the float math Blender's nodes have: exact for the forms tables and tilings use, while
     # values fit a float's 24-bit mantissa. Others (a run-time mask, `|`, `^`: hashes) read as zero, with a warning.
@@ -881,6 +964,7 @@ class Builder:
         base = self.each(3, self.mul, f("base_color", 3, [0.8]), f("base", 1, [1.0]))
         base = self.tinted_base(base, (f("subsurface_color", 3, [1.0]), f("subsurface", 1, [0.0])),
                                 (f("transmission_color", 3, [1.0]), f("transmission", 1, [0.0])))
+        dispersion = f("transmission_dispersion", 1, [0.0])
         return self.principled({
             "Base Color": base,
             "Metallic": f("metalness", 1, [0.0]),
@@ -900,6 +984,9 @@ class Builder:
             "Anisotropic Rotation": f("specular_rotation", 1, [0.0]),
             "Tangent": self.optional("tangent"),
             "Transmission Weight": f("transmission", 1, [0.0]),
+            # standard_surface's dispersion is an Abbe number, 0 for none (Blender 5.3 has the inputs).
+            "Transmission Dispersion Scale": [self.math("GREATER_THAN", dispersion[0], 0.0)],
+            "Transmission Dispersion Abbe Number": dispersion,
             "Coat Weight": f("coat", 1, [0.0]),
             "Coat Roughness": f("coat_roughness", 1, [0.1]),
             "Coat IOR": f("coat_IOR", 1, [1.5]),
@@ -937,6 +1024,8 @@ class Builder:
             "Anisotropic": f("specular_roughness_anisotropy", 1, [0.0]),
             "Tangent": self.optional("geometry_tangent"),
             "Transmission Weight": f("transmission_weight", 1, [0.0]),
+            "Transmission Dispersion Scale": f("transmission_dispersion_scale", 1, [0.0]),
+            "Transmission Dispersion Abbe Number": f("transmission_dispersion_abbe_number", 1, [20.0]),
             "Coat Weight": f("coat_weight", 1, [0.0]),
             "Coat Roughness": f("coat_roughness", 1, [0.0]),
             "Coat IOR": f("coat_ior", 1, [1.6]),
@@ -1032,6 +1121,15 @@ def constant(node):
     return [float(x) for x in v]
 
 
+def integer_op(operation):
+    """An integer op that is one Integer Math node."""
+
+    def op(self, node, args):
+        return self.imath(operation, *args)
+
+    return op
+
+
 def math_op(operation):
     """An op that is one Math node per component."""
 
@@ -1053,6 +1151,26 @@ def component_op(method):
 # The address modes in order of precedence (one mode per image in Blender), then the filters.
 EXTENSIONS = (("periodic", "REPEAT"), ("mirror", "MIRROR"), ("constant", "CLIP"))
 INTERPOLATIONS = {"closest": "Closest", "cubic": "Cubic", "linear": "Linear"}
+
+# The IR's integer ops on Integer Math (Blender 5.3+); an op missing here, or a handler answering None, builds as
+# float math.
+INTEGER_OPS = {
+    "add": integer_op("ADD"),
+    "subtract": integer_op("SUBTRACT"),
+    "multiply": integer_op("MULTIPLY"),
+    "divide": integer_op("DIVIDE"),
+    "modulo": integer_op("FLOORED_MODULO"),
+    "min": integer_op("MINIMUM"),
+    "max": integer_op("MAXIMUM"),
+    "absval": integer_op("ABSOLUTE"),
+    "sign": integer_op("SIGN"),
+    "clamp": Builder.int_clamp,
+    "convert": Builder.int_convert,
+    "bitwise_and": Builder.int_bitwise_and,
+    "shift_left": Builder.int_shift_left,
+    "shift_right": Builder.int_shift_right,
+    "shift_right_unsigned": Builder.int_shift_right_unsigned,
+}
 
 NODE_KINDS = {
     "const": Builder.const_node,
@@ -1191,7 +1309,8 @@ MODELS = {
 }
 
 # Principled BSDF inputs newer than Blender 4.2: left out without a warning where they are missing.
-NEWER_PRINCIPLED_INPUTS = {"Diffuse Roughness", "Thin Film Thickness", "Thin Film IOR"}
+NEWER_PRINCIPLED_INPUTS = {"Diffuse Roughness", "Thin Film Thickness", "Thin Film IOR", "Transmission Dispersion Scale",
+                           "Transmission Dispersion Abbe Number"}
 
 # Math over constants, folded in Python instead of making a node; a None result leaves it to a node.
 FOLDS = {
@@ -1215,6 +1334,44 @@ FOLDS = {
     "LESS_THAN": lambda a: 1.0 if a[0] < a[1] else 0.0,
     "COMPARE": lambda a: 1.0 if abs(a[0] - a[1]) <= a[2] else 0.0,
 }
+
+
+def wrap32(x):
+    """`x` as a 32-bit two's complement integer."""
+    return (x + (1 << 31)) % (1 << 32) - (1 << 31)
+
+
+def trunc_div(a, b):
+    return 0 if b == 0 else wrap32(abs(a) // abs(b) * (1 if (a < 0) == (b < 0) else -1))
+
+
+INTEGER_FOLDS = {
+    "ADD": lambda a, b: wrap32(a + b),
+    "SUBTRACT": lambda a, b: wrap32(a - b),
+    "MULTIPLY": lambda a, b: wrap32(a * b),
+    "MULTIPLY_ADD": lambda a, b, c: wrap32(a * b + c),
+    "DIVIDE": trunc_div,
+    "DIVIDE_FLOOR": lambda a, b: 0 if b == 0 else wrap32(a // b),
+    "FLOORED_MODULO": lambda a, b: 0 if b == 0 else a % b,
+    "MINIMUM": min,
+    "MAXIMUM": max,
+    "ABSOLUTE": lambda a: wrap32(abs(a)),
+    "SIGN": lambda a: (a > 0) - (a < 0),
+}
+
+# Whether this Blender's shader trees take Integer Math (5.3 and later): found once, by adding one. Tests set it.
+INTEGER_MATH = None
+
+
+def integer_math(tree):
+    global INTEGER_MATH
+    if INTEGER_MATH is None:
+        try:
+            tree.nodes.remove(tree.nodes.new("FunctionNodeIntegerMath"))
+            INTEGER_MATH = True
+        except RuntimeError:
+            INTEGER_MATH = False
+    return INTEGER_MATH
 
 
 def fold(op, a):

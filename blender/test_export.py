@@ -691,6 +691,50 @@ def test_usd_panel():
     check(hasattr(bpy.context.window_manager, "shadewire_usd_materials"), "the window manager has the option")
 
 
+DISPERSIVE = """<?xml version="1.0"?>
+<materialx version="1.39">
+  <open_pbr_surface name="glass" type="surfaceshader">
+    <input name="transmission_weight" type="float" value="1" />
+    <input name="transmission_dispersion_scale" type="float" value="1" />
+    <input name="transmission_dispersion_abbe_number" type="float" value="35" />
+  </open_pbr_surface>
+  <surfacematerial name="Dispersive" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="glass" />
+  </surfacematerial>
+</materialx>
+"""
+
+
+def test_dispersion():
+    """OpenPBR's transmission dispersion is the Principled BSDF's (Blender 5.3 has the inputs) both ways; an earlier
+    Blender leaves it out without a warning."""
+    with tempfile.TemporaryDirectory() as folder:
+        bpy.ops.wm.read_homefile(use_empty=True)
+        source = os.path.join(folder, "dispersive.mtlx")
+        with open(source, "w", encoding="utf-8") as f:
+            f.write(DISPERSIVE)
+        bpy.ops.shadewire.import_mtlx(filepath=source, executable=executable)
+        material = bpy.data.materials["Dispersive"]
+        bsdf = next(n for n in material.node_tree.nodes if n.bl_idname == "ShaderNodeBsdfPrincipled")
+        if "Transmission Dispersion Scale" not in bsdf.inputs:
+            print("skip the rest of test_dispersion: this Blender's Principled BSDF has no dispersion")
+            return
+        scale = bsdf.inputs["Transmission Dispersion Scale"].default_value
+        abbe = bsdf.inputs["Transmission Dispersion Abbe Number"].default_value
+        check((scale, abbe) == (1.0, 35.0), f"dispersion imported as {(scale, abbe)}")
+        select_only(cube_with(material))
+        path = os.path.join(folder, "again.mtlx")
+        result = bpy.ops.shadewire.export_mtlx(filepath=path, scope="ACTIVE", copy_textures=False,
+                                               executable=executable)
+        check(result == {"FINISHED"}, f"export finished: {result}")
+        # Compiled back with values baked in, the two fields are the values (they travel as nodegraph inputs).
+        doc = backend.compile(path, "Dispersive", False, "PRINCIPLED")
+        fields = {f["name"]: doc["nodes"][f["node"]] for f in doc["fields"]}
+        for field, value in (("transmission_dispersion_scale", 1.0), ("transmission_dispersion_abbe_number", 35.0)):
+            node = fields.get(field, {})
+            check(node.get("kind") == "const" and node.get("value") == [value], f"{field} exported as {node}")
+
+
 TESTS = [test_to_mtlx, test_merge_documents, test_merge_lobe_materials, test_merge_unnamed_elements,
          test_sanitize_name, test_non_ascii_path, test_old_executable_hint, test_module_without_front_end,
          test_export_operator, test_export_unwritable_image, test_export_menu,
@@ -698,7 +742,7 @@ TESTS = [test_to_mtlx, test_merge_documents, test_merge_lobe_materials, test_mer
          test_usd_export_keeps_a_requested_preview_surface_and_blenders_output_when_off, test_usdz_is_left_to_blender,
          test_usd_export_to_a_folder_named_usdz, test_usd_export_leaves_a_failing_material_to_blender,
          test_usd_export_reports_an_unwritable_mtlx, test_usd_export_names_documents_like_the_writer,
-         test_usd_export_skips_a_material_that_collides, test_usd_panel]
+         test_usd_export_skips_a_material_that_collides, test_usd_panel, test_dispersion]
 
 if __name__ == "__main__":
     for test in TESTS:

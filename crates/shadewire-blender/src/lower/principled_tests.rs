@@ -66,6 +66,19 @@ fn the_field_table_inverts_the_import_side() {
     // Subsurface Radius (1, 0.2, 0.1) is the radius scale, as a color.
     assert!(close(&field("subsurface_radius_scale"), &Value::Color3([1.0, 0.2, 0.1])));
     assert_eq!(field("subsurface_color"), field("base_color"));
+    // Blender 5.3's dispersion sockets are OpenPBR's fields; without them (an earlier Blender) the defaults stay.
+    let nodes = principled("Transmission Dispersion Scale", "1.0")
+        .replace(r#""value": 1.0}"#, r#""value": 1.0}, {"identifier": "Transmission Dispersion Abbe Number", "name": "Transmission Dispersion Abbe Number", "type": "VALUE", "enabled": true, "value": 35.0}"#);
+    let text = doc(VALUE, "[]").replace(super::tests::PRINCIPLED, &nodes);
+    let dag3 = to_ir(&text, None, &options).unwrap().dag;
+    let field3 = |name: &str| {
+        let f = dag3.surface.fields.iter().find(|f| f.name == name).unwrap();
+        shadewire_nodes::elaborate::fold::fold_constant_of(&dag3, f.node).unwrap()
+    };
+    assert_eq!(field3("transmission_dispersion_scale"), Value::Float(1.0));
+    assert_eq!(field3("transmission_dispersion_abbe_number"), Value::Float(35.0));
+    assert_eq!(field("transmission_dispersion_scale"), Value::Float(0.0));
+    assert_eq!(field("transmission_dispersion_abbe_number"), Value::Float(20.0));
 }
 
 #[test]

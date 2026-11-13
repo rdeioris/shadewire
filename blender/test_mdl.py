@@ -314,7 +314,9 @@ def test_tables():
     tables = sorted(name for name in images if " table " in name)
     check(tables == ["hashed table 0", "hashed table 1"], f"table images: {sorted(images)}")
     # The index's `& 255` is a floored modulo by 256, not the zero an unsupported op reads as.
-    modulos = [n for n in hashed.node_tree.nodes if n.bl_idname == "ShaderNodeMath" and n.operation == "FLOORED_MODULO"
+    # Float Math, or Integer Math where shader trees have it (Blender 5.3).
+    modulos = [n for n in hashed.node_tree.nodes
+               if n.bl_idname in ("ShaderNodeMath", "FunctionNodeIntegerMath") and n.operation == "FLOORED_MODULO"
                and abs(n.inputs[1].default_value - 256.0) < 1e-6]
     check(bool(modulos), "the index's & 255 is no floored modulo by 256")
     if "hashed table 0" not in images:
@@ -331,8 +333,68 @@ def test_tables():
           f"entries after reload: {list(reloaded.pixels[:8])}")
 
 
+INTEGERS_MODULE = """mdl 1.7;
+import ::df::*;
+export material ints(float seed = 12345.0) = let {
+    int i = int(seed);
+    int a = ((i * 0x7feb352d) >>> 20) & 1023;
+    int b = ((i * 1000003) >> 3) & 1023;
+} in material(surface: material_surface(emission: material_emission(
+    emission: df::diffuse_edf(), intensity: color(float(a), float(b), 512.0))));
+"""
+
+
+def wrap32(x):
+    return (x + (1 << 31)) % (1 << 32) - (1 << 31)
+
+
+def test_integer_math():
+    """Where shader trees have Integer Math (Blender 5.3), integers are exact 32-bit two's complement, multiplies
+    wrapping: a run-time value through wrapping multiplies, shifts and masks renders as Python computes it, in
+    Cycles and EEVEE. The blue channel (512) scales the other two."""
+    if not addon.builder.integer_math(bpy.data.materials.new("probe").node_tree):
+        print("skip test_integer_math: this Blender's shader trees have no Integer Math")
+        return
+    path = os.path.join(scratch, "ints.mdl")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(INTEGERS_MODULE)
+    (ints,) = imported(path, mode="LOBES", editable=True)
+    i = 12345
+    a = ((wrap32(i * 0x7FEB352D) % (1 << 32)) >> 20) & 1023
+    b = (wrap32(i * 1000003) >> 3) & 1023
+    scene = bpy.data.scenes.new("ints")
+    bpy.context.window.scene = scene
+    mesh = bpy.data.meshes.new("plane")
+    mesh.from_pydata([(-50, -50, 0), (50, -50, 0), (50, 50, 0), (-50, 50, 0)], [], [(0, 1, 2, 3)])
+    plane = bpy.data.objects.new("plane", mesh)
+    scene.collection.objects.link(plane)
+    mesh.materials.append(ints)
+    camera = bpy.data.objects.new("camera", bpy.data.cameras.new("camera"))
+    camera.location = (0, 0, 3)
+    camera.data.type = "ORTHO"
+    scene.collection.objects.link(camera)
+    scene.camera = camera
+    scene.render.resolution_x = scene.render.resolution_y = 4
+    scene.render.image_settings.file_format = "OPEN_EXR"
+    scene.view_settings.view_transform = "Standard"
+    out = os.path.join(scratch, "ints.exr")
+    for engine in ("CYCLES", "BLENDER_EEVEE"):
+        scene.render.engine = engine
+        scene.cycles.samples = 1
+        scene.cycles.use_denoising = False
+        scene.render.filepath = out
+        bpy.ops.render.render(write_still=True, scene=scene.name)
+        image = bpy.data.images.load(out, check_existing=False)
+        r, g, blue = image.pixels[4 * (2 * 4 + 2):4 * (2 * 4 + 2) + 3]
+        bpy.data.images.remove(image)
+        scale = blue / 512.0
+        got = (round(r / scale), round(g / scale)) if scale > 0 else (None, None)
+        check(got == (a, b), f"{engine}: integers rendered {got}, Python {(a, b)}")
+
+
 test_import_principled()
 test_import_lobes()
+test_integer_math()
 test_usd_import()
 tinted = test_search_paths()
 test_rebuild(tinted)

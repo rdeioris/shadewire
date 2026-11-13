@@ -21,6 +21,13 @@
   `tables` and `lookup` nodes. The MDL reader makes one for an array of more than 64 known elements indexed at run
   time, which it refused before (vMaterials' `Aluminum_Anodized` carries its own 4D Perlin noise and its tables);
   the Blender add-on builds it as an N x 1 float image. The MaterialX writer refuses a lookup.
+- **Blender 5.3.** The add-on finds out once whether shader trees take the Integer Math node (Blender 5.3) and
+  then builds every integer op on it: exact 32-bit two's complement, multiplies wrapping, a float truncated toward
+  zero, as the IR computes, where float math lost everything past 24 bits; masks of `2^k - 1` and shifts by a
+  constant are exact over the 32 bits. The Principled BSDF's new transmission dispersion inputs map to OpenPBR's
+  `transmission_dispersion_scale` and `transmission_dispersion_abbe_number` on import and export
+  (standard_surface's `transmission_dispersion`, an Abbe number, as a scale of 1 and that number). Earlier Blenders
+  are unchanged. `test_graph.py` compares its fixtures only in the Blender version that made them.
 - **Blender: integer bit ops.** `bitwise_and` with a constant `2^k - 1` mask, `shift_left`, `shift_right` and
   `shift_right_unsigned` by a constant build as float math (a floored modulo, a multiply, a floor division), exact
   within a float's 24 bits; they read as zero before. A run-time mask, `bitwise_or` and `bitwise_xor` still do,

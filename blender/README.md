@@ -163,7 +163,12 @@ MaterialX Lobes mode, and lobes in either mode:
 - Weights that tint a lobe without a color input (conductor, Schlick) scale it by their luminance.
 - A table read at a run-time index (an MDL module's own noise tables) is an N x 1 float image named
   `<material> table <n>`, packed as OpenEXR, sampled with Closest interpolation at the entry's texel.
-- Integer bit ops in float math: `x & (2^k - 1)` as a floored modulo by `2^k`, shifts by a constant as a multiply
-  or a floor division, exact while values fit a float's 24 bits. A run-time mask, `|` and `^` (the hashes of
-  vMaterials' per-tile variation) read as zero, with a warning.
+- Integers: on Blender 5.3 and later, whose shader trees take the Integer Math node, every integer op builds on
+  it, 32-bit two's complement with wrapping multiplies, as the IR computes; `x & (2^k - 1)` is an integer floored
+  modulo and shifts by a constant are multiplies and floor divisions, exact over the 32 bits. Earlier Blenders
+  build the same in float math, exact while values fit a float's 24 bits. A run-time mask, `|` and `^` (the hashes
+  of vMaterials' per-tile variation) read as zero, with a warning, on every version.
+- Blender 5.3's Principled BSDF transmission dispersion (Scale, Abbe Number) is OpenPBR's, both ways; a
+  standard_surface `transmission_dispersion` (an Abbe number, 0 for none) imports as a scale of 1 and that number.
+  An earlier Blender leaves dispersion out.
 - Not translated yet: hex tiling, hair, conical and measured emitters, volumes.
