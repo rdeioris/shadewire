@@ -96,6 +96,16 @@ pub fn structure_hash(dag: &Dag) -> String {
                     }
                 }
             }
+            NodeKind::Lookup { table, index } => {
+                h.byte(5);
+                let table = &dag.tables[*table];
+                h.text(table.ty.mtlx_name());
+                h.number(table.values.len() as u64);
+                for value in &table.values {
+                    h.value(value);
+                }
+                h.number(index.0 as u64);
+            }
             NodeKind::Op { op, args } => {
                 h.byte(4);
                 h.text(&format!("{op:?}"));

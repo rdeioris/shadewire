@@ -305,6 +305,32 @@ def test_usd_import():
               f"Textured's image argument: {[i and i.filepath for i in images]}")
 
 
+def test_tables():
+    """A module's constant table read at a run-time index is an N x 1 float image the material samples by texel,
+    packed as OpenEXR so its entries (151, 160, ...) survive saving."""
+    (hashed,) = imported(os.path.join(fixtures, "tables.mdl"), mode="LOBES")
+    images = {n.image.name: n.image for n in hashed.node_tree.nodes
+              if n.bl_idname == "ShaderNodeTexImage" and n.image is not None}
+    tables = sorted(name for name in images if " table " in name)
+    check(tables == ["hashed table 0", "hashed table 1"], f"table images: {sorted(images)}")
+    # The index's `& 255` is a floored modulo by 256, not the zero an unsupported op reads as.
+    modulos = [n for n in hashed.node_tree.nodes if n.bl_idname == "ShaderNodeMath" and n.operation == "FLOORED_MODULO"
+               and abs(n.inputs[1].default_value - 256.0) < 1e-6]
+    check(bool(modulos), "the index's & 255 is no floored modulo by 256")
+    if "hashed table 0" not in images:
+        return
+    perm = images["hashed table 0"]
+    check(tuple(perm.size) == (256, 1) and perm.is_float, f"permutation image: {tuple(perm.size)} float {perm.is_float}")
+    check(round(perm.pixels[0]) == 151 and round(perm.pixels[4]) == 160, f"entries: {list(perm.pixels[:8])}")
+    path = os.path.join(scratch, "tables.blend")
+    bpy.ops.wm.save_as_mainfile(filepath=path, copy=True)
+    bpy.ops.wm.open_mainfile(filepath=path)
+    reloaded = bpy.data.images["hashed table 0"]
+    check(reloaded.packed_file is not None, "the table image is not packed")
+    check(round(reloaded.pixels[0]) == 151 and round(reloaded.pixels[4 * 255]) == 180,
+          f"entries after reload: {list(reloaded.pixels[:8])}")
+
+
 test_import_principled()
 test_import_lobes()
 test_usd_import()
@@ -313,6 +339,7 @@ test_rebuild(tinted)
 test_fill()
 test_export_one()
 test_export_several()
+test_tables()  # last: it reloads the file
 shutil.rmtree(scratch, ignore_errors=True)
 if failures:
     sys.exit(f"{len(failures)} failures")

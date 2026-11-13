@@ -75,6 +75,7 @@ impl Syntax for Godot<'_> {
             Ty::Matrix(c, r) => panic!("Godot has no mat{c}x{r}"),
             Ty::Struct(name) => name.clone(),
             Ty::Ptr(t) => self.ty(t),
+            Ty::Array(t, n) => format!("{}[{n}]", self.ty(t)),
             Ty::Texture2d => "sampler2D".into(),
             Ty::Sampler => panic!("Godot samplers are combined with their textures"),
             Ty::Void => "void".into(),

@@ -22,6 +22,7 @@ pub fn eval_nodes(dag: &Dag, ctx: &mut dyn ContextSource, textures: &dyn Texture
                 let arg_values: Vec<Value> = args.iter().map(|a| values[a.index()].clone()).collect();
                 eval_op(op, &arg_values, node.ty, ctx)
             }
+            NodeKind::Lookup { table, index } => dag.tables[*table].get(&values[index.index()]),
         };
         values.push(broadcast(&value, node.ty));
     }

@@ -96,6 +96,12 @@ pub trait Syntax: Sized {
         format!("const {} {name} = {value};", self.ty(ty))
     }
 
+    /// A module table: a constant array of `elem` holding `values` (printed), read with a run-time index. The
+    /// default is the C family's `const T name[N] = {...};`.
+    fn table(&self, name: &str, elem: &Ty, values: &[String]) -> String {
+        format!("const {} {name}[{}] = {{{}}};", self.ty(elem), values.len(), values.join(", "))
+    }
+
     fn structure(&self, s: &Struct) -> String {
         let mut out = format!("struct {} {{\n", s.name);
         for (m, t) in &s.members {
@@ -422,6 +428,10 @@ impl<'a, S: Syntax> Printer<'a, S> {
             Item::Comment(text) => format!("// {text}\n"),
             Item::Struct(s) => self.syntax.structure(s),
             Item::Const { name, ty, value } => format!("{}\n", self.syntax.constant(name, ty, self.expr(value))),
+            Item::Table { name, elem, values } => {
+                let values: Vec<String> = values.iter().map(|v| self.expr(v)).collect();
+                format!("{}\n", self.syntax.table(name, elem, &values))
+            }
             Item::Resource(r) => {
                 let text = self.syntax.resource(r, module);
                 if text.is_empty() { text } else { text + "\n" }
@@ -479,7 +489,7 @@ fn separate(previous: &Item, next: &Item) -> bool {
         (Item::Comment(_), _)
             | (Item::Resource(_), Item::Resource(_))
             | (Item::Extern(_), Item::Extern(_))
-            | (Item::Const { .. }, Item::Const { .. })
+            | (Item::Const { .. } | Item::Table { .. }, Item::Const { .. } | Item::Table { .. })
     )
 }
 

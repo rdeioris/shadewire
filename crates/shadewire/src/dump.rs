@@ -4,6 +4,15 @@ impl Dag {
     /// One line per node, then one line per surface field, closure node and approximation.
     pub fn dump(&self) -> String {
         let mut out = format!("model {}\n", self.surface.model);
+        for (index, table) in self.tables.iter().enumerate() {
+            let values: Vec<String> = table.values.iter().map(value_text).collect();
+            out.push_str(&format!(
+                "table L{index} {}[{}] = [{}]\n",
+                table.ty.mtlx_name(),
+                values.len(),
+                values.join(", ")
+            ));
+        }
         for (index, node) in self.nodes.iter().enumerate() {
             out.push_str(&format!("%{index} {} = {}", node.ty.mtlx_name(), body(node)));
             if !node.origin.is_empty() {
@@ -37,6 +46,7 @@ fn body(node: &Node) -> String {
             let args: Vec<String> = args.iter().map(|a| format!("%{}", a.index())).collect();
             format!("{:?}({})", op, args.join(", "))
         }
+        NodeKind::Lookup { table, index } => format!("lookup L{table}[%{}]", index.index()),
     }
 }
 

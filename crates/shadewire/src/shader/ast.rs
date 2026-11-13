@@ -22,6 +22,8 @@ pub enum Ty {
     Struct(String),
     /// A parameter the callee writes through (`ptr<function, T>`, an `inout` parameter).
     Ptr(Box<Ty>),
+    /// A fixed-size array of scalars or vectors: the type of a module table (`Item::Table`), indexed at run time.
+    Array(Box<Ty>, u32),
     Texture2d,
     Sampler,
     Void,
@@ -403,6 +405,7 @@ impl Expr {
         let ty = match &self.ty {
             Ty::Vector(_, s) => Ty::Scalar(*s),
             Ty::Matrix(_, rows) => Ty::vec(*rows),
+            Ty::Array(elem, _) => (**elem).clone(),
             other => panic!("index of {other:?}"),
         };
         Expr::new(ExprKind::Index { base: Box::new(self), index: Box::new(index) }, ty)
@@ -499,6 +502,13 @@ pub enum Item {
         value: Expr,
     },
     Resource(Resource),
+    /// A constant array of `elem` (a scalar or vector type) at module scope, read with a run-time index
+    /// (`NodeKind::Lookup`); each language declares it its own way (`Syntax::table`).
+    Table {
+        name: String,
+        elem: Ty,
+        values: Vec<Expr>,
+    },
     /// A function the host defines (`shadewire_host_*`): declared, not defined.
     Extern(Function),
     Function(Function),

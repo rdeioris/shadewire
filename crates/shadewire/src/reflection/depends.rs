@@ -63,7 +63,7 @@ pub fn depends(dag: &Dag, root: NodeId) -> FieldDepends {
             NodeKind::Op { op: Op::Transform { kind, from, to }, .. } => {
                 push(&mut out.transforms, transform_name(*kind, *from, *to))
             }
-            NodeKind::Op { .. } => {}
+            NodeKind::Op { .. } | NodeKind::Lookup { .. } => {}
         }
         stack.extend(dag.args(id));
     }

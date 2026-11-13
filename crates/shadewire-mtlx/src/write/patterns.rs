@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use shadewire::{Dag, Error, Node, NodeId, NodeKind};
+use shadewire::{Dag, Error, Location, Node, NodeId, NodeKind};
 use shadewire_nodes::Index;
 
 use super::WriteOptions;
@@ -99,6 +99,13 @@ pub fn write_patterns<'a>(
             NodeKind::Uniform { .. } => {}
             NodeKind::Sample { .. } => patterns.write_sample(dag, plan, index, id)?,
             NodeKind::Op { .. } => patterns.write_op(dag, plan, index, id)?,
+            // MaterialX has no arrays; a table could become a tree of `switch` nodes, which is not written yet.
+            NodeKind::Lookup { .. } => {
+                return Err(Error::BadValue {
+                    at: Location { file: None, line: 0, path: node.origin.clone(), source: None },
+                    message: "a table read at a run-time index has no MaterialX node yet".to_string(),
+                });
+            }
         }
     }
     Ok(patterns)

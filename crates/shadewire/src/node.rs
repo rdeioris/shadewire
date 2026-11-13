@@ -34,6 +34,12 @@ pub enum NodeKind {
         op: Op,
         args: Vec<NodeId>,
     },
+    /// `Dag::tables[table]` at the integer `index`, clamped to the table: a constant array indexed by a value
+    /// known only at run time. The node's type is the table's element type.
+    Lookup {
+        table: usize,
+        index: NodeId,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

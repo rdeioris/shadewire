@@ -127,6 +127,7 @@ pub fn material(dag: &Dag, reflection: &Reflection, options: &MaterialOptions) -
     let mut items = vec![Item::Struct(model_struct(dag))];
     items.extend(uniform_items(reflection));
     items.extend(texture_items(reflection));
+    items.extend(nodes::table_items(dag));
     items.extend(host_functions(reflection).into_iter().map(Item::Extern));
     items.extend(library::items_for(dag));
     items.push(Item::Function(eval_surface(dag, reflection, options)));

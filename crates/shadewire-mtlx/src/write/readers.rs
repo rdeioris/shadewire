@@ -33,6 +33,7 @@ pub(crate) fn count_readers(dag: &Dag, index: &Index, plan: &mut Plan) {
                 reads.push((*uv, false));
                 reads.extend(grad.iter().flatten().map(|g| (*g, false)));
             }
+            NodeKind::Lookup { index, .. } => reads.push((*index, false)),
             NodeKind::Const(_) | NodeKind::Uniform { .. } | NodeKind::Context(_) => {}
         }
     }

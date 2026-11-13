@@ -15,6 +15,9 @@ pub fn node_kinds(dag: &Dag) -> Vec<ParamKind> {
             NodeKind::Const(v) => ParamKind::Constant(v.clone()),
             NodeKind::Uniform { .. } => ParamKind::Uniform,
             NodeKind::Context(_) | NodeKind::Sample { .. } => ParamKind::Varying,
+            NodeKind::Lookup { index, .. } if kinds[index.index()] == ParamKind::Varying => ParamKind::Varying,
+            // A lookup at a uniform index: the optimizer folds one at a constant index.
+            NodeKind::Lookup { .. } => ParamKind::Uniform,
             NodeKind::Op { op, args } => {
                 if op.reads_context() || args.iter().any(|a| kinds[a.index()] == ParamKind::Varying) {
                     ParamKind::Varying

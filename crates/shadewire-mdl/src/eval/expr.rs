@@ -1,6 +1,6 @@
 //! Expressions: names, members and indices, operators, conditionals, assignments, `let` and casts.
 
-use shadewire::{Error, Value};
+use shadewire::{Error, Node, NodeKind, Table, Value};
 
 use super::{Eval, Flow, Frame};
 use crate::ast::{Arg, BinOp, DeclKind, Expr, ExprKind, Literal, UnaryOp};
@@ -320,6 +320,10 @@ impl<'p, 'a> Eval<'p, 'a> {
             return pick(self, k as usize);
         }
         if count > 64 {
+            // A constant table (a permutation table of a hand-written noise): read at the index by a lookup.
+            if let Some(read) = self.table_lookup(v, i, &origin) {
+                return read.map_err(|m| self.error(f, line, m));
+            }
             return Err(self.error(f, line, format!("an index known only at run time into {count} elements")));
         }
         // A chain of selects, the last element as the fallback.
@@ -332,6 +336,26 @@ impl<'p, 'a> Eval<'p, 'a> {
             out = self.select(&hit, element, out, &origin).map_err(|m| self.error(f, line, m))?;
         }
         Ok(out)
+    }
+
+    /// `v[i]` as a `NodeKind::Lookup` into a table of `v`'s elements, when `v` is an array whose elements are all
+    /// known values of an IR type (numbers, vectors, colors); `None` otherwise.
+    fn table_lookup(&mut self, v: &Val, i: &Val, origin: &str) -> Option<Result<Val, String>> {
+        let V::Array(elements) = &v.v else { return None };
+        let elem = elements.first()?.ty.clone();
+        let ty = elem.ir()?;
+        let values: Vec<Value> = elements.iter().map(|e| e.known_value().cloned()).collect::<Option<_>>()?;
+        Some((|| {
+            let i = self.convert_val(i.clone(), &Ty::INT, false, origin)?;
+            let index = self.node_of(i.num().expect("an int"), origin);
+            let table = self.e.dag.add_table(Table { ty, values });
+            let id = self.e.dag.add(Node { kind: NodeKind::Lookup { table, index }, ty, origin: origin.to_string() });
+            if let Err(e) = self.e.check_node_limit() {
+                self.limit = Some(e.clone());
+                return Err(e.to_string());
+            }
+            Ok(Val::new(elem, V::Num(Num::Node(id))))
+        })())
     }
 
     fn compare_eq_int(&mut self, i: &Num, k: i32, origin: &str) -> Result<Num, String> {

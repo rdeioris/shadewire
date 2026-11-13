@@ -57,6 +57,12 @@ their conversions, as the MDL SDK's compiler does, including the lenient convers
   `export using ::base import *;`) imports the vendored one.
 - `::base`'s noise primitives index permutation tables at run time; they are MaterialX's noises instead, with one
   warning per noise kind.
+- An array indexed by a value known only at run time is a chain of selects up to 64 elements. A longer one whose
+  elements are all known numbers, vectors or colors (the permutation and gradient tables of a module's own noise,
+  as vMaterials carry) is an IR table read by `NodeKind::Lookup`, clamped to the table; every back end writes the
+  table once as a constant array (WGSL a `var<private>`), the MDL writer as `const T[N] name(...)`. MaterialX has no
+  arrays: the MaterialX writer refuses a lookup. Any other array of more than 64 elements read at a run-time index
+  is an error.
 
 What the reader drops or approximates is in `MaterialIr.warnings`, one line each, as `{module}::{material}: {what}`:
 non-GGX microfacet lobes, colored Fresnel IORs (averaged), texel reads and texture sizes, transforms between

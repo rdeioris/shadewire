@@ -16,6 +16,7 @@ pub fn run(dag: &Dag) -> Dag {
     }
     let mut new = Dag::new(&dag.surface.model);
     new.textures = dag.textures.clone();
+    new.tables = dag.tables.clone();
     new.approximations = dag.approximations.clone();
     new.geomprop_defaults = dag.geomprop_defaults.clone();
     new.uniform_ui = dag.uniform_ui.clone();
@@ -51,7 +52,8 @@ fn remap_kind(kind: &NodeKind, map: &[Option<NodeId>]) -> NodeKind {
             default: default.clone(),
             grad: grad.map(|[dx, dy]| [get(&dx), get(&dy)]),
         },
-        other => other.clone(),
+        NodeKind::Lookup { table, index } => NodeKind::Lookup { table: *table, index: get(index) },
+        other @ (NodeKind::Const(_) | NodeKind::Uniform { .. } | NodeKind::Context(_)) => other.clone(),
     }
 }
 

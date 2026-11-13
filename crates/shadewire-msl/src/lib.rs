@@ -42,6 +42,7 @@ impl Syntax for Msl {
             Ty::Matrix(c, r) => format!("float{c}x{r}"),
             Ty::Struct(name) => name.clone(),
             Ty::Ptr(t) => self.ty(t),
+            Ty::Array(t, n) => format!("{}[{n}]", self.ty(t)),
             Ty::Texture2d => "texture2d<float>".into(),
             Ty::Sampler => "sampler".into(),
             Ty::Void => "void".into(),
@@ -120,6 +121,10 @@ impl Syntax for Msl {
             });
         }
         format!("{} {}({})", self.ty(&f.ret), f.name, params.join(", "))
+    }
+
+    fn table(&self, name: &str, elem: &Ty, values: &[String]) -> String {
+        format!("constant {} {name}[{}] = {{{}}};", self.ty(elem), values.len(), values.join(", "))
     }
 
     fn constant(&self, name: &str, ty: &Ty, value: String) -> String {

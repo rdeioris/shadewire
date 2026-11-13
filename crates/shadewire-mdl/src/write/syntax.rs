@@ -41,8 +41,13 @@ impl Syntax for Mdl {
             Ty::Struct(name) => name.clone(),
             Ty::Texture2d => "texture_2d".into(),
             Ty::Void => "void".into(),
+            Ty::Array(t, n) => format!("{}[{n}]", self.ty(t)),
             Ty::Ptr(_) | Ty::Sampler | Ty::Unknown => panic!("MDL has no {ty:?}"),
         }
+    }
+
+    fn table(&self, name: &str, elem: &Ty, values: &[String]) -> String {
+        format!("const {}[{}] {name}({});", self.ty(elem), values.len(), values.join(", "))
     }
 
     fn builtin_name(&self, b: Builtin) -> &'static str {

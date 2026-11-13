@@ -307,6 +307,42 @@ class Builder:
             out = [self.lerp(d, o, inside) for d, o in zip(default, out)]
         return out
 
+    def lookup_node(self, node, width):
+        """A table read at a run-time index (a hand-written noise's permutation table): the table as an N x 1 float
+        image, one texel an entry, read with Closest interpolation at the texel of the index, truncated toward zero
+        and clamped to the table as every back end does."""
+        table = self.doc["tables"][node["table"]]
+        count = len(table["values"])
+        if count == 0:
+            return [0.0] * width
+        index = self.math("TRUNC", self.values[node["args"][0]][0])
+        clamped = self.math("MINIMUM", self.math("MAXIMUM", index, 0.0), float(count - 1))
+        u = self.math("DIVIDE", self.add(clamped, 0.5), float(count))
+        img = self.node("ShaderNodeTexImage", [("Vector", self.vector([u, 0.5]))])
+        img.hide = False
+        img.image = self.table_image(node["table"], table)
+        img.interpolation = "Closest"
+        img.extension = "EXTEND"
+        return (self.split(img.outputs["Color"]) + [img.outputs["Alpha"]])[:max(width, 1)]
+
+    def table_image(self, index, table):
+        """The image holding table `index`: 32-bit float, Non-Color, packed as OpenEXR (an 8-bit PNG would clamp
+        entries past 1), reused by the material's other lookups and when the material is built again."""
+        name = f"{self.material.name} table {index}"
+        values = table["values"]
+        image = bpy.data.images.get(name)
+        if image is None or tuple(image.size) != (len(values), 1):
+            image = bpy.data.images.new(name, len(values), 1, alpha=True, float_buffer=True)
+        image.colorspace_settings.name = "Non-Color"
+        pixels = []
+        for value in values:
+            comps = [float(x) for x in value] if isinstance(value, list) else [float(value)]
+            pixels += (comps + [0.0, 0.0, 0.0])[:3] + [comps[3] if len(comps) > 3 else 1.0]
+        image.pixels.foreach_set(pixels)
+        image.file_format = "OPEN_EXR"
+        image.pack()
+        return image
+
     def op_node(self, node, width):
         handler = OPS.get(node["op"])
         if handler is None:
@@ -388,6 +424,40 @@ class Builder:
             return self.mul(self.math("SIGN", a), self.math("POWER", self.math("ABSOLUTE", a), b))
 
         return self.each(width, safe, *args)
+
+    # Integer bit ops, in the float math Blender's nodes have: exact for the forms tables and tilings use, while
+    # values fit a float's 24-bit mantissa. Others (a run-time mask, `|`, `^`: hashes) read as zero, with a warning.
+
+    def op_bitwise_and(self, node, args, width):
+        """`x & (2^k - 1)` is `x` floored modulo `2^k`, which is two's complement's answer for negative `x` too."""
+        a, b = args[0][0], args[1][0]
+        for x, mask in ((a, b), (b, a)):
+            if isinstance(mask, float) and mask >= 0 and mask == int(mask) and (int(mask) + 1) & int(mask) == 0:
+                return [self.math("FLOORED_MODULO", x, mask + 1.0)]
+        self.warn("op bitwise_and is supported only with a constant 2^k - 1 mask; it reads as zero")
+        return [0.0]
+
+    def shift(self, node, args, name, scale):
+        a, k = args[0][0], args[1][0]
+        if not isinstance(k, float):
+            self.warn(f"op {name} is supported only by a constant; it reads as zero")
+            return None
+        return scale(a, float(2 ** (int(k) % 32)))
+
+    def op_shift_left(self, node, args, width):
+        return [self.shift(node, args, "shift_left", lambda a, p: self.mul(a, p)) or 0.0]
+
+    def op_shift_right(self, node, args, width):
+        """Arithmetic: floor division by `2^k`."""
+        return [self.shift(node, args, "shift_right", lambda a, p: self.math("FLOOR", self.math("DIVIDE", a, p))) or 0.0]
+
+    def op_shift_right_unsigned(self, node, args, width):
+        """As the arithmetic shift for non-negative values; a negative one is first read as its unsigned 32-bit
+        value, which a float holds only approximately."""
+        def unsigned(a, p):
+            positive = self.math("FLOORED_MODULO", a, 4294967296.0)
+            return self.math("FLOOR", self.math("DIVIDE", positive, p))
+        return [self.shift(node, args, "shift_right_unsigned", unsigned) or 0.0]
 
     def op_clamp(self, node, args, width):
         return self.each(width, lambda a, lo, hi: self.math("MINIMUM", self.math("MAXIMUM", a, lo), hi), *args)
@@ -990,6 +1060,7 @@ NODE_KINDS = {
     "context": Builder.context_node,
     "sample": Builder.sample_node,
     "op": Builder.op_node,
+    "lookup": Builder.lookup_node,
 }
 
 CONTEXT_READS = {
@@ -1006,6 +1077,10 @@ CONTEXT_READS = {
 }
 
 OPS = {
+    "bitwise_and": Builder.op_bitwise_and,
+    "shift_left": Builder.op_shift_left,
+    "shift_right": Builder.op_shift_right,
+    "shift_right_unsigned": Builder.op_shift_right_unsigned,
     "add": component_op("add"),
     "subtract": component_op("sub"),
     "multiply": component_op("mul"),
@@ -1134,6 +1209,8 @@ FOLDS = {
     "ABSOLUTE": lambda a: abs(a[0]),
     "SIGN": lambda a: float((a[0] > 0) - (a[0] < 0)),
     "FLOOR": lambda a: float(math.floor(a[0])),
+    "TRUNC": lambda a: float(math.trunc(a[0])),
+    "FLOORED_MODULO": lambda a: a[0] - a[1] * math.floor(a[0] / a[1]) if a[1] != 0.0 else 0.0,
     "GREATER_THAN": lambda a: 1.0 if a[0] > a[1] else 0.0,
     "LESS_THAN": lambda a: 1.0 if a[0] < a[1] else 0.0,
     "COMPARE": lambda a: 1.0 if abs(a[0] - a[1]) <= a[2] else 0.0,

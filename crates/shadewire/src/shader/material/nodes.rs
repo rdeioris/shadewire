@@ -22,6 +22,44 @@ pub fn sampler_name(index: usize) -> String {
     format!("shadewire_s{index}")
 }
 
+pub fn table_name(index: usize) -> String {
+    format!("shadewire_l{index}")
+}
+
+/// `table[clamp(index, 0, len - 1)]`: a table read at a run-time index, of the table's element type. A float
+/// index is truncated toward zero, as the interpreter does.
+pub fn lookup(dag: &Dag, table: usize, index: Expr) -> Expr {
+    let t = &dag.tables[table];
+    let elem = Ty::of(t.ty);
+    let index = if index.ty == Ty::I32 { index } else { Expr::new(ExprKind::Convert(Box::new(index)), Ty::I32) };
+    let last = Expr::i32(t.values.len().saturating_sub(1) as i32);
+    let clamped = Expr::builtin(Builtin::Clamp, vec![index, Expr::i32(0), last], Ty::I32);
+    Expr::name(table_name(table), Ty::Array(Box::new(elem), t.values.len() as u32)).index(clamped)
+}
+
+/// One module table per table a live lookup reads, in table order.
+pub fn table_items(dag: &Dag) -> Vec<Item> {
+    let live = live_nodes(dag);
+    let mut used = vec![false; dag.tables.len()];
+    for (i, n) in dag.nodes.iter().enumerate() {
+        if let NodeKind::Lookup { table, .. } = n.kind
+            && live[i]
+        {
+            used[table] = true;
+        }
+    }
+    dag.tables
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| used[*i])
+        .map(|(i, t)| Item::Table {
+            name: table_name(i),
+            elem: Ty::of(t.ty),
+            values: t.values.iter().map(|v| cast(literal(v), &Ty::of(t.ty))).collect(),
+        })
+        .collect()
+}
+
 /// One `let` per live node, in node order. Live uniforms are numbered in node order, exactly as reflection lists
 /// them.
 pub fn node_lets(dag: &Dag, reflection: &Reflection, options: &MaterialOptions) -> Vec<Stmt> {
@@ -72,6 +110,7 @@ pub fn node_lets(dag: &Dag, reflection: &Reflection, options: &MaterialOptions) 
             NodeKind::Op { op: Op::Dpdx | Op::Dpdy, .. } if !options.implicit_derivatives => {
                 literal(&Value::zero(n.ty))
             }
+            NodeKind::Lookup { table, index } => lookup(dag, *table, node(*index, Ty::of(dag.node(*index).ty))),
             NodeKind::Const(_) | NodeKind::Op { .. } => pure(dag, id),
         };
         lines.push(Stmt::Let { name: format!("n{i}"), ty: ty.clone(), value: Some(value), mutable: false });

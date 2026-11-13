@@ -14,6 +14,17 @@
   "unknown function"; it now looks up the module's declarations and `using` imports, as the MDL SDK does.
 - **Blender: the empty closure.** The builder handles the IR's `empty` closure (a mix side or layer top that scatters
   nothing): materials whose lobes held one failed to build with `KeyError: 'empty'`.
+- **Tables read at a run-time index.** `NodeKind::Lookup { table, index }` reads `Dag::tables[table]` (a
+  constant array of scalars or vectors, `Table`) at an integer node, clamped to the table: the interpreter and the
+  optimizer (a constant index folds) evaluate it, every back end writes the table once (WGSL `var<private>`, GLSL
+  an array constructor, HLSL `static const`, MSL `constant`, Godot and MDL `const`), and the IR document lists
+  `tables` and `lookup` nodes. The MDL reader makes one for an array of more than 64 known elements indexed at run
+  time, which it refused before (vMaterials' `Aluminum_Anodized` carries its own 4D Perlin noise and its tables);
+  the Blender add-on builds it as an N x 1 float image. The MaterialX writer refuses a lookup.
+- **Blender: integer bit ops.** `bitwise_and` with a constant `2^k - 1` mask, `shift_left`, `shift_right` and
+  `shift_right_unsigned` by a constant build as float math (a floored modulo, a multiply, a floor division), exact
+  within a float's 24 bits; they read as zero before. A run-time mask, `bitwise_or` and `bitwise_xor` still do,
+  with a warning.
 - **Blender: MDL materials of USD scenes.** The USD import hook claims materials whose `mdl` surface comes from an
   MDL module (`info:mdl:sourceAsset` and its `subIdentifier`, as Omniverse writes them) when they have no MaterialX
   surface, and builds them with the shader's authored inputs as the material's arguments, textures imported through

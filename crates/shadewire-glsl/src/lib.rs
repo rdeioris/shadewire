@@ -98,6 +98,7 @@ impl Syntax for Glsl {
             Ty::Matrix(c, r) => format!("mat{c}x{r}"),
             Ty::Struct(name) => name.clone(),
             Ty::Ptr(t) => self.ty(t),
+            Ty::Array(t, n) => format!("{}[{n}]", self.ty(t)),
             Ty::Texture2d => "sampler2D".into(),
             Ty::Sampler => panic!("GLSL samplers are combined with their textures"),
             Ty::Void => "void".into(),
@@ -176,6 +177,11 @@ impl Syntax for Glsl {
             }
         };
         Some(format!("{function}({}, {})", side(lhs), side(rhs)))
+    }
+
+    fn table(&self, name: &str, elem: &Ty, values: &[String]) -> String {
+        let elem = self.ty(elem);
+        format!("const {elem} {name}[{n}] = {elem}[{n}]({});", values.join(", "), n = values.len())
     }
 
     fn constant(&self, name: &str, ty: &Ty, value: String) -> String {

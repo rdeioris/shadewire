@@ -11,6 +11,7 @@ impl Rebuilder {
     pub fn new(old: &Dag) -> Rebuilder {
         let mut new = Dag::new(&old.surface.model);
         new.textures = old.textures.clone();
+        new.tables = old.tables.clone();
         new.approximations = old.approximations.clone();
         new.geomprop_defaults = old.geomprop_defaults.clone();
         new.uniform_ui = old.uniform_ui.clone();
@@ -32,7 +33,8 @@ impl Rebuilder {
                 default: default.clone(),
                 grad: grad.map(|[dx, dy]| [self.remap(dx), self.remap(dy)]),
             },
-            other => other.clone(),
+            NodeKind::Lookup { table, index } => NodeKind::Lookup { table: *table, index: self.remap(*index) },
+            other @ (NodeKind::Const(_) | NodeKind::Uniform { .. } | NodeKind::Context(_)) => other.clone(),
         }
     }
 

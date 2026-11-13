@@ -33,6 +33,7 @@ impl Syntax for Hlsl {
             Ty::Matrix(c, r) => format!("float{c}x{r}"),
             Ty::Struct(name) => name.clone(),
             Ty::Ptr(t) => self.ty(t),
+            Ty::Array(t, n) => format!("{}[{n}]", self.ty(t)),
             Ty::Texture2d => "Texture2D<float4>".into(),
             Ty::Sampler => "SamplerState".into(),
             Ty::Void => "void".into(),
@@ -97,6 +98,10 @@ impl Syntax for Hlsl {
             return Some(format!("mul({}, {})", p.expr(rhs), p.expr(lhs)));
         }
         None
+    }
+
+    fn table(&self, name: &str, elem: &Ty, values: &[String]) -> String {
+        format!("static const {} {name}[{}] = {{{}}};", self.ty(elem), values.len(), values.join(", "))
     }
 
     fn constant(&self, name: &str, ty: &Ty, value: String) -> String {

@@ -161,4 +161,9 @@ MaterialX Lobes mode, and lobes in either mode:
   used.
 - Noise, fractal, cell and Worley noise use Blender's noise textures: the same kind of pattern, other values.
 - Weights that tint a lobe without a color input (conductor, Schlick) scale it by their luminance.
+- A table read at a run-time index (an MDL module's own noise tables) is an N x 1 float image named
+  `<material> table <n>`, packed as OpenEXR, sampled with Closest interpolation at the entry's texel.
+- Integer bit ops in float math: `x & (2^k - 1)` as a floored modulo by `2^k`, shifts by a constant as a multiply
+  or a floor division, exact while values fit a float's 24 bits. A run-time mask, `|` and `^` (the hashes of
+  vMaterials' per-tile variation) read as zero, with a warning.
 - Not translated yet: hex tiling, hair, conical and measured emitters, volumes.

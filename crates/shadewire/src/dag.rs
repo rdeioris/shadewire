@@ -1,11 +1,13 @@
 use std::collections::BTreeMap;
 
-use crate::{Compound, Node, NodeId, NodeKind, Surface, TextureDesc, UiHints, Value};
+use crate::{Compound, Node, NodeId, NodeKind, Surface, Table, TextureDesc, UiHints, Value};
 
 #[derive(Clone, Debug)]
 pub struct Dag {
     pub nodes: Vec<Node>,
     pub textures: Vec<TextureDesc>,
+    /// The constant arrays `NodeKind::Lookup` nodes read.
+    pub tables: Vec<Table>,
     pub surface: Surface,
     pub approximations: Vec<String>,
     /// `geompropvalue` defaults by property name; reflection reports them to the host.
@@ -21,6 +23,7 @@ impl Dag {
         Dag {
             nodes: Vec::new(),
             textures: Vec::new(),
+            tables: Vec::new(),
             surface: Surface { model: model.to_string(), fields: Vec::new(), closure: None },
             approximations: Vec::new(),
             geomprop_defaults: BTreeMap::new(),
@@ -55,6 +58,15 @@ impl Dag {
         self.textures.push(texture);
         self.textures.len() - 1
     }
+
+    /// Returns the index of an equal table, adding it if none exists.
+    pub fn add_table(&mut self, table: Table) -> usize {
+        if let Some(index) = self.tables.iter().position(|t| *t == table) {
+            return index;
+        }
+        self.tables.push(table);
+        self.tables.len() - 1
+    }
 }
 
 /// The nodes a kind reads: the uv and gradients of a sample, the arguments of an op.
@@ -63,6 +75,7 @@ pub fn node_args(kind: &NodeKind) -> Vec<NodeId> {
         NodeKind::Op { args, .. } => args.clone(),
         NodeKind::Sample { uv, grad: None, .. } => vec![*uv],
         NodeKind::Sample { uv, grad: Some([dx, dy]), .. } => vec![*uv, *dx, *dy],
+        NodeKind::Lookup { index, .. } => vec![*index],
         NodeKind::Const(_) | NodeKind::Uniform { .. } | NodeKind::Context(_) => Vec::new(),
     }
 }

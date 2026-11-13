@@ -36,6 +36,13 @@ pub fn run(dag: &Dag) -> Dag {
 }
 
 fn folded_value(rebuilder: &Rebuilder, old: &Node) -> Option<Value> {
+    // A lookup at a constant index is that entry of its table.
+    if let NodeKind::Lookup { table, index } = &old.kind {
+        return match &rebuilder.new.node(rebuilder.remap(*index)).kind {
+            NodeKind::Const(i) => Some(broadcast(&rebuilder.new.tables[*table].get(i), old.ty)),
+            _ => None,
+        };
+    }
     let NodeKind::Op { op, args } = &old.kind else {
         return None;
     };

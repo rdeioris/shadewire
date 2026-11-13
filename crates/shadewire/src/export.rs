@@ -11,6 +11,10 @@
 //! explicit gradients, `grad`: the `[dx, dy]` nodes holding the screen-space derivatives of `uv` along x and y
 //! (`textureSampleGrad`, HLSL `SampleGrad`). Without `grad` the GPU takes the derivatives from `uv` itself.
 //! `grad` was added within version 1: a reader that ignores it samples with implicit derivatives, as before.
+//!
+//! A `lookup` reads `tables[table]` (each `{"type", "values"}`, a constant array) at the integer node in `args`,
+//! clamped to the table. Lookups and `tables` were added within version 1: a reader that does not know them reads
+//! the node as it reads any unknown kind.
 
 use std::collections::BTreeMap;
 
@@ -72,6 +76,9 @@ pub struct ExportNode {
     /// A sample's texture, an index into `textures`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub texture: Option<usize>,
+    /// A lookup's table, an index into `tables`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub table: Option<usize>,
     /// A sample's texture coordinate node.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uv: Option<u32>,
@@ -98,6 +105,14 @@ pub struct ExportCompound {
     pub origin: String,
 }
 
+/// A constant array lookups read.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct ExportTable {
+    #[serde(rename = "type")]
+    pub ty: Type,
+    pub values: Vec<ExportValue>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ExportDocument {
     pub format: &'static str,
@@ -105,6 +120,8 @@ pub struct ExportDocument {
     pub model: String,
     pub nodes: Vec<ExportNode>,
     pub textures: Vec<TextureDesc>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tables: Vec<ExportTable>,
     pub fields: Vec<ExportField>,
     pub compounds: Vec<ExportCompound>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -144,6 +161,7 @@ fn empty(kind: &'static str, ty: Type) -> ExportNode {
         from: None,
         to: None,
         texture: None,
+        table: None,
         uv: None,
         grad: None,
         origin: None,
@@ -219,6 +237,9 @@ pub fn export(dag: &Dag) -> ExportDocument {
                     ..empty("sample", n.ty)
                 },
                 NodeKind::Op { op, args } => op_node(op, args, n.ty),
+                NodeKind::Lookup { table, index } => {
+                    ExportNode { table: Some(*table), args: vec![index.0], ..empty("lookup", n.ty) }
+                }
             };
             out.origin = (!n.origin.is_empty()).then(|| n.origin.clone());
             out
@@ -230,6 +251,11 @@ pub fn export(dag: &Dag) -> ExportDocument {
         model: dag.surface.model.clone(),
         nodes,
         textures: dag.textures.clone(),
+        tables: dag
+            .tables
+            .iter()
+            .map(|t| ExportTable { ty: t.ty, values: t.values.iter().map(ExportValue::from).collect() })
+            .collect(),
         fields: dag
             .surface
             .fields

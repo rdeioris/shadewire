@@ -25,6 +25,7 @@ impl Syntax for Wgsl {
             Ty::Matrix(c, r) => format!("mat{c}x{r}<f32>"),
             Ty::Struct(name) => name.clone(),
             Ty::Ptr(t) => format!("ptr<function, {}>", self.ty(t)),
+            Ty::Array(t, n) => format!("array<{}, {n}>", self.ty(t)),
             Ty::Texture2d => "texture_2d<f32>".into(),
             Ty::Sampler => "sampler".into(),
             Ty::Void => String::new(),
@@ -34,6 +35,13 @@ impl Syntax for Wgsl {
 
     fn builtin_name(&self, b: Builtin) -> &'static str {
         b.wgsl_name()
+    }
+
+    /// A private variable rather than a `const`: indexing a reference at run time is what every WGSL
+    /// implementation takes.
+    fn table(&self, name: &str, elem: &Ty, values: &[String]) -> String {
+        let ty = format!("array<{}, {}>", self.ty(elem), values.len());
+        format!("var<private> {name}: {ty} = {ty}({});", values.join(", "))
     }
 
     fn literal(&self, lit: &Literal) -> String {

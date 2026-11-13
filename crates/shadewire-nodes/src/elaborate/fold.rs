@@ -49,6 +49,7 @@ fn fold_node(dag: &Dag, id: NodeId, memo: &mut HashMap<NodeId, Value>) -> Option
             }
             eval_op(op, &values, node.ty, &mut NoContext)
         }
+        NodeKind::Lookup { table, index } => dag.tables[*table].get(&fold_node(dag, *index, memo)?),
         NodeKind::Op { .. } | NodeKind::Uniform { .. } | NodeKind::Context(_) | NodeKind::Sample { .. } => {
             return None;
         }

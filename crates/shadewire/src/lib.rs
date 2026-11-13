@@ -22,6 +22,7 @@ pub mod shader;
 mod space;
 mod structure_hash;
 mod surface;
+mod table;
 #[cfg(feature = "test-support")]
 pub mod testing;
 mod texture;
@@ -43,6 +44,7 @@ pub use reflection::{BindingOptions, ContextEntry, FieldDepends, Reflection, Sou
 pub use space::Space;
 pub use structure_hash::structure_hash;
 pub use surface::{LOBE_MODELS, Surface, SurfaceField, model_struct_name};
+pub use table::Table;
 pub use texture::{AddressMode, FilterMode, TextureDesc};
 pub use types::Type;
 pub use ui::UiHints;

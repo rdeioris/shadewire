@@ -38,6 +38,7 @@ pub fn build(dag: &Dag, reflection: &mut Reflection) -> (Module, Vec<Param>) {
     let options = MaterialOptions { flip_v: false, implicit_derivatives: false, host_derivatives: false };
     let mut items = vec![Item::Struct(model_struct(dag))];
     items.extend(shadewire::shader::library::items_for(&library_dag));
+    items.extend(shadewire::shader::material::nodes::table_items(dag));
     let mut notes = Vec::new();
     for f in host_functions(reflection) {
         items.push(Item::Function(host_function(f, reflection, &mut notes)));
@@ -48,7 +49,7 @@ pub fn build(dag: &Dag, reflection: &mut Reflection) -> (Module, Vec<Param>) {
         .filter_map(|i| match i {
             Item::Function(f) => Some(f.name.as_str()),
             Item::Struct(s) => Some(s.name.as_str()),
-            Item::Const { name, .. } => Some(name.as_str()),
+            Item::Const { name, .. } | Item::Table { name, .. } => Some(name.as_str()),
             _ => None,
         })
         .collect();
