@@ -30,6 +30,11 @@ pub struct ContextReflection {
     pub globals: Vec<ContextEntry>,
     pub geomprops: Vec<GeomPropReflection>,
     pub transforms: Vec<String>,
+    /// With host derivatives (`CompileOptions::host_derivatives`), the reads whose derivatives the code calls:
+    /// `shadewire_host_<name>_dx` and `_dy`, of the entry's type. A geomprop's name is its function's, without
+    /// the prefix. Empty otherwise.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub derivatives: Vec<ContextEntry>,
 }
 
 fn sorted_unique(mut names: Vec<String>) -> Vec<String> {
@@ -125,6 +130,7 @@ pub fn context(dag: &Dag, live: &[bool]) -> Result<ContextReflection, Error> {
         globals: sorted_entries(globals),
         geomprops,
         transforms: sorted_unique(transforms),
+        derivatives: Vec::new(),
     })
 }
 

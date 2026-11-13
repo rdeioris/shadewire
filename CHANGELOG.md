@@ -22,6 +22,39 @@
   `shadewire_unreal_material_names`.
 - **MDL:** a relative texture path is written as a strict relative path (`./textures/a.png`; MDL 1.6 dropped weak
   relative paths) and read back without the `./`.
+- **Host derivatives.** `CompileOptions::host_derivatives` (and `MaterialOptions::host_derivatives`): the code
+  carries the screen-space derivatives of every node a texture coordinate depends on through the graph by the chain
+  rule, from the host's derivatives of the context reads (`shadewire_host_<read>_dx` / `_dy`, listed in the new
+  `context.derivatives`), samples with `textureSampleGrad` and answers `dpdx` / `dpdy` with the carried values. For
+  hosts whose pixels need not share a triangle with their 2 × 2 quad, as a visibility buffer's full-screen shading,
+  where the hardware's derivatives cross triangles and read the wrong mip at outlines and UV seams. Each op has a
+  rule beside its code (`shader::material::derivative`); noise, colour-space changes, normal maps, hex tiling and the
+  piecewise-constant ops carry zero, as does a texture's colour used as another's coordinates. A point transform's
+  derivative moves by the matching vector transform, which reflection then lists too. Off by default; the C API is
+  unchanged. Tested against finite differences of the interpreter on the GPU (`gpu_derivatives`, opt-in like the
+  parity test).
+- **Per-field dependencies in reflection.** Each entry of `params` has `depends`: the uniforms (by name), textures
+  (by `textures[].index`), varyings, derived reads (`view_direction_*`), globals (`time`, `frame`), geomprops and
+  space transforms its value reaches in the compiled graph, each list sorted (`shadewire::FieldDepends`). All lists
+  empty means constant. A host can tell, say, that only roughness samples a texture, or that emission is animated,
+  without reading the whole material's `context`. It is in the reflection JSON, so C and Python get it unchanged.
+- **C: a reusable MDL modules handle.** `shadewire_mdl_modules` wraps `shadewire_mdl::Modules`: made once with a
+  search path (`shadewire_mdl_modules_new` with `shadewire_mdl_modules_options`, versioned by `struct_size`), it
+  lowers any number of materials (`shadewire_mdl_modules_to_ir`, a `.mdl` path or a module name, typed
+  `shadewire_mdl_arg`s with `arg_size`) and lists them (`_material_names`), parsing each module and its imports once.
+  A stage's materials then share the parsed `::base`, `::OmniPBR` and the rest instead of re-reading them on every
+  call (Omniverse materials: about 195 ms per call down to about 7 ms). The handle may be used from several threads at
+  once; free it with `shadewire_mdl_modules_free`.
+- **Integer bitwise ops.** `Op::BitwiseAnd`, `BitwiseOr`, `BitwiseXor`, `ShiftLeft`, `ShiftRight` (arithmetic) and
+  `ShiftRightUnsigned`, on two's-complement integers with shift amounts taken modulo 32 (IR names `bitwise_and` ..
+  `shift_right_unsigned`; MaterialX `shadewire_*` nodedefs in `shadewire_ir.mtlx`). The MDL front end lowers run-time
+  `&`, `|`, `^`, `<<`, `>>` and `>>>` to them, where it rejected them before; a constant shift or low mask is no longer
+  rewritten as float arithmetic, which rounded past 2^24. A `Multiply` of integers now wraps in i32, and MDL's integer
+  `*` lowers to it rather than to a floored float product, so hashes such as `(i ^ seed) * 1075385539` keep their
+  low bits. The MaterialX writer still writes an integer multiply as a float one.
+- **MDL: a module under nested search path roots answers to each name.** A file under two roots, one inside the
+  other (Kit's `core` and `core/Base`), is reachable as `::Base::OmniPBR` and `::OmniPBR` whichever name loaded it
+  first, so materials sharing a `Modules` no longer depend on load order.
 
 ## 0.3.0 (2026-10-19)
 

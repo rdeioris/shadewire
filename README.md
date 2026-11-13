@@ -415,6 +415,8 @@ Each surface field in `params` has a `kind`:
 - `uniform_expr`: the field is computed from uniforms only (an authored color converted from `srgb_texture`, math over nodegraph interface values, or any op left unfolded by `--no-optimize`); its value needs the shader or the IR.
 - `varying`: the field changes per fragment (texture lookups, geometry, time).
 
+Each field also has `depends`, what its value reads in the compiled graph: `uniforms` (names, as in `uniforms`), `textures` (indices, as `textures[].index`), `varyings` (`position_world`, `normal_object`, `texcoord_0`, `geomcolor_0`...), `derived` (`view_direction_world`...), `globals` (`time`, `frame`), `geomprops` (authored names) and `transforms` (as in `context.transforms`). Every list is sorted, and a field whose lists are all empty is constant. Unlike `context`, which covers the whole material, this tells, say, whether a texture feeds only `specular_roughness`, or whether `emission_luminance` changes with `time`.
+
 Each entry of `textures` names its file and the `colorspace` it was authored in. The shader converts every sample from that colorspace to the working one itself, so bind each texture through a raw view (for example `Rgba8Unorm`, never `Rgba8UnormSrgb`), or colors are decoded twice.
 
 Each entry of `uniforms` also carries the MaterialX ui attributes of the input it came from, each key only when authored on the input or on its nodedef port: `uimin`, `uimax`, `uisoftmin`, `uisoftmax` (values of the uniform's type) and `uifolder` (a `/`-separated folder path). `uiname` is not carried. A limit that does not parse as the uniform's type is dropped.

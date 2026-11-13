@@ -32,6 +32,62 @@ fn without_implicit_derivatives_every_fixture_validates() {
     }
 }
 
+/// Host derivatives: reflection with the derivative reads, then the module.
+fn host_wgsl(dag: &Dag) -> (String, Reflection) {
+    let mut r = reflection(dag);
+    shadewire::shader::material::derivative::reflect(dag, &mut r);
+    let options = MaterialOptions { host_derivatives: true, ..MaterialOptions::default() };
+    (emit(dag, &r, &options), r)
+}
+
+#[test]
+fn with_host_derivatives_every_fixture_validates() {
+    for (name, dag) in fixtures::all() {
+        let (text, r) = host_wgsl(&dag);
+        assert!(
+            !text.contains("textureSample(") && !text.contains("dpdx(") && !text.contains("dpdy("),
+            "{name}: {text}"
+        );
+        check(&text, &r).unwrap_or_else(|e| panic!("{name}: {e}\n{text}"));
+    }
+}
+
+#[test]
+fn host_derivatives_carry_a_scaled_uv_to_its_sample() {
+    // uv × 4 sampled: the gradients are the uv's derivatives times 4, the V flipped.
+    let mut dag = Dag::new("open_pbr_surface");
+    let t = dag.add_texture(TextureDesc {
+        file: "a.png".into(),
+        colorspace: None,
+        address_u: AddressMode::Periodic,
+        address_v: AddressMode::Periodic,
+        filter: FilterMode::Linear,
+    });
+    let uv = add(&mut dag, NodeKind::Context(ContextRead::TexCoord { index: 0, ty: Type::Vector2 }), Type::Vector2);
+    let four = add(&mut dag, NodeKind::Const(Value::Float(4.0)), Type::Float);
+    let scaled = add(&mut dag, NodeKind::Op { op: Op::Multiply, args: vec![uv, four] }, Type::Vector2);
+    let c = add(
+        &mut dag,
+        NodeKind::Sample { texture: t, uv: scaled, default: Value::Color3([0.0; 3]), grad: None },
+        Type::Color3,
+    );
+    dag.surface.fields.push(SurfaceField { name: "base_color".into(), ty: Type::Color3, node: c });
+    let (text, r) = host_wgsl(&dag);
+    assert_eq!(r.context.derivatives, vec![ContextEntry { name: "texcoord_0".into(), ty: Type::Vector2 }]);
+    let expected_lets = "\
+    let n0: vec2<f32> = shadewire_host_texcoord_0();
+    let n0_dx: vec2<f32> = shadewire_host_texcoord_0_dx();
+    let n0_dy: vec2<f32> = shadewire_host_texcoord_0_dy();
+    let n1: f32 = 4.0;
+    let n2: vec2<f32> = n0 * vec2<f32>(n1);
+    let n2_dx: vec2<f32> = n0_dx * vec2<f32>(n1) + n0 * vec2<f32>(0.0);
+    let n2_dy: vec2<f32> = n0_dy * vec2<f32>(n1) + n0 * vec2<f32>(0.0);
+";
+    assert!(text.contains(expected_lets), "{text}");
+    assert!(text.contains("textureSampleGrad(shadewire_t0, shadewire_s0, vec2<f32>(n2.x, 1.0 - n2.y), vec2<f32>(n2_dx.x, -n2_dx.y), vec2<f32>(n2_dy.x, -n2_dy.y))"), "{text}");
+    check(&text, &r).unwrap();
+}
+
 #[test]
 fn a_small_module_reads_as_written() {
     let mut dag = Dag::new("open_pbr_surface");

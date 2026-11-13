@@ -64,7 +64,11 @@ pub enum Op {
     CrossProduct,
     Rotate2d,
     // space.rs
-    Transform { kind: TransformKind, from: Space, to: Space },
+    Transform {
+        kind: TransformKind,
+        from: Space,
+        to: Space,
+    },
     // logic.rs
     Greater,
     GreaterEq,
@@ -102,6 +106,15 @@ pub enum Op {
     // derivative.rs: screen-space derivatives, for sample gradients
     Dpdx,
     Dpdy,
+    // bitwise.rs: two's-complement integers; a shift amount is taken modulo 32
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
+    ShiftLeft,
+    /// Arithmetic: the sign bit fills in.
+    ShiftRight,
+    /// Logical: zeros fill in (MDL's `>>>`).
+    ShiftRightUnsigned,
 }
 
 impl Op {

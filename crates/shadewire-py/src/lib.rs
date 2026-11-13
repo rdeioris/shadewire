@@ -377,7 +377,15 @@ fn options(
     optimize: bool,
     implicit_derivatives: bool,
 ) -> CompileOptions {
-    CompileOptions { group, first_binding, reserve_uniform_binding, flip_v, optimize, implicit_derivatives }
+    CompileOptions {
+        group,
+        first_binding,
+        reserve_uniform_binding,
+        flip_v,
+        optimize,
+        implicit_derivatives,
+        host_derivatives: false,
+    }
 }
 
 /// Runs a back end with the GIL released.

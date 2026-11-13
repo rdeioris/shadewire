@@ -17,6 +17,12 @@ pub struct CompileOptions {
     /// may call. Off, plain samples read mip level 0 (`textureSampleLevel`) and derivatives are zero, so the
     /// module also runs in a compute stage (a ray tracer's shading).
     pub implicit_derivatives: bool,
+    /// Carry the screen-space derivatives of whatever a texture coordinate depends on through the graph, from the
+    /// host's derivatives of the context reads (`shadewire_host_<read>_dx` / `_dy`, listed in
+    /// `context.derivatives`), sample with explicit gradients, and answer `dpdx` / `dpdy` with the carried
+    /// derivatives. Overrides `implicit_derivatives`. For hosts whose pixels need not share a triangle with their
+    /// 2 × 2 quad, as a visibility buffer's full-screen shading.
+    pub host_derivatives: bool,
 }
 
 impl Default for CompileOptions {
@@ -28,6 +34,7 @@ impl Default for CompileOptions {
             flip_v: true,
             optimize: true,
             implicit_derivatives: true,
+            host_derivatives: false,
         }
     }
 }

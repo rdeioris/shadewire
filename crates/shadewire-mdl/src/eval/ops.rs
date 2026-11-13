@@ -439,20 +439,12 @@ impl<'p, 'a> Eval<'p, 'a> {
             };
             return Ok(ki(r));
         }
-        // A known integer operand of the form `2^n - 1`, for `BitAnd` below.
-        let low_mask = match y.known().or(x.known()) {
-            Some(Value::Integer(m)) if ir == Type::Integer && *m > 0 && (*m as u32 + 1).is_power_of_two() => Some(*m),
-            _ => None,
-        };
         match op {
             Add => self.op(Op::Add, &[x.clone(), y.clone()], ir, origin),
             Sub => self.op(Op::Subtract, &[x.clone(), y.clone()], ir, origin),
             // MaterialX multiplies no integers: in floats, exact for the products shading code makes.
-            Mul if ir == Type::Integer => {
-                let (fx, fy) = (self.int_to_float(x, origin)?, self.int_to_float(y, origin)?);
-                let p = self.op(Op::Multiply, &[fx, fy], Type::Float, origin)?;
-                self.op(Op::Floor, &[p], Type::Integer, origin)
-            }
+            // An integer multiply wraps (two's complement), as MDL's does: hashes such as `(i ^ seed) * 1075385539`
+            // need the low bits a float product would round away.
             Mul => self.op(Op::Multiply, &[x.clone(), y.clone()], ir, origin),
             Div if ir == Type::Integer => {
                 // Truncating division: the float quotient converted, which truncates toward zero.
@@ -468,31 +460,14 @@ impl<'p, 'a> Eval<'p, 'a> {
                 let p = self.arith(Mul, y, &q, ir, kind, origin)?;
                 self.op(Op::Subtract, &[x.clone(), p], ir, origin)
             }
-            Shl | Shr if y.known().is_some() && ir == Type::Integer => {
-                let k = y.known().expect("known").as_f32() as i32;
-                let scale = 2f32.powi(k);
-                let fx = self.int_to_float(x, origin)?;
-                if op == Shl {
-                    let p = self.op(Op::Multiply, &[fx, kf(scale)], Type::Float, origin)?;
-                    self.convert_scalar(&p, Scalar::Float, Scalar::Int, origin)
-                } else {
-                    // An arithmetic shift right is a floored division.
-                    let q = self.op(Op::Divide, &[fx, kf(scale)], Type::Float, origin)?;
-                    self.op(Op::Floor, &[q], Type::Integer, origin)
-                }
-            }
-            // `x & (2^n - 1)`: the floored remainder by 2^n, in two's complement.
-            BitAnd if low_mask.is_some() => {
-                let m = low_mask.expect("low mask");
-                let a = if x.known().is_some() { y } else { x };
-                let k = (m as f32) + 1.0;
-                let fa = self.int_to_float(a, origin)?;
-                let q = self.op(Op::Divide, &[fa.clone(), kf(k)], Type::Float, origin)?;
-                let q = self.op(Op::Floor, &[q], Type::Float, origin)?;
-                let p = self.op(Op::Multiply, &[q, kf(k)], Type::Float, origin)?;
-                let r = self.op(Op::Subtract, &[fa, p], Type::Float, origin)?;
-                self.op(Op::Floor, &[r], Type::Integer, origin)
-            }
+            // Two's-complement integer ops: exact where a float rewrite (`x * 2^k`, a floored remainder) would
+            // round once the value passes 2^24, as hashes do.
+            Shl => self.op(Op::ShiftLeft, &[x.clone(), y.clone()], Type::Integer, origin),
+            Shr => self.op(Op::ShiftRight, &[x.clone(), y.clone()], Type::Integer, origin),
+            ShrUnsigned => self.op(Op::ShiftRightUnsigned, &[x.clone(), y.clone()], Type::Integer, origin),
+            BitAnd => self.op(Op::BitwiseAnd, &[x.clone(), y.clone()], Type::Integer, origin),
+            BitOr => self.op(Op::BitwiseOr, &[x.clone(), y.clone()], Type::Integer, origin),
+            BitXor => self.op(Op::BitwiseXor, &[x.clone(), y.clone()], Type::Integer, origin),
             _ => Err(format!("{} of values known only at run time", op.symbol())),
         }
     }

@@ -26,6 +26,7 @@ pub fn compile(dag: &Dag, source: &SourceInfo, options: &GdshaderOptions) -> Res
         flip_v: true,
         optimize: options.optimize,
         implicit_derivatives: true,
+        host_derivatives: false,
     };
     let (mut module, mut reflection, dag) = lower(dag, source, &shared)?;
     limits::check_textures(reflection.textures.len(), options.max_textures)?;

@@ -13,247 +13,698 @@ expression: "serde_json::to_string_pretty(&compiled.reflection).unwrap()"
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "base_color"
+      "uniform": "base_color",
+      "depends": {
+        "uniforms": [
+          "base_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "base_diffuse_roughness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "base_diffuse_roughness"
+      "uniform": "base_diffuse_roughness",
+      "depends": {
+        "uniforms": [
+          "base_diffuse_roughness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "base_metalness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "base_metalness"
+      "uniform": "base_metalness",
+      "depends": {
+        "uniforms": [
+          "base_metalness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "base_weight": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "base_weight"
+      "uniform": "base_weight",
+      "depends": {
+        "uniforms": [
+          "base_weight"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "coat_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "coat_color"
+      "uniform": "coat_color",
+      "depends": {
+        "uniforms": [
+          "coat_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "coat_darkening": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "coat_darkening"
+      "uniform": "coat_darkening",
+      "depends": {
+        "uniforms": [
+          "coat_darkening"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "coat_ior": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "coat_ior"
+      "uniform": "coat_ior",
+      "depends": {
+        "uniforms": [
+          "coat_ior"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "coat_roughness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "coat_roughness"
+      "uniform": "coat_roughness",
+      "depends": {
+        "uniforms": [
+          "coat_roughness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "coat_roughness_anisotropy": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "coat_roughness_anisotropy"
+      "uniform": "coat_roughness_anisotropy",
+      "depends": {
+        "uniforms": [
+          "coat_roughness_anisotropy"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "coat_weight": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "coat_weight"
+      "uniform": "coat_weight",
+      "depends": {
+        "uniforms": [
+          "coat_weight"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "emission_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "emission_color"
+      "uniform": "emission_color",
+      "depends": {
+        "uniforms": [
+          "emission_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "emission_luminance": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "emission_luminance"
+      "uniform": "emission_luminance",
+      "depends": {
+        "uniforms": [
+          "emission_luminance"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "fuzz_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "fuzz_color"
+      "uniform": "fuzz_color",
+      "depends": {
+        "uniforms": [
+          "fuzz_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "fuzz_roughness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "fuzz_roughness"
+      "uniform": "fuzz_roughness",
+      "depends": {
+        "uniforms": [
+          "fuzz_roughness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "fuzz_weight": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "fuzz_weight"
+      "uniform": "fuzz_weight",
+      "depends": {
+        "uniforms": [
+          "fuzz_weight"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "geometry_coat_normal": {
       "type": "vector3",
       "kind": "varying",
       "value": null,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [
+          "normal_world"
+        ],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "geometry_coat_tangent": {
       "type": "vector3",
       "kind": "varying",
       "value": null,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [
+          "tangent_world"
+        ],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "geometry_normal": {
       "type": "vector3",
       "kind": "varying",
       "value": null,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [
+          "normal_world"
+        ],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "geometry_opacity": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "geometry_opacity"
+      "uniform": "geometry_opacity",
+      "depends": {
+        "uniforms": [
+          "geometry_opacity"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "geometry_tangent": {
       "type": "vector3",
       "kind": "varying",
       "value": null,
-      "uniform": null
+      "uniform": null,
+      "depends": {
+        "uniforms": [],
+        "textures": [],
+        "varyings": [
+          "tangent_world"
+        ],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "geometry_thin_walled": {
       "type": "boolean",
       "kind": "uniform",
       "value": null,
-      "uniform": "geometry_thin_walled"
+      "uniform": "geometry_thin_walled",
+      "depends": {
+        "uniforms": [
+          "geometry_thin_walled"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "specular_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "specular_color"
+      "uniform": "specular_color",
+      "depends": {
+        "uniforms": [
+          "specular_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "specular_ior": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "specular_ior"
+      "uniform": "specular_ior",
+      "depends": {
+        "uniforms": [
+          "specular_ior"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "specular_roughness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "specular_roughness"
+      "uniform": "specular_roughness",
+      "depends": {
+        "uniforms": [
+          "specular_roughness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "specular_roughness_anisotropy": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "specular_roughness_anisotropy"
+      "uniform": "specular_roughness_anisotropy",
+      "depends": {
+        "uniforms": [
+          "specular_roughness_anisotropy"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "specular_weight": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "specular_weight"
+      "uniform": "specular_weight",
+      "depends": {
+        "uniforms": [
+          "specular_weight"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "subsurface_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "subsurface_color"
+      "uniform": "subsurface_color",
+      "depends": {
+        "uniforms": [
+          "subsurface_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "subsurface_radius": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "subsurface_radius"
+      "uniform": "subsurface_radius",
+      "depends": {
+        "uniforms": [
+          "subsurface_radius"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "subsurface_radius_scale": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "subsurface_radius_scale"
+      "uniform": "subsurface_radius_scale",
+      "depends": {
+        "uniforms": [
+          "subsurface_radius_scale"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "subsurface_scatter_anisotropy": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "subsurface_scatter_anisotropy"
+      "uniform": "subsurface_scatter_anisotropy",
+      "depends": {
+        "uniforms": [
+          "subsurface_scatter_anisotropy"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "subsurface_weight": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "subsurface_weight"
+      "uniform": "subsurface_weight",
+      "depends": {
+        "uniforms": [
+          "subsurface_weight"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "thin_film_ior": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "thin_film_ior"
+      "uniform": "thin_film_ior",
+      "depends": {
+        "uniforms": [
+          "thin_film_ior"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "thin_film_thickness": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "thin_film_thickness"
+      "uniform": "thin_film_thickness",
+      "depends": {
+        "uniforms": [
+          "thin_film_thickness"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "thin_film_weight": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "thin_film_weight"
+      "uniform": "thin_film_weight",
+      "depends": {
+        "uniforms": [
+          "thin_film_weight"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "transmission_color": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "transmission_color"
+      "uniform": "transmission_color",
+      "depends": {
+        "uniforms": [
+          "transmission_color"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "transmission_depth": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "transmission_depth"
+      "uniform": "transmission_depth",
+      "depends": {
+        "uniforms": [
+          "transmission_depth"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "transmission_dispersion_abbe_number": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "transmission_dispersion_abbe_number"
+      "uniform": "transmission_dispersion_abbe_number",
+      "depends": {
+        "uniforms": [
+          "transmission_dispersion_abbe_number"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "transmission_dispersion_scale": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "transmission_dispersion_scale"
+      "uniform": "transmission_dispersion_scale",
+      "depends": {
+        "uniforms": [
+          "transmission_dispersion_scale"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "transmission_scatter": {
       "type": "color3",
       "kind": "uniform",
       "value": null,
-      "uniform": "transmission_scatter"
+      "uniform": "transmission_scatter",
+      "depends": {
+        "uniforms": [
+          "transmission_scatter"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "transmission_scatter_anisotropy": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "transmission_scatter_anisotropy"
+      "uniform": "transmission_scatter_anisotropy",
+      "depends": {
+        "uniforms": [
+          "transmission_scatter_anisotropy"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     },
     "transmission_weight": {
       "type": "float",
       "kind": "uniform",
       "value": null,
-      "uniform": "transmission_weight"
+      "uniform": "transmission_weight",
+      "depends": {
+        "uniforms": [
+          "transmission_weight"
+        ],
+        "textures": [],
+        "varyings": [],
+        "derived": [],
+        "globals": [],
+        "geomprops": [],
+        "transforms": []
+      }
     }
   },
   "uniforms": [

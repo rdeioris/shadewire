@@ -1,3 +1,4 @@
+pub mod bitwise;
 pub mod broadcast;
 pub mod catalog;
 pub mod channel;
@@ -70,5 +71,8 @@ pub fn eval_op(op: &Op, args: &[Value], ty: Type, ctx: &mut dyn ContextSource) -
         Op::NormalMap => normal::eval(op, args, ty),
         Op::Dpdx | Op::Dpdy => derivative::eval(op, args, ty),
         Op::HextileCoord(_) | Op::HextileGrad(_) | Op::HextileWeights => hextile::eval(op, args, ty),
+        Op::BitwiseAnd | Op::BitwiseOr | Op::BitwiseXor | Op::ShiftLeft | Op::ShiftRight | Op::ShiftRightUnsigned => {
+            bitwise::eval(op, args, ty)
+        }
     }
 }

@@ -254,6 +254,7 @@ mod tests {
             globals: Vec::new(),
             geomprops: Vec::new(),
             transforms: Vec::new(),
+            derivatives: Vec::new(),
         }
     }
 

@@ -111,6 +111,9 @@ pub struct QualifiedImport {
 pub struct ModuleData {
     /// `::a::b`.
     pub name: String,
+    /// The other absolute names the module was loaded by: a file under two search path roots, one inside the other,
+    /// has a name from each (Kit's `core` and `core/Base`: `::Base::OmniPBR` and `::OmniPBR`).
+    pub other_names: Vec<String>,
     pub ast: Module,
     pub file: Option<String>,
     /// The folder of the module's file, for relative imports and texture paths.
@@ -129,6 +132,11 @@ pub struct ModuleData {
 }
 
 impl ModuleData {
+    /// Whether `name` (`::a::b`) is the module's name or one it was loaded by.
+    pub fn is_named(&self, name: &str) -> bool {
+        self.name == name || self.other_names.iter().any(|n| n == name)
+    }
+
     pub fn version(&self) -> (u32, u32) {
         self.ast.version
     }
@@ -311,6 +319,14 @@ impl Program {
             None => self.by_name.get(name),
         };
         if let Some(&id) = loaded {
+            // A file loaded first by another name (or as a main module) answers to this one too.
+            if found.as_ref().is_some_and(|(_, on_search_path)| *on_search_path) {
+                let m = &mut self.modules[id];
+                if m.name != name && !m.other_names.iter().any(|n| n == name) {
+                    m.other_names.push(name.to_string());
+                }
+                self.by_name.entry(name.to_string()).or_insert(id);
+            }
             return Ok(id);
         }
         let (text, file, dir, keys) = match found {
@@ -388,6 +404,7 @@ impl Program {
             .collect();
         self.modules.push(ModuleData {
             name,
+            other_names: Vec::new(),
             ast,
             file,
             dir,
@@ -686,7 +703,7 @@ impl Program {
             }
         }
         let full: String = qualifier.iter().map(|p| format!("::{p}")).collect();
-        if let Some(found) = m.qualified.iter().find(|q| self.modules[q.module].name == full) {
+        if let Some(found) = m.qualified.iter().find(|q| self.modules[q.module].is_named(&full)) {
             return Some(found.module);
         }
         // A name of a module the program has loaded, imported here or not.

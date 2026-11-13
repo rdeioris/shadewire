@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
+use super::depends::{FieldDepends, depends};
 use crate::classify::node_kinds;
 use crate::{Dag, NodeKind, ParamKind, Type, Value};
 
@@ -18,6 +19,8 @@ pub struct ParamReflection {
     pub value: Option<Value>,
     /// Some only when the field node itself is a Uniform.
     pub uniform: Option<String>,
+    /// The uniforms, textures, context reads and transforms the field's value depends on.
+    pub depends: FieldDepends,
 }
 
 pub fn params(dag: &Dag) -> BTreeMap<String, ParamReflection> {
@@ -34,7 +37,10 @@ pub fn params(dag: &Dag) -> BTreeMap<String, ParamReflection> {
             (ParamKind::Uniform, None) => ("uniform_expr", None),
             (ParamKind::Varying, _) => ("varying", None),
         };
-        out.insert(field.name.clone(), ParamReflection { ty: field.ty, kind, value, uniform });
+        out.insert(
+            field.name.clone(),
+            ParamReflection { ty: field.ty, kind, value, uniform, depends: depends(dag, field.node) },
+        );
     }
     out
 }

@@ -214,13 +214,61 @@ fn errors_name_what_failed() {
     };
     assert!(message(&diffuse("1.7", "", "", "nope")).contains("unknown name nope"));
     assert!(message(&diffuse("1.7", "", "color t", "t")).contains("parameter t has no default"));
-    let bits = diffuse(
-        "1.7",
-        "color f() { int a = int(state::texture_coordinate(0).x * 8.0); int b = a ^ (a + 1); return color(float(b)); }",
-        "",
-        "f()",
-    );
-    assert!(message(&bits).contains("^ of values known only at run time"));
+}
+
+/// A `continue` under a run-time condition leaves the counter known, so the loop still unrolls (OmniUber's flakes).
+#[test]
+fn loops_with_a_run_time_continue_unroll() {
+    let prelude = "float f() { float x = state::texture_coordinate(0).x; float s = 0.0;                    for (int i = 0; i < 3; ++i) { for (int j = 0; j < 3; ++j) { if (x * float(i + j) > 0.2) continue; s += 1.0; } }                    return s; }";
+    let ir = lower_constants(&diffuse("1.7", prelude, "", "color(f())"));
+    let mut probe = shadewire::testing::Probe(0);
+    let fields = shadewire::interpret::eval_surface(&ir.dag, &mut probe, &shadewire::testing::ProbeTextures);
+    // Probe 0's texcoord x is 0.15: i + j <= 1 passes, three of the nine.
+    let color = &fields.iter().find(|(n, _)| n == "c0_color").unwrap().1;
+    assert_eq!(color, &Value::Color3([3.0, 3.0, 3.0]));
+}
+
+/// MDL's integer operators at run time, on the hash OmniUber_Automotive's car paint flakes use.
+#[test]
+fn run_time_integer_operators_are_twos_complement() {
+    let prelude = "int hash(int seed, int i) { return (i ^ seed) * 1075385539; }
+                   int next(int seed) { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return seed; }
+                   color f() { int a = int(state::texture_coordinate(0).x * 1000.0); int s = next(hash(hash(0, a), -7));                    return color(float(s & 0xFFFF), float(s | 3), float(s >> 9)); }";
+    let ir = lower_constants(&diffuse("1.7", prelude, "", "f()"));
+    let ops: Vec<shadewire::Op> = ir
+        .dag
+        .nodes
+        .iter()
+        .filter_map(|n| match &n.kind {
+            shadewire::NodeKind::Op { op, .. } => Some(*op),
+            _ => None,
+        })
+        .collect();
+    for op in [
+        shadewire::Op::BitwiseXor,
+        shadewire::Op::BitwiseAnd,
+        shadewire::Op::BitwiseOr,
+        shadewire::Op::ShiftLeft,
+        shadewire::Op::ShiftRight,
+        shadewire::Op::ShiftRightUnsigned,
+    ] {
+        assert!(
+            ops.contains(&op),
+            "{op:?} missing:
+{}",
+            ir.dag.dump()
+        );
+    }
+    let mut probe = shadewire::testing::Probe(0);
+    let fields = shadewire::interpret::eval_surface(&ir.dag, &mut probe, &shadewire::testing::ProbeTextures);
+    // Probe 0's texcoord x is 0.15: a = 150.
+    let hash = |seed: i32, i: i32| (i ^ seed).wrapping_mul(1_075_385_539);
+    let mut s = hash(hash(0, 150), -7);
+    s ^= s << 13;
+    s ^= ((s as u32) >> 17) as i32;
+    s ^= s << 5;
+    let color = &fields.iter().find(|(n, _)| n == "c0_color").unwrap().1;
+    assert_eq!(color, &Value::Color3([(s & 0xFFFF) as f32, (s | 3) as f32, (s >> 9) as f32]));
 }
 
 #[test]

@@ -235,6 +235,34 @@ mod tests {
         }
     }
 
+    /// A module under two search path roots, one inside the other, has a name from each (Kit's `core` and `core/Base`:
+    /// `::Base::OmniPBR` and `::OmniPBR`). Whichever name loads it first, a material of another module reaches it by
+    /// the name that module imports.
+    #[test]
+    fn a_module_under_nested_roots_answers_to_both_names_in_any_order() {
+        let dir = std::env::temp_dir().join(format!("shadewire-mdl-nested-roots-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("core/Base")).unwrap();
+        std::fs::create_dir_all(dir.join("stage")).unwrap();
+        let pbr = "mdl 1.7;\nimport ::df::*;\nexport material Pbr(color tint = color(0.5)) = \
+                   material(surface: material_surface(scattering: df::diffuse_reflection_bsdf(tint: tint)));\n";
+        std::fs::write(dir.join("core/Base/Pbr.mdl"), pbr).unwrap();
+        let gold = "mdl 1.7;\nimport ::Pbr::Pbr;\nexport material Gold(*) = ::Pbr::Pbr(tint: color(1.0, 0.8, 0.2));\n";
+        std::fs::write(dir.join("stage/Gold.mdl"), gold).unwrap();
+        let paths = vec![dir.join("core"), dir.join("core/Base")];
+        let main = dir.join("core/Base/Pbr.mdl").to_string_lossy().to_string();
+        let variant = dir.join("stage/Gold.mdl").to_string_lossy().to_string();
+        let options = IrOptions::with_models(&shadewire::LOBE_MODELS);
+        for order in [[&variant, &main], [&main, &variant]] {
+            let modules = Modules::new(Resolver::new(paths.clone())).unwrap();
+            for module in order {
+                if let Err(e) = modules.to_ir(module, None, &[], &options) {
+                    panic!("{module} after {:?}: {e}", order[0]);
+                }
+            }
+        }
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     #[test]
     fn a_load_that_panics_leaves_every_later_call_an_error() {
         let dir = std::env::temp_dir().join("shadewire-mdl-panicked-load");
