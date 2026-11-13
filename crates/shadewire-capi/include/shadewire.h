@@ -13,7 +13,7 @@
 #define SHADEWIRE_VERSION_MAJOR 0
 
 // The minor version of the header.
-#define SHADEWIRE_VERSION_MINOR 3
+#define SHADEWIRE_VERSION_MINOR 4
 
 // The patch version of the header.
 #define SHADEWIRE_VERSION_PATCH 0

@@ -8,7 +8,7 @@ use std::os::raw::c_char;
 /// The major version of the header; compare with `shadewire_version() >> 16` to check the library.
 pub const SHADEWIRE_VERSION_MAJOR: u32 = 0;
 /// The minor version of the header.
-pub const SHADEWIRE_VERSION_MINOR: u32 = 3;
+pub const SHADEWIRE_VERSION_MINOR: u32 = 4;
 /// The patch version of the header.
 pub const SHADEWIRE_VERSION_PATCH: u32 = 0;
 
