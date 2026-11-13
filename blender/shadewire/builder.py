@@ -14,8 +14,8 @@ above it) goes into the lobe's color when the lobe scales by one, else through a
 GLSL does; the lobes are summed with Add Shader.
 
 Every IR name is looked up in a table of handlers, one table per kind of name: `NODE_KINDS` (DAG node kinds),
-`CONTEXT_READS`, `OPS`, `LOBES`, `CLOSURE_OPS` (layer, mix, add, multiply over BSDFs), `EMISSION_OPS` (the
-same over EDFs), `EMITTERS` and `MODELS`. A name a table lacks is warned about and reads as zero.
+`CONTEXT_READS`, `OPS`, `LOBES`, `CLOSURE_OPS` (layer, mix, add, multiply over BSDFs, and the empty closure),
+`EMISSION_OPS` (the same over EDFs), `EMITTERS` and `MODELS`. A name a table lacks is warned about and reads as zero.
 """
 
 import math
@@ -660,6 +660,11 @@ class Builder:
         node = self.closure(index)
         return CLOSURE_OPS[node["op"]](self, node, weight, out)
 
+    def bsdf_empty(self, node, weight, out):
+        """The side of a mix (or a layer's top) that scatters nothing: no shader, no albedo, so a layer's base keeps
+        its whole weight."""
+        return BLACK
+
     def bsdf_lobe(self, node, weight, out):
         handler = LOBES.get(node["kind"])
         if handler is None:
@@ -699,6 +704,9 @@ class Builder:
         """The emission of closure node `index`, three components."""
         node = self.closure(index)
         return EMISSION_OPS[node["op"]](self, node)
+
+    def emission_empty(self, node):
+        return BLACK
 
     def emission_lobe(self, node):
         handler = EMITTERS.get(node["kind"])
@@ -1077,6 +1085,7 @@ LOBES = {
 }
 
 CLOSURE_OPS = {
+    "empty": Builder.bsdf_empty,
     "lobe": Builder.bsdf_lobe,
     "layer": Builder.bsdf_layer,
     "mix": Builder.bsdf_mix,
@@ -1085,6 +1094,7 @@ CLOSURE_OPS = {
 }
 
 EMISSION_OPS = {
+    "empty": Builder.emission_empty,
     "lobe": Builder.emission_lobe,
     "layer": Builder.emission_layer,
     "mix": Builder.emission_mix,

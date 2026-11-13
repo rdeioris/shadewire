@@ -174,7 +174,8 @@ impl<'p, 'a> Eval<'p, 'a> {
                 self.from_parts(to, parts, origin)
             }
             // What the MDL SDK's compiler converts implicitly beyond the specification's rules: a float to an int
-            // where an int is declared, a float3 to a color and back, a file name to a texture.
+            // where an int is declared, a float3 to a color and back, a file name to a texture, a scalar to a
+            // vector of it (vMaterials' `float4 lookup = 0.0f;`). Overloads are not picked by these.
             (Ty::Scalar(from), Ty::Scalar(s)) => {
                 let n = v.num().expect("a scalar is a number").clone();
                 let n = self.convert_scalar(&n, *from, *s, origin)?;
@@ -187,6 +188,10 @@ impl<'p, 'a> Eval<'p, 'a> {
                 self.construct(to, vec![v], origin)
             }
             (Ty::Scalar(_), Ty::Color) => self.construct(to, vec![v], origin),
+            (Ty::Scalar(_), Ty::Vector(s, _)) => {
+                let v = self.convert_val(v, &Ty::Scalar(*s), true, origin)?;
+                self.construct(to, vec![v], origin)
+            }
             (Ty::Array(e, _), Ty::Array(f, Len::Deferred(_))) if e == f => Ok(Val::new(v.ty.clone(), v.v)),
             (Ty::Array(e, Len::Fixed(n)), Ty::Array(f, Len::Fixed(m))) if n == m => {
                 let elements = v.elements().expect("an array").to_vec();

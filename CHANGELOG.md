@@ -9,6 +9,11 @@
   File > Export > MDL (Shadewire) writes each material as an MDL 1.7 module (one material: the chosen file; several:
   one module each beside it, named after the material), its textures copied into `textures/` and referenced as
   `./textures/...`; what MDL cannot say is reported as warnings. `blender/test_mdl.py` tests both.
+- **MDL: `::name` is the module scope's `name`.** A rooted name with no module before it (vMaterials'
+  `::perlin_noise_bump_texture(...)` calling the module's own function) resolved as a module path and failed with
+  "unknown function"; it now looks up the module's declarations and `using` imports, as the MDL SDK does.
+- **Blender: the empty closure.** The builder handles the IR's `empty` closure (a mix side or layer top that scatters
+  nothing): materials whose lobes held one failed to build with `KeyError: 'empty'`.
 - **Python: `distill`.** `shadewire.mtlx.to_ir` and `shadewire.mdl.to_ir` take `distill=True`, as the CLI's
   `--distill`: a material that would open into a closure tree comes out as an `open_pbr_surface` when `models`
   accepts it.

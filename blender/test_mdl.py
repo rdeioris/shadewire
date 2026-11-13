@@ -98,6 +98,11 @@ def test_import_lobes():
     check("ShaderNodeBsdfPrincipled" not in names, f"velvet in Lobes: {names}")
     check("ShaderNodeBsdfSheen" in names, f"velvet in Lobes has no Sheen BSDF: {names}")
     check(velvet.get("shadewire_mode") == "LOBES", "velvet: mode not recorded")
+    # weighted.mdl's layers over nothing and conditional coats lower to empty closures.
+    path = os.path.join(fixtures, "weighted.mdl")
+    names = compiler.backend(executable).material_names(path)
+    made = imported(path, mode="LOBES")
+    check(len(made) == len(names), f"weighted.mdl in Lobes: {len(made)} of {len(names)} built")
 
 
 def test_search_paths():

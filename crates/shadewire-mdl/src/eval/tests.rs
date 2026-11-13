@@ -459,3 +459,10 @@ fn a_declaration_with_constructor_arguments_copies_a_value_of_its_type() {
     assert_eq!(field_value(&ir, "c0_color"), Value::Color3([0.25; 3]));
     assert!(ir.dag.textures.iter().any(|t| t.file.ends_with("wood.png")), "{:?}", ir.dag.textures);
 }
+
+#[test]
+fn a_scalar_declares_a_vector_of_it() {
+    // The MDL SDK accepts it, and vMaterials rely on it.
+    let prelude = "color splat() { float4 v = 0.5f; int3 i = 2; return color(v.x + v.w, float(i.z), v.y); }";
+    assert_eq!(tint_of(prelude, "splat()"), Value::Color3([1.0, 2.0, 0.5]));
+}

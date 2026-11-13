@@ -666,9 +666,11 @@ impl Program {
     }
 
     /// What `name` refers to in module `from`: its own declarations, its unqualified imports, then the prelude;
-    /// a qualified name through the module it names.
+    /// a qualified name through the module it names. `::name`, rooted with no module before it, is the module
+    /// scope's `name`, as C++'s global `::name` (the caller skips the locals): vMaterials call their own functions
+    /// that way, and the MDL SDK accepts it.
     pub fn lookup(&self, from: usize, name: &QualifiedName) -> Vec<Entity> {
-        if name.is_simple() {
+        if name.parts.len() == 1 {
             let n = name.last();
             let m = &self.modules[from];
             let mut out: Vec<Entity> = m.own.get(n).cloned().unwrap_or_default();
@@ -853,6 +855,25 @@ import ::p::odd::m::*;
             )
             .unwrap();
         assert!(program.by_name("::p::odd pkg::m").is_some());
+    }
+
+    #[test]
+    fn a_rooted_name_without_a_module_is_the_module_scope() {
+        let mut program = Program::new(Resolver::default()).unwrap();
+        let main = program
+            .add_main(
+                "mdl 1.7;
+using ::anno import hard_range;
+export float twice(float x) = x * 2.0;
+",
+                None,
+            )
+            .unwrap();
+        let rooted = |n: &str| QualifiedName { absolute: true, parts: vec![n.to_string()] };
+        assert!(matches!(program.lookup(main, &rooted("twice")).as_slice(), [Entity::Function { .. }]));
+        // What `using` brings into the module scope is there too.
+        assert!(!program.lookup(main, &rooted("hard_range")).is_empty());
+        assert!(program.lookup(main, &rooted("nothing_here")).is_empty());
     }
 
     #[test]
