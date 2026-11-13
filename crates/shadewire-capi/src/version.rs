@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn version_packs_major_minor_patch() {
-        assert_eq!(shadewire_version(), 3 << 8);
+        assert_eq!(shadewire_version(), 4 << 8);
     }
 
     #[test]
