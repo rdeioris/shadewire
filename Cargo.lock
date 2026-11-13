@@ -3837,7 +3837,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -3846,7 +3846,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-bevy"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bevy",
  "naga",
@@ -3861,7 +3861,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-blender"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "insta",
  "serde",
@@ -3877,7 +3877,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-capi"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "cbindgen",
  "serde_json",
@@ -3895,7 +3895,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-capi-ctest"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "cc",
  "shadewire-capi",
@@ -3903,7 +3903,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-cli"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "clap",
  "serde_json",
@@ -3922,7 +3922,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-gdshader"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "shadewire",
  "shadewire-mtlx",
@@ -3931,21 +3931,21 @@ dependencies = [
 
 [[package]]
 name = "shadewire-glsl"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "shadewire",
 ]
 
 [[package]]
 name = "shadewire-hlsl"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "shadewire",
 ]
 
 [[package]]
 name = "shadewire-mdl"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "insta",
  "pest",
@@ -3961,14 +3961,14 @@ dependencies = [
 
 [[package]]
 name = "shadewire-msl"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "shadewire",
 ]
 
 [[package]]
 name = "shadewire-mtlx"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "insta",
  "png 0.17.16",
@@ -3983,7 +3983,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-nodes"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "include_dir",
  "quick-xml",
@@ -3993,7 +3993,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-py"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "pyo3",
  "serde",
@@ -4012,7 +4012,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-unreal"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "insta",
  "serde",
@@ -4026,7 +4026,7 @@ dependencies = [
 
 [[package]]
 name = "shadewire-wgsl"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "naga",
  "pollster",

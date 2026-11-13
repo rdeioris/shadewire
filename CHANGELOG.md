@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (2026-11-13)
 
 - **Blender: MDL import and export.** File > Import > MDL (Shadewire) creates one Blender material per exported
   material of a module: in Principled BSDF mode distilled to one Principled BSDF (`open_pbr_surface`), in MDL Lobes

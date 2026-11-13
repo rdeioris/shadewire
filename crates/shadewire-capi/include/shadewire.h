@@ -1017,7 +1017,7 @@ shadewire_status shadewire_unreal_material_names(const char *text,
 // The version as `(major << 16) | (minor << 8) | patch`.
 uint32_t shadewire_version(void);
 
-// The version as a static NUL-terminated string, e.g. "0.3.0".
+// The version as a static NUL-terminated string, e.g. "0.4.0".
 const char *shadewire_version_string(void);
 
 #ifdef __cplusplus
