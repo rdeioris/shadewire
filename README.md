@@ -40,7 +40,7 @@ The code calls host functions for geometry and time (`shadewire_host_normal_worl
 the generated code depends on a particular engine. On top of the Rust crates sit the `shadewire` command, a C
 API, a Python module (`pip install shadewire`), a Bevy plugin, a Godot 4 extension that loads `.mtlx` files as
 `ShaderMaterial`s, and a Blender extension that imports MaterialX (and the MaterialX materials of USD scenes)
-as Blender node trees.
+and MDL as Blender node trees, and exports them back.
 
 Licensed under MIT; vendored MaterialX files are Apache-2.0, the noise and color code derives from Open
 Shading Language, BSD-3-Clause, and the vendored MDL SDK modules are NVIDIA's, BSD-3-Clause (see NOTICE). The Blender add-on (`blender/shadewire`) is GPL-3.0-or-later, as
@@ -96,7 +96,7 @@ back ends.
 | A C/C++ host | `shadewire-capi` (shared or static library + `shadewire.h`) | — |
 | A Python host or tool | `pip install shadewire` ([its README](crates/shadewire-py/README.md)) | — |
 | A Bevy app | `shadewire-bevy` | — |
-| MaterialX materials in Blender | the Blender extension ([its README](blender/README.md)) | — |
+| MaterialX or MDL materials in Blender | the Blender extension ([its README](blender/README.md)) | — |
 | Unreal materials as MaterialX or MDL | the Unreal plugin ([its README](unreal/README.md)) | — |
 
 ## Usage
@@ -402,8 +402,9 @@ bytes and pixels guard untrusted documents. See [its README](crates/shadewire-go
 The Blender extension (4.3 or later) imports MaterialX materials as Blender node trees, which Cycles and EEVEE both
 render: File > Import > MaterialX, and on Blender 4.4+ a USD hook that builds the MaterialX materials of a USD scene
 as it is imported (from referenced `.mtlx` files, `.usdz` included, or from the network authored in the USD).
-Shading is either one Principled BSDF driven by a named model's parameters, or every material as its lobes, one
-BSDF node each. The extension bundles the `shadewire` Python module; `blender/build_extension.py` builds the wheels
+File > Import > MDL reads the exported materials of an MDL module the same way, and File > Export writes materials
+as MaterialX or as MDL modules. Shading is either one Principled BSDF driven by a named model's parameters (an MDL
+material distilled to OpenPBR's), or every material as its lobes, one BSDF node each. The extension bundles the `shadewire` Python module; `blender/build_extension.py` builds the wheels
 and the zip for extensions.blender.org. See [its README](blender/README.md).
 
 ## Reflection

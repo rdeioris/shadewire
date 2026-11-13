@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Roberto De Ioris
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Compiles MaterialX materials to the Shadewire IR document.
+"""Compiles MaterialX and MDL materials to the Shadewire IR document, and Blender graphs to MaterialX and MDL.
 
 Two backends with one interface: the `shadewire` Python module (the wheels this extension bundles, which
 Blender installs; built for Python's stable ABI from 3.8, so one wheel per platform serves every Blender), and
@@ -24,8 +24,16 @@ MODES = {
     "PRINCIPLED": ["standard_surface", "open_pbr_surface", "gltf_pbr", "surface_unlit", "surface"],
     "LOBES": ["surface", "surface_unlit"],
 }
+# An MDL material is a closure tree. PRINCIPLED distills it to an `open_pbr_surface` (one Principled BSDF); LOBES
+# keeps its lobes. Each mode: (models, distill).
+MDL_MODES = {
+    "PRINCIPLED": (["open_pbr_surface", "surface", "surface_unlit"], True),
+    "LOBES": (["surface", "surface_unlit"], False),
+}
 # The models an export lowers to: a Principled BSDF stays one, lobes become a closure tree.
 EXPORT_MODELS = ["open_pbr_surface", "surface", "surface_unlit"]
+# The models an MDL export lowers to: MDL writes closure trees, so a Principled BSDF opens into its lobes.
+MDL_EXPORT_MODELS = ["surface", "surface_unlit"]
 # The element tags Shadewire embeds in every document it writes, which repeat when documents are merged.
 EMBEDDED_TAGS = ("nodedef", "implementation")
 IR_FORMAT = ("shadewire-ir", 1)
@@ -33,6 +41,17 @@ IR_FORMAT = ("shadewire-ir", 1)
 
 class CompileError(Exception):
     pass
+
+
+def is_mdl(path):
+    """Whether `path` names an MDL module (by its extension); anything else is read as MaterialX."""
+    return str(path).lower().endswith(".mdl")
+
+
+def split_paths(text):
+    """The folders of a search path written as one string, separated by `;` (or the platform's separator)."""
+    parts = text.replace(os.pathsep, ";").split(";") if text else []
+    return [part.strip() for part in parts if part.strip()]
 
 
 def checked(doc):
@@ -44,8 +63,9 @@ def checked(doc):
 class ModuleBackend:
     """The `shadewire` Python module, in process."""
 
-    def __init__(self, module):
+    def __init__(self, module, mdl_paths=()):
         self.module = module
+        self.mdl_paths = list(mdl_paths)
         self.name = f"shadewire module {module.version()}"
 
     @staticmethod
@@ -56,15 +76,42 @@ class ModuleBackend:
         except OSError as e:
             raise CompileError(f"{mtlx}: {e}") from e
 
-    def material_names(self, mtlx):
+    def mdl(self):
+        """The module's MDL front end; a CompileError when the installed module predates it (or `distill`)."""
+        mdl = getattr(self.module, "mdl", None)
+        if mdl is None or "distill" not in (mdl.to_ir.__text_signature__ or ""):
+            raise CompileError(f"the installed shadewire module {self.module.version()} cannot read MDL modules; "
+                               "this extension needs its bundled module or the shadewire executable")
+        return mdl
+
+    def material_names(self, path):
+        """The materials of a MaterialX document or (by extension) the exported materials of an MDL module."""
+        if is_mdl(path):
+            self.mdl()
         try:
-            return self.module.mtlx.material_names(self.read(mtlx), location=mtlx)
+            if is_mdl(path):
+                return self.module.mdl.material_names(self.read(path), paths=self.mdl_paths, location=path)
+            return self.module.mtlx.material_names(self.read(path), location=path)
         except self.module.ShadewireError as e:
             raise CompileError(str(e)) from e
 
-    def compile(self, mtlx, material, editable, mode="PRINCIPLED"):
-        """The MaterialX front end, the optimizer, the IR as a document."""
-        return self.compile_text(self.read(mtlx), mtlx, material, editable, mode)
+    def compile(self, path, material, editable, mode="PRINCIPLED"):
+        """The front end of the file's format (MaterialX, or MDL by extension), the optimizer, the IR as a
+        document."""
+        if is_mdl(path):
+            return self.compile_mdl(path, material, editable, mode)
+        return self.compile_text(self.read(path), path, material, editable, mode)
+
+    def compile_mdl(self, path, material, editable, mode):
+        models, distill = MDL_MODES[mode]
+        mdl = self.mdl()
+        try:
+            ir = mdl.to_ir(self.read(path), material=material, models=models, values_as_uniforms=editable,
+                                       paths=self.mdl_paths, location=path, distill=distill)
+            doc = ir.optimize().to_dict()
+        except self.module.ShadewireError as e:
+            raise CompileError(str(e)) from e
+        return checked(doc)
 
     def compile_text(self, text, path, material, editable, mode="PRINCIPLED"):
         """`compile` of a document's text; `path` (None for none) anchors its includes."""
@@ -89,13 +136,32 @@ class ModuleBackend:
             raise CompileError(str(e)) from e
         return text, list(ir.warnings) + list(writer_warnings)
 
+    def to_mdl(self, graph_text, material, name):
+        """A Blender graph document's `material` as an MDL 1.7 module exporting one material, `name` (made an MDL
+        identifier): `(text, warnings)`, the warnings the front end's and what MDL cannot say."""
+        if not hasattr(self.module, "blender"):
+            raise CompileError(missing_front_end(self.module))
+        mdl = self.mdl()
+        try:
+            ir = self.module.blender.to_ir(graph_text, material=material, models=MDL_EXPORT_MODELS,
+                                           values_as_uniforms=True)
+            compiled = mdl.compile(ir, name=name)
+        except self.module.ShadewireError as e:
+            raise CompileError(str(e)) from e
+        return compiled.code, list(ir.warnings) + list(compiled.reflection.get("approximations", []))
+
 
 class ExecutableBackend:
     """The `shadewire` command-line compiler, one process per call."""
 
-    def __init__(self, path):
+    def __init__(self, path, mdl_paths=()):
         self.path = path
+        self.mdl_paths = list(mdl_paths)
         self.name = f"shadewire executable {path}"
+
+    def mdl_args(self, path):
+        """The search path arguments for an MDL module; none for MaterialX."""
+        return [arg for folder in self.mdl_paths for arg in ("--mdl-path", folder)] if is_mdl(path) else []
 
     def run(self, args):
         return self.run_with_stderr(args)[0]
@@ -109,13 +175,16 @@ class ExecutableBackend:
             raise CompileError(done.stderr.strip() or f"shadewire exited with {done.returncode}")
         return done.stdout, done.stderr
 
-    def material_names(self, mtlx):
-        return [line for line in self.run(["list", mtlx]).splitlines() if line.strip()]
+    def material_names(self, path):
+        return [line for line in self.run(["list", path, *self.mdl_args(path)]).splitlines() if line.strip()]
 
-    def compile(self, mtlx, material, editable, mode="PRINCIPLED"):
-        args = ["ir", mtlx, "--json"]
-        for model in MODES[mode]:
+    def compile(self, path, material, editable, mode="PRINCIPLED"):
+        args = ["ir", path, "--json", *self.mdl_args(path)]
+        models, distill = MDL_MODES[mode] if is_mdl(path) else (MODES[mode], False)
+        for model in models:
             args += ["--model", model]
+        if distill:
+            args.append("--distill")
         if material:
             args += ["--material", material]
         if not editable:
@@ -154,6 +223,30 @@ class ExecutableBackend:
         finally:
             os.remove(temporary)
         return text, [line.strip() for line in stderr.splitlines() if line.strip()]
+
+    def to_mdl(self, graph_text, material, name):
+        """`ModuleBackend.to_mdl` through `compile --lang mdl`: the front end's warnings are stderr's lines, what MDL
+        cannot say the reflection's approximations."""
+        renamed = renamed_material(graph_text, material, name)
+        folder = tempfile.mkdtemp()
+        graph_path, reflection_path = os.path.join(folder, "graph.json"), os.path.join(folder, "reflection.json")
+        try:
+            with open(graph_path, "w", encoding="utf-8") as f:
+                f.write(renamed)
+            args = ["compile", graph_path, "--format", "blender", "--lang", "mdl", "--material", name,
+                    "--reflection", reflection_path]
+            for model in MDL_EXPORT_MODELS:
+                args += ["--model", model]
+            text, stderr = self.run_with_stderr(args)
+            with open(reflection_path, encoding="utf-8") as f:
+                approximations = json.load(f).get("approximations", [])
+        except CompileError as e:
+            raise CompileError(self.hinted(str(e))) from e
+        except (OSError, ValueError) as e:
+            raise CompileError(f"reading the MDL reflection: {e}") from e
+        finally:
+            shutil.rmtree(folder, ignore_errors=True)
+        return text, [line.strip() for line in stderr.splitlines() if line.strip()] + list(approximations)
 
     def hinted(self, message):
         """`message`, with what to do about it when the executable predates the Blender front end: clap's words
@@ -262,9 +355,9 @@ def missing_front_end(module):
             "bundled module (0.3.0 with shadewire.blender) or the shadewire executable")
 
 
-def backend(configured_executable=""):
+def backend(configured_executable="", mdl_paths=()):
     """The module when it imports with its Blender front end (and no executable is configured), else the
-    executable. A module without the front end counts as absent."""
+    executable. A module without the front end counts as absent. `mdl_paths` is the MDL search path."""
     old = None
     if not configured_executable:
         try:
@@ -273,7 +366,7 @@ def backend(configured_executable=""):
             pass
         else:
             if hasattr(shadewire, "blender"):
-                return ModuleBackend(shadewire)
+                return ModuleBackend(shadewire, mdl_paths)
             old = shadewire
     path = find_executable(configured_executable)
     if path is None and old is not None:
@@ -283,4 +376,4 @@ def backend(configured_executable=""):
             "no Shadewire compiler: install the extension build that bundles the shadewire module, "
             "or set the shadewire executable in the add-on preferences"
         )
-    return ExecutableBackend(path)
+    return ExecutableBackend(path, mdl_paths)

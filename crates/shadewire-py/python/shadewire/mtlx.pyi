@@ -16,6 +16,7 @@ def to_ir(
     working_colorspace: Optional[str] = None,
     values_as_uniforms: bool = True,
     resolver: Optional[Resolver] = None,
+    distill: bool = False,
 ) -> Ir: ...
 def material_names(
     text: str, location: Optional[str] = None, resolver: Optional[Resolver] = None

@@ -1,7 +1,7 @@
 # Shadewire MaterialX for Blender
 
-A Blender extension (4.3 or later: conductors use the Metallic BSDF) that imports MaterialX materials as Blender
-material node trees, which Cycles and EEVEE both render. Shadewire compiles each material; the add-on turns the
+A Blender extension (4.3 or later: conductors use the Metallic BSDF) that imports MaterialX materials and NVIDIA MDL
+modules as Blender material node trees, which Cycles and EEVEE both render, and exports them as MaterialX or MDL. Shadewire compiles each material; the add-on turns the
 result into nodes: Math and Vector Math for the patterns, Image Texture for images (raw texels: Shadewire's nodes
 convert colorspaces), Geometry, UV and Attribute nodes for what the material reads of the mesh, and then the
 shading, in one of two modes:
@@ -49,17 +49,30 @@ From a source checkout, without the module, the add-on falls back to the `shadew
   `.mtlx` packed in a `.usdz` works too; a MaterialX network authored in the USD (or a `.mtlx` material that USD
   layers override) is written back as a MaterialX document first. Textures come through the importer, which
   unpacks them from a `.usdz`. The add-on's preferences turn it off and pick its Shading and Editable Values.
+- **File > Import > MDL (Shadewire)** creates one Blender material per exported material of an `.mdl` module.
+  "Shading" picks Principled BSDF, where each material is distilled to one `open_pbr_surface` (the lobes' colors,
+  roughnesses and weights folded into OpenPBR's parameters) driving one Principled BSDF, or MDL Lobes, its `::df`
+  tree as BSDF nodes. "Search Paths" (folders separated by `;`) are searched for imported modules before the
+  ones in the add-on's preferences ("MDL search paths"); the standard modules, `::base` and
+  `::nvidia::core_definitions` are built in, so self-contained libraries such as vMaterials need none. Texture
+  paths resolve from the module's folder.
 - **Fill Materials from MaterialX** (Object menu, and the Material properties panel) rebuilds the materials
-  already in the file whose names match the document's materials: for scenes imported without the hook (Blender
-  4.3, or the hook turned off).
-- **Rebuild from MaterialX** (Material properties) compiles a material again from its document, in the mode it
-  was built with.
+  already in the file whose names match the document's materials (an `.mdl` module's too): for scenes imported
+  without the hook (Blender 4.3, or the hook turned off).
+- **Rebuild from Source** (Material properties) compiles a material again from its document or module, in the mode
+  (and with the MDL search paths) it was built with.
 - **File > Export > MaterialX (Shadewire)** writes one `.mtlx` holding every exported material (the selected
   objects', the active one, or all of them), compiled by Shadewire from their node trees: a Principled BSDF as an
   `open_pbr_surface`, other BSDFs as a closure tree, the other nodes as MaterialX nodes. "Copy Textures" writes a
   `textures` folder beside the file and references the images there by relative path; without it the paths stay as
   Blender has them. "Inline Nodes" writes library nodes expanded into the nodes they are built from. What Shadewire
   approximates is reported as warnings, and listed in `crates/shadewire-blender/README.md`.
+- **File > Export > MDL (Shadewire)** writes materials (the selected objects', the active one, or all of them) as
+  MDL 1.7 modules that MDL renderers load with nothing else installed: one material goes to the chosen file; several
+  become one module each beside it, named after the material (non-identifier characters made `_`, `_2`, `_3`, ...
+  for names that come out alike). MDL holds closure trees, so a Principled BSDF is written as its lobes. "Copy
+  Textures" works as for MaterialX, the images referenced as `./textures/...`. What MDL cannot say (an F82 tint,
+  subsurface as diffuse, the view direction) is reported as warnings.
 - **File > Export > Universal Scene Description** gains a "Shadewire MaterialX" option (on by default) under the
   dialog's options: the exported materials are written by Shadewire as one `.mtlx` beside the `.usd`, named after
   it, with one `surfacematerial` per material (named after its USD prim, every character but ASCII letters, digits
@@ -106,6 +119,9 @@ sockets' subtype, min, max and description, or node colors and frame sizes.
   without USD Preview Surface, Blender's MaterialX network, the option off, a `.usdz`, non-ASCII and colliding
   names, and a scene imported back and exported again).
   It needs a Shadewire compiler: the `shadewire` module, a built `target/release/shadewire`, or `--shadewire`.
+- `blender -b --python-exit-code 1 -P blender/test_mdl.py [-- --shadewire PATH]` runs the MDL tests: File > Import
+  > MDL in both modes, search paths, Rebuild and Fill from a module, and File > Export > MDL for one material and for
+  several, read back.
 - `blender -b --python-exit-code 1 -P blender/make_fixtures.py` rewrites the graph fixtures in
   `blender/fixtures/graphs` from the materials it builds; `test_graph.py` fails when they are stale.
 

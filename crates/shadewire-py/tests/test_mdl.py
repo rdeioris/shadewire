@@ -57,3 +57,11 @@ def test_a_materialx_material_writes_as_mdl():
     assert "export material porcelain(" in compiled.code
     again = mdl.to_ir(compiled.code, models=LOBES)
     assert again.model == "surface"
+
+
+def test_distill_makes_an_open_pbr_surface():
+    text = read("mixes")
+    with pytest.raises(shadewire.ShadewireError, match="no translation"):
+        mdl.to_ir(text, material="weighted", models=["open_pbr_surface"])
+    ir = mdl.to_ir(text, material="weighted", models=["open_pbr_surface", "surface"], distill=True)
+    assert ir.model == "open_pbr_surface"

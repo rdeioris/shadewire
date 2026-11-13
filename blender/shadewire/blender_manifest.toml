@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 id = "shadewire"
 version = "0.3.0"
 name = "Shadewire MaterialX"
-tagline = "MaterialX materials as Blender node trees, compiled by Shadewire"
+tagline = "MaterialX and MDL materials as Blender node trees, compiled by Shadewire"
 maintainer = "Roberto De Ioris"
 type = "add-on"
 website = "https://github.com/rdeioris/shadewire"
@@ -25,4 +25,4 @@ wheels = [
 ]
 
 [permissions]
-files = "Reads MaterialX documents and their textures"
+files = "Reads and writes MaterialX documents, MDL modules and their textures"

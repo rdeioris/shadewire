@@ -7,13 +7,14 @@ Shadewire compiles each material to its IR; this add-on turns the IR into nodes.
 texture and geometry nodes. Then, by default (Principled BSDF), a named model (standard_surface, OpenPBR,
 glTF PBR) drives one Principled BSDF and a raw BSDF graph becomes one BSDF node per lobe; with MaterialX Lobes
 every material opens into its lobes, as MaterialX defines them. File > Import > MaterialX
-creates the document's materials; "Fill Materials from MaterialX" (Material properties, and the 3D view's
+creates the document's materials, File > Import > MDL a module's (distilled to one Principled BSDF, or as its
+lobes); "Fill Materials from MaterialX" (Material properties, and the 3D view's
 Object menu) rebuilds the materials already in the file whose names match the document's. Blender's USD importer
 calls the add-on for the MaterialX materials of a scene (`usd.py`), so they arrive built; Fill is for scenes
 imported without it. File > Export > MaterialX writes materials as one MaterialX document through Shadewire, and
 the USD exporter's "Shadewire MaterialX" option (`usd_export.py`) references such a document from the exported
-materials. File > Export and Import > Material Graph (Shadewire JSON) save and load materials as a JSON
-document of their node trees (`graph.py`).
+materials. File > Export > MDL writes each material as an MDL module. File > Export and Import > Material Graph
+(Shadewire JSON) save and load materials as a JSON document of their node trees (`graph.py`).
 """
 
 import array
@@ -35,6 +36,18 @@ def configured_executable(context):
     return addon.preferences.executable if addon else ""
 
 
+def configured_mdl_paths(context):
+    """The MDL search path from the preferences; empty when unset or when the add-on is not installed."""
+    addon = context.preferences.addons.get(__package__)
+    return compiler.split_paths(addon.preferences.mdl_paths) if addon else []
+
+
+def make_backend(context, executable="", mdl_paths=()):
+    """The compiler: `executable` over the preferences' one; `mdl_paths` searched before the preferences'."""
+    paths = list(mdl_paths) + [p for p in configured_mdl_paths(context) if p not in mdl_paths]
+    return compiler.backend(executable or configured_executable(context), paths)
+
+
 MODES = [
     ("PRINCIPLED", "Principled BSDF", "Named models (standard_surface, OpenPBR, glTF PBR) drive one Principled BSDF, "
      "small and editable, for Cycles and EEVEE; raw BSDF graphs become their lobes"),
@@ -43,8 +56,28 @@ MODES = [
 ]
 
 
+MDL_MODES = [
+    ("PRINCIPLED", "Principled BSDF", "Distill each material's lobes to one Principled BSDF (OpenPBR's parameters), "
+     "small and editable, for Cycles and EEVEE"),
+    ("LOBES", "MDL Lobes", "Every material as its lobes, one BSDF node each, layered and mixed as its df tree is "
+     "(closest to MDL; more nodes than EEVEE evaluates)"),
+]
+
+
 def mode_property():
     return EnumProperty(name="Shading", items=MODES, default="PRINCIPLED")
+
+
+def mdl_mode_property():
+    return EnumProperty(name="Shading", items=MDL_MODES, default="PRINCIPLED")
+
+
+def mdl_paths_property():
+    return StringProperty(
+        name="Search Paths",
+        description="Folders where MDL imports find modules, separated by ';' (searched before the preferences'; "
+        "the standard modules, ::base and ::nvidia::core_definitions are built in)",
+    )
 
 
 class ShadewirePreferences(bpy.types.AddonPreferences):
@@ -69,9 +102,15 @@ class ShadewirePreferences(bpy.types.AddonPreferences):
         description="Keep the USD materials' authored values as Value and RGB nodes",
         default=False,
     )
+    mdl_paths: StringProperty(
+        name="MDL search paths",
+        description="Folders where MDL imports find modules, separated by ';' (the standard modules, ::base and "
+        "::nvidia::core_definitions are built in)",
+    )
 
     def draw(self, context):
         self.layout.prop(self, "executable")
+        self.layout.prop(self, "mdl_paths")
         self.layout.prop(self, "usd_import")
         row = self.layout.row()
         row.active = self.usd_import
@@ -79,50 +118,58 @@ class ShadewirePreferences(bpy.types.AddonPreferences):
         row.prop(self, "usd_editable")
 
 
-def build(operator, context, mtlx, name, material, editable, mode):
-    """Compiles `name` of `mtlx` into `material`; reports warnings. False on failure."""
+def build(operator, context, source, name, material, editable, mode, compiled=None, mdl_paths=()):
+    """Compiles `name` of `source` (a MaterialX document, or an MDL module by extension) into `material` with
+    `compiled` (None: the preferences' compiler); reports warnings. False on failure. An MDL material keeps the
+    search path it was built with, for Rebuild."""
     try:
-        doc = compiler.backend(configured_executable(context)).compile(mtlx, name, editable, mode)
+        compiled = compiled or make_backend(context, mdl_paths=mdl_paths)
+        doc = compiled.compile(source, name, editable, mode)
     except compiler.CompileError as e:
-        operator.report({"ERROR"}, f"{name or os.path.basename(mtlx)}: {e}")
+        operator.report({"ERROR"}, f"{name or os.path.basename(source)}: {e}")
         return False
-    warnings = builder.build_material(material, doc, os.path.dirname(mtlx))
+    warnings = builder.build_material(material, doc, os.path.dirname(source))
     for w in warnings:
         operator.report({"WARNING"}, f"{material.name}: {w}")
-    material["shadewire_source"] = mtlx
+    material["shadewire_source"] = source
     material["shadewire_material"] = name or ""
     material["shadewire_mode"] = mode
+    if compiler.is_mdl(source):
+        material["shadewire_mdl_paths"] = ";".join(mdl_paths)
     return True
 
 
-class SHADEWIRE_OT_import(bpy.types.Operator, ImportHelper):
-    """Create Blender materials from a MaterialX document"""
+class ImportMaterials(ImportHelper):
+    """File > Import of a MaterialX document or an MDL module: one Blender material per material of the file. Not an
+    operator itself (Blender cannot register an operator class that another one subclasses)."""
 
-    bl_idname = "shadewire.import_mtlx"
-    bl_label = "Import MaterialX"
     bl_options = {"REGISTER", "UNDO"}
 
-    filename_ext = ".mtlx"
-    filter_glob: StringProperty(default="*.mtlx", options={"HIDDEN"})
     editable: BoolProperty(
         name="Editable Values",
         description="Keep authored values as Value and RGB nodes (else they are baked in, and lobes they turn off "
         "are left out)",
         default=False,
     )
-    mode: mode_property()
     assign: BoolProperty(name="Assign to Selected", description="Give the first material to the selected objects")
+    # A test hook: the compiler to use instead of the preferences'; an installed extension leaves it empty.
+    executable: StringProperty(options={"HIDDEN"})
+
+    def search_paths(self):
+        return []
 
     def execute(self, context):
+        mdl_paths = self.search_paths()
         try:
-            names = compiler.backend(configured_executable(context)).material_names(self.filepath)
+            compiled = make_backend(context, self.executable, mdl_paths)
+            names = compiled.material_names(self.filepath)
         except compiler.CompileError as e:
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}
         made = []
         for name in names:
             material = bpy.data.materials.new(name)
-            if build(self, context, self.filepath, name, material, self.editable, self.mode):
+            if build(self, context, self.filepath, name, material, self.editable, self.mode, compiled, mdl_paths):
                 made.append(material)
             else:
                 bpy.data.materials.remove(material)
@@ -137,41 +184,75 @@ class SHADEWIRE_OT_import(bpy.types.Operator, ImportHelper):
         return {"FINISHED"}
 
 
+class SHADEWIRE_OT_import(bpy.types.Operator, ImportMaterials):
+    """Create Blender materials from a MaterialX document"""
+
+    bl_idname = "shadewire.import_mtlx"
+    bl_label = "Import MaterialX"
+
+    filename_ext = ".mtlx"
+    filter_glob: StringProperty(default="*.mtlx", options={"HIDDEN"})
+    mode: mode_property()
+
+
+class SHADEWIRE_OT_import_mdl(bpy.types.Operator, ImportMaterials):
+    """Create Blender materials from the exported materials of an MDL module"""
+
+    bl_idname = "shadewire.import_mdl"
+    bl_label = "Import MDL"
+
+    filename_ext = ".mdl"
+    filter_glob: StringProperty(default="*.mdl", options={"HIDDEN"})
+    mode: mdl_mode_property()
+    mdl_paths: mdl_paths_property()
+
+    def search_paths(self):
+        return compiler.split_paths(self.mdl_paths)
+
+
 class SHADEWIRE_OT_fill(bpy.types.Operator, ImportHelper):
-    """Rebuild the materials whose names match a MaterialX document's materials"""
+    """Rebuild the materials whose names match a MaterialX document's or an MDL module's materials"""
 
     bl_idname = "shadewire.fill_materials"
     bl_label = "Fill Materials from MaterialX"
     bl_options = {"REGISTER", "UNDO"}
 
     filename_ext = ".mtlx"
-    filter_glob: StringProperty(default="*.mtlx", options={"HIDDEN"})
+    filter_glob: StringProperty(default="*.mtlx;*.mdl", options={"HIDDEN"})
     editable: BoolProperty(name="Editable Values", default=False)
     mode: mode_property()
+    mdl_paths: mdl_paths_property()
+    # A test hook: the compiler to use instead of the preferences'; an installed extension leaves it empty.
+    executable: StringProperty(options={"HIDDEN"})
 
     def execute(self, context):
+        mdl_paths = compiler.split_paths(self.mdl_paths)
         try:
-            names = compiler.backend(configured_executable(context)).material_names(self.filepath)
+            compiled = make_backend(context, self.executable, mdl_paths)
+            names = compiled.material_names(self.filepath)
         except compiler.CompileError as e:
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}
         filled = 0
         for name in names:
             material = bpy.data.materials.get(name)
-            if material is not None and build(self, context, self.filepath, name, material, self.editable, self.mode):
+            if material is not None and build(self, context, self.filepath, name, material, self.editable, self.mode,
+                                              compiled, mdl_paths):
                 filled += 1
         self.report({"INFO"}, f"filled {filled} materials ({len(names)} in the document)")
         return {"FINISHED"}
 
 
 class SHADEWIRE_OT_rebuild(bpy.types.Operator):
-    """Compile the active material again from the MaterialX document it came from"""
+    """Compile the active material again from the MaterialX document or MDL module it came from"""
 
     bl_idname = "shadewire.rebuild_material"
-    bl_label = "Rebuild from MaterialX"
+    bl_label = "Rebuild from Source"
     bl_options = {"REGISTER", "UNDO"}
 
     editable: BoolProperty(name="Editable Values", default=False)
+    # A test hook: the compiler to use instead of the preferences'; an installed extension leaves it empty.
+    executable: StringProperty(options={"HIDDEN"})
 
     @classmethod
     def poll(cls, context):
@@ -181,7 +262,14 @@ class SHADEWIRE_OT_rebuild(bpy.types.Operator):
     def execute(self, context):
         m = context.material
         mode = m.get("shadewire_mode", "PRINCIPLED")
-        ok = build(self, context, m["shadewire_source"], m["shadewire_material"] or None, m, self.editable, mode)
+        mdl_paths = compiler.split_paths(m.get("shadewire_mdl_paths", ""))
+        try:
+            compiled = make_backend(context, self.executable, mdl_paths)
+        except compiler.CompileError as e:
+            self.report({"ERROR"}, str(e))
+            return {"CANCELLED"}
+        ok = build(self, context, m["shadewire_source"], m["shadewire_material"] or None, m, self.editable, mode,
+                   compiled, mdl_paths)
         return {"FINISHED"} if ok else {"CANCELLED"}
 
 
@@ -386,15 +474,12 @@ class SHADEWIRE_OT_export_graph(bpy.types.Operator, ExportHelper):
         return {"FINISHED"}
 
 
-class SHADEWIRE_OT_export_mtlx(bpy.types.Operator, ExportHelper):
-    """Write materials as one MaterialX document, compiled by Shadewire from their node trees"""
+class ExportMaterials(ExportHelper):
+    """What File > Export to MaterialX and to MDL share: the materials in scope and their textures. Not an operator
+    itself (Blender cannot register an operator class that another one subclasses)."""
 
-    bl_idname = "shadewire.export_mtlx"
-    bl_label = "Export MaterialX"
     bl_options = {"REGISTER"}
 
-    filename_ext = ".mtlx"
-    filter_glob: StringProperty(default="*.mtlx", options={"HIDDEN"})
     scope: EnumProperty(
         name="Materials",
         items=[
@@ -409,11 +494,6 @@ class SHADEWIRE_OT_export_mtlx(bpy.types.Operator, ExportHelper):
         description="Write the images into textures/ beside the file and reference them there",
         default=True,
     )
-    inline: BoolProperty(
-        name="Inline Nodes",
-        description="Write library nodes expanded into the nodes they are built from",
-        default=False,
-    )
     # A test hook: the compiler to use instead of the preferences'; an installed extension leaves it empty.
     executable: StringProperty(options={"HIDDEN"})
 
@@ -427,10 +507,25 @@ class SHADEWIRE_OT_export_mtlx(bpy.types.Operator, ExportHelper):
         for entry in doc["images"]:
             entry["filepath"] = relative_path(entry["filepath"], folder)
 
+
+class SHADEWIRE_OT_export_mtlx(bpy.types.Operator, ExportMaterials):
+    """Write materials as one MaterialX document, compiled by Shadewire from their node trees"""
+
+    bl_idname = "shadewire.export_mtlx"
+    bl_label = "Export MaterialX"
+
+    filename_ext = ".mtlx"
+    filter_glob: StringProperty(default="*.mtlx", options={"HIDDEN"})
+    inline: BoolProperty(
+        name="Inline Nodes",
+        description="Write library nodes expanded into the nodes they are built from",
+        default=False,
+    )
+
     def compile_materials(self, context, materials, doc):
         """The MaterialX text of every material and the warnings (each led by its material's name), each material
         named after Blender's."""
-        compiled = compiler.backend(self.executable or configured_executable(context))
+        compiled = make_backend(context, self.executable)
         text = graph.to_text(doc)
         texts, reports = [], []
         for material in materials:
@@ -459,6 +554,64 @@ class SHADEWIRE_OT_export_mtlx(bpy.types.Operator, ExportHelper):
         for w in warnings:
             self.report({"WARNING"}, w)
         self.report({"INFO"}, f"exported {len(materials)} materials to {os.path.basename(self.filepath)}")
+        return {"FINISHED"}
+
+
+class SHADEWIRE_OT_export_mdl(bpy.types.Operator, ExportMaterials):
+    """Write each material as an MDL 1.7 module, compiled by Shadewire from its node tree"""
+
+    bl_idname = "shadewire.export_mdl"
+    bl_label = "Export MDL"
+
+    filename_ext = ".mdl"
+    filter_glob: StringProperty(default="*.mdl", options={"HIDDEN"})
+
+    def draw(self, context):
+        self.layout.prop(self, "scope")
+        self.layout.prop(self, "copy_textures")
+        self.layout.label(text="Several materials: one module each, named after it")
+
+    def module_paths(self, materials):
+        """Where each material's module goes: the chosen file for a single material, else one module per material
+        beside it, named after the material (as an MDL identifier, `_2`, `_3`, ... when two come out alike)."""
+        if len(materials) == 1:
+            return [self.filepath]
+        folder, taken = os.path.dirname(self.filepath), set()
+        paths = []
+        for material in materials:
+            name = compiler.unique_name(material.name, taken)
+            taken.add(name)
+            paths.append(os.path.join(folder, name + ".mdl"))
+        return paths
+
+    def execute(self, context):
+        materials = scope_materials(context, self.scope)
+        if not materials:
+            self.report({"ERROR"}, "no materials to export")
+            return {"CANCELLED"}
+        doc = graph.dump(materials)
+        paths = self.module_paths(materials)
+        try:
+            self.copy_images(doc)
+            compiled = make_backend(context, self.executable)
+            text = graph.to_text(doc)
+            modules, warnings = [], []
+            for material in materials:
+                try:
+                    code, notes = compiled.to_mdl(text, material.name, material.name)
+                except compiler.CompileError as e:
+                    raise compiler.CompileError(f"{material.name}: {e}") from e
+                modules.append(code)
+                warnings += [f"{material.name}: {w}" for w in notes]
+            for path, code in zip(paths, modules):
+                with open(path, "w", encoding="utf-8", newline="\n") as f:
+                    f.write(code)
+        except (compiler.CompileError, OSError, ValueError) as e:
+            self.report({"ERROR"}, str(e))
+            return {"CANCELLED"}
+        for w in warnings:
+            self.report({"WARNING"}, w)
+        self.report({"INFO"}, f"exported {len(materials)} materials as {len(paths)} MDL modules")
         return {"FINISHED"}
 
 
@@ -530,11 +683,13 @@ class SHADEWIRE_PT_usd_export(bpy.types.Panel):
 
 def menu_import(self, context):
     self.layout.operator(SHADEWIRE_OT_import.bl_idname, text="MaterialX (Shadewire) (.mtlx)")
+    self.layout.operator(SHADEWIRE_OT_import_mdl.bl_idname, text="MDL (Shadewire) (.mdl)")
     self.layout.operator(SHADEWIRE_OT_import_graph.bl_idname, text=GRAPH_LABEL)
 
 
 def menu_export(self, context):
     self.layout.operator(SHADEWIRE_OT_export_mtlx.bl_idname, text="MaterialX (Shadewire) (.mtlx)")
+    self.layout.operator(SHADEWIRE_OT_export_mdl.bl_idname, text="MDL (Shadewire) (.mdl)")
     self.layout.operator(SHADEWIRE_OT_export_graph.bl_idname, text=GRAPH_LABEL)
 
 
@@ -542,9 +697,9 @@ def menu_object(self, context):
     self.layout.operator(SHADEWIRE_OT_fill.bl_idname)
 
 
-CLASSES = (ShadewirePreferences, SHADEWIRE_OT_import, SHADEWIRE_OT_fill, SHADEWIRE_OT_rebuild, SHADEWIRE_OT_export_mtlx,
-           SHADEWIRE_OT_export_graph, SHADEWIRE_OT_import_graph, SHADEWIRE_PT_material, SHADEWIRE_PT_usd_export,
-           usd.ShadewireUSDHook)
+CLASSES = (ShadewirePreferences, SHADEWIRE_OT_import, SHADEWIRE_OT_import_mdl, SHADEWIRE_OT_fill, SHADEWIRE_OT_rebuild,
+           SHADEWIRE_OT_export_mtlx, SHADEWIRE_OT_export_mdl, SHADEWIRE_OT_export_graph, SHADEWIRE_OT_import_graph,
+           SHADEWIRE_PT_material, SHADEWIRE_PT_usd_export, usd.ShadewireUSDHook)
 
 
 def register():

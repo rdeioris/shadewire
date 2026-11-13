@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Blender: MDL import and export.** File > Import > MDL (Shadewire) creates one Blender material per exported
+  material of a module: in Principled BSDF mode distilled to one Principled BSDF (`open_pbr_surface`), in MDL Lobes
+  mode as its lobes. Search paths come from the import dialog and the add-on's preferences, and Rebuild uses the ones
+  a material was built with; Fill Materials and Rebuild (now "Rebuild from Source") read `.mdl` as well as `.mtlx`.
+  File > Export > MDL (Shadewire) writes each material as an MDL 1.7 module (one material: the chosen file; several:
+  one module each beside it, named after the material), its textures copied into `textures/` and referenced as
+  `./textures/...`; what MDL cannot say is reported as warnings. `blender/test_mdl.py` tests both.
+- **Python: `distill`.** `shadewire.mtlx.to_ir` and `shadewire.mdl.to_ir` take `distill=True`, as the CLI's
+  `--distill`: a material that would open into a closure tree comes out as an `open_pbr_surface` when `models`
+  accepts it.
 - **Unreal Engine materials.** `shadewire-unreal` reads the `shadewire-unreal-graph` JSON an Unreal editor plugin
   (`unreal/Shadewire`, built against UE 5.8) dumps from materials and material instances: legacy shading models
   become `open_pbr_surface` (Unlit `surface_unlit`), parameters uniforms, instance chains apply their overrides,

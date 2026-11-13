@@ -121,9 +121,10 @@ fn resolver(callable: Option<Py<PyAny>>) -> Resolver {
 /// relative to `base`). `material` picks one (None: the document's only one); `models` are the shading models the
 /// caller accepts (None: `open_pbr_surface`, `standard_surface`, `gltf_pbr`, `surface_unlit`; add `surface` for
 /// closure trees, which also opens the named models not listed); `values_as_uniforms` keeps authored values as
-/// uniforms (False bakes them in, so the optimizer can prune by them).
+/// uniforms (False bakes them in, so the optimizer can prune by them); `distill` makes a material that would open
+/// into a closure tree an `open_pbr_surface` computed from its lobes, when `models` accepts that model.
 #[pyfunction]
-#[pyo3(signature = (text, location=None, material=None, models=None, working_colorspace=None, values_as_uniforms=true, resolver=None))]
+#[pyo3(signature = (text, location=None, material=None, models=None, working_colorspace=None, values_as_uniforms=true, resolver=None, distill=false))]
 #[allow(clippy::too_many_arguments)]
 fn to_ir(
     py: Python<'_>,
@@ -134,8 +135,9 @@ fn to_ir(
     working_colorspace: Option<String>,
     values_as_uniforms: bool,
     resolver: Option<Py<PyAny>>,
+    distill: bool,
 ) -> PyResult<PyIr> {
-    let mut options = IrOptions { values_as_uniforms, ..IrOptions::default() };
+    let mut options = IrOptions { values_as_uniforms, distill, ..IrOptions::default() };
     if let Some(models) = models {
         options.models = models;
     }
@@ -257,10 +259,10 @@ fn unreal_material_names(py: Python<'_>, text: String) -> PyResult<Vec<String>> 
 
 /// An MDL module to the IR (not optimized). `material` picks one of its exported materials (None: its only one);
 /// `paths` is the MDL search path; `location` names the module's file, whose folder relative imports start from.
-/// An MDL material is a closure tree: `models` must accept `surface`. `working_colorspace` and
-/// `values_as_uniforms` as `shadewire.mtlx.to_ir`'s.
+/// An MDL material is a closure tree: `models` must accept `surface`, or `open_pbr_surface` with `distill`, which
+/// computes that model from the lobes. `working_colorspace` and `values_as_uniforms` as `shadewire.mtlx.to_ir`'s.
 #[pyfunction]
-#[pyo3(name = "to_ir", signature = (text, material=None, models=None, working_colorspace=None, values_as_uniforms=true, paths=None, location=None))]
+#[pyo3(name = "to_ir", signature = (text, material=None, models=None, working_colorspace=None, values_as_uniforms=true, paths=None, location=None, distill=false))]
 #[allow(clippy::too_many_arguments)]
 fn mdl_to_ir(
     py: Python<'_>,
@@ -271,8 +273,9 @@ fn mdl_to_ir(
     values_as_uniforms: bool,
     paths: Option<Vec<String>>,
     location: Option<String>,
+    distill: bool,
 ) -> PyResult<PyIr> {
-    let mut options = IrOptions { values_as_uniforms, ..IrOptions::default() };
+    let mut options = IrOptions { values_as_uniforms, distill, ..IrOptions::default() };
     if let Some(models) = models {
         options.models = models;
     }
