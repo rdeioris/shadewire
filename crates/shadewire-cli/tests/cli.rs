@@ -294,3 +294,21 @@ fn mdl_path_resolves_imports() {
     let out = run(&["ir", main.to_str().unwrap(), "--lobes"]);
     assert!(!out.status.success());
 }
+
+#[test]
+fn mdl_args_replace_parameter_defaults() {
+    const DIFFUSE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../shadewire-mdl/tests/fixtures/diffuse.mdl");
+    let args = scratch("diffuse-args.json");
+    std::fs::write(&args, r#"[{"name": "tint", "value": [0.125, 0.5, 0.25]}, {"name": "roughness", "value": 0.0}]"#)
+        .unwrap();
+    let out = run(&["ir", DIFFUSE, "--material", "reflection", "--lobes", "--mdl-args", args.to_str().unwrap()]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let ir = String::from_utf8_lossy(&out.stdout);
+    assert!(ir.contains("0.125, 0.5, 0.25"), "{ir}");
+
+    std::fs::write(&args, r#"[{"name": "nope", "value": 1}]"#).unwrap();
+    let out = run(&["ir", DIFFUSE, "--material", "reflection", "--lobes", "--mdl-args", args.to_str().unwrap()]);
+    assert!(String::from_utf8_lossy(&out.stderr).contains("no parameter nope"));
+    let out = run(&["ir", PORCELAIN, "--mdl-args", args.to_str().unwrap()]);
+    assert!(String::from_utf8_lossy(&out.stderr).contains("not an MDL module"));
+}

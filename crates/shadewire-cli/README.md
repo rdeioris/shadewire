@@ -16,7 +16,8 @@ shadewire list scene.mtlx
 
 Blender graphs (`.json`, from the Blender extension's File > Export > Material Graph) and MDL modules (`.mdl`) are read
 wherever a `.mtlx` is; `--format` overrides the extension. An MDL material is a closure tree, so it needs `--lobes`;
-`--mdl-path DIR` (repeatable) is where `import` finds modules. What a front end dropped or approximated prints to
+`--mdl-path DIR` (repeatable) is where `import` finds modules, and `--mdl-args FILE` (a JSON list of
+`{"name", "value"}`) replaces parameter defaults. What a front end dropped or approximated prints to
 stderr, one line each. `--lang mdl` writes a self-contained MDL 1.7 module and opens every material into its closure
 tree by default.
 

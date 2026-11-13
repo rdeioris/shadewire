@@ -261,8 +261,12 @@ fn unreal_material_names(py: Python<'_>, text: String) -> PyResult<Vec<String>> 
 /// `paths` is the MDL search path; `location` names the module's file, whose folder relative imports start from.
 /// An MDL material is a closure tree: `models` must accept `surface`, or `open_pbr_surface` with `distill`, which
 /// computes that model from the lobes. `working_colorspace` and `values_as_uniforms` as `shadewire.mtlx.to_ir`'s.
+/// `arguments`, `(name, value)` pairs, replace parameter defaults before the material is evaluated (a USD `Shader`
+/// prim's `inputs:*`): a bool, an int (also an enum's value), a float, two to four floats (a vector, or three for a
+/// color), a str, or `{"texture": path, "colorspace": "sRGB" | "raw" | "auto"}`; one naming no parameter, or that
+/// does not convert to its parameter's type, is an error.
 #[pyfunction]
-#[pyo3(name = "to_ir", signature = (text, material=None, models=None, working_colorspace=None, values_as_uniforms=true, paths=None, location=None, distill=false))]
+#[pyo3(name = "to_ir", signature = (text, material=None, models=None, working_colorspace=None, values_as_uniforms=true, paths=None, location=None, distill=false, arguments=None))]
 #[allow(clippy::too_many_arguments)]
 fn mdl_to_ir(
     py: Python<'_>,
@@ -274,7 +278,13 @@ fn mdl_to_ir(
     paths: Option<Vec<String>>,
     location: Option<String>,
     distill: bool,
+    arguments: Option<Vec<(String, Bound<'_, PyAny>)>>,
 ) -> PyResult<PyIr> {
+    let arguments = arguments
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(name, value)| Ok(shadewire_mdl::MdlArgument { value: mdl_arg_value(&name, &value)?, name }))
+        .collect::<PyResult<Vec<_>>>()?;
     let mut options = IrOptions { values_as_uniforms, distill, ..IrOptions::default() };
     if let Some(models) = models {
         options.models = models;
@@ -284,9 +294,50 @@ fn mdl_to_ir(
     }
     let resolver = shadewire_mdl::Resolver::new(paths.unwrap_or_default().into_iter().map(Into::into).collect());
     let ir = py
-        .detach(|| shadewire_mdl::to_ir(&text, location.as_deref(), material.as_deref(), &options, &resolver))
+        .detach(|| {
+            shadewire_mdl::to_ir_with_args(
+                &text,
+                location.as_deref(),
+                material.as_deref(),
+                &arguments,
+                &options,
+                &resolver,
+            )
+        })
         .map_err(error)?;
     Ok(PyIr { dag: ir.dag, source: ir.source, warnings: ir.warnings })
+}
+
+/// A Python value as an MDL argument's value (see `mdl_to_ir`); a TypeError naming `name` when it is none of them.
+fn mdl_arg_value(name: &str, value: &Bound<'_, PyAny>) -> PyResult<shadewire_mdl::MdlArgValue> {
+    use pyo3::types::{PyBool, PyDict, PyInt, PyString};
+    use shadewire_mdl::MdlArgValue;
+    if value.is_instance_of::<PyBool>() {
+        return Ok(MdlArgValue::Bool(value.extract()?));
+    }
+    if value.is_instance_of::<PyInt>() {
+        return Ok(MdlArgValue::Int(value.extract()?));
+    }
+    if value.is_instance_of::<PyString>() {
+        return Ok(MdlArgValue::String(value.extract()?));
+    }
+    if let Ok(dict) = value.cast::<PyDict>()
+        && let Some(path) = dict.get_item("texture")?
+    {
+        let colorspace = dict.get_item("colorspace")?.map(|c| c.extract::<Option<String>>()).transpose()?.flatten();
+        return Ok(MdlArgValue::Texture { path: path.extract()?, colorspace });
+    }
+    if let Ok(x) = value.extract::<f32>() {
+        return Ok(MdlArgValue::Float(vec![x]));
+    }
+    if let Ok(xs) = value.extract::<Vec<f32>>()
+        && (1..=4).contains(&xs.len())
+    {
+        return Ok(MdlArgValue::Float(xs));
+    }
+    Err(pyo3::exceptions::PyTypeError::new_err(format!(
+        "MDL argument {name}: not a bool, int, float, 1 to 4 floats, str or texture dict"
+    )))
 }
 
 /// The exported materials of an MDL module, in declaration order.

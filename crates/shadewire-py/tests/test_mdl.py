@@ -65,3 +65,14 @@ def test_distill_makes_an_open_pbr_surface():
         mdl.to_ir(text, material="weighted", models=["open_pbr_surface"])
     ir = mdl.to_ir(text, material="weighted", models=["open_pbr_surface", "surface"], distill=True)
     assert ir.model == "open_pbr_surface"
+
+
+def test_arguments_replace_parameter_defaults():
+    text = read("diffuse")
+    ir = mdl.to_ir(text, material="reflection", models=LOBES, arguments=[("tint", [0.1, 0.9, 0.2])])
+    uniforms = {n["name"]: n["value"] for n in ir.to_dict()["nodes"] if n["kind"] == "uniform"}
+    assert uniforms["tint"] == pytest.approx([0.1, 0.9, 0.2])
+    with pytest.raises(shadewire.ShadewireError, match="no parameter"):
+        mdl.to_ir(text, material="reflection", models=LOBES, arguments=[("nope", 1.0)])
+    with pytest.raises(TypeError, match="nope"):
+        mdl.to_ir(text, material="reflection", models=LOBES, arguments=[("nope", object())])

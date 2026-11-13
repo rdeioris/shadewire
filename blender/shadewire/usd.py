@@ -12,6 +12,12 @@ category from the shader registry), and each input is either a value or a connec
 produces it, through node graphs and the material's interface. Textures go through the importer's
 `import_texture`, which unpacks them from a `.usdz`. The same hook's export callbacks hand USD exports to
 `usd_export`.
+
+MDL materials (Omniverse's: an `mdl` surface output from a Shader prim whose `info:mdl:sourceAsset` names the
+module and `info:mdl:sourceAsset:subIdentifier` the material) are claimed too, when the material has no MaterialX
+surface: the module is found through USD's resolver, else on the MDL search paths, and the shader's authored inputs
+become the material's arguments, typed by their USD types (an asset is a texture, imported like the MaterialX
+ones).
 """
 
 import os
@@ -24,7 +30,7 @@ from pxr import Ar, Sdf, Sdr, Usd, UsdShade
 from . import builder, compiler, usd_export
 
 # Used when the add-on is not installed (run from a source checkout): its preferences do not exist.
-defaults = {"usd_import": True, "usd_mode": "PRINCIPLED", "usd_editable": False, "executable": ""}
+defaults = {"usd_import": True, "usd_mode": "PRINCIPLED", "usd_editable": False, "executable": "", "mdl_paths": ""}
 
 # Sdf value type names as MaterialX types.
 TYPES = {
@@ -45,7 +51,7 @@ def settings(context):
         return dict(defaults)
     p = addon.preferences
     return {"usd_import": p.usd_import, "usd_mode": p.usd_mode, "usd_editable": p.usd_editable,
-            "executable": p.executable}
+            "executable": p.executable, "mdl_paths": p.mdl_paths}
 
 
 def is_mtlx_layer(layer):
@@ -199,8 +205,110 @@ def network_document(material):
     return Writer(material).document()
 
 
+def mdl_shader(material):
+    """The Shader prim an MDL module's material drives `material`'s `mdl` surface from, or None."""
+    output = material.GetSurfaceOutput("mdl")
+    if not output:
+        return None
+    sources = output.GetValueProducingAttributes(shaderOutputsOnly=True)
+    if not sources:
+        return None
+    shader = UsdShade.Shader(sources[0].GetPrim())
+    if shader.GetImplementationSource() != "sourceAsset" or not shader.GetSourceAsset("mdl"):
+        return None
+    return shader
+
+
+def mdl_module(shader, search_paths):
+    """The file of the shader's MDL module: its source asset resolved by USD, else found on the search paths (an
+    asset written as a module path, `nvidia/core_definitions.mdl` or `OmniPBR.mdl`)."""
+    asset = shader.GetSourceAsset("mdl")
+    resolved = asset.resolvedPath
+    if resolved and os.path.isfile(resolved):
+        return resolved
+    if resolved:
+        raise compiler.CompileError(f"MDL module {asset.path} is inside a package ({resolved}): unpack it first")
+    relative = asset.path.replace("::", "/").lstrip("/")
+    if not relative.lower().endswith(".mdl"):
+        relative += ".mdl"
+    for folder in search_paths:
+        candidate = os.path.join(folder, relative)
+        if os.path.isfile(candidate):
+            return candidate
+    raise compiler.CompileError(f"MDL module {asset.path} not found (resolver, MDL search paths {search_paths})")
+
+
+def mdl_value(value):
+    """A USD value as an MDL argument value; None for one that is no MDL argument."""
+    if isinstance(value, (bool, int, float, str)):
+        return value
+    if hasattr(value, "__len__") and 2 <= len(value) <= 4:
+        try:
+            return [float(x) for x in value]
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def mdl_arguments(shader, resolve_texture):
+    """The shader's authored inputs (or those its material's interface gives) as MDL arguments, and warnings for
+    the inputs left out: an input driven by another shader (an MDL function call graph) is not read."""
+    arguments, warnings = [], []
+    for put in shader.GetInputs():
+        name = put.GetBaseName()
+        sources = put.GetValueProducingAttributes(shaderOutputsOnly=False)
+        if not sources:
+            continue
+        attr = sources[0]
+        if UsdShade.Output.IsOutput(attr):
+            warnings.append(f"input {name} is driven by shader {attr.GetPrim().GetPath()}: its default is used")
+            continue
+        if not attr.HasAuthoredValue():
+            continue
+        value = attr.Get()
+        if isinstance(value, Sdf.AssetPath):
+            if not value.path:
+                continue
+            colorspace = attr.GetColorSpace() if hasattr(attr, "GetColorSpace") else ""
+            colorspace = colorspace or attr.GetMetadata("colorSpace") or None
+            arguments.append((name, {"texture": resolve_texture(attr, value), "colorspace": colorspace}))
+            continue
+        converted = mdl_value(value)
+        if converted is None:
+            warnings.append(f"input {name} ({put.GetTypeName()}) is not an MDL argument: its default is used")
+            continue
+        arguments.append((name, converted))
+    return arguments, warnings
+
+
+def convert_mdl(import_context, bl_material, shader, options):
+    """Compiles the MDL material `shader` names, its inputs as arguments, into `bl_material`; the warnings."""
+    search_paths = compiler.split_paths(options.get("mdl_paths", ""))
+    module = mdl_module(shader, search_paths)
+    backend = compiler.backend(options["executable"], search_paths)
+    name = shader.GetSourceAssetSubIdentifier("mdl") or None
+
+    def resolve_texture(attr, value):
+        stack = attr.GetPropertyStack()
+        anchored = Sdf.ComputeAssetPathRelativeToLayer(stack[0].layer, value.path) if stack else value.path
+        local, _ = import_context.import_texture(anchored)
+        return local or value.resolvedPath or value.path
+
+    arguments, warnings = mdl_arguments(shader, resolve_texture)
+    doc = backend.compile(module, name, options["usd_editable"], options["usd_mode"], arguments)
+    warnings += builder.build_material(bl_material, doc, os.path.dirname(module))
+    # Rebuild would compile without the USD's arguments: the material is not tied to its module.
+    for key in ("shadewire_source", "shadewire_material", "shadewire_mdl_paths"):
+        bl_material.pop(key, None)
+    bl_material["shadewire_mode"] = options["usd_mode"]
+    return warnings
+
+
 def convert(import_context, bl_material, usd_material, options):
-    """Compiles `usd_material` and builds it into `bl_material`; the warnings."""
+    """Compiles `usd_material` and builds it into `bl_material`; the warnings. A material without a MaterialX
+    surface is an MDL one (`material_import_poll` claimed it for one of the two)."""
+    if not usd_material.GetSurfaceOutput("mtlx"):
+        return convert_mdl(import_context, bl_material, mdl_shader(usd_material), options)
     backend = compiler.backend(options["executable"])
     source = mtlx_source(usd_material)
     if source is not None:
@@ -234,11 +342,13 @@ def convert(import_context, bl_material, usd_material, options):
 class ShadewireUSDHook(bpy.types.USDHook):
     bl_idname = "shadewire"
     bl_label = "Shadewire MaterialX"
-    bl_description = "Builds the MaterialX materials of imported USD scenes with Shadewire"
+    bl_description = "Builds the MaterialX and MDL materials of imported USD scenes with Shadewire"
 
     @staticmethod
     def material_import_poll(import_context, usd_material):
-        return settings(bpy.context)["usd_import"] and bool(usd_material.GetSurfaceOutput("mtlx"))
+        if not settings(bpy.context)["usd_import"]:
+            return False
+        return bool(usd_material.GetSurfaceOutput("mtlx")) or mdl_shader(usd_material) is not None
 
     @staticmethod
     def on_material_import(import_context, bl_material, usd_material):

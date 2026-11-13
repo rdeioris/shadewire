@@ -48,7 +48,13 @@ From a source checkout, without the module, the add-on falls back to the `shadew
   (`references = @./scene.mtlx@</MaterialX>`) compiles from that document, read through USD's resolver, so a
   `.mtlx` packed in a `.usdz` works too; a MaterialX network authored in the USD (or a `.mtlx` material that USD
   layers override) is written back as a MaterialX document first. Textures come through the importer, which
-  unpacks them from a `.usdz`. The add-on's preferences turn it off and pick its Shading and Editable Values.
+  unpacks them from a `.usdz`. MDL materials (Omniverse's: an `mdl` surface from a Shader prim whose
+  `info:mdl:sourceAsset` names the module and `subIdentifier` the material) are claimed too when the material has no
+  MaterialX surface: the module is found through USD's resolver, else on the MDL search paths of the preferences,
+  and the shader's authored inputs are the material's arguments (an `asset` input a texture, imported like the
+  others; an input driven by another shader keeps its default, with a warning). Such a material keeps no link to
+  its module, since Rebuild would drop the arguments. The add-on's preferences turn it off and pick its Shading and
+  Editable Values.
 - **File > Import > MDL (Shadewire)** creates one Blender material per exported material of an `.mdl` module.
   "Shading" picks Principled BSDF, where each material is distilled to one `open_pbr_surface` (the lobes' colors,
   roughnesses and weights folded into OpenPBR's parameters) driving one Principled BSDF, or MDL Lobes, its `::df`

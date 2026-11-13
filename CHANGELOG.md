@@ -14,6 +14,12 @@
   "unknown function"; it now looks up the module's declarations and `using` imports, as the MDL SDK does.
 - **Blender: the empty closure.** The builder handles the IR's `empty` closure (a mix side or layer top that scatters
   nothing): materials whose lobes held one failed to build with `KeyError: 'empty'`.
+- **Blender: MDL materials of USD scenes.** The USD import hook claims materials whose `mdl` surface comes from an
+  MDL module (`info:mdl:sourceAsset` and its `subIdentifier`, as Omniverse writes them) when they have no MaterialX
+  surface, and builds them with the shader's authored inputs as the material's arguments, textures imported through
+  the importer. The module is found through USD's resolver, else on the add-on's MDL search paths.
+- **MDL arguments in Python and the CLI.** `shadewire.mdl.to_ir(..., arguments=[(name, value)])` and
+  `--mdl-args FILE` replace parameter defaults with typed arguments (`shadewire_mdl::to_ir_with_args`).
 - **Python: `distill`.** `shadewire.mtlx.to_ir` and `shadewire.mdl.to_ir` take `distill=True`, as the CLI's
   `--distill`: a material that would open into a closure tree comes out as an `open_pbr_surface` when `models`
   accepts it.

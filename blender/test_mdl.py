@@ -210,8 +210,104 @@ def test_export_several():
             check('"./textures/checker.png"' in f.read(), "the textured module references ./textures/checker.png")
 
 
+USD_MODULE = """mdl 1.7;
+import ::df::*;
+import ::tex::*;
+import ::state::*;
+export material plain(color tint = color(0.8)) = material(surface: material_surface(scattering:
+    df::diffuse_reflection_bsdf(tint: tint)));
+export material textured(uniform texture_2d image = texture_2d()) = material(surface: material_surface(scattering:
+    df::diffuse_reflection_bsdf(tint: tex::lookup_color(image,
+        float2(state::texture_coordinate(0).x, state::texture_coordinate(0).y)))));
+"""
+
+USD_SCENE = """#usda 1.0
+def Scope "Looks"
+{
+    def Material "Plain"
+    {
+        token outputs:mdl:surface.connect = </Looks/Plain/Shader.outputs:out>
+        def Shader "Shader"
+        {
+            uniform token info:implementationSource = "sourceAsset"
+            uniform asset info:mdl:sourceAsset = @./scene_module.mdl@
+            uniform token info:mdl:sourceAsset:subIdentifier = "plain"
+            color3f inputs:tint = (0.1, 0.9, 0.2)
+            token outputs:out
+        }
+    }
+    def Material "Textured"
+    {
+        token outputs:mdl:surface.connect = </Looks/Textured/Shader.outputs:out>
+        def Shader "Shader"
+        {
+            uniform token info:implementationSource = "sourceAsset"
+            uniform asset info:mdl:sourceAsset = @./scene_module.mdl@
+            uniform token info:mdl:sourceAsset:subIdentifier = "textured"
+            asset inputs:image = @./checker.png@ (
+                colorSpace = "sRGB"
+            )
+            token outputs:out
+        }
+    }
+    def Material "Searched"
+    {
+        token outputs:mdl:surface.connect = </Looks/Searched/Shader.outputs:out>
+        def Shader "Shader"
+        {
+            uniform token info:implementationSource = "sourceAsset"
+            uniform asset info:mdl:sourceAsset = @Paints.mdl@
+            uniform token info:mdl:sourceAsset:subIdentifier = "red"
+            token outputs:out
+        }
+    }
+}
+"""
+
+
+def test_usd_import():
+    """Blender's USD importer hands the add-on the MDL materials of a scene: arguments from the shader's inputs, a
+    texture input through the importer, a module found on the MDL search paths."""
+    folder = os.path.join(scratch, "usd")
+    library = os.path.join(scratch, "usd_library")
+    os.makedirs(folder)
+    os.makedirs(library)
+    with open(os.path.join(folder, "scene_module.mdl"), "w", encoding="utf-8") as f:
+        f.write(USD_MODULE)
+    with open(os.path.join(library, "Paints.mdl"), "w", encoding="utf-8") as f:
+        f.write("mdl 1.7;\nimport ::df::*;\nexport material red() = material(surface: material_surface(scattering: "
+                "df::diffuse_reflection_bsdf(tint: color(0.9, 0.1, 0.1))));\n")
+    image = bpy.data.images.new("checker", 4, 4)
+    image.generated_type = "COLOR_GRID"
+    image.filepath_raw = os.path.join(folder, "checker.png")
+    image.file_format = "PNG"
+    image.save()
+    bpy.data.images.remove(image)
+    scene = os.path.join(folder, "scene.usda")
+    with open(scene, "w", encoding="utf-8") as f:
+        f.write(USD_SCENE)
+    addon.usd.defaults.update(usd_import=True, usd_mode="PRINCIPLED", usd_editable=False, executable=executable,
+                              mdl_paths=library)
+    before = set(bpy.data.materials)
+    bpy.ops.wm.usd_import(filepath=scene, import_all_materials=True)
+    made = {m.name: m for m in bpy.data.materials if m not in before}
+    check(sorted(made) == ["Plain", "Searched", "Textured"], f"USD materials: {sorted(made)}")
+    for name, material in made.items():
+        check("ShaderNodeBsdfPrincipled" in kinds(material), f"USD {name} not built by the add-on: {kinds(material)}")
+    if "Plain" in made:
+        bsdf = next(n for n in made["Plain"].node_tree.nodes if n.bl_idname == "ShaderNodeBsdfPrincipled")
+        color = bsdf.inputs["Base Color"]
+        check(not color.is_linked and all(abs(a - b) < 1e-4 for a, b in zip(color.default_value, (0.1, 0.9, 0.2))),
+              f"Plain's tint argument: {list(color.default_value)}")
+    if "Textured" in made:
+        images = [n.image for n in made["Textured"].node_tree.nodes if n.bl_idname == "ShaderNodeTexImage"]
+        check(any(i is not None and os.path.basename(i.filepath) == "checker.png" for i in images),
+              f"Textured's image argument: {[i and i.filepath for i in images]}")
+
+
 test_import_principled()
 test_import_lobes()
+test_usd_import()
 tinted = test_search_paths()
 test_rebuild(tinted)
 test_fill()

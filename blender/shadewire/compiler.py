@@ -79,7 +79,7 @@ class ModuleBackend:
     def mdl(self):
         """The module's MDL front end; a CompileError when the installed module predates it (or `distill`)."""
         mdl = getattr(self.module, "mdl", None)
-        if mdl is None or "distill" not in (mdl.to_ir.__text_signature__ or ""):
+        if mdl is None or "arguments" not in (mdl.to_ir.__text_signature__ or ""):
             raise CompileError(f"the installed shadewire module {self.module.version()} cannot read MDL modules; "
                                "this extension needs its bundled module or the shadewire executable")
         return mdl
@@ -95,19 +95,20 @@ class ModuleBackend:
         except self.module.ShadewireError as e:
             raise CompileError(str(e)) from e
 
-    def compile(self, path, material, editable, mode="PRINCIPLED"):
+    def compile(self, path, material, editable, mode="PRINCIPLED", arguments=()):
         """The front end of the file's format (MaterialX, or MDL by extension), the optimizer, the IR as a
-        document."""
+        document. `arguments`, `(name, value)` pairs, replace an MDL material's parameter defaults (see
+        `shadewire.mdl.to_ir`)."""
         if is_mdl(path):
-            return self.compile_mdl(path, material, editable, mode)
+            return self.compile_mdl(path, material, editable, mode, arguments)
         return self.compile_text(self.read(path), path, material, editable, mode)
 
-    def compile_mdl(self, path, material, editable, mode):
+    def compile_mdl(self, path, material, editable, mode, arguments=()):
         models, distill = MDL_MODES[mode]
         mdl = self.mdl()
         try:
             ir = mdl.to_ir(self.read(path), material=material, models=models, values_as_uniforms=editable,
-                                       paths=self.mdl_paths, location=path, distill=distill)
+                           paths=self.mdl_paths, location=path, distill=distill, arguments=list(arguments))
             doc = ir.optimize().to_dict()
         except self.module.ShadewireError as e:
             raise CompileError(str(e)) from e
@@ -178,8 +179,22 @@ class ExecutableBackend:
     def material_names(self, path):
         return [line for line in self.run(["list", path, *self.mdl_args(path)]).splitlines() if line.strip()]
 
-    def compile(self, path, material, editable, mode="PRINCIPLED"):
+    def compile(self, path, material, editable, mode="PRINCIPLED", arguments=()):
+        """`ModuleBackend.compile` through `shadewire ir`; MDL arguments through an `--mdl-args` file."""
+        temporary = None
         args = ["ir", path, "--json", *self.mdl_args(path)]
+        if arguments:
+            fd, temporary = tempfile.mkstemp(suffix=".json")
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump([{"name": name, "value": value} for name, value in arguments], f)
+            args += ["--mdl-args", temporary]
+        try:
+            return self.run_ir(args, path, material, editable, mode)
+        finally:
+            if temporary:
+                os.remove(temporary)
+
+    def run_ir(self, args, path, material, editable, mode):
         models, distill = MDL_MODES[mode] if is_mdl(path) else (MODES[mode], False)
         for model in models:
             args += ["--model", model]

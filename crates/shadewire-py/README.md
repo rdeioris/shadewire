@@ -46,9 +46,11 @@ print(compiled.reflection["textures"])           # files, colorspaces, bindings
 - `shadewire.unreal`: `to_ir(text, material=None, models=None, ...)` and `material_names(text)` read an Unreal
   material graph (the JSON the Unreal plugin's commandlet writes with `-format=json`): a legacy-shading material
   becomes `open_pbr_surface` (Unlit `surface_unlit`), its parameters uniforms; warnings as for Blender.
-- `shadewire.mdl`: `to_ir(text, material=None, models=None, ..., paths=None, location=None)` and
-  `material_names(text, paths=None, location=None)` read an NVIDIA MDL module (`paths` is the MDL search path); an
-  MDL material is a closure tree, so `models` must accept `surface`. `compile(ir, name="material")` writes the IR as a
+- `shadewire.mdl`: `to_ir(text, material=None, models=None, ..., paths=None, location=None, distill=False,
+  arguments=None)` and `material_names(text, paths=None, location=None)` read an NVIDIA MDL module (`paths` is the
+  MDL search path); an MDL material is a closure tree, so `models` must accept `surface` (or `open_pbr_surface` with
+  `distill`). `arguments`, `(name, value)` pairs, replace parameter defaults: a bool, an int, a float, 2 to 4 floats,
+  a str or `{"texture": path, "colorspace": "sRGB"}`. `compile(ir, name="material")` writes the IR as a
   self-contained MDL 1.7 module:
 
   ```python

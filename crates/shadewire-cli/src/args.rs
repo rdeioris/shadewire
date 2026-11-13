@@ -49,6 +49,10 @@ pub struct MtlxArgs {
     /// A folder of the MDL search path (repeatable), where `import` finds modules
     #[arg(long = "mdl-path")]
     pub mdl_paths: Vec<PathBuf>,
+    /// A JSON file of MDL material arguments in place of parameter defaults: `[{"name": ..., "value": ...}]`, each
+    /// value a bool, an int, a float, an array of 2 to 4 numbers, a string or `{"texture": path, "colorspace": ...}`
+    #[arg(long = "mdl-args")]
+    pub mdl_args: Option<PathBuf>,
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,
@@ -124,6 +128,10 @@ pub struct IrArgs {
     /// A folder of the MDL search path (repeatable), where `import` finds modules
     #[arg(long = "mdl-path")]
     pub mdl_paths: Vec<PathBuf>,
+    /// A JSON file of MDL material arguments in place of parameter defaults: `[{"name": ..., "value": ...}]`, each
+    /// value a bool, an int, a float, an array of 2 to 4 numbers, a string or `{"texture": path, "colorspace": ...}`
+    #[arg(long = "mdl-args")]
+    pub mdl_args: Option<PathBuf>,
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,
@@ -159,6 +167,10 @@ pub struct CompileArgs {
     /// A folder of the MDL search path (repeatable), where `import` finds modules
     #[arg(long = "mdl-path")]
     pub mdl_paths: Vec<PathBuf>,
+    /// A JSON file of MDL material arguments in place of parameter defaults: `[{"name": ..., "value": ...}]`, each
+    /// value a bool, an int, a float, an array of 2 to 4 numbers, a string or `{"texture": path, "colorspace": ...}`
+    #[arg(long = "mdl-args")]
+    pub mdl_args: Option<PathBuf>,
     /// Material name, when the document has several
     #[arg(long)]
     pub material: Option<String>,
