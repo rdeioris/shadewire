@@ -57,8 +57,12 @@ impl<'p, 'a> Eval<'p, 'a> {
             V::Texture(t) => Some(t.clone()),
             _ => None,
         };
+        let valid = texture.as_ref().is_some_and(|t| !t.file.is_empty());
         match name {
-            "texture_isvalid" => Ok(Val::bool(texture.is_some_and(|t| !t.file.is_empty()))),
+            "texture_isvalid" => Ok(Val::bool(valid)),
+            // An invalid texture is 0 texels each way, as MDL has it: base.mdl's lookups test its size, not
+            // `texture_isvalid`, so an empty normal map (`texture_2d()`) keeps the shading normal.
+            "width" | "height" | "depth" if !valid => Ok(Val::int(0)),
             "width" | "height" | "depth" => {
                 self.warn(format!("tex::{name}: 1024 texels"));
                 Ok(Val::int(1024))

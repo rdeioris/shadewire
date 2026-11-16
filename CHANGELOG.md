@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **MDL: an invalid texture is 0 texels.** `tex::width`, `tex::height` and `tex::depth` of an invalid texture
+  (`texture_2d()`, an empty file) are 0, as the MDL spec has them; they were 1024. `base.mdl`'s lookups test the size,
+  so an empty normal map (`base::tangent_space_normal_texture(texture_2d())`, as Kit's glass templates pass one) bent
+  the normal by a lookup of a missing texture instead of keeping the shading normal.
+
 ## 0.4.0 (2026-11-13)
 
 - **Blender: MDL import and export.** File > Import > MDL (Shadewire) creates one Blender material per exported

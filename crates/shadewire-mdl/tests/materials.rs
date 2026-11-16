@@ -84,6 +84,25 @@ fn a_geometry_normal_reaches_the_lobes() {
     assert!(!matches!(dag.node(normal.node).kind, shadewire::NodeKind::Context(_)), "{}", dag.dump());
 }
 
+/// An empty normal map is no normal map: `base::tangent_space_normal_texture` of `texture_2d()` is the shading normal
+/// (the texture's `tex::width` is 0), not a lookup of a missing texture.
+#[test]
+fn an_empty_normal_map_keeps_the_shading_normal() {
+    let text = r#"mdl 1.7;
+import ::df::*;
+import ::base::*;
+export material empty_normal_map(uniform texture_2d normal_map = texture_2d()) = material(
+    surface: material_surface(scattering: df::diffuse_reflection_bsdf()),
+    geometry: material_geometry(normal: base::tangent_space_normal_texture(normal_map)));
+"#;
+    let options = IrOptions::with_models(&LOBE_MODELS);
+    let ir = to_ir(text, None, Some("empty_normal_map"), &options, &Resolver::default()).unwrap();
+    let dag = optimize(&ir.dag);
+    let normal = dag.surface.fields.iter().find(|f| f.name == "c0_normal").expect("a normal field");
+    assert!(matches!(dag.node(normal.node).kind, shadewire::NodeKind::Context(_)), "{}", dag.dump());
+    assert!(dag.textures.is_empty(), "{:?}", dag.textures);
+}
+
 /// Material `material` of fixture `weighted`, `w` given.
 fn weighted(material: &str, w: Option<f32>) -> shadewire_mdl::MaterialIr {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
