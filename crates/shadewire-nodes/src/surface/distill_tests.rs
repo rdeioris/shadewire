@@ -354,6 +354,52 @@ fn a_metal_layered_over_a_dielectric_is_metalness_as_mdl_weighted_layer_builds_i
     near(&dag, "coat_weight", &[0.0]);
 }
 
+// OmniPBR's tree (weighted_layer(metalness, tint(base, glossy), custom_curve_layer(0.08, specular_level, glossy,
+// diffuse))) at `metalness`, specular_level 0.5.
+fn omni_pbr(metalness: f32) -> Vec<ShaderNode> {
+    let base = c(0.6, 0.3, 0.1);
+    vec![
+        bsdf(
+            "metal",
+            "generalized_schlick_bsdf",
+            vec![("color0", c(1.0, 1.0, 1.0)), ("color82", c(1.0, 1.0, 1.0)), ("color90", c(1.0, 1.0, 1.0))],
+        ),
+        node("tinted", "multiply", "BSDF", vec![("in2", base.clone())], vec![("in1", "metal")]),
+        bsdf(
+            "s",
+            "generalized_schlick_bsdf",
+            vec![("weight", f(0.5)), ("color0", c(0.08, 0.08, 0.08)), ("color90", c(1.0, 1.0, 1.0))],
+        ),
+        bsdf("d", "oren_nayar_diffuse_bsdf", vec![("color", base)]),
+        layer("cc", "s", "d"),
+        layer("over", "tinted", "cc"),
+        mix("omni", Some("over"), Some("cc"), f(metalness)),
+    ]
+}
+
+fn weighted_grazing() -> IrOptions {
+    IrOptions { distill_weighted_grazing: true, ..options() }
+}
+
+#[test]
+fn weighted_grazing_puts_a_dielectric_layers_weight_in_specular_weight() {
+    // MDL's custom_curve_layer weight scales its whole curve: 0.5 × 0.08 at normal incidence, 0.5 at grazing. Without
+    // metal the weight is specular_weight and the ior keeps the curve's own 0.08.
+    let dag = distilled_with(omni_pbr(0.0), "omni", &weighted_grazing());
+    near(&dag, "base_metalness", &[0.0]);
+    near(&dag, "specular_weight", &[0.5]);
+    near(&dag, "specular_ior", &[1.788_789]);
+}
+
+#[test]
+fn weighted_grazing_blends_specular_weight_to_one_with_metalness() {
+    // At metalness 0.4 the weight is 0.4 + 0.6 × 0.5 = 0.7, and the ior keeps F0(ior) × 0.7 at 0.5 × 0.08.
+    let dag = distilled_with(omni_pbr(0.4), "omni", &weighted_grazing());
+    near(&dag, "base_metalness", &[0.4]);
+    near(&dag, "specular_weight", &[0.7]);
+    near(&dag, "specular_ior", &[1.628_279]);
+}
+
 #[test]
 fn a_transmission_layered_over_a_specular_base_is_no_coat_and_hides_the_base() {
     // OmniSurface: weighted_layer(transmission_weight, glass, specular over diffuse).

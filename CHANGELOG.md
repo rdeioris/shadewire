@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Distill: `distill_weighted_grazing`.** A new `IrOptions` flag for hosts whose Fresnel scales its grazing
+  reflectance by `specular_weight` as well: a weighted dielectric reflection layer under a metal (OmniPBR's
+  `specular_level`, a `custom_curve_layer` whose weight scales its whole curve) puts its weight in `specular_weight`,
+  blended to one by `base_metalness`, instead of folding it into `specular_ior`. Off by default, where
+  `open_pbr_surface`'s own reading of `specular_weight` holds.
 - **MDL: an invalid texture is 0 texels.** `tex::width`, `tex::height` and `tex::depth` of an invalid texture
   (`texture_2d()`, an empty file) are 0, as the MDL spec has them; they were 1024. `base.mdl`'s lookups test the size,
   so an empty normal map (`base::tangent_space_normal_texture(texture_2d())`, as Kit's glass templates pass one) bent
