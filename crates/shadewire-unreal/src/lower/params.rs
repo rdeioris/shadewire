@@ -224,8 +224,27 @@ pub fn static_switch_value(l: &mut Lowerer, f: usize, x: &Expression) -> bool {
     static_bool(l, f, x, "Value", default)
 }
 
-/// The position of the function input `x` among its function's inputs, which is the index of the call's input.
+/// The index of the call's input that feeds the function input `x`.
+///
+/// By name first: the call names each input after the function input's `InputName`, with the type Unreal appends
+/// (`Base (V3)` for `Base`). Unreal orders inputs of equal `SortPriority` with an unstable sort, so their order in the
+/// function's expression list is not the call's (Blend_Overlay lists Blend before Base, its calls take Base first).
+/// The position by `SortPriority`, then as listed, is the fallback for a call whose input names do not match.
 pub fn function_input_position(l: &Lowerer, f: usize, x: &Expression) -> Option<usize> {
+    if let (Some((_, call)), Some(name)) = (l.caller(f), x.text("InputName")) {
+        let by_name = call.inputs.iter().find(|i| call_input_name(&i.name) == name);
+        if let Some(input) = by_name {
+            return Some(input.index);
+        }
+    }
     let list = l.function_expressions(f)?;
     l.sorted("FunctionInput", list).iter().position(|i| i.name == x.name)
+}
+
+/// A call input's name without the type Unreal appends to it: `Base (V3)` is `Base`.
+fn call_input_name(name: &str) -> &str {
+    match name.rfind(" (") {
+        Some(at) if name.ends_with(')') => &name[..at],
+        _ => name,
+    }
 }
