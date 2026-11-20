@@ -127,6 +127,7 @@ impl<'a> Lowerer<'a> {
         match short(&x.class) {
             "Constant" | "Constant2Vector" | "Constant3Vector" | "Constant4Vector" => vector::constant(self, f, x),
             "ScalarParameter" | "VectorParameter" => params::parameter(self, f, x),
+            "CollectionParameter" => params::collection_parameter(self, f, x),
             "StaticBool" | "StaticBoolParameter" => params::static_bool_value(self, f, x),
             "Reroute" => structure::reroute(self, f, x),
             "NamedRerouteDeclaration" => structure::reroute(self, f, x),

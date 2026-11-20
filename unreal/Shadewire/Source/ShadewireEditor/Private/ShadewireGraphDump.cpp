@@ -12,6 +12,7 @@
 #include "Materials/MaterialFunction.h"
 #include "Materials/MaterialFunctionInterface.h"
 #include "Materials/MaterialInstance.h"
+#include "Materials/MaterialParameterCollection.h"
 #include "Misc/EngineVersion.h"
 #include "Misc/Paths.h"
 #include "RenderUtils.h"
@@ -148,6 +149,13 @@ namespace
 				WriteTexture(Texture);
 			}
 			J.EndArray();
+			J.Key(TEXT("collections"));
+			J.BeginArray();
+			for (UMaterialParameterCollection* Collection : Collections)
+			{
+				WriteCollection(Collection);
+			}
+			J.EndArray();
 			J.EndObject();
 
 			FShadewireDump Dump;
@@ -162,6 +170,7 @@ namespace
 		TArray<UMaterialFunctionInterface*> Functions;
 		TArray<UTexture*> Textures;
 		TSet<FString> TextureFiles;
+		TArray<UMaterialParameterCollection*> Collections;
 		TArray<FString> Warnings;
 
 		void Warn(const FString& Warning)
@@ -560,7 +569,8 @@ namespace
 			J.EndObject();
 		}
 
-		/** An expression by its name; any other object by its path, noting the functions and textures reached. */
+		/** An expression by its name; any other object by its path, noting the functions, textures and parameter
+		 * collections reached. */
 		void WriteObject(UObject* Object)
 		{
 			if (!Object)
@@ -581,7 +591,49 @@ namespace
 			{
 				Textures.AddUnique(Texture);
 			}
+			else if (UMaterialParameterCollection* Collection = Cast<UMaterialParameterCollection>(Object))
+			{
+				Collections.AddUnique(Collection);
+			}
 			J.String(Object->GetPathName());
+		}
+
+		/** A material parameter collection's parameters at their default values, which its CollectionParameters read
+		 * unless something sets them at runtime. */
+		void WriteCollection(UMaterialParameterCollection* Collection)
+		{
+			J.BeginObject();
+			WriteHeader(Collection);
+			J.Key(TEXT("scalars"));
+			J.BeginArray();
+			for (const FCollectionScalarParameter& Parameter : Collection->ScalarParameters)
+			{
+				J.BeginObject();
+				J.Key(TEXT("name"));
+				J.String(Parameter.ParameterName.ToString());
+				J.Key(TEXT("value"));
+				J.Float(Parameter.DefaultValue);
+				J.EndObject();
+			}
+			J.EndArray();
+			J.Key(TEXT("vectors"));
+			J.BeginArray();
+			for (const FCollectionVectorParameter& Parameter : Collection->VectorParameters)
+			{
+				J.BeginObject();
+				J.Key(TEXT("name"));
+				J.String(Parameter.ParameterName.ToString());
+				J.Key(TEXT("value"));
+				J.BeginArray(true);
+				J.Float(Parameter.DefaultValue.R);
+				J.Float(Parameter.DefaultValue.G);
+				J.Float(Parameter.DefaultValue.B);
+				J.Float(Parameter.DefaultValue.A);
+				J.EndArray();
+				J.EndObject();
+			}
+			J.EndArray();
+			J.EndObject();
 		}
 
 		void WriteTexture(UTexture* Texture)

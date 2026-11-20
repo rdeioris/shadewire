@@ -25,6 +25,33 @@ pub struct Document {
     pub functions: Vec<Function>,
     #[serde(default)]
     pub textures: Vec<Texture>,
+    /// The material parameter collections the expressions name, at their default values.
+    #[serde(default)]
+    pub collections: Vec<Collection>,
+}
+
+/// A material parameter collection: the values its CollectionParameter expressions read, by parameter name.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Collection {
+    pub path: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub scalars: Vec<CollectionScalar>,
+    #[serde(default)]
+    pub vectors: Vec<CollectionVector>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CollectionScalar {
+    pub name: String,
+    pub value: f32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CollectionVector {
+    pub name: String,
+    pub value: [f32; 4],
 }
 
 /// A `Material` or a material instance (`MaterialInstanceConstant`), by its `class`.

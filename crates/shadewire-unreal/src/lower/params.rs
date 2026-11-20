@@ -31,6 +31,27 @@ pub struct Settings {
     pub use_attributes: bool,
 }
 
+/// A CollectionParameter: its material parameter collection's default value for the parameter it names, a float
+/// for a scalar parameter and four components for a vector one, as Unreal reads them. Game code can change a
+/// collection at runtime; the document only has its defaults, so this is the material as the editor shows it.
+pub fn collection_parameter(l: &mut Lowerer, f: usize, x: &Expression) -> Result<NodeId, Error> {
+    let o = l.origin(f, x);
+    let path = x.text("Collection").unwrap_or("");
+    let name = x.text("ParameterName").unwrap_or("");
+    let Some(collection) = l.doc.collections.iter().find(|c| c.path == path) else {
+        l.warn(f, x, format!("parameter collection {path:?} is not in the document, {name:?} read as 0"));
+        return Ok(l.k(0.0, &o));
+    };
+    if let Some(scalar) = collection.scalars.iter().find(|p| p.name == name) {
+        return Ok(l.k(scalar.value, &o));
+    }
+    if let Some(vector) = collection.vectors.iter().find(|p| p.name == name) {
+        return Ok(l.kv(&vector.value, &o));
+    }
+    l.warn(f, x, format!("parameter collection {} has no parameter {name:?}, read as 0", collection.name));
+    Ok(l.k(0.0, &o))
+}
+
 /// The base material `material` builds on, the parameters its chain sets, and the warnings that raised.
 pub fn resolve<'a>(doc: &'a Document, material: &'a Material) -> Result<(&'a Material, Params, Vec<String>), Error> {
     let mut params = Params::default();
