@@ -188,6 +188,9 @@ impl<'a> Lowerer<'a> {
             "SubstrateHazinessToSecondaryRoughness" => substrate::haziness(self, f, x, out),
             "SubstrateTransmittanceToMFP" => substrate::transmittance_to_mfp(self, f, x, out),
             "SubstrateThinFilm" => substrate::thin_film(self, f, x, out),
+            "RuntimeVirtualTextureSample" | "RuntimeVirtualTextureSampleParameter" => {
+                fallback::virtual_texture(self, f, x, out)
+            }
             _ => fallback::neutral(self, f, x),
         }
     }

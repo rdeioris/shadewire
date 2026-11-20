@@ -1,16 +1,39 @@
 //! The material's pins as a surface: legacy shading models as `open_pbr_surface` (Unlit as `surface_unlit`), with
 //! Unreal's defaults for unlinked pins and its blend mode as opacity.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use shadewire::{ContextRead, Dag, Error, NodeId, Space, Type, Value};
 use shadewire_nodes::Arg;
 
+use super::params::static_switch_value;
 use super::{Lowerer, short};
-use crate::document::Material;
+use crate::document::{Expression, Material};
 
 /// MakeMaterialAttributes inputs whose names are not their pins'.
 const ATTRIBUTE_PINS: [(&str, &str); 2] = [("ClearCoat", "CustomData0"), ("ClearCoatRoughness", "CustomData1")];
+
+/// Unreal's value for each attribute nothing sets (`FMaterialAttributeDefinitionMap`): what a blend reads for a pin
+/// only one of its sides sets.
+const ATTRIBUTE_DEFAULTS: [(&str, Value); 17] = [
+    ("BaseColor", Value::Color3([0.0; 3])),
+    ("Metallic", Value::Float(0.0)),
+    ("Specular", Value::Float(0.5)),
+    ("Roughness", Value::Float(0.5)),
+    ("Anisotropy", Value::Float(0.0)),
+    ("EmissiveColor", Value::Color3([0.0; 3])),
+    ("Opacity", Value::Float(1.0)),
+    ("OpacityMask", Value::Float(1.0)),
+    ("Normal", Value::Vector3([0.0, 0.0, 1.0])),
+    ("Tangent", Value::Vector3([1.0, 0.0, 0.0])),
+    ("WorldPositionOffset", Value::Vector3([0.0; 3])),
+    ("SubsurfaceColor", Value::Color3([1.0; 3])),
+    ("CustomData0", Value::Float(1.0)),
+    ("CustomData1", Value::Float(0.1)),
+    ("AmbientOcclusion", Value::Float(1.0)),
+    ("Refraction", Value::Float(1.0)),
+    ("PixelDepthOffset", Value::Float(0.0)),
+];
 
 /// Pins no legacy model reads.
 const IGNORED: [&str; 5] =
@@ -27,6 +50,8 @@ struct Source {
 struct Pins<'m> {
     material: &'m Material,
     sources: HashMap<String, Source>,
+    /// Pins whose values are already lowered: a BlendMaterialAttributes' blends.
+    lowered: HashMap<String, NodeId>,
     /// The Substrate tree the Front Material pin reads, unless it is a Substrate Shading Models node (whose inputs
     /// are then the pins).
     front: Option<Source>,
@@ -36,11 +61,14 @@ struct Pins<'m> {
 
 impl Pins<'_> {
     fn linked(&self, pin: &str) -> bool {
-        self.sources.contains_key(pin)
+        self.sources.contains_key(pin) || self.lowered.contains_key(pin)
     }
 
     /// What `pin` reads, when linked.
     fn read(&self, l: &mut Lowerer, pin: &str) -> Result<Option<NodeId>, Error> {
+        if let Some(&id) = self.lowered.get(pin) {
+            return Ok(Some(id));
+        }
         match self.sources.get(pin) {
             Some(s) => l.link(s.frame, &s.from, s.mask).map(Some),
             None => Ok(None),
@@ -81,9 +109,9 @@ pub(super) fn warn(l: &mut Lowerer, material: &Material, what: impl Into<String>
     }
 }
 
-/// The pins `material` links: its own, or the inputs of the MakeMaterialAttributes its MaterialAttributes pin
-/// reads when it uses material attributes.
-fn pins<'m>(l: &mut Lowerer, material: &'m Material) -> Pins<'m> {
+/// The pins `material` links: its own, or the attributes its MaterialAttributes pin reads when it uses material
+/// attributes.
+fn pins<'m>(l: &mut Lowerer, material: &'m Material) -> Result<Pins<'m>, Error> {
     let mut sources = HashMap::new();
     if !l.params.settings.use_attributes {
         for pin in &material.pins {
@@ -91,30 +119,96 @@ fn pins<'m>(l: &mut Lowerer, material: &'m Material) -> Pins<'m> {
                 sources.insert(pin.pin.clone(), Source { frame: 0, from: from.clone(), mask: pin.mask });
             }
         }
-        let mut pins = Pins { material, sources, front: None, model: None };
+        let mut pins = Pins { material, sources, lowered: HashMap::new(), front: None, model: None };
         if let Some(front) = pins.sources.remove("FrontMaterial") {
             front_material(l, &mut pins, front);
         }
-        return pins;
+        return Ok(pins);
     }
-    let mut from = material.pins.iter().find(|p| p.pin == "MaterialAttributes").and_then(|p| p.from.clone());
+    let from = material.pins.iter().find(|p| p.pin == "MaterialAttributes").and_then(|p| p.from.clone());
+    let set = attributes(l, material, from, 0)?;
+    Ok(Pins { material, sources: set.links, lowered: set.lowered, front: None, model: None })
+}
+
+/// A set of material attributes: pins read from expression outputs, or already lowered.
+#[derive(Default)]
+struct Attributes {
+    links: HashMap<String, Source>,
+    lowered: HashMap<String, NodeId>,
+}
+
+impl Attributes {
+    fn set(&mut self, pin: String, source: Source) {
+        self.lowered.remove(&pin);
+        self.links.insert(pin, source);
+    }
+
+    fn has(&self, pin: &str) -> bool {
+        self.links.contains_key(pin) || self.lowered.contains_key(pin)
+    }
+
+    /// What `pin` reads, when this set has it.
+    fn value(&self, l: &mut Lowerer, pin: &str) -> Result<Option<NodeId>, Error> {
+        if let Some(&id) = self.lowered.get(pin) {
+            return Ok(Some(id));
+        }
+        match self.links.get(pin) {
+            Some(s) => l.link(s.frame, &s.from, s.mask).map(Some),
+            None => Ok(None),
+        }
+    }
+}
+
+/// The pin an attribute input sets: MakeMaterialAttributes names its inputs after the pins, SetMaterialAttributes
+/// after their display names ("Base Color"), and both name the clear coat pins by their legacy names.
+fn attribute_pin(name: &str) -> String {
+    let name: String = name.chars().filter(|c| !c.is_whitespace()).collect();
+    ATTRIBUTE_PINS.iter().find(|(n, _)| *n == name).map_or(name, |(_, p)| p.to_string())
+}
+
+/// The attributes the expression output `from` gives: through reroutes and static switches (the branch their value
+/// picks), from MakeMaterialAttributes, SetMaterialAttributes and BlendMaterialAttributes. Anything else is a warning
+/// and no attributes, so the surface is Unreal's defaults.
+fn attributes(
+    l: &mut Lowerer,
+    material: &Material,
+    from: Option<(String, usize)>,
+    depth: usize,
+) -> Result<Attributes, Error> {
+    let mut from = from;
     for _ in 0..64 {
+        if depth > 64 {
+            break;
+        }
         let Some((name, _)) = from.clone() else { break };
         let Some(x) = l.expression(0, &name) else { break };
         match short(&x.class) {
             "Reroute" | "NamedRerouteDeclaration" => from = x.input_at(0).and_then(|i| i.from.clone()),
+            "NamedRerouteUsage" => from = x.text("Declaration").map(|d| (d.to_string(), 0)),
+            "StaticSwitch" | "StaticSwitchParameter" => {
+                let branch = if static_switch_value(l, 0, x) { "True" } else { "False" };
+                from = x.input(branch).and_then(|i| i.from.clone());
+            }
             "MakeMaterialAttributes" => {
+                let mut set = Attributes::default();
                 for input in &x.inputs {
                     if let Some(link) = &input.from {
-                        let pin = ATTRIBUTE_PINS
-                            .iter()
-                            .find(|(n, _)| *n == input.name)
-                            .map_or(input.name.as_str(), |(_, p)| p);
-                        sources.insert(pin.to_string(), Source { frame: 0, from: link.clone(), mask: input.mask });
+                        set.set(attribute_pin(&input.name), Source { frame: 0, from: link.clone(), mask: input.mask });
                     }
                 }
-                return Pins { material, sources, front: None, model: None };
+                return Ok(set);
             }
+            "SetMaterialAttributes" => {
+                let base = x.input("MaterialAttributes").and_then(|i| i.from.clone());
+                let mut set = attributes(l, material, base, depth + 1)?;
+                for input in x.inputs.iter().filter(|i| i.name != "MaterialAttributes") {
+                    if let Some(link) = &input.from {
+                        set.set(attribute_pin(&input.name), Source { frame: 0, from: link.clone(), mask: input.mask });
+                    }
+                }
+                return Ok(set);
+            }
+            "BlendMaterialAttributes" => return blend(l, material, x, depth),
             other => {
                 let what = format!("material attributes from {other} are not read, the surface is Unreal's defaults");
                 warn(l, material, what);
@@ -122,7 +216,58 @@ fn pins<'m>(l: &mut Lowerer, material: &'m Material) -> Pins<'m> {
             }
         }
     }
-    Pins { material, sources, front: None, model: None }
+    Ok(Attributes::default())
+}
+
+/// BlendMaterialAttributes: every pin either side sets is `lerp(A, B, Alpha)`, the side that leaves it unset giving
+/// Unreal's default; `UseA` and `UseB` take one side. Only the pixel blend is read: the vertex attributes it blends
+/// (world position offset) are ignored by the surface.
+fn blend(l: &mut Lowerer, material: &Material, x: &Expression, depth: usize) -> Result<Attributes, Error> {
+    let a = attributes(l, material, x.input("A").and_then(|i| i.from.clone()), depth + 1)?;
+    let b = attributes(l, material, x.input("B").and_then(|i| i.from.clone()), depth + 1)?;
+    match x.text("PixelAttributeBlendType").unwrap_or("Blend") {
+        "UseA" => return Ok(a),
+        "UseB" => return Ok(b),
+        _ => {}
+    }
+    let origin = l.origin(0, x);
+    let Some(alpha_input) = x.input("Alpha").filter(|i| i.from.is_some()) else {
+        warn(l, material, format!("{}: Alpha is not linked, A is taken", x.name));
+        return Ok(a);
+    };
+    let alpha_from = alpha_input.from.clone().unwrap_or_default();
+    let alpha = l.link(0, &alpha_from, alpha_input.mask)?;
+    let alpha = l.cast(alpha, 1, &origin)?;
+    let pins: BTreeSet<String> =
+        a.links.keys().chain(a.lowered.keys()).chain(b.links.keys()).chain(b.lowered.keys()).cloned().collect();
+    let mut out = Attributes::default();
+    for pin in pins {
+        let Some((_, default)) = ATTRIBUTE_DEFAULTS.iter().find(|(name, _)| *name == pin) else {
+            let side = if a.has(&pin) { &a } else { &b };
+            warn(l, material, format!("{}: {pin} is not blended, one side's is taken", x.name));
+            if let Some(source) = side.links.get(&pin) {
+                out.links.insert(pin.clone(), source.clone());
+            } else if let Some(&id) = side.lowered.get(&pin) {
+                out.lowered.insert(pin.clone(), id);
+            }
+            continue;
+        };
+        let width = default.ty().component_count();
+        let mut values = [None, None];
+        for (k, set) in [&a, &b].into_iter().enumerate() {
+            let id = match set.value(l, &pin)? {
+                Some(id) => id,
+                None => l.e.constant(default.clone(), &origin),
+            };
+            values[k] = Some(l.cast(id, width, &origin)?);
+        }
+        let (va, vb) = (values[0].unwrap(), values[1].unwrap());
+        let ty = l.e.dag.node(va).ty;
+        let mixed =
+            l.op("mix", ty, &[("fg", Arg::Node(vb)), ("bg", Arg::Node(va)), ("mix", Arg::Node(alpha))], &origin)?;
+        out.lowered.insert(pin, mixed);
+    }
+    Ok(out)
 }
 
 /// The Front Material pin: a Substrate Shading Models node (through reroutes) gives its inputs as the legacy pins
@@ -183,7 +328,7 @@ pub(super) fn direction(l: &mut Lowerer, v: NodeId, tangent_space: bool, origin:
 
 /// The dag finished with `base`'s surface, and the lowering's warnings.
 pub fn finish(mut l: Lowerer, base: &Material) -> Result<(Dag, Vec<String>), Error> {
-    let p = pins(&mut l, base);
+    let p = pins(&mut l, base)?;
     let settings = l.params.settings.clone();
     if settings.domain != "MD_Surface" {
         warn(&mut l, base, format!("domain {} read as a surface", settings.domain));
