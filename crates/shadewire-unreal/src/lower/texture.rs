@@ -272,11 +272,42 @@ pub fn camera_vector(l: &mut Lowerer, f: usize, x: &Expression) -> Result<NodeId
 }
 
 /// The first vertex color set, `RGBA`.
+/// Unreal's VertexColor: the mesh's colour as its vertex buffer stores it. Unreal keeps a mesh's colours linear (its
+/// mesh description, and what its USD and glTF exporters write) and builds the 8-bit buffer sRGB-encoded, which the
+/// node reads back undecoded: so it is the sRGB encoding of the linear colour `geomcolor` reads. Alpha is stored
+/// as is.
 pub fn vertex_color(l: &mut Lowerer, f: usize, x: &Expression) -> Result<NodeId, Error> {
     let o = l.origin(f, x);
     let index = ("index", Arg::Value(Value::Integer(0)));
     let color = l.op("geomcolor", Type::Color4, &[index], &o)?;
-    l.cast(color, 4, &o)
+    let color = l.cast(color, 4, &o)?;
+    let mut channels = Vec::with_capacity(4);
+    for i in 0..3 {
+        let c = l.channel(color, i, &o)?;
+        channels.push(srgb_encode(l, c, &o)?);
+    }
+    channels.push(l.channel(color, 3, &o)?);
+    l.combine(&channels, &o)
+}
+
+/// The sRGB transfer function of IEC 61966-2-1, linear to encoded, for one float in 0..1:
+/// `c > 0.0031308 ? 1.055 c^(1/2.4) - 0.055 : 12.92 c`.
+fn srgb_encode(l: &mut Lowerer, c: NodeId, o: &str) -> Result<NodeId, Error> {
+    let (zero, one) = (l.k(0.0, o), l.k(1.0, o));
+    let c = l.op2("max", c, zero, o)?;
+    let c = l.op2("min", c, one, o)?;
+    let slope = l.k(12.92, o);
+    let toe = l.op2("multiply", c, slope, o)?;
+    let exponent = l.k(1.0 / 2.4, o);
+    let curve = l.op2("power", c, exponent, o)?;
+    let scale = l.k(1.055, o);
+    let curve = l.op2("multiply", curve, scale, o)?;
+    let offset = l.k(0.055, o);
+    let curve = l.op2("subtract", curve, offset, o)?;
+    let knee = l.k(0.0031308, o);
+    let inputs =
+        [("value1", Arg::Node(c)), ("value2", Arg::Node(knee)), ("in1", Arg::Node(curve)), ("in2", Arg::Node(toe))];
+    l.op("ifgreater", Type::Float, &inputs, o)
 }
 
 /// Unreal's Fresnel: `base + (1 - base) * |1 - max(0, N·V)| ^ exponent`.

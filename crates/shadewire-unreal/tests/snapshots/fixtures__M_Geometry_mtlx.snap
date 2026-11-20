@@ -28,23 +28,247 @@ expression: written.text
     <convert name="MaterialExpressionVertexColor_0_2" type="vector4" nodedef="ND_convert_color4_vector4">
       <input name="in" type="color4" nodename="MaterialExpressionVertexColor_0" />
     </convert>
-    <convert name="MaterialExpressionVertexColor_0_3" type="vector3" nodedef="ND_convert_vector4_vector3">
+    <extract name="MaterialExpressionVertexColor_0_3" type="float">
       <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_2" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <max name="MaterialExpressionVertexColor_0_4" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_3" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionVertexColor_0_5" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_4" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <multiply name="MaterialExpressionVertexColor_0_6" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_5" />
+      <input name="in2" type="float" value="12.92" />
+    </multiply>
+    <power name="MaterialExpressionVertexColor_0_7" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_5" />
+      <input name="in2" type="float" value="0.41666666" />
+    </power>
+    <multiply name="MaterialExpressionVertexColor_0_8" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_7" />
+      <input name="in2" type="float" value="1.055" />
+    </multiply>
+    <subtract name="MaterialExpressionVertexColor_0_9" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_8" />
+      <input name="in2" type="float" value="0.055" />
+    </subtract>
+    <ifgreater name="MaterialExpressionVertexColor_0_10" type="float">
+      <input name="value1" type="float" nodename="MaterialExpressionVertexColor_0_5" />
+      <input name="value2" type="float" value="0.0031308" />
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_9" />
+      <input name="in2" type="float" nodename="MaterialExpressionVertexColor_0_6" />
+    </ifgreater>
+    <extract name="MaterialExpressionVertexColor_0_11" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_2" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <max name="MaterialExpressionVertexColor_0_12" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_11" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionVertexColor_0_13" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_12" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <multiply name="MaterialExpressionVertexColor_0_14" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_13" />
+      <input name="in2" type="float" value="12.92" />
+    </multiply>
+    <power name="MaterialExpressionVertexColor_0_15" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_13" />
+      <input name="in2" type="float" value="0.41666666" />
+    </power>
+    <multiply name="MaterialExpressionVertexColor_0_16" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_15" />
+      <input name="in2" type="float" value="1.055" />
+    </multiply>
+    <subtract name="MaterialExpressionVertexColor_0_17" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_16" />
+      <input name="in2" type="float" value="0.055" />
+    </subtract>
+    <ifgreater name="MaterialExpressionVertexColor_0_18" type="float">
+      <input name="value1" type="float" nodename="MaterialExpressionVertexColor_0_13" />
+      <input name="value2" type="float" value="0.0031308" />
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_17" />
+      <input name="in2" type="float" nodename="MaterialExpressionVertexColor_0_14" />
+    </ifgreater>
+    <extract name="MaterialExpressionVertexColor_0_19" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_2" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <max name="MaterialExpressionVertexColor_0_20" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_19" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionVertexColor_0_21" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_20" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <multiply name="MaterialExpressionVertexColor_0_22" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_21" />
+      <input name="in2" type="float" value="12.92" />
+    </multiply>
+    <power name="MaterialExpressionVertexColor_0_23" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_21" />
+      <input name="in2" type="float" value="0.41666666" />
+    </power>
+    <multiply name="MaterialExpressionVertexColor_0_24" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_23" />
+      <input name="in2" type="float" value="1.055" />
+    </multiply>
+    <subtract name="MaterialExpressionVertexColor_0_25" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_24" />
+      <input name="in2" type="float" value="0.055" />
+    </subtract>
+    <ifgreater name="MaterialExpressionVertexColor_0_26" type="float">
+      <input name="value1" type="float" nodename="MaterialExpressionVertexColor_0_21" />
+      <input name="value2" type="float" value="0.0031308" />
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_25" />
+      <input name="in2" type="float" nodename="MaterialExpressionVertexColor_0_22" />
+    </ifgreater>
+    <extract name="MaterialExpressionVertexColor_0_27" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_2" />
+      <input name="index" type="integer" value="3" />
+    </extract>
+    <combine4 name="MaterialExpressionVertexColor_0_28" type="vector4">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_10" />
+      <input name="in2" type="float" nodename="MaterialExpressionVertexColor_0_18" />
+      <input name="in3" type="float" nodename="MaterialExpressionVertexColor_0_26" />
+      <input name="in4" type="float" nodename="MaterialExpressionVertexColor_0_27" />
+    </combine4>
+    <convert name="MaterialExpressionVertexColor_0_29" type="vector3" nodedef="ND_convert_vector4_vector3">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_28" />
     </convert>
-    <geomcolor name="MaterialExpressionVertexColor_0_4" type="color4">
+    <geomcolor name="MaterialExpressionVertexColor_0_30" type="color4">
       <input name="index" type="integer" value="0" />
     </geomcolor>
-    <convert name="MaterialExpressionVertexColor_0_5" type="vector4" nodedef="ND_convert_color4_vector4">
-      <input name="in" type="color4" nodename="MaterialExpressionVertexColor_0_4" />
+    <convert name="MaterialExpressionVertexColor_0_31" type="vector4" nodedef="ND_convert_color4_vector4">
+      <input name="in" type="color4" nodename="MaterialExpressionVertexColor_0_30" />
     </convert>
-    <extract name="MaterialExpressionVertexColor_0_6" type="float">
-      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_5" />
+    <extract name="MaterialExpressionVertexColor_0_32" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_31" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <max name="MaterialExpressionVertexColor_0_33" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_32" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionVertexColor_0_34" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_33" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <multiply name="MaterialExpressionVertexColor_0_35" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_34" />
+      <input name="in2" type="float" value="12.92" />
+    </multiply>
+    <power name="MaterialExpressionVertexColor_0_36" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_34" />
+      <input name="in2" type="float" value="0.41666666" />
+    </power>
+    <multiply name="MaterialExpressionVertexColor_0_37" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_36" />
+      <input name="in2" type="float" value="1.055" />
+    </multiply>
+    <subtract name="MaterialExpressionVertexColor_0_38" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_37" />
+      <input name="in2" type="float" value="0.055" />
+    </subtract>
+    <ifgreater name="MaterialExpressionVertexColor_0_39" type="float">
+      <input name="value1" type="float" nodename="MaterialExpressionVertexColor_0_34" />
+      <input name="value2" type="float" value="0.0031308" />
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_38" />
+      <input name="in2" type="float" nodename="MaterialExpressionVertexColor_0_35" />
+    </ifgreater>
+    <extract name="MaterialExpressionVertexColor_0_40" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_31" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <max name="MaterialExpressionVertexColor_0_41" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_40" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionVertexColor_0_42" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_41" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <multiply name="MaterialExpressionVertexColor_0_43" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_42" />
+      <input name="in2" type="float" value="12.92" />
+    </multiply>
+    <power name="MaterialExpressionVertexColor_0_44" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_42" />
+      <input name="in2" type="float" value="0.41666666" />
+    </power>
+    <multiply name="MaterialExpressionVertexColor_0_45" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_44" />
+      <input name="in2" type="float" value="1.055" />
+    </multiply>
+    <subtract name="MaterialExpressionVertexColor_0_46" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_45" />
+      <input name="in2" type="float" value="0.055" />
+    </subtract>
+    <ifgreater name="MaterialExpressionVertexColor_0_47" type="float">
+      <input name="value1" type="float" nodename="MaterialExpressionVertexColor_0_42" />
+      <input name="value2" type="float" value="0.0031308" />
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_46" />
+      <input name="in2" type="float" nodename="MaterialExpressionVertexColor_0_43" />
+    </ifgreater>
+    <extract name="MaterialExpressionVertexColor_0_48" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_31" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <max name="MaterialExpressionVertexColor_0_49" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_48" />
+      <input name="in2" type="float" value="0" />
+    </max>
+    <min name="MaterialExpressionVertexColor_0_50" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_49" />
+      <input name="in2" type="float" value="1" />
+    </min>
+    <multiply name="MaterialExpressionVertexColor_0_51" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_50" />
+      <input name="in2" type="float" value="12.92" />
+    </multiply>
+    <power name="MaterialExpressionVertexColor_0_52" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_50" />
+      <input name="in2" type="float" value="0.41666666" />
+    </power>
+    <multiply name="MaterialExpressionVertexColor_0_53" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_52" />
+      <input name="in2" type="float" value="1.055" />
+    </multiply>
+    <subtract name="MaterialExpressionVertexColor_0_54" type="float">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_53" />
+      <input name="in2" type="float" value="0.055" />
+    </subtract>
+    <ifgreater name="MaterialExpressionVertexColor_0_55" type="float">
+      <input name="value1" type="float" nodename="MaterialExpressionVertexColor_0_50" />
+      <input name="value2" type="float" value="0.0031308" />
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_54" />
+      <input name="in2" type="float" nodename="MaterialExpressionVertexColor_0_51" />
+    </ifgreater>
+    <extract name="MaterialExpressionVertexColor_0_56" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_31" />
+      <input name="index" type="integer" value="3" />
+    </extract>
+    <combine4 name="MaterialExpressionVertexColor_0_57" type="vector4">
+      <input name="in1" type="float" nodename="MaterialExpressionVertexColor_0_39" />
+      <input name="in2" type="float" nodename="MaterialExpressionVertexColor_0_47" />
+      <input name="in3" type="float" nodename="MaterialExpressionVertexColor_0_55" />
+      <input name="in4" type="float" nodename="MaterialExpressionVertexColor_0_56" />
+    </combine4>
+    <extract name="MaterialExpressionVertexColor_0_58" type="float">
+      <input name="in" type="vector4" nodename="MaterialExpressionVertexColor_0_57" />
       <input name="index" type="integer" value="3" />
     </extract>
     <mix name="MaterialExpressionLinearInterpolate_0" type="vector3">
-      <input name="fg" type="vector3" nodename="MaterialExpressionVertexColor_0_3" />
+      <input name="fg" type="vector3" nodename="MaterialExpressionVertexColor_0_29" />
       <input name="bg" type="vector3" nodename="MaterialExpressionFrac_0" />
-      <input name="mix" type="float" nodename="MaterialExpressionVertexColor_0_6" />
+      <input name="mix" type="float" nodename="MaterialExpressionVertexColor_0_58" />
     </mix>
     <convert name="M_Geometry_BaseColor" type="color3" nodedef="ND_convert_vector3_color3">
       <input name="in" type="vector3" nodename="MaterialExpressionLinearInterpolate_0" />
