@@ -299,7 +299,7 @@ fn side(l: &mut Lowerer, f: usize, x: &Expression, index: usize, top: bool) -> R
 fn function_call<'a>(l: &mut Lowerer<'a>, f: usize, x: &'a Expression, out: usize, top: bool) -> Result<Tree, Error> {
     let Some(frame) = l.call_frame(f, x)? else { return Ok(Tree::default()) };
     let list = l.function_expressions(frame).unwrap_or(&[]);
-    let Some(output) = l.sorted("FunctionOutput", list).get(out).map(|o| o.name.clone()) else {
+    let Some(output) = l.call_output(x, list, out).map(|o| o.name.clone()) else {
         l.warn(f, x, format!("the function has no output {out}, nothing scattered"));
         return Ok(Tree::default());
     };

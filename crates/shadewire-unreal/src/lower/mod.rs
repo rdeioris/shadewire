@@ -3,6 +3,7 @@
 //! as Unreal's compiler follows them, and each input's mask is applied to what it reads, as Unreal applies it.
 
 pub mod fallback;
+pub mod landscape;
 pub mod math;
 pub mod params;
 pub mod structure;
@@ -175,10 +176,21 @@ impl<'a> Lowerer<'a> {
             "Length" => vector::length(self, f, x),
             "Distance" => vector::distance(self, f, x),
             "Desaturation" => vector::desaturation(self, f, x),
+            "Transform" => vector::transform(self, f, x),
+            "BreakMaterialAttributes" | "GetMaterialAttributes" => surface::break_attributes(self, f, x, out),
+            "Switch" => structure::switch(self, f, x),
+            "LandscapeLayerSample" => landscape::layer_sample(self, f, x),
+            "LandscapeLayerWeight" => landscape::layer_weight_node(self, f, x),
+            "LandscapeLayerSwitch" => landscape::layer_switch(self, f, x),
+            "LandscapeVisibilityMask" => landscape::visibility_mask(self, f, x),
+            "LandscapeLayerCoords" => landscape::layer_coords(self, f, x),
+            "LandscapeLayerBlend" => landscape::layer_blend(self, f, x),
+            "LandscapeGrassOutput" => landscape::grass_output(self, f, x),
             "TextureSample" | "TextureSampleParameter2D" => texture::sample(self, f, x),
             "TextureCoordinate" => texture::texture_coordinate(self, f, x),
             "Panner" => texture::panner(self, f, x),
             "Time" => texture::time(self, f, x),
+            "Rotator" => texture::rotator(self, f, x),
             "WorldPosition" => texture::world_position(self, f, x),
             "VertexNormalWS" => texture::vertex_normal(self, f, x),
             "PixelNormalWS" => texture::pixel_normal(self, f, x),
@@ -426,6 +438,21 @@ impl<'a> Lowerer<'a> {
         let mut found: Vec<&Expression> = list.iter().filter(|x| short(&x.class) == class).collect();
         found.sort_by_key(|x| x.number("SortPriority").map(|p| p as i64).unwrap_or(0));
         found
+    }
+
+    /// The FunctionOutput of the called function's `list` that output `out` of `call` reads: the one named like the
+    /// call's output `out`. Unreal orders outputs of equal `SortPriority` with an unstable sort, so the call's order
+    /// need not follow the listing (MF_LandsapeLayers_01 gives each layer's Mat Attr and Heightmap outputs the same
+    /// priority, and its calls list Heightmap first). Without a unique name match, the output at `out` by
+    /// `SortPriority`.
+    pub fn call_output(&self, call: &Expression, list: &'a [Expression], out: usize) -> Option<&'a Expression> {
+        if let Some(name) = call.outputs.get(out).map(|o| o.name.as_str()).filter(|n| !n.is_empty()) {
+            let mut named = list.iter().filter(|x| short(&x.class) == "FunctionOutput" && x.text("OutputName") == Some(name));
+            if let (Some(found), None) = (named.next(), named.next()) {
+                return Some(found);
+            }
+        }
+        self.sorted("FunctionOutput", list).get(out).copied()
     }
 
     /// The expressions of the function `frame` was opened for.

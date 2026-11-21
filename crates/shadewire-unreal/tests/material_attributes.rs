@@ -237,3 +237,123 @@ fn a_runtime_virtual_texture_reads_as_zero_at_the_width_of_each_output() {
     assert!(attributes.warnings.iter().any(|w| w.contains("runtime virtual texture")), "{:?}", attributes.warnings);
     assert_same_material(&attributes.dag, &direct.dag, "a runtime virtual texture's outputs");
 }
+
+fn break_attributes(name: &str, from: &str) -> Value {
+    let names = ["BaseColor", "Metallic", "Specular", "Roughness"];
+    let outputs: Vec<Value> = names.iter().map(|n| json!({ "name": n, "mask": null })).collect();
+    json!({
+        "name": name, "class": "MaterialExpressionBreakMaterialAttributes", "properties": {},
+        "inputs": [input(0, "Attr", Some(from))], "outputs": outputs
+    })
+}
+
+#[test]
+fn break_material_attributes_reads_what_make_set_and_unreal_defaults_otherwise() {
+    // BaseColor from Make; Specular unset, so Unreal's default 0.5 (through Roughness)
+    let broken = document(
+        false,
+        vec![
+            constant3("C1", C1),
+            make("Make", &[("BaseColor", "C1")]),
+            break_attributes("Break", "Make"),
+            json!({ "name": "Spec", "class": "MaterialExpressionComponentMask", "properties": { "R": true },
+                     "inputs": [{ "index": 0, "name": "Input", "from": ["Break", 2], "mask": null }], "outputs": outputs(1) }),
+        ],
+        &[("BaseColor", "Break"), ("Roughness", "Spec")],
+    );
+    let direct = document(
+        false,
+        vec![constant3("C1", C1), constant("Half", 0.5)],
+        &[("BaseColor", "C1"), ("Roughness", "Half")],
+    );
+    same(&broken, &direct, "BreakMaterialAttributes");
+}
+
+#[test]
+fn material_attributes_returned_by_a_function_are_read_through_the_call() {
+    // MF_Layer: FunctionInput (the colour) -> MakeMaterialAttributes -> FunctionOutput; the material's
+    // MaterialAttributes pin reads the call
+    let function = json!({
+        "path": "/Game/Test/MF_Layer.MF_Layer", "name": "MF_Layer",
+        "expressions": [
+            { "name": "Colour", "class": "MaterialExpressionFunctionInput",
+              "properties": { "InputName": "Colour", "InputType": "FunctionInput_Vector3", "SortPriority": 0 },
+              "inputs": [], "outputs": outputs(1) },
+            make("Make", &[("BaseColor", "Colour")]),
+            { "name": "Out", "class": "MaterialExpressionFunctionOutput",
+              "properties": { "OutputName": "Result", "SortPriority": 0 },
+              "inputs": [input(0, "None", Some("Make"))], "outputs": outputs(1) }
+        ]
+    });
+    let call = json!({
+        "name": "Call", "class": "MaterialExpressionMaterialFunctionCall",
+        "properties": { "MaterialFunction": "/Game/Test/MF_Layer.MF_Layer" },
+        "inputs": [input(0, "Colour", Some("C1"))], "outputs": outputs(1)
+    });
+    let mut through: Value =
+        serde_json::from_str(&document(true, vec![constant3("C1", C1), call], &[("MaterialAttributes", "Call")]))
+            .unwrap();
+    through["functions"] = json!([function]);
+    let direct = document(false, vec![constant3("C1", C1)], &[("BaseColor", "C1")]);
+    same(&through.to_string(), &direct, "attributes through a function call");
+}
+
+#[test]
+fn a_switch_takes_the_input_its_parameter_picks() {
+    let switch = json!({
+        "name": "Switch", "class": "MaterialExpressionSwitch",
+        "properties": { "ConstSwitchValue": 0, "ConstDefault": 0, "Inputs": [{ "InputName": "First" }, { "InputName": "Second" }] },
+        "inputs": [input(0, "SwitchValue", Some("Pick")), input(1, "Default", None), input(2, "First", Some("C1")), input(3, "Second", Some("C2"))],
+        "outputs": outputs(1)
+    });
+    let pick = json!({ "name": "Pick", "class": "MaterialExpressionScalarParameter",
+                       "properties": { "ParameterName": "Pick", "DefaultValue": 1.0 }, "inputs": [], "outputs": outputs(1) });
+    let switched =
+        document(false, vec![constant3("C1", C1), constant3("C2", C2), pick, switch], &[("BaseColor", "Switch")]);
+    let direct = document(false, vec![constant3("C2", C2)], &[("BaseColor", "C2")]);
+    let options = IrOptions::default();
+    let switched = to_ir(&switched, None, &options).unwrap();
+    let direct = to_ir(&direct, None, &options).unwrap();
+    shadewire::testing::assert_same_evaluation(&switched.dag, &direct.dag, "Switch picks Second at 1");
+}
+
+#[test]
+fn arithmetic_on_material_attributes_applies_to_every_attribute() {
+    // Make(BaseColor = C1, Roughness = 0.8) * 0.5: base colour C1 / 2, roughness 0.4, specular Unreal's 0.5 / 2
+    let multiply = json!({
+        "name": "Half", "class": "MaterialExpressionMultiply", "properties": { "ConstA": 0.0, "ConstB": 0.5 },
+        "inputs": [input(0, "A", Some("Make")), input(1, "B", None)], "outputs": outputs(1)
+    });
+    let scaled = document(
+        true,
+        vec![
+            constant3("C1", C1),
+            constant("Rough", 0.8),
+            make("Make", &[("BaseColor", "C1"), ("Roughness", "Rough")]),
+            multiply,
+        ],
+        &[("MaterialAttributes", "Half")],
+    );
+    let half = [C1[0] * 0.5, C1[1] * 0.5, C1[2] * 0.5];
+    let direct = document(
+        false,
+        vec![constant3("Half", half), constant("Rough", 0.4), constant("Spec", 0.25), constant3("Black", [0.0; 3])],
+        // the emissive default (black) times 0.5 is set too, black
+        &[("BaseColor", "Half"), ("Roughness", "Rough"), ("Specular", "Spec"), ("EmissiveColor", "Black")],
+    );
+    same(&scaled, &direct, "MaterialAttributes * 0.5");
+}
+
+#[test]
+fn a_rotator_at_angle_zero_is_its_coordinate() {
+    let rotator = json!({
+        "name": "Rotate", "class": "MaterialExpressionRotator",
+        "properties": { "CenterX": 0.5, "CenterY": 0.5, "Speed": 0.25, "ConstCoordinate": 0 },
+        "inputs": [input(0, "Coordinate", Some("UV")), input(1, "Time", Some("Zero"))], "outputs": outputs(1)
+    });
+    let uv = json!({ "name": "UV", "class": "MaterialExpressionTextureCoordinate", "properties": { "CoordinateIndex": 0 },
+                     "inputs": [], "outputs": outputs(1) });
+    let rotated = document(false, vec![uv.clone(), constant("Zero", 0.0), rotator], &[("BaseColor", "Rotate")]);
+    let plain = document(false, vec![uv], &[("BaseColor", "UV")]);
+    same(&rotated, &plain, "Rotator at angle 0");
+}

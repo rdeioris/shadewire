@@ -234,6 +234,42 @@ pub fn panner(l: &mut Lowerer, f: usize, x: &Expression) -> Result<NodeId, Error
     l.op2("add", coordinate, offset, &o)
 }
 
+/// Rotator: the coordinate (texture coordinate `ConstCoordinate` when unlinked) rotated about `(CenterX, CenterY)` by
+/// `Time * Speed` radians (the scene time when Time is unlinked): `(x, y) - c` times the rows `(cos, -sin)` and
+/// `(sin, cos)`, plus `c`. A third component passes through, as in Unreal.
+pub fn rotator(l: &mut Lowerer, f: usize, x: &Expression) -> Result<NodeId, Error> {
+    let o = l.origin(f, x);
+    let coordinate = match l.input(f, x, "Coordinate")? {
+        Some(id) => id,
+        None => l.unreal_uv(x.number_or("ConstCoordinate", 0.0) as u32, &o)?,
+    };
+    let time = match l.input(f, x, "Time")? {
+        Some(id) => l.cast(id, 1, &o)?,
+        None => l.e.context(ContextRead::Time, &o),
+    };
+    let speed = l.k(x.number_or("Speed", 0.25), &o);
+    let angle = l.op2("multiply", time, speed, &o)?;
+    let (cos, sin) = (l.op1("cos", angle, &o)?, l.op1("sin", angle, &o)?);
+    let minus = l.k(-1.0, &o);
+    let minus_sin = l.op2("multiply", sin, minus, &o)?;
+    let row_x = l.combine(&[cos, minus_sin], &o)?;
+    let row_y = l.combine(&[sin, cos], &o)?;
+    let center = l.kv(&[x.number_or("CenterX", 0.5), x.number_or("CenterY", 0.5)], &o);
+    let wide = l.dims(coordinate);
+    let xy = l.cast(coordinate, 2, &o)?;
+    let centered = l.op2("subtract", xy, center, &o)?;
+    let u = l.op("dotproduct", Type::Float, &[("in1", Arg::Node(row_x)), ("in2", Arg::Node(centered))], &o)?;
+    let v = l.op("dotproduct", Type::Float, &[("in1", Arg::Node(row_y)), ("in2", Arg::Node(centered))], &o)?;
+    let uv = l.combine(&[u, v], &o)?;
+    let rotated = l.op2("add", uv, center, &o)?;
+    if wide >= 3 {
+        let z = l.channel(coordinate, 2, &o)?;
+        let (ru, rv) = (l.channel(rotated, 0, &o)?, l.channel(rotated, 1, &o)?);
+        return l.combine(&[ru, rv, z], &o);
+    }
+    Ok(rotated)
+}
+
 /// The scene time, wrapped by `Period` when `bOverride_Period` is set.
 pub fn time(l: &mut Lowerer, f: usize, x: &Expression) -> Result<NodeId, Error> {
     let o = l.origin(f, x);

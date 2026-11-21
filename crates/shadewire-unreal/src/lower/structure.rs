@@ -3,8 +3,8 @@
 
 use shadewire::{Error, NodeId};
 
-use super::Lowerer;
 use super::params::{function_input_position, static_switch_value};
+use super::{Lowerer, short};
 use crate::document::Expression;
 
 /// The value an input of `x` routes, zero with a warning when nothing is linked to it.
@@ -66,12 +66,53 @@ pub fn engine_switch(l: &mut Lowerer, f: usize, x: &Expression) -> Result<NodeId
     Ok(l.input(f, x, taken)?.expect("the taken branch is linked"))
 }
 
+/// The input a Switch picks: the one its value indexes (`floor`, in the order of its `Inputs`), else `Default`. The
+/// value is the switch's constant when nothing is linked, or a scalar parameter's (the instance's override, else its
+/// default): constant for a material, so the switch resolves when the material is lowered. `None` when the value
+/// comes from anything else.
+pub(super) fn switch_input(l: &Lowerer, f: usize, x: &Expression) -> Option<String> {
+    let value = match x.input("SwitchValue").and_then(|i| i.from.clone()) {
+        None => x.number("ConstSwitchValue").unwrap_or(0.0),
+        Some((name, _)) => {
+            let source = l.expression(f, &name)?;
+            if short(&source.class) != "ScalarParameter" {
+                return None;
+            }
+            let parameter = source.text("ParameterName").unwrap_or("");
+            l.params.scalar.get(parameter).copied().or_else(|| source.number("DefaultValue")).unwrap_or(0.0)
+        }
+    };
+    let inputs: Vec<&str> =
+        x.inputs.iter().map(|i| i.name.as_str()).filter(|n| *n != "SwitchValue" && *n != "Default").collect();
+    let index = value.floor();
+    match (index >= 0.0).then(|| inputs.get(index as usize)).flatten() {
+        Some(name) => Some(name.to_string()),
+        None => Some("Default".to_string()),
+    }
+}
+
+/// Switch: the input its (constant) value picks; an unlinked Default is its constant. A value that is not constant
+/// for the material is not supported and reads the Default, with a warning.
+pub fn switch(l: &mut Lowerer, f: usize, x: &Expression) -> Result<NodeId, Error> {
+    let origin = l.origin(f, x);
+    let picked = match switch_input(l, f, x) {
+        Some(name) => name,
+        None => {
+            l.warn(f, x, "the switch value is not a constant or a scalar parameter, Default is taken");
+            "Default".to_string()
+        }
+    };
+    match l.input(f, x, &picked)? {
+        Some(id) => Ok(id),
+        None => Ok(l.k(x.number("ConstDefault").unwrap_or(0.0), &origin)),
+    }
+}
+
 /// Output `out` of a function call: the matching FunctionOutput of the function, in the call's own frame.
 pub fn function_call<'a>(l: &mut Lowerer<'a>, f: usize, x: &'a Expression, out: usize) -> Result<NodeId, Error> {
     let Some(frame) = l.call_frame(f, x)? else { return Ok(l.k(0.0, &l.origin(f, x))) };
     let list = l.function_expressions(frame).unwrap_or(&[]);
-    let outputs = l.sorted("FunctionOutput", list);
-    let Some(output) = outputs.get(out) else {
+    let Some(output) = l.call_output(x, list, out) else {
         l.warn(f, x, format!("the function has no output {out}, read as 0"));
         return Ok(l.k(0.0, &l.origin(f, x)));
     };

@@ -1,11 +1,62 @@
 //! Constants and the vector expressions: appending, masking, products, lengths and desaturation.
 
-use shadewire::{Error, NodeId, Type, Value};
+use shadewire::{ContextRead, Error, NodeId, Space, Type, Value};
 use shadewire_nodes::Arg;
 
 use super::math::first;
 use super::{Lowerer, short};
 use crate::document::Expression;
+
+/// Unreal's tangent frame in Unreal's world: tangent, bitangent (Unreal's Y, along decreasing V, so Shadewire's
+/// bitangent negated) and normal.
+fn unreal_tangent_frame(l: &mut Lowerer, o: &str) -> Result<[NodeId; 3], Error> {
+    let t = l.e.context(ContextRead::Tangent(Space::World), o);
+    let b = l.e.context(ContextRead::Bitangent(Space::World), o);
+    let n = l.e.context(ContextRead::Normal(Space::World), o);
+    let minus = l.k(-1.0, o);
+    let b = l.op2("multiply", b, minus, o)?;
+    Ok([l.unreal_direction(t, o)?, l.unreal_direction(b, o)?, l.unreal_direction(n, o)?])
+}
+
+/// Transform, for vectors between Unreal's tangent and world spaces (and a space to itself), with the vertex
+/// tangent frame the normal pin uses: tangent to world is `T x + B y + N z`, world to tangent `(T·v, B·v, N·v)`,
+/// neither normalized, as in Unreal. Other spaces are not supported yet and read as 0.
+pub fn transform(l: &mut Lowerer, f: usize, x: &Expression) -> Result<NodeId, Error> {
+    let o = l.origin(f, x);
+    let from =
+        x.text("TransformSourceType").unwrap_or("TRANSFORMSOURCE_Tangent").trim_start_matches("TRANSFORMSOURCE_");
+    let to = x.text("TransformType").unwrap_or("TRANSFORM_World").trim_start_matches("TRANSFORM_");
+    let v = match l.input(f, x, "Input")? {
+        Some(v) => l.cast(v, 3, &o)?,
+        None => l.zero(3, &o),
+    };
+    if from == to {
+        return Ok(v);
+    }
+    match (from, to) {
+        ("Tangent", "World") => {
+            let [t, b, n] = unreal_tangent_frame(l, &o)?;
+            let (vx, vy, vz) = (l.channel(v, 0, &o)?, l.channel(v, 1, &o)?, l.channel(v, 2, &o)?);
+            let tx = l.op2("multiply", t, vx, &o)?;
+            let by = l.op2("multiply", b, vy, &o)?;
+            let nz = l.op2("multiply", n, vz, &o)?;
+            let sum = l.op2("add", tx, by, &o)?;
+            l.op2("add", sum, nz, &o)
+        }
+        ("World", "Tangent") => {
+            let frame = unreal_tangent_frame(l, &o)?;
+            let mut axes = Vec::with_capacity(3);
+            for axis in frame {
+                axes.push(l.op("dotproduct", Type::Float, &[("in1", Arg::Node(v)), ("in2", Arg::Node(axis))], &o)?);
+            }
+            l.combine(&axes, &o)
+        }
+        _ => {
+            l.warn(f, x, format!("{from} to {to} space is not supported, read as 0"));
+            Ok(l.zero(3, &o))
+        }
+    }
+}
 
 /// Constant, Constant2Vector, Constant3Vector and Constant4Vector, as plain constants (Unreal does not expose
 /// them for editing).

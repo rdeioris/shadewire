@@ -6,7 +6,8 @@ use std::collections::{BTreeSet, HashMap};
 use shadewire::{ContextRead, Dag, Error, NodeId, Space, Type, Value};
 use shadewire_nodes::Arg;
 
-use super::params::static_switch_value;
+use super::params::{function_input_position, static_switch_value};
+use super::structure::switch_input;
 use super::{Lowerer, short};
 use crate::document::{Expression, Material};
 
@@ -126,7 +127,7 @@ fn pins<'m>(l: &mut Lowerer, material: &'m Material) -> Result<Pins<'m>, Error> 
         return Ok(pins);
     }
     let from = material.pins.iter().find(|p| p.pin == "MaterialAttributes").and_then(|p| p.from.clone());
-    let set = attributes(l, material, from, 0)?;
+    let set = attributes(l, material, 0, from, 0)?;
     Ok(Pins { material, sources: set.links, lowered: set.lowered, front: None, model: None })
 }
 
@@ -159,6 +160,41 @@ impl Attributes {
     }
 }
 
+/// BreakMaterialAttributes, and GetMaterialAttributes' outputs past the first: output `out` is the attribute it names, from the attributes on its input (followed like
+/// the material's own, through reroutes, switches, Make, Set and Blend), or Unreal's default for an attribute nothing
+/// sets, in the material or inside a function.
+pub fn break_attributes(l: &mut Lowerer, f: usize, x: &Expression, out: usize) -> Result<NodeId, Error> {
+    let origin = l.origin(f, x);
+    let name = x.outputs.get(out).map(|o| o.name.clone()).unwrap_or_default();
+    let pin = attribute_pin(&name);
+    let default = ATTRIBUTE_DEFAULTS.iter().find(|(n, _)| *n == pin).map(|(_, v)| v.clone());
+    let width = default.as_ref().map_or_else(
+        || x.outputs.get(out).and_then(|o| o.mask).map_or(1, |m| m.iter().map(|&c| c as usize).sum::<usize>().max(1)),
+        |d| d.ty().component_count(),
+    );
+    // the material being lowered, for the resolver's warnings: the base material (frame 0's expressions)
+    let doc = l.doc;
+    let material = doc
+        .materials
+        .iter()
+        .chain(&doc.parents)
+        .find(|m| m.expressions.iter().any(|e| l.expression(0, &e.name).is_some_and(|b| std::ptr::eq(b, e))));
+    let value = match material {
+        Some(material) => {
+            let from = x.input_at(0).and_then(|i| i.from.clone());
+            let set = attributes(l, material, f, from, 0)?;
+            set.value(l, &pin)?
+        }
+        None => None,
+    };
+    let id = match (value, default) {
+        (Some(id), _) => id,
+        (None, Some(default)) => l.e.constant(default, &origin),
+        (None, None) => l.zero(width, &origin),
+    };
+    l.cast(id, width, &origin)
+}
+
 /// The pin an attribute input sets: MakeMaterialAttributes names its inputs after the pins, SetMaterialAttributes
 /// after their display names ("Base Color"), and both name the clear coat pins by their legacy names.
 fn attribute_pin(name: &str) -> String {
@@ -172,43 +208,85 @@ fn attribute_pin(name: &str) -> String {
 fn attributes(
     l: &mut Lowerer,
     material: &Material,
+    frame: usize,
     from: Option<(String, usize)>,
     depth: usize,
 ) -> Result<Attributes, Error> {
     let mut from = from;
+    let mut frame = frame;
     for _ in 0..64 {
         if depth > 64 {
             break;
         }
-        let Some((name, _)) = from.clone() else { break };
-        let Some(x) = l.expression(0, &name) else { break };
+        let Some((name, out)) = from.clone() else { break };
+        let Some(x) = l.expression(frame, &name) else { break };
         match short(&x.class) {
             "Reroute" | "NamedRerouteDeclaration" => from = x.input_at(0).and_then(|i| i.from.clone()),
             "NamedRerouteUsage" => from = x.text("Declaration").map(|d| (d.to_string(), 0)),
             "StaticSwitch" | "StaticSwitchParameter" => {
-                let branch = if static_switch_value(l, 0, x) { "True" } else { "False" };
+                let branch = if static_switch_value(l, frame, x) { "True" } else { "False" };
                 from = x.input(branch).and_then(|i| i.from.clone());
             }
             "MakeMaterialAttributes" => {
                 let mut set = Attributes::default();
                 for input in &x.inputs {
                     if let Some(link) = &input.from {
-                        set.set(attribute_pin(&input.name), Source { frame: 0, from: link.clone(), mask: input.mask });
+                        set.set(attribute_pin(&input.name), Source { frame, from: link.clone(), mask: input.mask });
                     }
                 }
                 return Ok(set);
             }
             "SetMaterialAttributes" => {
                 let base = x.input("MaterialAttributes").and_then(|i| i.from.clone());
-                let mut set = attributes(l, material, base, depth + 1)?;
+                let mut set = attributes(l, material, frame, base, depth + 1)?;
                 for input in x.inputs.iter().filter(|i| i.name != "MaterialAttributes") {
                     if let Some(link) = &input.from {
-                        set.set(attribute_pin(&input.name), Source { frame: 0, from: link.clone(), mask: input.mask });
+                        set.set(attribute_pin(&input.name), Source { frame, from: link.clone(), mask: input.mask });
                     }
                 }
                 return Ok(set);
             }
-            "BlendMaterialAttributes" => return blend(l, material, x, depth),
+            "BlendMaterialAttributes" => return blend(l, material, frame, x, depth),
+            // a function returning material attributes: its output, in the call's frame
+            "MaterialFunctionCall" => {
+                let Some(called) = l.call_frame(frame, x)? else { break };
+                let list = l.function_expressions(called).unwrap_or(&[]);
+                let Some(output) = l.call_output(x, list, out) else { break };
+                from = output.input_at(0).and_then(|i| i.from.clone());
+                frame = called;
+            }
+            "FunctionOutput" => from = x.input_at(0).and_then(|i| i.from.clone()),
+            // GetMaterialAttributes passes its attributes through on output 0
+            "GetMaterialAttributes" => from = x.input_at(0).and_then(|i| i.from.clone()),
+            "LandscapeLayerBlend" => return landscape_blend(l, material, frame, x, depth),
+            "Multiply" | "Add" | "Subtract" | "Divide" | "LinearInterpolate" => {
+                return attributes_arithmetic(l, material, frame, x, depth);
+            }
+            // Unreal picks per component by whether the layer is painted; one material is lowered for the landscape
+            "LandscapeLayerSwitch" => {
+                from = x.input("LayerUsed").or_else(|| x.input("LayerNotUsed")).and_then(|i| i.from.clone())
+            }
+            "Switch" => match switch_input(l, frame, x) {
+                Some(picked) => from = x.input(&picked).and_then(|i| i.from.clone()),
+                None => break,
+            },
+            // material attributes passed into a function: what the call links to the input, in the caller's frame,
+            // else the input's preview
+            "FunctionInput" => {
+                let linked = match (l.caller(frame), function_input_position(l, frame, x)) {
+                    (Some((caller, call)), Some(position)) => {
+                        call.input_at(position).and_then(|i| i.from.clone()).map(|link| (caller, link))
+                    }
+                    _ => None,
+                };
+                match linked {
+                    Some((caller, link)) => {
+                        from = Some(link);
+                        frame = caller;
+                    }
+                    None => from = x.input("Preview").and_then(|i| i.from.clone()),
+                }
+            }
             other => {
                 let what = format!("material attributes from {other} are not read, the surface is Unreal's defaults");
                 warn(l, material, what);
@@ -219,24 +297,216 @@ fn attributes(
     Ok(Attributes::default())
 }
 
+/// The expression output `from` leads to material attributes: through reroutes, switches and function boundaries to
+/// a node that makes them, or to arithmetic or a landscape blend on them. Decides whether an arithmetic input is
+/// attributes (applied per attribute) or a value (the same for every attribute), without warnings.
+fn carries_attributes(l: &mut Lowerer, frame: usize, from: Option<(String, usize)>, depth: usize) -> bool {
+    let (mut frame, mut from) = (frame, from);
+    for _ in 0..64 {
+        if depth > 32 {
+            return false;
+        }
+        let Some((name, out)) = from.clone() else { return false };
+        let Some(x) = l.expression(frame, &name) else { return false };
+        match short(&x.class) {
+            "MakeMaterialAttributes" | "SetMaterialAttributes" | "BlendMaterialAttributes" => return true,
+            "GetMaterialAttributes" => return out == 0,
+            "Reroute" | "NamedRerouteDeclaration" | "FunctionOutput" => {
+                from = x.input_at(0).and_then(|i| i.from.clone())
+            }
+            "NamedRerouteUsage" => from = x.text("Declaration").map(|d| (d.to_string(), 0)),
+            "StaticSwitch" | "StaticSwitchParameter" => {
+                let branch = if static_switch_value(l, frame, x) { "True" } else { "False" };
+                from = x.input(branch).and_then(|i| i.from.clone());
+            }
+            "Switch" => match switch_input(l, frame, x) {
+                Some(picked) => from = x.input(&picked).and_then(|i| i.from.clone()),
+                None => return false,
+            },
+            "LandscapeLayerSwitch" => {
+                from = x.input("LayerUsed").or_else(|| x.input("LayerNotUsed")).and_then(|i| i.from.clone())
+            }
+            "LandscapeLayerBlend" => {
+                return x
+                    .inputs
+                    .iter()
+                    .filter(|i| i.name.starts_with("Layer "))
+                    .any(|i| carries_attributes(l, frame, i.from.clone(), depth + 1));
+            }
+            "Multiply" | "Add" | "Subtract" | "Divide" | "LinearInterpolate" => {
+                return ["A", "B"]
+                    .iter()
+                    .any(|n| carries_attributes(l, frame, x.input(n).and_then(|i| i.from.clone()), depth + 1));
+            }
+            "MaterialFunctionCall" => {
+                let Ok(Some(called)) = l.call_frame(frame, x) else { return false };
+                let list = l.function_expressions(called).unwrap_or(&[]);
+                let Some(output) = l.call_output(x, list, out) else { return false };
+                from = output.input_at(0).and_then(|i| i.from.clone());
+                frame = called;
+            }
+            "FunctionInput" => {
+                if x.text("InputType") == Some("FunctionInput_MaterialAttributes") {
+                    return true;
+                }
+                match (l.caller(frame), function_input_position(l, frame, x)) {
+                    (Some((caller, call)), Some(position)) => {
+                        from = call.input_at(position).and_then(|i| i.from.clone());
+                        frame = caller;
+                    }
+                    _ => return false,
+                }
+            }
+            _ => return false,
+        }
+    }
+    false
+}
+
+/// Multiply, Add, Subtract, Divide and LinearInterpolate with material attributes: Unreal compiles attributes one at
+/// a time, so the node applies to each attribute, an attributes input giving that attribute (its default when it is
+/// not set) and a value input the same value for every attribute. Every attribute with a default is computed.
+fn attributes_arithmetic(
+    l: &mut Lowerer,
+    material: &Material,
+    frame: usize,
+    x: &Expression,
+    depth: usize,
+) -> Result<Attributes, Error> {
+    let origin = l.origin(frame, x);
+    let class = short(&x.class).to_string();
+    let names: &[&str] = if class == "LinearInterpolate" { &["A", "B", "Alpha"] } else { &["A", "B"] };
+    let mut operands: Vec<Result<Attributes, NodeId>> = Vec::new();
+    for name in names {
+        let from = x.input(name).and_then(|i| i.from.clone());
+        if carries_attributes(l, frame, from.clone(), 0) {
+            operands.push(Ok(attributes(l, material, frame, from, depth + 1)?));
+        } else {
+            let (constant, default) = match *name {
+                "A" => ("ConstA", if class == "LinearInterpolate" { 0.0 } else { 0.0 }),
+                "B" => (
+                    "ConstB",
+                    if class == "Multiply" || class == "Divide" || class == "LinearInterpolate" { 1.0 } else { 0.0 },
+                ),
+                _ => ("ConstAlpha", 0.5),
+            };
+            operands.push(Err(l.input_or(frame, x, name, constant, default)?));
+        }
+    }
+    let mut out = Attributes::default();
+    let set_by_an_operand = |pin: &str| operands.iter().any(|o| matches!(o, Ok(set) if set.has(pin)));
+    for (pin, default) in ATTRIBUTE_DEFAULTS.iter() {
+        // the pins no surface reads, and the ones that only mean something when set, are left out unless an
+        // attributes operand sets them
+        if (IGNORED.contains(pin) || *pin == "Anisotropy" || *pin == "Tangent") && !set_by_an_operand(pin) {
+            continue;
+        }
+        let width = default.ty().component_count();
+        let mut values = Vec::with_capacity(operands.len());
+        for operand in &operands {
+            let id = match operand {
+                Ok(set) => match set.value(l, pin)? {
+                    Some(id) => id,
+                    None => l.e.constant(default.clone(), &origin),
+                },
+                Err(id) => *id,
+            };
+            values.push(id);
+        }
+        let value = if class == "LinearInterpolate" {
+            let (a, b) = l.widen(values[0], values[1], &origin)?;
+            let a = l.cast(a, width, &origin)?;
+            let b = l.cast(b, width, &origin)?;
+            let alpha = l.cast(values[2], 1, &origin)?;
+            let ty = l.e.dag.node(a).ty;
+            l.op("mix", ty, &[("fg", Arg::Node(b)), ("bg", Arg::Node(a)), ("mix", Arg::Node(alpha))], &origin)?
+        } else {
+            let category = match class.as_str() {
+                "Multiply" => "multiply",
+                "Add" => "add",
+                "Subtract" => "subtract",
+                _ => "divide",
+            };
+            let result = l.op2(category, values[0], values[1], &origin)?;
+            l.cast(result, width, &origin)?
+        };
+        out.lowered.insert(pin.to_string(), value);
+    }
+    Ok(out)
+}
+
+/// LandscapeLayerBlend of material attributes: every pin any layer sets is `default + Σ (layer - default) w`, the
+/// weights as for values (renormalized when a layer is height-blended), alpha-blended layers lerped in last; a layer
+/// that does not set the pin gives the default (so contributes nothing).
+fn landscape_blend(
+    l: &mut Lowerer,
+    material: &Material,
+    frame: usize,
+    x: &Expression,
+    depth: usize,
+) -> Result<Attributes, Error> {
+    use super::landscape::{blend_layers, blend_values, blend_weights};
+    let origin = l.origin(frame, x);
+    let layers = blend_layers(x);
+    let weights = blend_weights(l, frame, x, &layers)?;
+    let mut sets = Vec::with_capacity(layers.len());
+    for layer in &layers {
+        let from = x.input(&format!("Layer {}", layer.name)).and_then(|i| i.from.clone());
+        sets.push(attributes(l, material, frame, from, depth + 1)?);
+    }
+    let pins: BTreeSet<String> = sets.iter().flat_map(|s| s.links.keys().chain(s.lowered.keys()).cloned()).collect();
+    let mut out = Attributes::default();
+    for pin in pins {
+        let Some((_, default)) = ATTRIBUTE_DEFAULTS.iter().find(|(name, _)| *name == pin) else {
+            warn(l, material, format!("{}: {pin} is not blended, the first layer setting it is taken", x.name));
+            if let Some(set) = sets.iter().find(|s| s.has(&pin)) {
+                if let Some(source) = set.links.get(&pin) {
+                    out.links.insert(pin.clone(), source.clone());
+                } else if let Some(&id) = set.lowered.get(&pin) {
+                    out.lowered.insert(pin.clone(), id);
+                }
+            }
+            continue;
+        };
+        let width = default.ty().component_count();
+        let base = l.e.constant(default.clone(), &origin);
+        let base = l.cast(base, width, &origin)?;
+        let mut values = Vec::with_capacity(sets.len());
+        for set in &sets {
+            values.push(match set.value(l, &pin)? {
+                Some(id) => Some(l.cast(id, width, &origin)?),
+                None => None,
+            });
+        }
+        out.lowered.insert(pin, blend_values(l, &origin, base, &values, &weights, true)?);
+    }
+    Ok(out)
+}
+
 /// BlendMaterialAttributes: every pin either side sets is `lerp(A, B, Alpha)`, the side that leaves it unset giving
 /// Unreal's default; `UseA` and `UseB` take one side. Only the pixel blend is read: the vertex attributes it blends
 /// (world position offset) are ignored by the surface.
-fn blend(l: &mut Lowerer, material: &Material, x: &Expression, depth: usize) -> Result<Attributes, Error> {
-    let a = attributes(l, material, x.input("A").and_then(|i| i.from.clone()), depth + 1)?;
-    let b = attributes(l, material, x.input("B").and_then(|i| i.from.clone()), depth + 1)?;
+fn blend(
+    l: &mut Lowerer,
+    material: &Material,
+    frame: usize,
+    x: &Expression,
+    depth: usize,
+) -> Result<Attributes, Error> {
+    let a = attributes(l, material, frame, x.input("A").and_then(|i| i.from.clone()), depth + 1)?;
+    let b = attributes(l, material, frame, x.input("B").and_then(|i| i.from.clone()), depth + 1)?;
     match x.text("PixelAttributeBlendType").unwrap_or("Blend") {
         "UseA" => return Ok(a),
         "UseB" => return Ok(b),
         _ => {}
     }
-    let origin = l.origin(0, x);
+    let origin = l.origin(frame, x);
     let Some(alpha_input) = x.input("Alpha").filter(|i| i.from.is_some()) else {
         warn(l, material, format!("{}: Alpha is not linked, A is taken", x.name));
         return Ok(a);
     };
     let alpha_from = alpha_input.from.clone().unwrap_or_default();
-    let alpha = l.link(0, &alpha_from, alpha_input.mask)?;
+    let alpha = l.link(frame, &alpha_from, alpha_input.mask)?;
     let alpha = l.cast(alpha, 1, &origin)?;
     let pins: BTreeSet<String> =
         a.links.keys().chain(a.lowered.keys()).chain(b.links.keys()).chain(b.lowered.keys()).cloned().collect();
