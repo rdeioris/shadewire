@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use shadewire::{Dag, Error, Location};
 
-use super::distill::{DISTILL_MODEL, distill};
+use super::distill::{DISTILL_MODEL, distill_with};
 use super::{CLOSURE_MODEL, SurfaceSource};
 use crate::document::{Node, PortType};
 use crate::elaborate::{Arg, Elaborator, Scope};
@@ -114,7 +114,7 @@ impl<'a> Elaborator<'a> {
             self.dag.surface.closure = Some(closure);
             if distilled {
                 self.dag.surface.model = model;
-                distill(&mut self.dag)?;
+                distill_with(&mut self.dag, self.options.distill_weighted_grazing)?;
                 model = DISTILL_MODEL.to_string();
             }
         } else {

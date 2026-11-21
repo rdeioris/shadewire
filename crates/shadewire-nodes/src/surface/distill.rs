@@ -70,6 +70,11 @@
 //! with `specular_weight`; without a dielectric reflection that ior is one: no reflection. Without a metal,
 //! `specular_weight` is `w`.
 //!
+//! With `IrOptions::distill_weighted_grazing`, `w` scales the dielectric's whole curve, grazing included, as MDL's
+//! weighted `custom_curve_layer` does: under a metal `specular_weight` is `w` blended to one by `base_metalness`
+//! (`m + (1 − m)·w`), and `specular_ior` keeps `F0(ior) × specular_weight` at `w × F0`. It is exact for a dielectric
+//! and for a metal; at metalness between, the metal reflects `specular_weight` of its own.
+//!
 //! # Coat
 //!
 //! A layer whose top reflects as a dielectric (a reflecting `dielectric_bsdf`, or a `generalized_schlick_bsdf` whose
@@ -116,6 +121,11 @@ pub const NOTE_PREFIX: &str = "distill: ";
 /// module docs), adding what it drops or approximates to `dag.approximations`. A dag of any other model is left as
 /// it is.
 pub fn distill(dag: &mut Dag) -> Result<(), Error> {
+    distill_with(dag, false)
+}
+
+/// `distill`, with `IrOptions::distill_weighted_grazing` as `weighted_grazing`.
+pub fn distill_with(dag: &mut Dag, weighted_grazing: bool) -> Result<(), Error> {
     if dag.surface.model != CLOSURE_MODEL {
         return Ok(());
     }
@@ -125,7 +135,8 @@ pub fn distill(dag: &mut Dag) -> Result<(), Error> {
     let nodedef =
         index.nodedef(NODEDEF).ok_or_else(|| Error::BadValue { at: at(), message: format!("no nodedef {NODEDEF}") })?;
     let field_nodes = dag.surface.fields.iter().map(|f| (f.name.clone(), f.node)).collect();
-    let mut d = Distiller { dag, graph: &graph, field_nodes, notes: Vec::new(), reflects: HashMap::new() };
+    let mut d =
+        Distiller { dag, graph: &graph, field_nodes, notes: Vec::new(), reflects: HashMap::new(), weighted_grazing };
     let mut out = d.distill_fields();
     let mut distilled = Vec::new();
     for (name, ty) in fields(nodedef) {
@@ -290,6 +301,7 @@ struct Distiller<'d, 'g> {
     field_nodes: HashMap<String, NodeId>,
     notes: Vec<String>,
     reflects: HashMap<(ClosureId, bool), bool>,
+    weighted_grazing: bool,
 }
 
 impl Distiller<'_, '_> {
@@ -1050,7 +1062,8 @@ impl Distiller<'_, '_> {
         let c = self.sum(&[d, ss, t, m]).expect("four terms");
         let n = self.max(c, one);
         let k = self.sub(n, c);
-        out.insert("base_metalness".into(), self.div(m, n));
+        let metalness = self.div(m, n);
+        out.insert("base_metalness".into(), metalness);
         let dielectric = self.sub(n, m);
         if !f.transmission.is_empty() {
             out.insert("transmission_weight".into(), self.ratio(t, dielectric, zero));
@@ -1078,6 +1091,18 @@ impl Distiller<'_, '_> {
         };
         let (weight, ior) = match (!f.metal.is_empty(), coverage) {
             (true, Some(w)) if self.is_splat(w, 1.0) => (one, ior),
+            (true, Some(w)) if self.weighted_grazing => {
+                // The weight scales the dielectric's whole curve, so it is the weight, blended to one where the
+                // metal (which open_pbr_surface also scales by it) takes over; the ior keeps F0(ior) × weight at
+                // w × F0(ior).
+                let rest = self.sub(one, metalness);
+                let share = self.mul(rest, w);
+                let weight = self.add(metalness, share);
+                let f0 = self.f0_from_ior(ior);
+                let scaled = self.mul(w, f0);
+                let kept = self.ratio(scaled, weight, zero);
+                (weight, self.ior_from_f0(kept))
+            }
             (true, Some(w)) => {
                 let f0 = self.f0_from_ior(ior);
                 let scaled = self.mul(w, f0);

@@ -18,6 +18,12 @@ pub struct IrOptions {
     /// closure tree (an MDL material, a pbrlib `surface`, a named model the host does not accept) comes out as an
     /// `open_pbr_surface` whose fields are computed from the tree's lobes and weights (see `surface::distill`).
     pub distill: bool,
+    /// With `distill`: a dielectric reflection layer's weight scales its whole Fresnel curve, as MDL's weighted
+    /// `custom_curve_layer` does (OmniPBR's `specular_level`), rather than its normal-incidence reflectance alone, as
+    /// `open_pbr_surface`'s `specular_weight` does. Under a metal the weight still goes into `specular_weight`
+    /// (blended to one by `base_metalness`), with `specular_ior` keeping the normal-incidence reflectance; for a host
+    /// whose Fresnel takes `specular_weight` as its grazing reflectance too.
+    pub distill_weighted_grazing: bool,
 }
 
 impl Default for IrOptions {
@@ -35,6 +41,7 @@ impl IrOptions {
             values_as_uniforms: true,
             max_nodes: None,
             distill: false,
+            distill_weighted_grazing: false,
         }
     }
 }
