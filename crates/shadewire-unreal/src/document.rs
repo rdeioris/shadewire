@@ -145,6 +145,9 @@ pub struct Texture {
     pub file: String,
     #[serde(default)]
     pub srgb: bool,
+    /// The source is float (an EXR, say): stored linear, so `srgb` does not apply to it. Absent in older dumps.
+    #[serde(default)]
+    pub hdr_source: bool,
     #[serde(default)]
     pub compression: String,
     #[serde(default)]

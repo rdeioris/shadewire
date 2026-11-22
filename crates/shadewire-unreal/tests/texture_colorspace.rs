@@ -1,11 +1,16 @@
 //! Unreal stores an sRGB texture in an sRGB GPU format, so sampling decodes it whatever the sampler type: a material
 //! instance can plug an sRGB texture into a Masks sampler (M_Master_Foliage's Mask, given T_BuffelGrass_Mask), and
-//! the mask reads decoded. The texture's own sRGB flag decides its colorspace, not the sampler type.
+//! the mask reads decoded. The texture's own sRGB flag decides its colorspace, not the sampler type, and only for an
+//! 8-bit source: Unreal keeps a float source (T_Wild_Grass_pjwgW0_4K_D, imported from EXR) linear whatever the flag.
 
 use serde_json::json;
 use shadewire_unreal::{IrOptions, to_ir};
 
 fn colorspace(srgb: bool, sampler: &str) -> Option<String> {
+    colorspace_of(srgb, false, sampler)
+}
+
+fn colorspace_of(srgb: bool, hdr_source: bool, sampler: &str) -> Option<String> {
     let texture = "/Game/Test/T_Mask.T_Mask";
     let document = json!({
         "format": "shadewire-unreal-graph",
@@ -29,7 +34,10 @@ fn colorspace(srgb: bool, sampler: &str) -> Option<String> {
         }],
         "parents": [],
         "functions": [],
-        "textures": [{ "path": texture, "name": "T_Mask", "class": "Texture2D", "file": "Textures/T_Mask.png", "srgb": srgb }]
+        "textures": [{
+            "path": texture, "name": "T_Mask", "class": "Texture2D", "file": "Textures/T_Mask.png", "srgb": srgb,
+            "hdr_source": hdr_source
+        }]
     })
     .to_string();
     let ir = to_ir(&document, None, &IrOptions::default()).unwrap();
@@ -41,6 +49,13 @@ fn colorspace(srgb: bool, sampler: &str) -> Option<String> {
 fn an_srgb_texture_is_decoded_whatever_the_sampler_type() {
     for sampler in ["SAMPLERTYPE_Color", "SAMPLERTYPE_LinearColor", "SAMPLERTYPE_Masks", "SAMPLERTYPE_Grayscale"] {
         assert_eq!(colorspace(true, sampler).as_deref(), Some("srgb_texture"), "{sampler}");
+    }
+}
+
+#[test]
+fn a_float_source_is_linear_whatever_its_srgb_flag() {
+    for sampler in ["SAMPLERTYPE_Color", "SAMPLERTYPE_Masks"] {
+        assert_eq!(colorspace_of(true, true, sampler), None, "{sampler}");
     }
 }
 

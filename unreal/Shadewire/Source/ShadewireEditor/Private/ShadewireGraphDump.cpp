@@ -644,6 +644,10 @@ namespace
 			J.String(WriteTextureFile(Texture));
 			J.Key(TEXT("srgb"));
 			J.Bool(Texture->SRGB);
+			// A float source is linear whatever SRGB says: Unreal applies the flag only to 8-bit sources
+			// (ERawImageFormat::GetFormatNeedsGammaSpace), and sampling returns the stored values.
+			J.Key(TEXT("hdr_source"));
+			J.Bool(Texture->HasHDRSource());
 			J.Key(TEXT("compression"));
 			J.String(StaticEnum<TextureCompressionSettings>()->GetNameStringByValue(Texture->CompressionSettings));
 			J.Key(TEXT("filter"));

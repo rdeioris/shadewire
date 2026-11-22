@@ -122,8 +122,9 @@ pub fn sample(l: &mut Lowerer, f: usize, x: &Expression) -> Result<NodeId, Error
         }
     };
     // Unreal stores an sRGB texture in an sRGB GPU format, so sampling decodes it whatever the sampler type says: a
-    // material instance can plug an sRGB texture into a Masks or LinearColor sampler, and reads it decoded.
-    let srgb = texture.as_ref().is_some_and(|t| t.srgb);
+    // material instance can plug an sRGB texture into a Masks or LinearColor sampler, and reads it decoded. The flag
+    // applies only to 8-bit sources: a float source (written as EXR) is linear, and sampling returns it as stored.
+    let srgb = texture.as_ref().is_some_and(|t| t.srgb && !t.hdr_source);
     let colorspace = srgb.then(|| "srgb_texture".to_string());
     let sampler = x.text("SamplerType").unwrap_or("SAMPLERTYPE_Color").to_string();
     let address = |mode: Option<&str>| match mode {
