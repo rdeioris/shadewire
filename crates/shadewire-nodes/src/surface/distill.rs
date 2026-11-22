@@ -41,7 +41,7 @@
 //! | `thinfilm_thickness` > 0 on a specular or metal lobe | thin film | `thin_film_weight` (the share of those lobes with a film), `thin_film_thickness` (µm), `thin_film_ior` |
 //! | `uniform_edf`; `conical_edf`, `measured_edf` with a warning | emission | `emission_luminance` (the radiance's brightest channel), `emission_color` (the radiance over it) |
 //! | `generalized_schlick_edf` | its base's, tinted by `color0` | |
-//! | the surface's `opacity` and `thin_walled`; the lobes' `normal` and `tangent` | geometry | `geometry_opacity`, `geometry_thin_walled`, `geometry_normal`, `geometry_tangent` (the first lobe's, a warning when lobes differ); a coat's `geometry_coat_normal`, `geometry_coat_tangent` |
+//! | the surface's `opacity` and `thin_walled`; the lobes' `normal` and `tangent` | geometry | `geometry_opacity`, `geometry_thin_walled`, `geometry_normal`, `geometry_tangent` (the first lobe's, a warning when lobes differ; turned about the normal to v where `αv > αu`, as open_pbr_surface stretches the lobe along its tangent); a coat's `geometry_coat_normal`, `geometry_coat_tangent` (turned likewise) |
 //! | anything else (`chiang_hair_bsdf`, VDFs, unknown lobes) | none | dropped, with a warning naming it |
 //! | a lobe input named `*dispersion*` (none in the vendored pbrlib) | none | dropped, with a warning naming dispersion |
 //!
@@ -135,8 +135,15 @@ pub fn distill_with(dag: &mut Dag, weighted_grazing: bool) -> Result<(), Error> 
     let nodedef =
         index.nodedef(NODEDEF).ok_or_else(|| Error::BadValue { at: at(), message: format!("no nodedef {NODEDEF}") })?;
     let field_nodes = dag.surface.fields.iter().map(|f| (f.name.clone(), f.node)).collect();
-    let mut d =
-        Distiller { dag, graph: &graph, field_nodes, notes: Vec::new(), reflects: HashMap::new(), weighted_grazing };
+    let mut d = Distiller {
+        dag,
+        graph: &graph,
+        index: &index,
+        field_nodes,
+        notes: Vec::new(),
+        reflects: HashMap::new(),
+        weighted_grazing,
+    };
     let mut out = d.distill_fields();
     let mut distilled = Vec::new();
     for (name, ty) in fields(nodedef) {
@@ -298,6 +305,7 @@ struct Families {
 struct Distiller<'d, 'g> {
     dag: &'d mut Dag,
     graph: &'g ClosureGraph,
+    index: &'g Index<'g>,
     field_nodes: HashMap<String, NodeId>,
     notes: Vec<String>,
     reflects: HashMap<(ClosureId, bool), bool>,
@@ -1114,12 +1122,14 @@ impl Distiller<'_, '_> {
             (false, None) if has_transmission => (one, ior),
             (false, None) => (zero, ior),
         };
+        let (mut spec_alpha, mut coat_alpha) = (None, None);
         out.insert("specular_weight".into(), weight);
         out.insert("specular_ior".into(), ior);
         out.insert("specular_color".into(), self.resolve(&f.specular_color, white));
         if !f.alpha.items.is_empty() {
             let default = self.konst(Value::Vector2([0.09, 0.09]));
             let alpha = self.resolve(&f.alpha, default);
+            spec_alpha = Some(alpha);
             let (r, a) = self.invert_alpha(alpha);
             out.insert("specular_roughness".into(), r);
             out.insert("specular_roughness_anisotropy".into(), a);
@@ -1151,6 +1161,7 @@ impl Distiller<'_, '_> {
             out.insert("coat_ior".into(), self.resolve(&f.coat_ior, default));
             let default = self.konst(Value::Vector2([0.0, 0.0]));
             let alpha = self.resolve(&f.coat_alpha, default);
+            coat_alpha = Some(alpha);
             let (r, a) = self.invert_alpha(alpha);
             out.insert("coat_roughness".into(), r);
             out.insert("coat_roughness_anisotropy".into(), a);
@@ -1208,16 +1219,60 @@ impl Distiller<'_, '_> {
         if let Some(thin) = self.field("thin_walled") {
             out.insert("geometry_thin_walled".into(), thin);
         }
-        for (values, what, name) in [
-            (std::mem::take(&mut f.normals), "normal", "geometry_normal"),
-            (std::mem::take(&mut f.tangents), "tangent", "geometry_tangent"),
-            (std::mem::take(&mut f.coat_normals), "coat normal", "geometry_coat_normal"),
-            (std::mem::take(&mut f.coat_tangents), "coat tangent", "geometry_coat_tangent"),
+        let lobes = std::mem::take(&mut f.normals);
+        let lobe_tangents = std::mem::take(&mut f.tangents);
+        let coats = std::mem::take(&mut f.coat_normals);
+        let coat_tangents = std::mem::take(&mut f.coat_tangents);
+        for (normals, tangents, alpha, what, field) in [
+            (lobes, lobe_tangents, spec_alpha, "", "geometry_"),
+            (coats, coat_tangents, coat_alpha, "coat ", "geometry_coat_"),
         ] {
-            if let Some(v) = self.first(&values, what) {
-                out.insert(name.into(), v);
+            let (normal_field, tangent_field) = (format!("{field}normal"), format!("{field}tangent"));
+            let normal = self.first(&normals, &format!("{what}normal"));
+            let tangent = self.first(&tangents, &format!("{what}tangent"));
+            let tangent = match alpha {
+                Some(alpha) => self.rough_tangent(alpha, normal, tangent, &normal_field, &tangent_field),
+                None => tangent,
+            };
+            if let Some(n) = normal {
+                out.insert(normal_field, n);
+            }
+            if let Some(t) = tangent {
+                out.insert(tangent_field, t);
             }
         }
         out
+    }
+
+    /// The tangent open_pbr_surface stretches the alpha pair `alpha` along: its rougher direction. That is the lobe's
+    /// `tangent` (u) where `αu ≥ αv`, and v, the tangent turned about the normal, where `αv > αu`. `None` keeps the
+    /// field's default (the state's tangent), as it is where u is the rougher.
+    fn rough_tangent(
+        &mut self,
+        alpha: NodeId,
+        normal: Option<NodeId>,
+        tangent: Option<NodeId>,
+        normal_field: &str,
+        tangent_field: &str,
+    ) -> Option<NodeId> {
+        let (u, v) = (self.extract(alpha, 0), self.extract(alpha, 1));
+        let excess = self.sub(v, u);
+        if self.known(excess).is_some_and(|e| e.floats()[0] <= 0.0) {
+            return tangent;
+        }
+        let Some(t) = tangent.or_else(|| self.state(tangent_field)) else { return tangent };
+        let Some(n) = normal.or_else(|| self.state(normal_field)) else { return tangent };
+        let across = self.op(Op::CrossProduct, &[n, t], Type::Vector3);
+        let turned = self.op(Op::Normalize, &[across], Type::Vector3);
+        let t = if self.ty(t) == Type::Vector3 { t } else { self.op(Op::Convert, &[t], Type::Vector3) };
+        Some(self.if_positive(excess, turned, t))
+    }
+
+    /// The state read open_pbr_surface's `field` defaults to (`Nworld`, `Tworld`).
+    fn state(&mut self, field: &str) -> Option<NodeId> {
+        let port = self.index.nodedef(NODEDEF)?.inputs.iter().find(|p| p.name == field)?;
+        let read = geomprop_read(self.index, port.default_geomprop.as_deref()?, Type::Vector3).ok()?;
+        let ty = read.ty();
+        Some(self.dag.add(Node { kind: NodeKind::Context(read), ty, origin: format!("{ORIGIN}.{field}") }))
     }
 }

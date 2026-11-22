@@ -27,3 +27,7 @@ export material normal_mapped(uniform texture_2d normals = texture_2d("normals.p
 export material cutout(float o = 0.25) = material(
     surface: material_surface(scattering: df::diffuse_reflection_bsdf()),
     geometry: material_geometry(cutout_opacity: o));
+
+// Brushed along v: the larger roughness along tangent v, the default tangent_u.
+export material brushed_v() = material(
+    surface: material_surface(scattering: df::microfacet_ggx_smith_bsdf(roughness_u: 0.2, roughness_v: 0.5)));

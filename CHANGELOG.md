@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Distill: the tangent follows the rougher direction.** open_pbr_surface stretches an anisotropic lobe along
+  `geometry_tangent`; where a lobe is rougher along v than u (vMaterials' brushed metals), the distilled
+  `geometry_tangent` (and `geometry_coat_tangent` for a coat) is now the lobe's tangent turned about its normal, so
+  the highlight smears along v as the MDL does. It stayed u, smearing across the brushing.
 - **Distill: `distill_weighted_grazing`.** A new `IrOptions` flag for hosts whose Fresnel scales its grazing
   reflectance by `specular_weight` as well: a weighted dielectric reflection layer under a metal (OmniPBR's
   `specular_level`, a `custom_curve_layer` whose weight scales its whole curve) puts its weight in `specular_weight`,

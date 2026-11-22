@@ -1,8 +1,8 @@
 //! Distilling closure trees to `open_pbr_surface`: one test per mapping row, on trees built from shader nodes the
 //! way the MDL and Blender front ends build them, and on MaterialX documents.
 
-use shadewire::interpret::{NoTextures, eval_surface};
-use shadewire::{Dag, Error, Value};
+use shadewire::interpret::{ContextSource, NoTextures, eval_surface};
+use shadewire::{ContextRead, Dag, Error, Space, TransformKind, Value};
 
 use super::tests::{Zeros, inline};
 use crate::document::{Document, PortType};
@@ -588,6 +588,97 @@ fn the_surface_geometry_is_kept() {
     near(&dag, "geometry_normal", &[0.0, 0.6, 0.8]);
     near(&dag, "geometry_tangent", &[1.0, 0.0, 0.0]);
     assert!(dag.approximations.is_empty(), "{:?}", dag.approximations);
+}
+
+/// A shading frame: normal +z, tangent +x.
+struct Frame;
+
+impl ContextSource for Frame {
+    fn read(&mut self, read: &ContextRead) -> Value {
+        match read {
+            ContextRead::Normal(_) => Value::Vector3([0.0, 0.0, 1.0]),
+            ContextRead::Tangent(_) => Value::Vector3([1.0, 0.0, 0.0]),
+            _ => Value::zero(read.ty()),
+        }
+    }
+    fn transform(&mut self, _: TransformKind, _: Space, _: Space, v: [f32; 3]) -> [f32; 3] {
+        v
+    }
+}
+
+/// A brushed specular of alpha pair `(u, v)` over a diffuse, its tangent `tangent` (+x) when given, normal +z.
+fn brushed(u: f32, v: f32, tangent: bool) -> Dag {
+    let mut inputs = vec![("roughness", v2(u, v)), ("scatter_mode", text("R"))];
+    if tangent {
+        inputs.push(("normal", Arg::Value(Value::Vector3([0.0, 0.0, 1.0]))));
+        inputs.push(("tangent", Arg::Value(Value::Vector3([1.0, 0.0, 0.0]))));
+    }
+    distilled(
+        vec![
+            bsdf("spec", "dielectric_bsdf", inputs),
+            bsdf("d", "oren_nayar_diffuse_bsdf", Vec::new()),
+            layer("l", "spec", "d"),
+        ],
+        "l",
+    )
+}
+
+/// `field` at the `Frame`.
+fn framed(dag: &Dag, field: &str) -> Vec<f32> {
+    let values = eval_surface(dag, &mut Frame, &NoTextures);
+    values.into_iter().find(|(n, _)| n == field).unwrap_or_else(|| panic!("no field {field}")).1.floats()
+}
+
+#[track_caller]
+fn along_y(got: &[f32]) {
+    assert!(got[0].abs() < 1e-4 && (got[1].abs() - 1.0).abs() < 1e-4 && got[2].abs() < 1e-4, "{got:?}");
+}
+
+#[test]
+fn a_lobe_rougher_along_v_turns_its_tangent_to_v() {
+    let dag = brushed(0.2, 0.5, true);
+    along_y(&value(&dag, "geometry_tangent").floats());
+    near(&dag, "specular_roughness_anisotropy", &[0.6]);
+    let along_u = brushed(0.5, 0.2, true);
+    let r = value(&along_u, "specular_roughness").floats();
+    near(&dag, "specular_roughness", &r);
+}
+
+#[test]
+fn a_lobe_rougher_along_u_keeps_its_tangent() {
+    let dag = brushed(0.5, 0.2, true);
+    near(&dag, "geometry_tangent", &[1.0, 0.0, 0.0]);
+    near(&dag, "specular_roughness_anisotropy", &[0.6]);
+}
+
+#[test]
+fn a_lobe_rougher_along_v_without_a_tangent_turns_the_state_tangent() {
+    let dag = brushed(0.2, 0.5, false);
+    along_y(&framed(&dag, "geometry_tangent"));
+    let isotropic = brushed(0.3, 0.3, false);
+    assert_eq!(framed(&isotropic, "geometry_tangent"), vec![1.0, 0.0, 0.0]);
+}
+
+#[test]
+fn a_coat_rougher_along_v_turns_its_tangent_to_v() {
+    let n = Arg::Value(Value::Vector3([0.0, 0.0, 1.0]));
+    let t = Arg::Value(Value::Vector3([1.0, 0.0, 0.0]));
+    let dag = distilled(
+        vec![
+            bsdf(
+                "coat",
+                "dielectric_bsdf",
+                vec![("roughness", v2(0.1, 0.3)), ("normal", n), ("tangent", t), ("scatter_mode", text("R"))],
+            ),
+            bsdf("spec", "dielectric_bsdf", vec![("roughness", v2(0.09, 0.09)), ("scatter_mode", text("R"))]),
+            bsdf("d", "oren_nayar_diffuse_bsdf", Vec::new()),
+            layer("inner", "spec", "d"),
+            layer("l", "coat", "inner"),
+        ],
+        "l",
+    );
+    near(&dag, "coat_weight", &[1.0]);
+    along_y(&value(&dag, "geometry_coat_tangent").floats());
 }
 
 #[test]

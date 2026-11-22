@@ -3,9 +3,9 @@
 
 use std::path::{Path, PathBuf};
 
-use shadewire::interpret::eval_surface;
+use shadewire::interpret::{ContextSource, eval_surface};
 use shadewire::testing::{ProbeTextures, probes};
-use shadewire::{Dag, LOBE_MODELS, Value};
+use shadewire::{ContextRead, Dag, LOBE_MODELS, Space, Value};
 use shadewire_mdl::{IrOptions, Resolver, material_names, to_ir};
 use shadewire_nodes::surface::distill::distill;
 
@@ -214,6 +214,22 @@ fn an_image_driven_normal_reaches_geometry_normal() {
         stack.extend(dag.args(id));
     }
     assert!(sampled, "geometry_normal does not read the normal map");
+}
+
+#[test]
+fn an_mdl_lobe_rougher_along_v_turns_geometry_tangent_to_v() {
+    let ir = shapes("brushed_v");
+    near_at(&ir.dag, "specular_roughness_anisotropy", &[0.6]);
+    for (probe, values) in probes().into_iter().zip(evaluate(&ir.dag)) {
+        let field = |name: &str| values.iter().find(|(n, _)| n == name).unwrap().1.floats();
+        let t = field("geometry_tangent");
+        let mut p = probe;
+        let u = p.read(&ContextRead::Tangent(Space::World)).floats();
+        let n = p.read(&ContextRead::Normal(Space::World)).floats();
+        let dot = |a: &[f32], b: &[f32]| a.iter().zip(b).map(|(x, y)| x * y).sum::<f32>();
+        assert!((dot(&t, &t) - 1.0).abs() < 1e-4, "{t:?}");
+        assert!(dot(&t, &u).abs() < 1e-4 && dot(&t, &n).abs() < 1e-4, "{t:?}");
+    }
 }
 
 #[test]
