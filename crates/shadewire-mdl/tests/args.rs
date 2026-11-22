@@ -91,7 +91,8 @@ fn each_argument_folds_into_a_constant() {
     ];
     let d = dag(&args, false);
     assert_eq!(field(&d, "c1_color"), Held::Const(Value::Color3([0.1, 0.2, 0.3])));
-    assert_eq!(field(&d, "c0_roughness"), Held::Const(Value::Vector2([0.2, 0.3])));
+    // (roughness_v, roughness_u): roughness_u runs across tangent_u, as RTX real-time has it.
+    assert_eq!(field(&d, "c0_roughness"), Held::Const(Value::Vector2([0.3, 0.2])));
     assert_eq!(field(&d, "c0_ior"), Held::Const(Value::Float(1.3)));
     assert_eq!(field(&d, "thin_walled"), Held::Const(Value::Boolean(true)));
     assert_eq!(field(&d, "opacity"), Held::Const(Value::Float(0.25)));

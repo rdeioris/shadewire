@@ -585,9 +585,12 @@ impl<'p, 'a> Eval<'p, 'a> {
                 let rv = Self::num_arg(args, "roughness_v").unwrap_or_else(|| ru.clone());
                 let tangent = Self::num_arg(args, "tangent_u");
                 let default_tangent = self.context(ContextRead::Tangent(Space::World), "state::texture_tangent_u");
+                // `roughness_u` across `tangent_u`, `roughness_v` along it: as the MDL SDK distiller's ue4 target
+                // and RTX's real-time renderer stretch a lobe (vMaterials' brushed metals, `roughness_u` from
+                // `brush_width`, smear along v there). A lobe's roughness pair runs along its tangent first.
                 Some(Tree::Specular {
                     tint: tint(args),
-                    roughness: [ru, rv],
+                    roughness: [rv, ru],
                     tangent: tangent.filter(|t| *t != default_tangent),
                     mode: Self::arg(args, "mode").and_then(Val::known_int).unwrap_or(0),
                     normal: around.normal.clone(),

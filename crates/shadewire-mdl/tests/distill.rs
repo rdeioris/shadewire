@@ -217,8 +217,8 @@ fn an_image_driven_normal_reaches_geometry_normal() {
 }
 
 #[test]
-fn an_mdl_lobe_rougher_along_v_turns_geometry_tangent_to_v() {
-    let ir = shapes("brushed_v");
+fn an_mdl_lobe_rougher_along_u_turns_geometry_tangent_to_v() {
+    let ir = shapes("brushed_u");
     near_at(&ir.dag, "specular_roughness_anisotropy", &[0.6]);
     for (probe, values) in probes().into_iter().zip(evaluate(&ir.dag)) {
         let field = |name: &str| values.iter().find(|(n, _)| n == name).unwrap().1.floats();

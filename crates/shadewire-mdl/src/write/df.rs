@@ -58,10 +58,11 @@ impl<'a> Closures<'a> {
         inputs.get(input).map_or(default.to_string(), |f| format!("color({})", Self::read(f)))
     }
 
-    /// A GGX lobe over the lobe's roughness and tangent.
+    /// A GGX lobe over the lobe's roughness and tangent: its roughness along the tangent is MDL's `roughness_v`, and
+    /// across it `roughness_u` (material.rs reads them so, as RTX's real-time renderer stretches them).
     fn ggx(inputs: &std::collections::BTreeMap<String, String>, tint: &str, mode: &str) -> String {
         let (u, v) = match inputs.get("roughness") {
-            Some(f) => (format!("{}.x", Self::read(f)), format!("{}.y", Self::read(f))),
+            Some(f) => (format!("{}.y", Self::read(f)), format!("{}.x", Self::read(f))),
             None => ("0.05".to_string(), "0.05".to_string()),
         };
         let tangent = inputs.get("tangent").map_or(String::new(), |f| format!(", tangent_u: {}", Self::read(f)));

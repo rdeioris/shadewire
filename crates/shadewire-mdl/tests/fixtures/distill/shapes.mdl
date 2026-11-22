@@ -29,5 +29,5 @@ export material cutout(float o = 0.25) = material(
     geometry: material_geometry(cutout_opacity: o));
 
 // Brushed along v: the larger roughness along tangent v, the default tangent_u.
-export material brushed_v() = material(
-    surface: material_surface(scattering: df::microfacet_ggx_smith_bsdf(roughness_u: 0.2, roughness_v: 0.5)));
+export material brushed_u() = material(
+    surface: material_surface(scattering: df::microfacet_ggx_smith_bsdf(roughness_u: 0.5, roughness_v: 0.2)));

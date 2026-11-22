@@ -3,9 +3,12 @@
 ## Unreleased
 
 - **Distill: the tangent follows the rougher direction.** open_pbr_surface stretches an anisotropic lobe along
-  `geometry_tangent`; where a lobe is rougher along v than u (vMaterials' brushed metals), the distilled
-  `geometry_tangent` (and `geometry_coat_tangent` for a coat) is now the lobe's tangent turned about its normal, so
-  the highlight smears along v as the MDL does. It stayed u, smearing across the brushing.
+  `geometry_tangent`; where a lobe is rougher along v than u, the distilled `geometry_tangent` (and
+  `geometry_coat_tangent` for a coat) is now the lobe's tangent turned about its normal. It stayed u, stretching
+  the lobe the wrong way.
+- **MDL: a microfacet lobe's `roughness_u` runs across `tangent_u`.** As the MDL SDK distiller's `ue4` target and
+  RTX's real-time renderer have it: vMaterials' brushed metals (`roughness_u` from `brush_width`, the larger) smear
+  along v, as RTX shows them. The lobe's roughness pair is (`roughness_v`, `roughness_u`) along its tangent.
 - **Distill: `distill_weighted_grazing`.** A new `IrOptions` flag for hosts whose Fresnel scales its grazing
   reflectance by `specular_weight` as well: a weighted dielectric reflection layer under a metal (OmniPBR's
   `specular_level`, a `custom_curve_layer` whose weight scales its whole curve) puts its weight in `specular_weight`,
